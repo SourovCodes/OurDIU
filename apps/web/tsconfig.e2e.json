@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["e2e/**/*"],
+  "compilerOptions": {
+    "composite": true,
+    // Playwright runs in Node, but `page.evaluate` callbacks run in the browser.
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "types": ["node"]
+  }
+}

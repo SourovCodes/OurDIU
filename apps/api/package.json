@@ -1,0 +1,42 @@
+{
+  "name": "@ourdiu/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The API (Hono + Better Auth + D1/R2/KV). Runs inside apps/web's Worker.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "cf-typegen": "wrangler types -c ../web/wrangler.jsonc --include-env=false",
+    "postinstall": "pnpm cf-typegen",
+    "typecheck": "pnpm cf-typegen && tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "openapi": "tsx scripts/export-openapi.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local --cwd ../web",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote --cwd ../web",
+    "db:seed:local": "node seeds/seed-local.mjs",
+    "make-admin": "node scripts/make-admin.mjs"
+  },
+  "dependencies": {
+    "@better-auth/drizzle-adapter": "^1.7.6",
+    "@hono/zod-openapi": "^1.6.3",
+    "@ourdiu/shared": "workspace:*",
+    "@scalar/hono-api-reference": "^0.12.6",
+    "better-auth": "^1.7.6",
+    "drizzle-orm": "^0.45.3",
+    "hono": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.2.8",
+    "@types/node": "catalog:",
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.15",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "wrangler": "catalog:"
+  }
+}

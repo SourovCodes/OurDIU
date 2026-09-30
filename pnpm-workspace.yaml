@@ -1,0 +1,30 @@
+packages:
+  - apps/*
+  - packages/*
+
+allowBuilds:
+  esbuild: true
+  workerd: true
+
+# Single source of truth for versions shared across workspace packages.
+catalog:
+  "@types/node": ^24.19.0
+  hono: ^4.13.9
+  typescript: ~6.0.3
+  vitest: ~4.1.11
+  wrangler: ^4.141.0
+  zod: ^4.6.5
+
+minimumReleaseAgeExclude:
+  - "@better-auth/core@1.7.5"
+  - "@better-auth/drizzle-adapter@1.7.5"
+  - "@better-auth/kysely-adapter@1.7.5"
+  - "@better-auth/memory-adapter@1.7.5"
+  - "@better-auth/mongo-adapter@1.7.5"
+  - "@better-auth/prisma-adapter@1.7.5"
+  - "@better-auth/telemetry@1.7.5"
+  - "@cloudflare/vitest-plugin@1.1.9"
+  - better-auth@1.7.5
+  - miniflare@5.20260911.1-alpha
+  - wrangler@4.131.2
+  - "@cloudflare/vite-plugin@1.54.9"

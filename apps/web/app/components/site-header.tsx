@@ -81,7 +81,7 @@ function Brand({ product }: { product: Product | null }) {
       <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
         <Icon className="size-5" aria-hidden />
       </span>
-      <span className="font-expressive text-xl tracking-tight whitespace-nowrap">
+      <span className="font-expressive text-lg tracking-tight whitespace-nowrap sm:text-xl">
         {product?.name ?? "OurDIU"}
       </span>
     </Link>
@@ -370,7 +370,10 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
     <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur">
       <div className="container flex h-16 items-center gap-6">
         <div className="flex min-w-0 items-center gap-1">
-          <ProductSwitcher current={product} />
+          {/* On phones the menu has the other spaces. */}
+          <div className="max-sm:hidden">
+            <ProductSwitcher current={product} />
+          </div>
           <Brand product={product} />
         </div>
         <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">

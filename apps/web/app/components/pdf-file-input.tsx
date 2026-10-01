@@ -72,7 +72,7 @@ export function PdfFileInput({ name, label, error }: PdfFileInputProps) {
           )}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-expressive text-lg">
+          <p className={cn("font-expressive text-lg", file && "truncate")}>
             {file ? file.name : "Drop the question paper here"}
           </p>
           <p className="text-sm text-muted-foreground">

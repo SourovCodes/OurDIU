@@ -42,6 +42,7 @@ Map<String, Reply Function(dynamic)> signedIn({
     'userId': 'me',
     'votes': votes,
     'reportedSubmissionIds': reported,
+    'saved': false,
   }),
 };
 
@@ -189,7 +190,7 @@ void main() {
 
     await tester.tap(find.byTooltip('More'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Report a problem'));
+    await tester.tap(find.text('Report a problem with this paper'));
     await tester.pumpAndSettle();
     expect(find.text('Report this paper'), findsOneWidget);
 
@@ -240,7 +241,7 @@ void main() {
       tester
           .widget<PopupMenuItem<Object?>>(
             find.ancestor(
-              of: find.text('Report a problem'),
+              of: find.text('Report a problem with this paper'),
               matching: find.byWidgetPredicate((w) => w is PopupMenuItem),
             ),
           )

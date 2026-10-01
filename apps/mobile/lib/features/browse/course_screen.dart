@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../api/generated/export.dart';
 import '../../data/format.dart';
 import '../../data/questions.dart';
 import '../../data/taxonomy.dart';
+import '../../shell/app_shell.dart';
 import '../../theme/exam_shape.dart';
 import '../../theme/theme.dart';
 import '../../widgets/question_row.dart';
@@ -115,6 +117,17 @@ class _CourseScreenState extends ConsumerState<CourseScreen> {
       for (final q in sorted)
         if (_examType == null || q.examType.name == _examType) q,
     ];
+    final papers = items.fold(0, (n, q) => n + q.submissionCounts.published);
+    final views = items.fold(0, (n, q) => n + q.viewCount);
+    // Under their semester, newest first (the list is sorted that way).
+    final semesters = <String, List<Question>>{};
+    for (final q in shown) {
+      (semesters[q.semester.name] ??= []).add(q);
+    }
+    final taxonomy = ref.watch(taxonomyProvider).value;
+    final others = course == null || taxonomy == null
+        ? const <Course>[]
+        : sameCourses(taxonomy.courses, course);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -131,8 +144,10 @@ class _CourseScreenState extends ConsumerState<CourseScreen> {
         const SizedBox(height: 6),
         Text(
           [
-            if (dept != null) dept.shortName,
-            '${plural(items.length, 'exam')}, newest semester first',
+            if (dept != null) dept.name,
+            if (items.isNotEmpty)
+              '${plural(papers, 'paper')} from ${plural(items.length, 'exam')}',
+            if (items.isNotEmpty) '${compactCount(views)} views',
           ].join(' · '),
           style: TextStyle(color: scheme.onSurfaceVariant),
         ),
@@ -170,11 +185,71 @@ class _CourseScreenState extends ConsumerState<CourseScreen> {
             body: 'Nobody has shared a paper for this course yet.',
           )
         else
-          RowGroup(
-            children: [
-              for (final q in shown) QuestionRow(q, withinCourse: true),
-            ],
+          for (final MapEntry(key: semester, value: rows)
+              in semesters.entries) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 6, 4, 8),
+              child: Text(
+                semester,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+            RowGroup(
+              children: [
+                for (final q in rows) QuestionRow(q, withinSemester: true),
+              ],
+            ),
+            const SizedBox(height: 14),
+          ],
+        if (others.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Card.filled(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Same course, other names',
+                    style: expressive(20, width: 115, weight: 760),
+                  ),
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Text(
+                      'Papers are filed under the name on the question sheet, so check these too.',
+                      style: TextStyle(color: scheme.onSurfaceVariant),
+                    ),
+                  ),
+                  for (final other in others)
+                    ListTile(
+                      contentPadding: const EdgeInsets.only(right: 8),
+                      title: Text(other.name),
+                      trailing: Text(
+                        taxonomy!.departments
+                                .where((d) => d.id == other.departmentId)
+                                .firstOrNull
+                                ?.shortName ??
+                            '',
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      onTap: () => context.push(
+                        '${tabRoot(context)}/courses/${other.id}',
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
+        ],
       ],
     );
   }

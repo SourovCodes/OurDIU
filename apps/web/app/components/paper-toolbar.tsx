@@ -265,7 +265,7 @@ export function PaperToolbar({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t bg-background/95 px-3 py-2.5 backdrop-blur [&_[data-slot=button]]:bg-surface",
+        "flex items-center gap-x-1.5 border-t bg-background/95 px-3 py-2.5 backdrop-blur [&_[data-slot=button]]:bg-surface",
         className,
       )}
     >
@@ -290,10 +290,15 @@ export function PaperToolbar({
         href={fileUrl}
         target="_blank"
         rel="noopener"
-        className={cn(buttonVariants(), "ml-1")}
+        aria-label="Full screen"
+        className={cn(
+          buttonVariants(),
+          "ml-1 max-[399px]:size-10 max-[399px]:p-0",
+        )}
       >
         <ExternalLink aria-hidden />
-        Full screen
+        {/* Just the icon on the narrowest phones, so the bar stays one row. */}
+        <span className="max-[399px]:sr-only">Full screen</span>
       </a>
     </div>
   );

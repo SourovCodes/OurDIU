@@ -888,11 +888,21 @@ test("the theme follows the OS until one is picked", async ({ page }) => {
 
 test("the switcher moves between products", async ({ page }) => {
   await page.goto("/questions/browse");
+  // On phones the other spaces are in the menu.
+  const phone = test.info().project.name === "mobile";
   await expect(async () => {
-    await page.getByRole("button", { name: "Switch product" }).click();
-    await page
-      .getByRole("menuitem", { name: /Class Routine/ })
-      .click({ timeout: 2_000 });
+    if (phone) {
+      await page.getByRole("button", { name: "Open menu" }).click();
+      await page
+        .getByRole("dialog", { name: "Menu" })
+        .getByRole("link", { name: /Class Routine/ })
+        .click({ timeout: 2_000 });
+    } else {
+      await page.getByRole("button", { name: "Switch product" }).click();
+      await page
+        .getByRole("menuitem", { name: /Class Routine/ })
+        .click({ timeout: 2_000 });
+    }
     await expect(page).toHaveURL(/\/routine$/, { timeout: 2_000 });
   }).toPass();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(

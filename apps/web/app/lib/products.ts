@@ -4,6 +4,7 @@ import {
   ShoppingBag,
   type LucideIcon,
 } from "lucide-react";
+import { loginReturnPath } from "~/lib/redirect";
 
 /**
  * The OurDIU products. Each is a space of its own under its path (docs/PLAN.md):
@@ -101,4 +102,22 @@ export function productAt(pathname: string): Product | null {
       (p) => pathname === p.href || pathname.startsWith(`${p.href}/`),
     ) ?? null
   );
+}
+
+/**
+ * The space a page shows in: its product, except that the login page keeps the
+ * space of the page it returns to, so logging in from the Question Bank doesn't
+ * leave it.
+ */
+export function spaceAt({
+  pathname,
+  search,
+}: {
+  pathname: string;
+  search: string;
+}): Product | null {
+  if (pathname === "/login") {
+    return productAt(loginReturnPath(search).split(/[?#]/)[0]!);
+  }
+  return productAt(pathname);
 }

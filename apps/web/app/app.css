@@ -16,6 +16,28 @@
     }
   }
 
+  /* A new page rises in, with Material's emphasized decelerate easing. It ends on
+     `transform: none`, so fixed and sticky children behave once it's done. */
+  --animate-page-in: page-in 320ms cubic-bezier(0.05, 0.7, 0.1, 1) both;
+  @keyframes page-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* A filled icon popping in, like the app's bookmark and vote. */
+  --animate-pop: pop 360ms cubic-bezier(0.2, 0, 0, 1);
+  @keyframes pop {
+    40% {
+      transform: scale(1.3);
+    }
+  }
+
   /* Roboto Flex for everything, as in the app; headings use its width axis. */
   --font-sans: "Roboto Flex Variable", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Roboto Flex Variable", ui-sans-serif, system-ui, sans-serif;
@@ -218,6 +240,12 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  /* A clear ring for keyboard focus on links and other controls that don't draw
+     their own (buttons and fields use `focus-visible:ring`). */
+  :where(a, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 }
 

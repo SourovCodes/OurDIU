@@ -56,7 +56,8 @@ const FILL: Record<ExamKind, string> = {
   lab: "text-exam-lab",
 };
 
-const INK: Record<ExamKind, string> = {
+/** The content colour on an exam's shape, for letters or an icon. */
+export const EXAM_INK: Record<ExamKind, string> = {
   final: "text-exam-final-foreground",
   midterm: "text-exam-midterm-foreground",
   quiz: "text-exam-quiz-foreground",
@@ -118,7 +119,7 @@ export function ExamBadge({
       <ExamShape kind={kind} className="absolute inset-0 size-full" />
       <span
         aria-hidden
-        className={cn("relative font-display leading-none", INK[kind])}
+        className={cn("relative font-display leading-none", EXAM_INK[kind])}
         style={{
           fontSize: Math.round(size * (letters.length > 1 ? 0.3 : 0.36)),
           fontStretch: "120%",

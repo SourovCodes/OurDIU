@@ -20,6 +20,7 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 import { EmptyState } from "~/components/empty-state";
+import { PageTransition, SkipLink } from "~/components/page-transition";
 import { AndroidBetaStrip } from "~/components/android-beta";
 import { SiteHeader } from "~/components/site-header";
 import { SocialIcon } from "~/components/social-icons";
@@ -34,7 +35,7 @@ import {
 } from "~/lib/analytics";
 import { AUTHOR } from "~/lib/author";
 import { LEGAL_PAGES } from "~/lib/legal";
-import { PRODUCTS, productAt } from "~/lib/products";
+import { PRODUCTS, spaceAt } from "~/lib/products";
 import { getUser } from "~/lib/session.server";
 import { THEME_SCRIPT } from "~/lib/theme";
 
@@ -72,7 +73,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // chrome, even on a route that normally has its own shell.
   const error = useRouteError();
   const matches = useMatches();
-  const space = productAt(useLocation().pathname)?.id;
+  const space = spaceAt(useLocation())?.id;
   const ownShell =
     !error &&
     matches.some(
@@ -102,6 +103,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         data-space={space}
         className="min-h-dvh bg-background font-sans text-foreground antialiased"
       >
+        <SkipLink />
         <TopLoader />
         {ownShell ? (
           children
@@ -109,9 +111,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="flex min-h-dvh flex-col">
             <SiteHeader user={data?.user ?? null} />
             <AndroidBetaStrip />
-            <main className="@container/main container flex-1 py-8">
+            <PageTransition className="@container/main container flex-1 py-8">
               {children}
-            </main>
+            </PageTransition>
             <footer className="mt-12 bg-surface-low">
               <div className="container grid gap-10 py-12 md:grid-cols-[1fr_auto]">
                 <div className="max-w-sm space-y-3">

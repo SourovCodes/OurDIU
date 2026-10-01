@@ -34,7 +34,7 @@ export function FormMessage({ message }: { message?: string }) {
   return (
     <p
       role="alert"
-      className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+      className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
     >
       {message}
     </p>

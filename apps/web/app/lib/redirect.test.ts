@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { canonicalHostRedirect, legacyPath, safeRedirect } from "./redirect";
+import {
+  canonicalHostRedirect,
+  legacyPath,
+  loginHref,
+  safeRedirect,
+} from "./redirect";
+import { spaceAt } from "./products";
 
 describe("safeRedirect", () => {
   it.each(["/", "/questions/contribute", "/papers/1?x=1"])(
@@ -90,5 +96,36 @@ describe("legacyPath", () => {
     ["/privacy", "/privacy"],
   ])("maps %s to %s", (from, to) => {
     expect(legacyPath(from)).toBe(to);
+  });
+});
+
+describe("loginHref", () => {
+  it("comes back to the page the visitor is on", () => {
+    expect(
+      loginHref({ pathname: "/questions/12", search: "?submission=3" }),
+    ).toBe("/login?redirectTo=%2Fquestions%2F12%3Fsubmission%3D3");
+  });
+  it("has no return path from the hub, and keeps its own on the login page", () => {
+    expect(loginHref({ pathname: "/", search: "" })).toBe("/login");
+    expect(
+      loginHref({ pathname: "/login", search: "?redirectTo=%2Fquestions" }),
+    ).toBe("/login?redirectTo=%2Fquestions");
+  });
+});
+
+describe("spaceAt", () => {
+  it("puts the login page in the space it returns to", () => {
+    expect(
+      spaceAt({ pathname: "/login", search: "?redirectTo=%2Fquestions%2F12" })
+        ?.id,
+    ).toBe("questions");
+    expect(spaceAt({ pathname: "/login", search: "" })).toBeNull();
+    expect(
+      spaceAt({
+        pathname: "/login",
+        search: "?redirectTo=https%3A%2F%2Fevil.com",
+      }),
+    ).toBeNull();
+    expect(spaceAt({ pathname: "/routine", search: "" })?.id).toBe("routine");
   });
 });

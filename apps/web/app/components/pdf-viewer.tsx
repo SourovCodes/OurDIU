@@ -47,15 +47,41 @@ export function PdfViewer({ src, title, className }: PdfViewerProps) {
 
   return (
     <div
-      className={cn("relative overflow-hidden rounded-3xl bg-muted", className)}
+      className={cn(
+        "relative overflow-hidden rounded-3xl bg-surface",
+        className,
+      )}
     >
-      {/* Behind the frame, so it shows until the paper paints over it. */}
+      {/* Behind the frame, so it shows until the paper paints over it: a blank
+          question paper, header and numbered questions. */}
       <div
         aria-hidden
-        className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-sm text-muted-foreground"
+        className="absolute inset-0 flex justify-center overflow-hidden px-4 pt-6 sm:pt-10"
       >
-        <Loader2 className="size-6 animate-spin" />
-        Loading the paper…
+        <div className="flex aspect-[1/1.414] w-full max-w-2xl flex-col gap-3 rounded-xl bg-card p-6 shadow-sm motion-safe:animate-pulse sm:gap-4 sm:p-10">
+          <div className="mx-auto h-3 w-2/5 rounded-full bg-muted" />
+          <div className="mx-auto h-2.5 w-3/5 rounded-full bg-muted" />
+          <div className="mx-auto mb-4 h-2.5 w-1/4 rounded-full bg-muted" />
+          {[0.92, 0.8, 0.86, 0.7, 0.9].map((width, i) => (
+            <div key={i} className="flex gap-3 pt-2">
+              <div className="size-3 shrink-0 rounded-full bg-muted" />
+              <div className="grid flex-1 gap-2">
+                <div
+                  className="h-2.5 rounded-full bg-muted"
+                  style={{ width: `${width * 100}%` }}
+                />
+                <div
+                  className="h-2.5 rounded-full bg-muted"
+                  style={{ width: `${(width - 0.25) * 100}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="absolute bottom-6 inline-flex items-center gap-2 rounded-full bg-background/90 px-4 py-2 text-sm text-muted-foreground shadow-sm">
+          <Loader2 className="size-4 motion-safe:animate-spin" />
+          Loading the paper…
+        </p>
       </div>
       {google ? (
         <iframe

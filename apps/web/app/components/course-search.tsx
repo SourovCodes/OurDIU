@@ -152,6 +152,7 @@ export function CourseSearch() {
   function choose(course: CourseEntry) {
     rememberCourse(course.id);
     setOpen(false);
+    setQuery("");
     navigate(courseHref(course.id));
   }
 

@@ -17,6 +17,8 @@ import '../../widgets/state_message.dart';
 import '../upload/share_card.dart';
 import '../../spaces/space.dart';
 import '../../spaces/switcher.dart';
+import '../../data/contributors.dart';
+import '../contributors/contributors_screen.dart';
 import 'search_pill.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -124,6 +126,8 @@ class HomeScreen extends ConsumerWidget {
                   QuestionRow(q),
               ],
             ),
+            const SizedBox(height: 20),
+            const _TopContributors(),
           ],
         ),
       );
@@ -420,4 +424,66 @@ class _HomeSkeleton extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// The students who share the most, as a row of faces; thanks, and a way in.
+class _TopContributors extends ConsumerWidget {
+  const _TopContributors();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final page = ref.watch(contributorsPageProvider(1)).value;
+    if (page == null || page.items.isEmpty) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(
+          'Top contributors',
+          onSeeAll: () => context.push('/home/contributors'),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 136,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: page.items.take(10).length,
+            separatorBuilder: (_, _) => const SizedBox(width: 4),
+            itemBuilder: (context, i) {
+              final c = page.items[i];
+              return SizedBox(
+                width: 84,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => openContributor(context, c.username),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Column(
+                      spacing: 6,
+                      children: [
+                        PersonAvatar(name: c.name, image: c.image, radius: 28),
+                        Text(
+                          c.name.split(' ').first,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          plural(c.publishedCount, 'paper'),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 }

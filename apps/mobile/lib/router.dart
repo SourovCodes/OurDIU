@@ -17,6 +17,8 @@ import 'features/upload/papers.dart';
 import 'features/upload/upload_screen.dart';
 import 'shell/app_shell.dart';
 import 'spaces/choose_screen.dart';
+import 'features/contributors/contributor_screen.dart';
+import 'features/contributors/contributors_screen.dart';
 import 'spaces/coming_soon_screen.dart';
 import 'spaces/space.dart';
 
@@ -62,6 +64,18 @@ GoRouter buildRouter({String initialLocation = '/home'}) => GoRouter(
               path: '/home',
               builder: (context, state) => const HomeScreen(),
               routes: [
+                GoRoute(
+                  path: 'contributors',
+                  builder: (context, state) => const ContributorsScreen(),
+                  routes: [
+                    GoRoute(
+                      path: ':username',
+                      builder: (context, state) => ContributorScreen(
+                        username: state.pathParameters['username']!,
+                      ),
+                    ),
+                  ],
+                ),
                 GoRoute(
                   path: 'search',
                   builder: (context, state) => const SearchScreen(),
@@ -144,6 +158,9 @@ GoRouter buildRouter({String initialLocation = '/home'}) => GoRouter(
       builder: (context, state) => QuestionScreen(
         id: _id(state),
         summary: state.extra is Question ? state.extra as Question : null,
+        submissionId: int.tryParse(
+          state.uri.queryParameters['submission'] ?? '',
+        ),
       ),
     ),
   ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../api/api.dart';
@@ -14,6 +15,7 @@ import '../../theme/theme.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/google_button.dart';
 import '../../widgets/skeleton.dart';
+import '../contributors/contributors_screen.dart';
 import '../upload/share_card.dart';
 
 Future<void> _openSite(String path) =>
@@ -45,6 +47,8 @@ class AccountScreen extends ConsumerWidget {
               const SizedBox(height: 20),
               const _SignInCard(),
             ],
+            const SizedBox(height: 24),
+            const _Community(),
             const SizedBox(height: 24),
             Text(
               'Appearance',
@@ -149,6 +153,38 @@ class AccountScreen extends ConsumerWidget {
   }
 }
 
+/// Your public profile and the other contributors, as on the website.
+class _Community extends ConsumerWidget {
+  const _Community();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final username = ref.watch(profileProvider).value?.username;
+    return Column(
+      spacing: 2,
+      children: [
+        if (username != null)
+          _LinkTile(
+            icon: Icons.badge_outlined,
+            title: 'Your public profile',
+            subtitle: 'What other students see',
+            bottom: false,
+            external: false,
+            onTap: () => openContributor(context, username),
+          ),
+        _LinkTile(
+          icon: Icons.groups_outlined,
+          title: 'Contributors',
+          subtitle: 'The students who share papers',
+          top: username == null,
+          external: false,
+          onTap: () => context.push('/home/contributors'),
+        ),
+      ],
+    );
+  }
+}
+
 /// A row in a group of rounded tiles: the ends of the group are rounder.
 class _LinkTile extends StatelessWidget {
   const _LinkTile({
@@ -157,8 +193,12 @@ class _LinkTile extends StatelessWidget {
     this.subtitle,
     this.top = true,
     this.bottom = true,
+    this.external = true,
     required this.onTap,
   });
+
+  /// Opens the website or another app, rather than a screen in this one.
+  final bool external;
 
   final IconData icon;
   final String title;
@@ -182,8 +222,8 @@ class _LinkTile extends StatelessWidget {
         title: Text(title),
         subtitle: subtitle == null ? null : Text(subtitle!),
         trailing: Icon(
-          Icons.open_in_new_rounded,
-          size: 18,
+          external ? Icons.open_in_new_rounded : Icons.chevron_right_rounded,
+          size: external ? 18 : 24,
           color: scheme.onSurfaceVariant,
         ),
         onTap: onTap,

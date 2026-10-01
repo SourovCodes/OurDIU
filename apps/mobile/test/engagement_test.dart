@@ -148,7 +148,13 @@ void main() {
     await tester.tap(find.text('Not now'));
     await tester.pumpAndSettle();
 
-    expect(backend.requests, isEmpty);
+    // Nothing signed in or voted (Home, underneath, loads its own lists).
+    expect(
+      backend.requests.where(
+        (r) => r.path.contains('/vote') || r.path.startsWith('/api/auth'),
+      ),
+      isEmpty,
+    );
     expect(
       find.descendant(of: likeButton(), matching: find.text('3')),
       findsOneWidget,

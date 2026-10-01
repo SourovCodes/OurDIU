@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/theme.dart';
+
 /// A section title with an optional "See all" link on the right.
 class SectionHeader extends StatelessWidget {
   const SectionHeader(this.title, {super.key, this.onSeeAll});
@@ -15,9 +17,12 @@ class SectionHeader extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 18,
+            // Expressive, as the website's section headings.
+            style: expressive(
+              24,
+              width: 120,
+              weight: 780,
+              color: theme.colorScheme.onSurface,
             ),
           ),
         ),

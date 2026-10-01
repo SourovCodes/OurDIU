@@ -24,9 +24,18 @@ import 'question_providers.dart';
 /// sheet to switch between the question's papers, and holds the likes; the menu
 /// opens the paper in a browser or reports a problem with it.
 class QuestionScreen extends ConsumerStatefulWidget {
-  const QuestionScreen({super.key, required this.id, this.summary});
+  const QuestionScreen({
+    super.key,
+    required this.id,
+    this.summary,
+    this.submissionId,
+  });
 
   final int id;
+
+  /// The paper to open on, e.g. a contributor's own copy; otherwise the best
+  /// rated.
+  final int? submissionId;
 
   /// The row that was tapped, to show the title while the question loads.
   final Question? summary;
@@ -36,7 +45,7 @@ class QuestionScreen extends ConsumerStatefulWidget {
 }
 
 class _QuestionScreenState extends ConsumerState<QuestionScreen> {
-  int? _selectedId;
+  late int? _selectedId = widget.submissionId;
   final _countedPapers = <int>{};
   var _countedQuestion = false;
   var _chrome = true;

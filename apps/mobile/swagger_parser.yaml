@@ -1,0 +1,20 @@
+# Generates the API client in lib/api/generated from the API's OpenAPI document
+# (apps/api/openapi.json, written by `pnpm openapi`). Regenerate with
+# `dart run tool/generate_api.dart`; the output is committed.
+swagger_parser:
+  schema_path: ../api/openapi.json
+  output_directory: lib/api/generated
+  name: qb_api
+  json_serializer: json_serializable
+  root_client: true
+  root_client_name: QbApi
+  put_clients_in_folder: true
+  unknown_enum_value: true
+  # The app never calls the admin panel's or crawlers' endpoints.
+  exclude_tags:
+    - "Admin"
+    - "Admin: catalog"
+    - "Admin: submissions"
+    - "Admin: users"
+    - "Admin: reports"
+    - "Sitemap"

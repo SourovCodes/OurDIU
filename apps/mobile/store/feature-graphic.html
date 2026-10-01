@@ -1,0 +1,53 @@
+<!doctype html>
+<!-- Source of feature-graphic.png (1024×500, Play's feature graphic).
+     Re-render: node apps/mobile/store/render-feature-graphic.mjs -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: "Roboto Flex";
+    src: url("../assets/fonts/RobotoFlex.ttf");
+    font-weight: 100 1000;
+    font-stretch: 25% 151%;
+  }
+  * { margin: 0; box-sizing: border-box; }
+  body { width: 1024px; height: 500px; overflow: hidden; background: #4f39f6; font-family: "Roboto Flex", sans-serif; }
+  .card { position: relative; width: 1024px; height: 500px; overflow: hidden; background: #4f39f6; }
+  .copy { position: absolute; left: 72px; top: 0; bottom: 0; width: 540px; display: flex; flex-direction: column; justify-content: center; color: #fff; }
+  .brand { font-size: 26px; font-weight: 700; letter-spacing: -0.2px; color: #e3dfff; margin-bottom: 18px; }
+  h1 { font-size: 88px; line-height: 0.92; font-weight: 900; font-stretch: 140%; letter-spacing: -2px; }
+  p { margin-top: 24px; font-size: 25px; line-height: 1.35; color: #e3dfff; font-weight: 500; }
+  .shape { position: absolute; }
+  .phone { position: absolute; left: 650px; top: 58px; width: 300px; border-radius: 36px; padding: 9px; background: #1c1a2c; transform: rotate(6deg); box-shadow: 0 30px 60px rgba(20, 10, 90, 0.45); }
+  .phone img { display: block; width: 100%; border-radius: 28px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <svg class="shape" style="left:590px;top:-70px" width="260" height="260" viewBox="-1 -1 2 2"><path id="flower" fill="#ffd9e3"/></svg>
+  <svg class="shape" style="left:860px;top:300px" width="240" height="240" viewBox="-1 -1 2 2"><path id="cookie" fill="#b9f0e0"/></svg>
+  <svg class="shape" style="left:-60px;top:380px" width="170" height="170" viewBox="-1 -1 2 2"><circle r="1" fill="#ffd966"/></svg>
+  <div class="copy">
+    <div class="brand">QuestionBank</div>
+    <h1>Find your paper.</h1>
+    <p>Past exam papers from DIU students.<br>Free, with no ads.</p>
+  </div>
+  <div class="phone"><img src="screenshots/01-home.png" alt=""></div>
+</div>
+<script>
+  // The app's exam shapes: a wavy circle with n lobes.
+  function wavy(n, depth) {
+    const pts = [];
+    for (let i = 0; i <= 360; i++) {
+      const t = (i / 360) * Math.PI * 2;
+      const r = (1 - depth) + depth * Math.cos(n * t);
+      pts.push(`${(r * Math.cos(t)).toFixed(4)},${(r * Math.sin(t)).toFixed(4)}`);
+    }
+    return `M${pts.join("L")}Z`;
+  }
+  document.getElementById("flower").setAttribute("d", wavy(5, 0.18));
+  document.getElementById("cookie").setAttribute("d", wavy(9, 0.07));
+</script>
+</body>
+</html>

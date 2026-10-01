@@ -1,0 +1,105 @@
+name: Release Android
+
+# Pushing a tag like mobile-v1.2.3 (on a commit that's on main) builds a signed App
+# Bundle and uploads it to Google Play. Setup and the release steps: "Releasing the
+# Android app" in the README.
+on:
+  push:
+    tags: ["mobile-v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-android
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build & upload to Google Play
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Holds the upload key; Google Cloud only trusts this repository's jobs in this
+    # environment on mobile-v* tags.
+    environment: play
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # mobile-vMAJOR.MINOR.PATCH → versionName MAJOR.MINOR.PATCH and versionCode
+      # MAJOR*1000000 + MINOR*1000 + PATCH, which grows with every release.
+      - name: Read the version from the tag
+        id: version
+        run: |
+          if ! [[ "$GITHUB_REF_NAME" =~ ^mobile-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Release tags look like mobile-v1.2.3."
+            exit 1
+          fi
+          major=${BASH_REMATCH[1]} minor=${BASH_REMATCH[2]} patch=${BASH_REMATCH[3]}
+          if (( $minor > 999 || $patch > 999 || $major > 2000 )); then
+            echo "::error::Minor and patch go up to 999, major to 2000."
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tag a commit that is on main, so CI has checked it."
+            exit 1
+          fi
+          echo "name=$major.$minor.$patch" >> "$GITHUB_OUTPUT"
+          echo "code=$(($major * 1000000 + $minor * 1000 + $patch))" >> "$GITHUB_OUTPUT"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: apps/mobile/.fvmrc
+          cache: true
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - run: flutter pub get
+      - run: flutter test
+      - name: Write the upload key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::The play environment needs the ANDROID_UPLOAD_KEYSTORE_BASE64 and ANDROID_UPLOAD_KEYSTORE_PASSWORD secrets."
+            exit 1
+          fi
+          base64 --decode <<<"$KEYSTORE_BASE64" > android/upload-keystore.jks
+          # PKCS12 keystores use one password for the store and the key.
+          printf 'storeFile=upload-keystore.jks\nstorePassword=%s\nkeyAlias=upload\nkeyPassword=%s\n' \
+            "$KEYSTORE_PASSWORD" "$KEYSTORE_PASSWORD" > android/key.properties
+      - run: >-
+          flutter build appbundle --release
+          --build-name ${{ steps.version.outputs.name }}
+          --build-number ${{ steps.version.outputs.code }}
+      - run: rm android/key.properties android/upload-keystore.jks
+      # Kept so a build can also be installed or uploaded by hand.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: app-release-${{ steps.version.outputs.name }}
+          path: apps/mobile/build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      # Pinned to a commit: it handles the Play credentials.
+      - uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJson: ${{ steps.auth.outputs.credentials_file_path }}
+          packageName: com.ourdiu.app
+          releaseFiles: apps/mobile/build/app/outputs/bundle/release/app-release.aab
+          releaseName: ${{ steps.version.outputs.name }}
+          # internal until the app has production access; draft until Google has
+          # reviewed the app once (Play only accepts draft releases before that).
+          tracks: ${{ vars.PLAY_TRACK || 'internal' }}
+          status: ${{ vars.PLAY_RELEASE_STATUS || 'draft' }}

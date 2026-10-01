@@ -25,3 +25,13 @@ updates:
       # @cloudflare/vitest-plugin supports vitest ^4 only; lift this when it moves.
       - dependency-name: "vitest"
         update-types: [version-update:semver-major]
+
+  # The Flutter app. A generator update (swagger_parser, retrofit_generator,
+  # json_serializable) can change lib/api/generated: CI then asks to regenerate it.
+  - package-ecosystem: pub
+    directory: /apps/mobile
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]

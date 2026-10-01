@@ -1,7 +1,9 @@
 name: CI
 
-# One workflow for the whole repository: checks, end-to-end tests, and a deploy from
-# main once both pass.
+# One workflow for the whole repository. The `changes` job decides what a push or PR
+# touches, and the site, mobile and deploy jobs run only when needed. `CI` at the end
+# is the one check to require in branch protection: it passes when every job that ran
+# passed, whichever were skipped.
 on:
   push:
     branches: [main]
@@ -19,8 +21,46 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      site: ${{ steps.diff.outputs.site }}
+      mobile: ${{ steps.diff.outputs.mobile }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # site: the Worker (web, API, shared packages, root tooling). Everything except
+      #   the Flutter app, its release workflow and Markdown.
+      # mobile: the Flutter app, its release workflow, and the OpenAPI document its
+      #   client is generated from.
+      # This file counts for both. Without a usable base commit, everything runs.
+      - id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          base=$([ "$EVENT" = pull_request ] && echo "$PR_BASE" || echo "$PUSH_BEFORE")
+          if [ "$EVENT" = workflow_dispatch ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "No base commit to compare with; running everything."
+            echo "site=true" >> "$GITHUB_OUTPUT"
+            echo "mobile=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          files=$(git diff --name-only "$base...$GITHUB_SHA")
+          echo "$files"
+          has() { grep -qE "$1" <<<"$files" && echo true || echo false; }
+          echo "site=$(grep -vE '^apps/mobile/|^\.github/workflows/release-android\.yml$|\.md$' <<<"$files" | grep -q . && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "mobile=$(has '^(apps/mobile/|apps/api/openapi\.json$|\.github/workflows/(ci|release-android)\.yml$)')" >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
+
   check:
     name: Lint, typecheck & unit tests
+    needs: changes
+    if: needs.changes.outputs.site == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -34,6 +74,8 @@ jobs:
 
   e2e:
     name: End-to-end tests
+    needs: changes
+    if: needs.changes.outputs.site == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -56,7 +98,7 @@ jobs:
       - name: Prepare local API secrets and database
         run: |
           printf "BETTER_AUTH_SECRET=%s\n" "$(openssl rand -base64 32)" > apps/web/.dev.vars
-          # Placeholder Google client: the e2e tests never reach Google.
+          # Placeholder Google client: the e2e tests stop at Google's (stubbed) sign-in page.
           printf "GOOGLE_CLIENT_ID=e2e-client-id\nGOOGLE_CLIENT_SECRET=e2e-client-secret\n" >> apps/web/.dev.vars
           pnpm db:migrate
           pnpm db:seed
@@ -68,14 +110,67 @@ jobs:
           path: apps/web/playwright-report
           retention-days: 7
 
-  # Deploys main once the checks have passed. Skipped until the repository variable
-  # SITE_URL is set (see "Deploying" in the README for the one-time setup).
+  mobile:
+    name: Mobile – analyze, test & build Android
+    needs: changes
+    if: needs.changes.outputs.mobile == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: apps/mobile/.fvmrc
+          cache: true
+      - run: flutter pub get
+      - name: Generated API client matches apps/api/openapi.json
+        run: |
+          ./tool/generate_api.sh
+          if [ -n "$(git status --porcelain -- lib/api/generated)" ]; then
+            git status --porcelain -- lib/api/generated
+            echo "::error::The API client is stale. Run apps/mobile/tool/generate_api.sh and commit the result."
+            exit 1
+          fi
+      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: flutter analyze
+      - run: flutter test
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - run: flutter build apk --debug
+
+  # Compiles the iOS app without signing. macOS runners are free for public repositories.
+  mobile-ios:
+    name: Mobile – build iOS
+    needs: changes
+    if: needs.changes.outputs.mobile == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: apps/mobile/.fvmrc
+          cache: true
+      - run: flutter build ios --debug --no-codesign
+
+  # Deploys main once the site's checks have passed, only when the site changed (not
+  # for mobile or docs changes). Skipped until the repository variable SITE_URL is set
+  # (see "Deploying" in the README for the one-time setup).
   deploy:
     name: Deploy to Cloudflare
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [check, e2e]
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.SITE_URL != ''
+    needs: [changes, check, e2e]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.changes.outputs.site == 'true' && vars.SITE_URL != ''
     # Never cancel a deploy halfway, and run them one at a time in push order.
     concurrency:
       group: deploy
@@ -92,3 +187,19 @@ jobs:
       - name: Deploy the Worker
         working-directory: apps/web
         run: pnpm build && pnpm exec wrangler deploy --var "SITE_URL:${{ vars.SITE_URL }}" --var "FILES_URL:${{ vars.FILES_URL }}"
+
+  # The single required check: fails if any job failed or was cancelled.
+  ci:
+    name: CI
+    if: always()
+    needs: [changes, check, e2e, mobile, mobile-ios, deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          FAILED: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: |
+          if [ "$FAILED" = true ]; then
+            echo "::error::A CI job failed or was cancelled."
+            exit 1
+          fi

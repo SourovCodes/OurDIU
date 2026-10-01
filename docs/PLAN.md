@@ -87,10 +87,12 @@ Phases (tick as they land):
 - [x] W1 Question Bank: home (exam-coloured "Most viewed" tiles, department tiles, two calls to action), Browse (department tiles), department and course pages (as in the approved mockup), All papers, paper page (save, share, "N copies of this exam", "Was this paper useful?", phone bottom bar), course search.
 - [x] W1 Saved papers synced to the account: `saved_questions` (0007), `/api/v1/me/saved` (GET, PUT/DELETE `/{id}`, POST bulk), `saved` in interactions; web Saved page and bookmark.
 - [x] W2 hub (product tiles in each space's colours, as the app's chooser), coming-soon pages, contributors (podium + rows), contributor profile, login.
-- [ ] W2 contribute flow (like the app's upload: file card, pickers, exam chips, "this exam already has N papers"), my submissions and a submission's status (status hero, timeline, AI comparison), account page, about, contact, legal pages, `/app`, 404/error, delete-account.
-- [ ] W3 web polish: loading states, motion, dark mode and phone pass on every page, accessibility pass, e2e updated.
-- [ ] A1 app: saved papers synced with the account (merge the phone's list on sign-in), contributors and contributor screens, course page "This course" / "Same course, other names", paper reader wording ("N copies of this exam", "Was this paper useful?", share), anything the website now does better.
-- [ ] A2 app polish; `flutter analyze`, `flutter test`; screenshots.
+- [x] W2 contribute flow (like the app's upload: file card, pickers, exam chips, "this exam already has N papers"), my submissions and a submission's status (status hero, timeline, AI comparison), account page, about, contact, legal pages, `/app`, 404/error, delete-account.
+- [x] W3 web polish (first pass): phone and dark-mode pass on the main pages; header and paper bar fixed for narrow phones; e2e updated for the new names.
+- [ ] W3 still to do: motion and loading placeholders across pages, an accessibility pass, admin pages untouched by design (they share the restyled components).
+- [x] A1 app: saved papers synced with the account (merge the phone's list on sign-in), contributors and contributor screens, course page "This course" / "Same course, other names", paper reader wording ("N copies of this exam", "Was this paper useful?", share), anything the website now does better.
+- [x] A2 app: department letters, course screen and Home checked on the emulator against the local server; `flutter analyze` and 60 tests green.
+- [ ] Release: the app needs a new `mobile-v*` tag for synced saved papers and contributors; the website ships when PR #1 merges; CI's deploy applies migration 0007 (a new `saved_questions` table, nothing else changes).
 
 ### Phase 2 – One app
 

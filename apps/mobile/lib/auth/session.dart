@@ -14,7 +14,7 @@ import 'token.dart';
 /// client, which the API still accepts (GOOGLE_EXTRA_CLIENT_IDS). Client IDs
 /// are public; the secret stays on the server.
 const googleServerClientId =
-    '550941155781-v1hejo68llkdju4urh31p5q85rqe8mj5.apps.googleusercontent.com';
+    '279664469023-dgh2duvok7122vagev2f5llbl4ugctmg.apps.googleusercontent.com';
 
 /// The API's code for a new account whose email isn't a DIU one.
 const emailDomainNotAllowed = 'EMAIL_DOMAIN_NOT_ALLOWED';

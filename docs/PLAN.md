@@ -57,7 +57,7 @@ Preparation (nothing visible to users):
 
 1. [x] Database `ourdiu-db` (`6fa31581-db1e-4c60-9e8d-202818bc3030`) created and named in `wrangler.jsonc`; the first `ourdiu` database (placeholder site only) is retired later. Queues `questions-analysis` and `questions-watermark` created.
 2. [x] Server accepts Google ID tokens from the `ourdiu` client (`GOOGLE_CLIENT_ID`) and the old `diuquestionbank` one (`GOOGLE_EXTRA_CLIENT_IDS` in `wrangler.jsonc`), also on diuqbank.com (tests in `app-auth.test.ts`). The app's `apiBaseUrl` is `https://ourdiu.com` and its links use the new paths.
-3. [ ] Owner, Google Cloud (`ourdiu`): Android OAuth clients for `com.ourdiu.app`, one per signing certificate SHA-1: the local debug key (`CA:EB:5D:97:4C:64:31:A8:B6:21:9C:40:E3:B5:15:6C:D9:E6:8E:61`), the upload key, and Play's app signing key (Play Console → App integrity). Then the app's `googleServerClientId` becomes the `ourdiu` web client ID.
+3. [x] Owner, Google Cloud (`ourdiu`): Android OAuth clients for `com.ourdiu.app`, one per signing certificate SHA-1: the local debug key (`CA:EB:5D:97:4C:64:31:A8:B6:21:9C:40:E3:B5:15:6C:D9:E6:8E:61`), the upload key, and Play's app signing key (Play Console → App integrity). The app's `googleServerClientId` is now the `ourdiu` web client (`279664469023-dgh2duvok7122vagev2f5llbl4ugctmg`).
 4. [x] Owner, Cloudflare: custom domain `files.ourdiu.com` on R2 `ourdiu-files`; GitHub variable `FILES_URL=https://files.ourdiu.com`.
 5. [x] Owner: secrets on the `ourdiu` Worker with the question bank's values (`BETTER_AUTH_SECRET`, `GEMINI_API_KEY`, `COMPRESSOR_API_KEY`); `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` stay the `ourdiu` client's.
 
@@ -71,7 +71,7 @@ The switch (done; only 2 page views on diuqbank.com fell between the export and 
 11. Merge `question-bank` into `main` (CI deploys the same code; nothing to migrate).
 12. Check: sign-in on the site and in the old and new app, an upload (AI check, watermark), a download, a diuqbank.com link. Delete the copy Worker.
 13. Archive DIUQBank on GitHub. In Play Console, point the privacy policy and delete-account URLs at ourdiu.com; release the app (`mobile-v1.6.0`).
-14. Status: steps 6–12 done (copy Worker deleted); DIUQBank archived. Left: Play Console URLs and the app release (step 13, after step 3), and `www.diuqbank.com` on the `ourdiu` Worker.
+14. Status: steps 6–12 done (copy Worker deleted); DIUQBank archived. `www.diuqbank.com` is on the `ourdiu` Worker. Left: Play Console URLs and the app release (step 13).
 15. Later: retire the `questionbank` Worker, D1, R2 (and `r2.diuqbank.com`) and `qb-*` queues, and the `ourdiu` placeholder database, once nothing needs them.
 
 ### Phase 2 – One app

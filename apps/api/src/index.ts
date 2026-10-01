@@ -13,7 +13,7 @@ export default {
   fetch: app.fetch,
   // One consumer per queue in wrangler.jsonc.
   async queue(batch, env) {
-    if (batch.queue === "qb-pdf-watermark") {
+    if (batch.queue === "questions-watermark") {
       await handleWatermarkBatch(batch as MessageBatch<WatermarkJob>, env);
     } else {
       await handleAnalysisBatch(batch as MessageBatch<AnalysisJob>, env);

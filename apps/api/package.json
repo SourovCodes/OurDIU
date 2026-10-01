@@ -18,7 +18,6 @@
     "db:migrate:local": "wrangler d1 migrations apply DB --local --cwd ../web",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote --cwd ../web",
     "db:seed:local": "node seeds/seed-local.mjs",
-    "import-legacy": "node scripts/import-legacy.mjs",
     "make-admin": "node scripts/make-admin.mjs"
   },
   "dependencies": {

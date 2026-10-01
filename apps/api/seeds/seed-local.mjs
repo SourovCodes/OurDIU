@@ -8,7 +8,7 @@ import path from "node:path";
 const webDir = path.join(import.meta.dirname, "../../web");
 const sqlFile = path.join(import.meta.dirname, "dev.sql");
 const samplePdf = path.join(import.meta.dirname, "sample.pdf");
-const bucket = "questionbank-papers";
+const bucket = "ourdiu-files";
 
 function wrangler(args) {
   execFileSync("pnpm", ["exec", "wrangler", ...args], {

@@ -39,7 +39,7 @@ Design mockups (website, Material app, and the rejected iOS style): <https://cla
 
 ### Phase 1 – Question bank moves in (code done, cutover pending)
 
-Code, on the branch `question-bank`. Not merged to `main` yet: a push to `main` deploys, and this code needs the question bank's production database, so merging it **is** the cutover below.
+Code, on the branch `question-bank`. Not merged to `main` yet: a push to `main` deploys, and this code needs a database with the question bank's schema and data, so merging it is part of the cutover below. Until the cutover, **diuqbank.com keeps running as it is** on its own Worker, database and bucket, and ourdiu.com keeps the placeholder hub. Locally, `apps/web/.dev.vars` uses the question bank's secrets (same Google client, Gemini and compressor keys).
 
 - [x] The question bank's API, schema, migrations (its `0000`–`0006` replace this repo's old `0000_init`), shared schemas, tests and web pages, renamed `@qb/*` → `@ourdiu/*`. `ADMIN_EMAILS` kept. The platform's separate `departments` admin page went away: the question bank's catalog manages departments.
 - [x] Pages under the product path: `/questions` (the space's home), `/questions/browse`, `/questions/:id`, `/questions/contributors[/:username]`, `/questions/contribute`, `/questions/my-submissions[/:id]`. `/account` is the shared profile. Admin: `/admin` (dashboard, question bank numbers for now), `/admin/questions/{submissions,reports,catalog}`, `/admin/users`; the sidebar has a group per product plus "Platform".
@@ -49,15 +49,22 @@ Code, on the branch `question-bank`. Not merged to `main` yet: a push to `main` 
 - [x] `pnpm check` green (202 API, 124 web, 53 shared tests), 60 e2e tests green, OpenAPI regenerated.
 - [ ] Not done yet: the one-time "Class Routine is new" banner in the question bank space (mockup), and per-space colours on the web (everything is indigo).
 
-Cutover (production, done by hand with the owner, never by CI on its own). `apps/web/wrangler.jsonc` on the branch already names the question bank's production resources (D1 `questionbank` `ad50a07f-3aed-4006-9974-78df2b9bcfc6`, which has migrations `0000`–`0006`; R2 `questionbank-papers`; the `qb-*` queues; the rate limits; `PDF_PROCESSOR_URL`, `GEMINI_MODEL`), so the data is adopted, not copied.
+Cutover (production, done by hand with the owner, never by CI on its own; not scheduled yet). The data is **copied** from diuqbank.com into OurDIU's own resources, then the domain is redirected. `apps/web/wrangler.jsonc` names OurDIU's resources: D1 `ourdiu`, R2 `ourdiu-files`, queues `questions-analysis` / `questions-watermark`, rate-limit namespaces 2001–2004 (1001–1004 are diuqbank's).
 
-1. Secrets on the `ourdiu` Worker, run by the owner (`wrangler secret put <NAME> --name ourdiu`): `GEMINI_API_KEY`, `COMPRESSOR_API_KEY`, and `BETTER_AUTH_SECRET` set to the question bank's value, so existing web sessions and the app's bearer tokens stay valid.
-2. Google sign-in: the installed app sends ID tokens issued for the question bank's OAuth client, and Better Auth checks their audience against `GOOGLE_CLIENT_ID`. Recommended: use the question bank's OAuth client for ourdiu.com too (set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` to it, add `https://ourdiu.com` and `https://ourdiu.com/api/auth/callback/google` to it), and retire the new `279664469023-…` client.
-3. GitHub repository variable `FILES_URL` = the question bank's value (the R2 bucket's public domain).
-4. Queues allow one consumer: remove the `questionbank` Worker's consumers first (`wrangler queues consumer remove qb-submission-analysis questionbank`, same for `qb-pdf-watermark`).
-5. Merge `question-bank` into `main`. CI runs the (no-op) migrations against `questionbank` and deploys `ourdiu`.
-6. Move the `diuqbank.com` and `www.diuqbank.com` custom domains from the `questionbank` Worker to `ourdiu`; pages 301 to ourdiu.com, `/api/*` keeps working. Check sign-in on the site and in the installed app, an upload (AI check, watermark) and a download.
-7. Retire the `questionbank` Worker, the empty `ourdiu` D1 and `ourdiu-files` R2, and archive `../QuestionBank`. Make the owner an admin again if needed (`ADMIN_EMAILS`, or `pnpm make-admin <email> --remote`).
+Preparation (any time before, nothing visible to users):
+
+1. Empty the `ourdiu` D1: it has the placeholder site's old `0000_init` applied (only the owner's account), which clashes with the question bank's migrations of the same name. Delete and recreate it (`wrangler d1 delete ourdiu`, `wrangler d1 create ourdiu`) and put the new id in `wrangler.jsonc`.
+2. Create the queues: `wrangler queues create questions-analysis`, `wrangler queues create questions-watermark`.
+3. Give `ourdiu-files` a public custom domain (e.g. `files.ourdiu.com`) and set the GitHub variable `FILES_URL` to it.
+4. Secrets on the `ourdiu` Worker, run by the owner (`wrangler secret put <NAME> --name ourdiu`), with the question bank's values: `BETTER_AUTH_SECRET` (so sessions and the app's bearer tokens copied with the data stay valid), `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (the installed app's ID tokens are issued for that client; add `https://ourdiu.com` and `https://ourdiu.com/api/auth/callback/google` to it, and retire the new `279664469023-…` client), `GEMINI_API_KEY`, `COMPRESSOR_API_KEY`.
+
+The switch (at a quiet time: anything uploaded, voted or signed up on diuqbank.com between the export and the domain move is lost):
+
+5. Copy the database: `wrangler d1 export questionbank --remote --output questionbank.sql`, then `wrangler d1 execute ourdiu --remote --file questionbank.sql` into the empty database. The export carries the schema, triggers and the `d1_migrations` table, so CI's migrations are then a no-op.
+6. Copy the files: every object of R2 `questionbank-papers` into `ourdiu-files`, same keys (PDFs, `watermarked/`, avatars), e.g. with rclone over R2's S3 API or Cloudflare's R2 data migration.
+7. Merge `question-bank` into `main`; CI applies migrations (nothing to do) and deploys `ourdiu`.
+8. Move the `diuqbank.com` and `www.diuqbank.com` custom domains from the `questionbank` Worker to `ourdiu`: pages 301 to their new paths on ourdiu.com, `/api/*` keeps serving installed apps. Check sign-in on the site and in the app, an upload (AI check, watermark), a download.
+9. Keep the `questionbank` Worker's D1 and R2 for a while as a backup, then retire them and archive `../QuestionBank`. Make the owner an admin if needed (`ADMIN_EMAILS`, or `pnpm make-admin <email> --remote`).
 
 ### Phase 2 – One app
 

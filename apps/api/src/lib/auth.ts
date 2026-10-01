@@ -47,6 +47,21 @@ export function adminEmails(env: Env): Set<string> {
 }
 
 /**
+ * The Google OAuth clients whose ID tokens are accepted: GOOGLE_CLIENT_ID first (the
+ * site's sign-in uses it), then GOOGLE_EXTRA_CLIENT_IDS (comma-separated), e.g. the
+ * old question bank client that installed copies of the app still sign in with.
+ */
+export function googleClientIds(env: Env): string[] {
+  return [
+    env.GOOGLE_CLIENT_ID,
+    ...(env.GOOGLE_EXTRA_CLIENT_IDS ?? "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean),
+  ];
+}
+
+/**
  * Google is the only way to sign in, and one account works across every OurDIU
  * product. New accounts need a DIU address (ALLOWED_EMAIL_DOMAINS) unless they're in
  * ADMIN_EMAILS, which also makes them admins; existing accounts can always sign in. Exported on its own so tests can build an auth
@@ -114,7 +129,7 @@ export function authOptions(env: Env, db: Database) {
     plugins: [bearer({ requireSignature: true })],
     socialProviders: {
       google: {
-        clientId: env.GOOGLE_CLIENT_ID,
+        clientId: googleClientIds(env),
         clientSecret: env.GOOGLE_CLIENT_SECRET,
         prompt: "select_account",
       },

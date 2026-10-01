@@ -19,6 +19,7 @@ export default defineConfig(async () => {
             BETTER_AUTH_SECRET: "test-only-secret-that-is-long-enough-1234",
             GOOGLE_CLIENT_ID: "test-google-client-id",
             GOOGLE_CLIENT_SECRET: "test-google-client-secret",
+            GOOGLE_EXTRA_CLIENT_IDS: "test-old-app-client-id",
             ADMIN_EMAILS: "boss@gmail.com",
             // Never call the real AI services from tests (.dev.vars may hold keys).
             // Queued analyses then fail fast as "not configured".

@@ -8,6 +8,8 @@
 // interfaces, so everything is added to both.
 // GEMINI_API_KEY and COMPRESSOR_API_KEY may be unset locally; AI analysis then fails
 // as "not configured".
+// GOOGLE_EXTRA_CLIENT_IDS: other Google clients whose app sign-ins are accepted
+// (see googleClientIds in lib/auth.ts).
 // ADMIN_EMAILS is optional: a comma-separated list of addresses that may create an
 // account without a DIU address, and are made admins when they do.
 interface Env {
@@ -26,6 +28,7 @@ interface Env {
   BETTER_AUTH_SECRET: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
+  GOOGLE_EXTRA_CLIENT_IDS: string;
   GEMINI_API_KEY: string;
   COMPRESSOR_API_KEY: string;
   ADMIN_EMAILS: string;
@@ -48,6 +51,7 @@ declare namespace Cloudflare {
     BETTER_AUTH_SECRET: string;
     GOOGLE_CLIENT_ID: string;
     GOOGLE_CLIENT_SECRET: string;
+    GOOGLE_EXTRA_CLIENT_IDS: string;
     GEMINI_API_KEY: string;
     COMPRESSOR_API_KEY: string;
     ADMIN_EMAILS: string;

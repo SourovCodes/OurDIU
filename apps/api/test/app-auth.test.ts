@@ -10,10 +10,12 @@ import { db } from "./helpers";
  * session token it sends as a bearer token. The app sends no Origin header and no
  * cookies, so requests here are built without the `api()` helper's Origin.
  */
-function app(path: string, init: RequestInit = {}) {
-  return exports.default.fetch(
-    new Request(`${new URL(env.SITE_URL).origin}${path}`, init),
-  );
+function app(
+  path: string,
+  init: RequestInit = {},
+  origin = new URL(env.SITE_URL).origin,
+) {
+  return exports.default.fetch(new Request(`${origin}${path}`, init));
 }
 
 const bearer = (token: string) => ({ authorization: `Bearer ${token}` });
@@ -81,12 +83,16 @@ async function mockGoogleKeys() {
   });
 }
 
-function signInWithIdToken(token: string) {
-  return app("/api/auth/sign-in/social", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ provider: "google", idToken: { token } }),
-  });
+function signInWithIdToken(token: string, origin?: string) {
+  return app(
+    "/api/auth/sign-in/social",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ provider: "google", idToken: { token } }),
+    },
+    origin,
+  );
 }
 
 const profile = (email = `app-${crypto.randomUUID()}@diu.edu.bd`) => ({
@@ -136,6 +142,38 @@ describe("app sign-in", () => {
       .from(user)
       .where(eq(user.email, claims.email));
     expect(rows).toEqual([]);
+  });
+
+  it("accepts ID tokens for the old question bank client", async () => {
+    // Installed copies of the app from before the move sign in with it
+    // (GOOGLE_EXTRA_CLIENT_IDS in vitest.config.ts).
+    await mockGoogleKeys();
+
+    const res = await signInWithIdToken(
+      await googleIdToken({ ...profile(), aud: "test-old-app-client-id" }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("set-auth-token")).toBeTruthy();
+  });
+
+  it("signs in on the old question bank domain, where old apps call the API", async () => {
+    await mockGoogleKeys();
+    const legacy = "https://diuqbank.com";
+
+    const res = await signInWithIdToken(
+      await googleIdToken({ ...profile(), aud: "test-old-app-client-id" }),
+      legacy,
+    );
+
+    expect(res.status).toBe(200);
+    const token = res.headers.get("set-auth-token")!;
+    const mine = await app(
+      "/api/v1/me/submissions",
+      { headers: bearer(token) },
+      legacy,
+    );
+    expect(mine.status).toBe(200);
   });
 
   it("refuses an ID token issued to another app", async () => {

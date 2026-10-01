@@ -136,7 +136,7 @@ class AccountScreen extends ConsumerWidget {
             Text(
               [
                 if (details != null) 'Version ${details.version}',
-                'diuqbank.com',
+                'ourdiu.com',
               ].join(' · '),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
@@ -386,8 +386,8 @@ class _ProfileDetails extends StatelessWidget {
         _LinkTile(
           icon: Icons.badge_outlined,
           title: 'Your public page',
-          subtitle: 'diuqbank.com/contributors/${profile.username}',
-          onTap: () => _openSite('/contributors/${profile.username}'),
+          subtitle: 'ourdiu.com/questions/contributors/${profile.username}',
+          onTap: () => _openSite('/questions/contributors/${profile.username}'),
         ),
       ],
     );

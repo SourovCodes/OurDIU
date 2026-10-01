@@ -8,9 +8,11 @@ import '../api/generated/export.dart';
 import 'token.dart';
 
 /// The site's web OAuth client ID. Google issues the ID token for it, so the
-/// API accepts the token as its own. The Android client (package name and
-/// signing certificate) only has to exist in the same Google Cloud project
-/// (`diuquestionbank`). Client IDs are public; the secret stays on the server.
+/// API accepts the token as its own. The Android clients (package name and each
+/// signing certificate) only have to exist in the same Google Cloud project
+/// (`ourdiu`). Builds before the move used the `diuquestionbank` project's
+/// client, which the API still accepts (GOOGLE_EXTRA_CLIENT_IDS). Client IDs
+/// are public; the secret stays on the server.
 const googleServerClientId =
     '550941155781-v1hejo68llkdju4urh31p5q85rqe8mj5.apps.googleusercontent.com';
 

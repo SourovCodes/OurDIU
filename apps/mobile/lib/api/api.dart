@@ -11,7 +11,7 @@ import 'generated/qb_api.dart';
 /// `http://localhost:5173` (iOS simulator).
 const apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'https://diuqbank.com',
+  defaultValue: 'https://ourdiu.com',
 );
 
 /// Cookies the API sets, like a browser keeps them. The view cookies make each

@@ -1,12 +1,14 @@
 import { ArrowRight, Smartphone, X } from "lucide-react";
-import { useState, useSyncExternalStore } from "react";
-import { Link } from "react-router";
+import { useCallback, useState, useSyncExternalStore } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
+import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import {
   ANDROID_BETA,
   bannerDismissed,
   dismissBanner,
   isAndroid,
+  takeDownloadInvite,
 } from "~/lib/android-app";
 
 // Nothing to subscribe to: the device and the dismissal only change on reload,
@@ -73,15 +75,75 @@ export function AndroidBetaBanner() {
   );
 }
 
-/** A one-line invitation for signed-in Android visitors, on the account page. */
-export function AndroidBetaLink() {
+/**
+ * Question Bank pages that get the slim strip under the header: where readers
+ * land from search and shared links. Its home has the full banner; contributing
+ * and your own papers have their own invitations or none.
+ */
+function stripShownOn(pathname: string) {
+  return (
+    pathname.startsWith("/questions/") &&
+    !pathname.startsWith("/questions/contribute") &&
+    !pathname.startsWith("/questions/my-submissions")
+  );
+}
+
+/** The banner's one-line form, under the header on Question Bank pages. */
+export function AndroidBetaStrip() {
+  const { pathname } = useLocation();
+  const invited = useAndroidBeta({ dismissible: true });
+  const [closed, setClosed] = useState(false);
+  if (!invited || closed || !stripShownOn(pathname)) return null;
+
+  return (
+    <aside
+      aria-label="Android app"
+      className="border-b border-primary/20 bg-primary/5 text-sm"
+    >
+      <div className="container flex items-center gap-2 py-1.5">
+        <Smartphone className="size-4 shrink-0 text-primary" aria-hidden />
+        <p className="min-w-0 flex-1">
+          OurDIU app for Android:{" "}
+          <Link
+            to="/app"
+            className="font-medium text-primary underline underline-offset-4"
+          >
+            become a tester
+          </Link>
+        </p>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="-mr-2 size-7 text-muted-foreground"
+          aria-label="Dismiss"
+          onClick={() => {
+            dismissBanner();
+            setClosed(true);
+          }}
+        >
+          <X />
+        </Button>
+      </div>
+    </aside>
+  );
+}
+
+/**
+ * A one-line invitation for Android visitors, e.g. on the account page, where
+ * it isn't dismissible.
+ */
+export function AndroidBetaLink({
+  children = "The OurDIU Android app is in testing.",
+}: {
+  children?: React.ReactNode;
+}) {
   if (!useAndroidBeta({ dismissible: false })) return null;
 
   return (
     <p className="flex items-center gap-2 text-sm text-muted-foreground">
       <Smartphone className="size-4 shrink-0" aria-hidden />
       <span>
-        The OurDIU Android app is in testing.{" "}
+        {children}{" "}
         <Link
           to="/app"
           className="font-medium text-primary underline-offset-4 hover:underline"
@@ -91,4 +153,21 @@ export function AndroidBetaLink() {
       </span>
     </p>
   );
+}
+
+/**
+ * A click handler for Download buttons: once per visit, an Android visitor who
+ * hasn't dismissed the banner hears that the app reads papers offline.
+ */
+export function useDownloadInvite() {
+  const invited = useAndroidBeta({ dismissible: true });
+  const navigate = useNavigate();
+  return useCallback(() => {
+    if (!invited || !takeDownloadInvite()) return;
+    toast("Read papers offline in the OurDIU app", {
+      description: "It’s in testing on Android.",
+      action: { label: "Become a tester", onClick: () => navigate("/app") },
+      duration: 8000,
+    });
+  }, [invited, navigate]);
 }

@@ -39,3 +39,19 @@ export function dismissBanner(now = Date.now()) {
     // Private mode or blocked storage: it just shows again next visit.
   }
 }
+
+const DOWNLOAD_INVITE_KEY = "ourdiu.androidBetaDownloadInvite";
+
+/**
+ * True the first time it's called in a browser session: the download invitation
+ * shows once per visit, not on every paper.
+ */
+export function takeDownloadInvite() {
+  try {
+    if (sessionStorage.getItem(DOWNLOAD_INVITE_KEY)) return false;
+    sessionStorage.setItem(DOWNLOAD_INVITE_KEY, "1");
+    return true;
+  } catch {
+    return false;
+  }
+}

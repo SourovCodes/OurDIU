@@ -1,5 +1,6 @@
 import { Download, ExternalLink, FileText } from "lucide-react";
 import { useSyncExternalStore } from "react";
+import { useDownloadInvite } from "~/components/android-beta";
 import { buttonVariants } from "~/components/ui/button";
 
 type PdfViewerProps = {
@@ -38,6 +39,7 @@ export function PdfViewer({ src, title }: PdfViewerProps) {
     () => false,
   );
   const google = noNativeViewer ? googleViewerUrl(src) : null;
+  const inviteToApp = useDownloadInvite();
 
   return (
     <div className="overflow-hidden rounded-lg border bg-muted shadow-xs">
@@ -83,7 +85,12 @@ export function PdfViewer({ src, title }: PdfViewerProps) {
                 <ExternalLink aria-hidden />
                 Open in new tab
               </a>
-              <a href={src} download className={buttonVariants({ size: "sm" })}>
+              <a
+                href={src}
+                download
+                onClick={inviteToApp}
+                className={buttonVariants({ size: "sm" })}
+              >
                 <Download aria-hidden />
                 Download
               </a>

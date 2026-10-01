@@ -18,6 +18,7 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 import { EmptyState } from "~/components/empty-state";
+import { AndroidBetaStrip } from "~/components/android-beta";
 import { SiteHeader } from "~/components/site-header";
 import { SocialIcon } from "~/components/social-icons";
 import { buttonVariants } from "~/components/ui/button";
@@ -100,6 +101,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         ) : (
           <div className="flex min-h-dvh flex-col">
             <SiteHeader user={data?.user ?? null} />
+            <AndroidBetaStrip />
             <main className="@container/main container flex-1 py-8">
               {children}
             </main>

@@ -45,6 +45,12 @@ test("Android visitors are invited to test the app", async ({ page }) => {
     "https://play.google.com/store/apps/details?id=com.ourdiu.app",
   );
 
+  // Question Bank pages, where readers land from search, have a slim strip.
+  await page.goto("/questions/browse");
+  await expect(
+    banner.getByRole("link", { name: "become a tester" }),
+  ).toBeVisible();
+
   // Dismissed, it stays away.
   await page.goto("/");
   await expect(async () => {

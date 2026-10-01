@@ -2,6 +2,7 @@ import type { ApiError, CreatedSubmission } from "@ourdiu/shared";
 import { canContribute, DIU_EMAIL_DOMAINS } from "@ourdiu/shared/constants";
 import { ChevronDown, Lightbulb, MailWarning } from "lucide-react";
 import { Form, redirect, useNavigation } from "react-router";
+import { AndroidBetaLink } from "~/components/android-beta";
 import { ContributeForm } from "~/components/contribute-form";
 import { EmptyState } from "~/components/empty-state";
 import { Button } from "~/components/ui/button";
@@ -146,12 +147,17 @@ export default function Contribute({
       </details>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-8">
-        <ContributeForm
-          {...loaderData}
-          fieldErrors={failed?.fieldErrors ?? {}}
-          message={failed?.message}
-          submitting={submitting}
-        />
+        <div className="grid gap-4">
+          <ContributeForm
+            {...loaderData}
+            fieldErrors={failed?.fieldErrors ?? {}}
+            message={failed?.message}
+            submitting={submitting}
+          />
+          <AndroidBetaLink>
+            Scan papers with your camera in the OurDIU Android app.
+          </AndroidBetaLink>
+        </div>
         <Card className="gap-4 bg-muted/30 shadow-none max-lg:hidden">
           <CardHeader>
             <CardTitle>

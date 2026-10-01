@@ -13,6 +13,7 @@ import {
   useSearchParams,
   type ShouldRevalidateFunctionArgs,
 } from "react-router";
+import { useDownloadInvite } from "~/components/android-beta";
 import { EmptyState } from "~/components/empty-state";
 import { OtherSemesters } from "~/components/other-semesters";
 import { PageHeader } from "~/components/page-header";
@@ -224,6 +225,8 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
     question.viewToken,
   );
 
+  const inviteToApp = useDownloadInvite();
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -243,7 +246,7 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
                 </a>
               </Button>
               <Button size="sm" asChild>
-                <a href={fileUrl} download>
+                <a href={fileUrl} download onClick={inviteToApp}>
                   <Download aria-hidden />
                   Download
                 </a>

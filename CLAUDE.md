@@ -1,6 +1,6 @@
 # OurDIU – working notes
 
-pnpm monorepo, one Cloudflare Worker: `apps/web` (React Router SSR) runs `@ourdiu/api` (Hono, a library in `apps/api`) under `/api/*`. The Worker config (bindings, vars, `.dev.vars`, local state) lives in `apps/web`. See README.md for the architecture. The Class Routine and Marketplace are "coming soon" placeholders; the Question Bank lives in `../QuestionBank` (diuqbank.com) and will move in later.
+pnpm monorepo, one Cloudflare Worker: `apps/web` (React Router SSR) runs `@ourdiu/api` (Hono, a library in `apps/api`) under `/api/*`. The Worker config (bindings, vars, `.dev.vars`, local state) lives in `apps/web`. See README.md for the architecture and **docs/PLAN.md for the project plan: the decisions, the roadmap and what's in progress. Read it first, and keep it up to date** (tick off steps, record new decisions).
 
 ## Commands
 

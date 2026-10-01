@@ -62,8 +62,8 @@ export function PageHeader({
         <Breadcrumbs crumbs={breadcrumbs} />
       )}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-balance">
+        <div className="min-w-0 space-y-2">
+          <h1 className="font-expressive text-3xl text-balance sm:text-4xl">
             {title}
           </h1>
           {description && (

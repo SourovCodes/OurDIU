@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { createRoutesStub } from "react-router";
 import { afterEach, expect, it } from "vitest";
 import type { SessionUser } from "~/lib/types";
@@ -96,4 +96,51 @@ it("links admins to the admin panel from the account menu", async () => {
   expect(
     await screen.findByRole("menuitem", { name: "Admin panel" }),
   ).toBeTruthy();
+});
+
+it("puts the visitor's own pages, the other spaces and the theme in the phone menu", async () => {
+  renderHeader(
+    { id: "u1", name: "Ayesha Rahman", email: "ayesha@example.com" },
+    "/questions/browse",
+  );
+  (await screen.findByRole("button", { name: "Open menu" })).click();
+  const menu = await screen.findByRole("dialog", { name: "Menu" });
+  const link = (name: string | RegExp) =>
+    within(menu).getByRole("link", { name });
+  expect(link("Browse").getAttribute("aria-current")).toBe("page");
+  expect(link("My submissions").getAttribute("href")).toBe(
+    "/questions/my-submissions",
+  );
+  expect(link("Account settings").getAttribute("href")).toBe("/account");
+  expect(link(/Class Routine/).textContent).toContain("Soon");
+  expect(within(menu).getByRole("button", { name: "Log out" })).toBeTruthy();
+
+  within(menu).getByRole("button", { name: "Dark" }).click();
+  expect(document.documentElement.classList.contains("dark")).toBe(true);
+  within(menu).getByRole("button", { name: "Light" }).click();
+  expect(document.documentElement.classList.contains("dark")).toBe(false);
+});
+
+it("asks visitors to log in from the phone menu", async () => {
+  renderHeader(null, "/questions");
+  (await screen.findByRole("button", { name: "Open menu" })).click();
+  const menu = await screen.findByRole("dialog", { name: "Menu" });
+  expect(
+    within(menu).getByRole("link", { name: "Log in with Google" }),
+  ).toBeTruthy();
+  expect(
+    within(menu).queryByRole("link", { name: "My submissions" }),
+  ).toBeNull();
+});
+
+it("searches courses in the question bank only", async () => {
+  renderHeader(null, "/questions/1");
+  expect(
+    (await screen.findAllByRole("link", { name: /Search courses/ })).length,
+  ).toBeGreaterThan(0);
+
+  cleanup();
+  renderHeader(null, "/routine");
+  await screen.findByRole("link", { name: "Class Routine" });
+  expect(screen.queryByRole("link", { name: /Search courses/ })).toBeNull();
 });

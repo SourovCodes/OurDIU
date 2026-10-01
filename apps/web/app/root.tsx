@@ -1,4 +1,7 @@
 import "@fontsource-variable/inter";
+// Headings (`font-expressive`): the weight and width axes; browsers fetch it only
+// on pages that use it.
+import "@fontsource-variable/roboto-flex/standard.css";
 // The one subset every page needs; the CSS alone would find it only after it loads.
 import interLatin from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
 import { FileQuestion, GraduationCap, TriangleAlert } from "lucide-react";
@@ -10,6 +13,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLocation,
   useMatches,
   useRouteError,
   useRouteLoaderData,
@@ -32,7 +36,7 @@ import {
 } from "~/lib/analytics";
 import { AUTHOR } from "~/lib/author";
 import { LEGAL_PAGES } from "~/lib/legal";
-import { PRODUCTS } from "~/lib/products";
+import { PRODUCTS, productAt } from "~/lib/products";
 import { getUser } from "~/lib/session.server";
 import { THEME_SCRIPT } from "~/lib/theme";
 
@@ -69,6 +73,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // chrome, even on a route that normally has its own shell.
   const error = useRouteError();
   const matches = useMatches();
+  const space = productAt(useLocation().pathname)?.id;
   const ownShell =
     !error &&
     matches.some(
@@ -94,7 +99,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
       </head>
-      <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
+      <body
+        data-space={space}
+        className="min-h-dvh bg-background font-sans text-foreground antialiased"
+      >
         <TopLoader />
         {ownShell ? (
           children

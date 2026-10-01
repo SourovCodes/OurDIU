@@ -76,11 +76,11 @@ test("the hub leads to the question bank and its questions", async ({
       .click();
     await expect(page).toHaveURL(/\/questions$/, { timeout: 2_000 });
   }).toPass();
-  await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "Past question papers",
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Find your paper",
   );
 
-  await clickUntilUrl(page, "Browse questions", /\/questions\/browse$/);
+  await clickUntilUrl(page, "Browse all questions", /\/questions\/browse$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Browse questions",
   );
@@ -354,6 +354,102 @@ test("a question links to the same exam from other semesters", async ({
     "Data Structures",
   );
   await expect(page.getByText("Spring 24").first()).toBeVisible();
+});
+
+test("course search leads to a course, its exams and a paper", async ({
+  page,
+}) => {
+  await page.goto("/questions");
+  // The pill opens the search once hydrated; before that it links to browsing.
+  await page.waitForLoadState("networkidle");
+  const search = page.getByRole("dialog", { name: "Search courses" });
+  await page.getByRole("link", { name: /Search a course/ }).click();
+  await expect(search).toBeVisible();
+
+  // Every word must match, in any order.
+  await search.getByRole("combobox").fill("struct data");
+  await search.getByRole("option", { name: /Data Structures/ }).click();
+  await expect(page).toHaveURL(/\/questions\/courses\/1$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Data Structures",
+  );
+
+  // Only midterms, newest semester first.
+  await page
+    .getByRole("navigation", { name: "Exam type" })
+    .getByRole("link", { name: /^Midterm/ })
+    .click();
+  await expect(page).toHaveURL(/examTypeId=\d+$/);
+  const semesters = page.getByRole("main").getByRole("heading", { level: 2 });
+  await expect(semesters.first()).toHaveText("Summer 24");
+  await expect(
+    page.getByRole("main").getByRole("link", { name: /^Final/ }),
+  ).toHaveCount(0);
+
+  await page
+    .getByRole("region", { name: "Spring 24" })
+    .getByRole("link", { name: /Midterm/ })
+    .click();
+  await expect(page).toHaveURL(/\/questions\/11$/);
+
+  // The search remembers the course.
+  await page.keyboard.press("/");
+  await expect(
+    search.getByRole("group", { name: "Recent" }).getByRole("option", {
+      name: /Data Structures/,
+    }),
+  ).toBeVisible();
+});
+
+test("a department lists its courses A to Z, filtered as you type", async ({
+  page,
+}) => {
+  await page.goto("/questions/departments/1");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Computer Science and Engineering",
+  );
+  await expect(
+    page.getByRole("heading", { name: "A", exact: true }),
+  ).toBeVisible();
+
+  const main = page.getByRole("main");
+  await expect(async () => {
+    await main.getByRole("searchbox", { name: "Filter courses" }).fill("data");
+    await expect(main.getByRole("link", { name: "Algorithms" })).toHaveCount(
+      0,
+      { timeout: 1_000 },
+    );
+  }).toPass();
+  await expect(
+    main.getByRole("link", { name: "Database Systems" }),
+  ).toBeVisible();
+
+  await main.getByRole("link", { name: "Data Structures" }).click();
+  await expect(page).toHaveURL(/\/questions\/courses\/1$/);
+});
+
+test("a course points to the same course filed under another department", async ({
+  page,
+}) => {
+  await page.goto("/questions/courses/4");
+  const others = page.getByRole("complementary").filter({
+    has: page.getByRole("heading", { name: "Same course, other names" }),
+  });
+  await others.getByRole("link", { name: /Discrete Mathematics/ }).click();
+  await expect(page).toHaveURL(/\/questions\/courses\/9$/);
+});
+
+test("the phone menu has the visitor's own pages", async ({ page }) => {
+  test.skip(test.info().project.name !== "mobile", "The menu is for phones");
+  await logInAs(page, NEW_USER, "/questions");
+  const menu = page.getByRole("dialog", { name: "Menu" });
+  await expect(async () => {
+    await page.getByRole("button", { name: "Open menu" }).click();
+    await expect(menu).toBeVisible({ timeout: 1_000 });
+  }).toPass();
+  await expect(menu.getByRole("button", { name: "Log out" })).toBeVisible();
+  await menu.getByRole("link", { name: "My submissions" }).click();
+  await expect(page).toHaveURL(/\/questions\/my-submissions$/);
 });
 
 test("logging in sends visitors to Google", async ({ page }) => {

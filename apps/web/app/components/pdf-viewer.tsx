@@ -1,4 +1,4 @@
-import { Download, ExternalLink, FileText } from "lucide-react";
+import { Download, ExternalLink, FileText, Loader2 } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { useDownloadInvite } from "~/components/android-beta";
 import { buttonVariants } from "~/components/ui/button";
@@ -22,7 +22,9 @@ function googleViewerUrl(src: string) {
 /** Whether a browser has a PDF viewer never changes while the page is open. */
 const subscribeNever = () => () => {};
 
-const FRAME_CLASS = "block h-[80vh] min-h-[32rem] w-full";
+// On phones the paper fills the screen below the header; on larger screens most of it.
+const FRAME_CLASS =
+  "relative block h-[calc(100dvh-7rem)] min-h-[28rem] w-full sm:h-[80vh] sm:min-h-[32rem]";
 
 /**
  * Uses the browser's native PDF viewer via <object>. Most mobile browsers have none
@@ -42,7 +44,15 @@ export function PdfViewer({ src, title }: PdfViewerProps) {
   const inviteToApp = useDownloadInvite();
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-muted shadow-xs">
+    <div className="relative overflow-hidden rounded-3xl bg-muted">
+      {/* Behind the frame, so it shows until the paper paints over it. */}
+      <div
+        aria-hidden
+        className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-sm text-muted-foreground"
+      >
+        <Loader2 className="size-6 animate-spin" />
+        Loading the paper…
+      </div>
       {google ? (
         <iframe
           src={google}

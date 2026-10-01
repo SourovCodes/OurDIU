@@ -31,7 +31,7 @@ function useAndroidBeta({ dismissible }: { dismissible: boolean }) {
   );
 }
 
-/** "Try the OurDIU Android app early", on the hub and the Question Bank home. */
+/** "Try the OurDIU Android app early", on the hub. */
 export function AndroidBetaBanner() {
   const invited = useAndroidBeta({ dismissible: true });
   const [closed, setClosed] = useState(false);
@@ -76,13 +76,13 @@ export function AndroidBetaBanner() {
 }
 
 /**
- * Question Bank pages that get the slim strip under the header: where readers
- * land from search and shared links. Its home has the full banner; contributing
- * and your own papers have their own invitations or none.
+ * Question Bank pages that get the slim strip under the header: its home and
+ * where readers land from search and shared links. Contributing and your own
+ * papers have their own invitations or none.
  */
 function stripShownOn(pathname: string) {
   return (
-    pathname.startsWith("/questions/") &&
+    (pathname === "/questions" || pathname.startsWith("/questions/")) &&
     !pathname.startsWith("/questions/contribute") &&
     !pathname.startsWith("/questions/my-submissions")
   );

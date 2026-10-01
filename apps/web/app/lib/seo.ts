@@ -34,9 +34,17 @@ function urlEntry(loc: string, lastModified?: string) {
 }
 
 /** sitemap.xml (sitemaps.org protocol) for the site at `origin`. */
-export function sitemapXml(origin: string, sitemap: Sitemap) {
+export function sitemapXml(
+  origin: string,
+  sitemap: Sitemap,
+  /** Departments with papers to read, from the taxonomy. */
+  departmentIds: number[] = [],
+) {
   const entries = [
     ...STATIC_PATHS.map((path) => urlEntry(origin + path)),
+    ...departmentIds.map((id) =>
+      urlEntry(`${origin}/questions/departments/${id}`),
+    ),
     ...sitemap.questions.map((q) =>
       urlEntry(`${origin}/questions/${q.id}`, q.lastModified),
     ),

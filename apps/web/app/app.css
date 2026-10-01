@@ -17,6 +17,9 @@
   }
 
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display:
+    "Roboto Flex Variable", "Inter Variable", ui-sans-serif, system-ui,
+    sans-serif;
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -55,77 +58,141 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-primary-container: var(--primary-container);
+  --color-primary-container-foreground: var(--primary-container-foreground);
+  --color-exam-final: var(--exam-final);
+  --color-exam-final-foreground: var(--exam-final-foreground);
+  --color-exam-midterm: var(--exam-midterm);
+  --color-exam-midterm-foreground: var(--exam-midterm-foreground);
+  --color-exam-quiz: var(--exam-quiz);
+  --color-exam-quiz-foreground: var(--exam-quiz-foreground);
+  --color-exam-lab: var(--exam-lab);
+  --color-exam-lab-foreground: var(--exam-lab-foreground);
 }
 
 :root {
   color-scheme: light;
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.511 0.262 276.966);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  /* The app's palette (apps/mobile/lib/theme/theme.dart): indigo, with greys
+     tinted towards it. */
+  --background: #fcf8ff;
+  --foreground: #1c1b23;
+  --card: #ffffff;
+  --card-foreground: #1c1b23;
+  --popover: #ffffff;
+  --popover-foreground: #1c1b23;
+  --primary: #4f39f6;
+  --primary-foreground: #ffffff;
+  --primary-container: #e3dfff;
+  --primary-container-foreground: #1a0a73;
+  --secondary: #f0ecf8;
+  --secondary-foreground: #1c1b23;
+  --muted: #f0ecf8;
+  --muted-foreground: #5b586c;
+  --accent: #eae6f3;
+  --accent-foreground: #1c1b23;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.585 0.233 277.117);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.511 0.262 276.966);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --border: #e4e0ee;
+  --input: #d6d1e4;
+  --ring: #4f39f6;
+  --chart-1: #4f39f6;
+  --chart-2: #b4466e;
+  --chart-3: #c58a00;
+  --chart-4: #00806b;
+  --chart-5: #5d5a72;
+  --sidebar: #f6f2fd;
+  --sidebar-foreground: #1c1b23;
+  --sidebar-primary: #4f39f6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eae6f3;
+  --sidebar-accent-foreground: #1c1b23;
+  --sidebar-border: #e4e0ee;
+  --sidebar-ring: #797689;
+  /* Exam types, as in the app's ExamColors: container and content. */
+  --exam-final: #e3dfff;
+  --exam-final-foreground: #2a1ca3;
+  --exam-midterm: #ffd9e3;
+  --exam-midterm-foreground: #7a1f41;
+  --exam-quiz: #ffe08f;
+  --exam-quiz-foreground: #5a4200;
+  --exam-lab: #b9f0e3;
+  --exam-lab-foreground: #00493d;
 }
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.673 0.182 276.935);
-  --primary-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: #13121a;
+  --foreground: #e5e1ee;
+  --card: #1b1a22;
+  --card-foreground: #e5e1ee;
+  --popover: #1f1e27;
+  --popover-foreground: #e5e1ee;
+  --primary: #c5bfff;
+  --primary-foreground: #1f1290;
+  --primary-container: #2e2470;
+  --primary-container-foreground: #e3dfff;
+  --secondary: #2a2832;
+  --secondary-foreground: #e5e1ee;
+  --muted: #24222c;
+  --muted-foreground: #aca8bc;
+  --accent: #2a2832;
+  --accent-foreground: #e5e1ee;
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.585 0.233 277.117);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --border: #2e2c36;
+  --input: #3a3843;
+  --ring: #c5bfff;
+  --chart-1: #c5bfff;
+  --chart-2: #ffb0c8;
+  --chart-3: #f2c14e;
+  --chart-4: #7fd8c3;
+  --chart-5: #938fa4;
+  --sidebar: #1b1a22;
+  --sidebar-foreground: #e5e1ee;
+  --sidebar-primary: #c5bfff;
+  --sidebar-primary-foreground: #1f1290;
+  --sidebar-accent: #2a2832;
+  --sidebar-accent-foreground: #e5e1ee;
+  --sidebar-border: #2e2c36;
+  --sidebar-ring: #938fa4;
+  --exam-final: #3a2ba8;
+  --exam-final-foreground: #e3dfff;
+  --exam-midterm: #6e2440;
+  --exam-midterm-foreground: #ffd9e3;
+  --exam-quiz: #5a4400;
+  --exam-quiz-foreground: #ffe08f;
+  --exam-lab: #005145;
+  --exam-lab-foreground: #b9f0e3;
+}
+
+/* Each product space has its own colour (docs/PLAN.md, decision 6); the body
+   carries the space, so dialogs and menus portalled into it get it too. */
+[data-space="routine"] {
+  --primary: #006b5b;
+  --primary-container: #b9f0e3;
+  --primary-container-foreground: #00201a;
+  --ring: #006b5b;
+}
+.dark [data-space="routine"],
+.dark[data-space="routine"] {
+  --primary: #7fd8c3;
+  --primary-foreground: #00382f;
+  --primary-container: #005145;
+  --primary-container-foreground: #b9f0e3;
+  --ring: #7fd8c3;
+}
+[data-space="market"] {
+  --primary: #a3385f;
+  --primary-container: #ffd9e3;
+  --primary-container-foreground: #3e0019;
+  --ring: #a3385f;
+}
+.dark [data-space="market"],
+.dark[data-space="market"] {
+  --primary: #ffb0c8;
+  --primary-foreground: #561d32;
+  --primary-container: #6e2440;
+  --primary-container-foreground: #ffd9e3;
+  --ring: #ffb0c8;
 }
 
 @layer base {
@@ -151,4 +218,13 @@ html body[data-scroll-locked] {
 /* Tailwind's default `container` (max-width per breakpoint), centred with side padding. */
 @utility container {
   @apply mx-auto px-4 sm:px-6;
+}
+
+/* The app's `expressive()` headings: Roboto Flex, wide and heavy, tight lines. */
+@utility font-expressive {
+  font-family: var(--font-display);
+  font-stretch: 130%;
+  font-weight: 820;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
 }

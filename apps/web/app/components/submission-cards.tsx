@@ -8,7 +8,7 @@ import {
   LINK_CARD,
   STRETCHED_LINK,
 } from "~/components/question-cards";
-import { Badge } from "~/components/ui/badge";
+import { ExamBadge } from "~/components/exam-badge";
 import { Card, CardTitle } from "~/components/ui/card";
 import { formatDate } from "~/lib/dates";
 import { formatCount } from "~/lib/format";
@@ -44,14 +44,14 @@ function SubmissionCard({ submission }: { submission: ContributorSubmission }) {
               course.name
             )}
           </CardTitle>
-          <Badge variant="outline" className="shrink-0 text-muted-foreground">
-            {examType.name}
-          </Badge>
+          <ExamBadge examType={examType.name} size={32} />
         </div>
         <p className="text-sm text-muted-foreground">
           <span title={department.name}>
             {department.shortName ?? department.name}
           </span>
+          {" · "}
+          {examType.name}
           {" · "}
           {semester.name}
           {details && ` · ${details}`}

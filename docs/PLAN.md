@@ -2,7 +2,7 @@
 
 The plan and the decisions behind it, kept in the repository so anyone (or any Claude session) picking the project up knows what exists, what comes next and why. Update it when a decision changes or a step is done. `CLAUDE.md` has the day-to-day working rules; `README.md` the architecture and setup.
 
-Last updated: 1 October 2026.
+Last updated: 2 October 2026.
 
 ## What OurDIU is
 
@@ -27,7 +27,9 @@ Most users come from the question bank, so it moves in first and the others are 
 7. **The question bank keeps its API paths** (`/api/v1/questions`, `/submissions`, `/contributors`, `/taxonomy`, `/me`, …) instead of moving under `/api/v1/questions/…`: the published app calls them, and installed copies keep calling them for months. Its tables keep their names (`questions`, `submissions`, `courses`, …) so the production database can be adopted as is. New products follow the prefix rules.
 8. **The routine is rebuilt from scratch** (not ported from `../better-routine-scrapper`), CSE only at first, from the university's PDF (e.g. [CSE routine v3.1](https://webbackend.daffodilvarsity.edu.bd/noticeFile/cse-class-routine-v31-f4f0af7da9.pdf)).
 
-Design mockups (website, Material app, and the rejected iOS style): <https://claude.ai/artifact/RfDHeYL7wiGdBDo2QqKokQ>.
+Design mockups (website, Material app, and the rejected iOS style): <https://claude.ai/artifact/RfDHeYL7wiGdBDo2QqKokQ>. The website redesign that brings it up to the app (approved 2 October 2026): <https://claude.ai/artifact/Mh2DpngKUFRop8H1UQ7Vnj>.
+
+9. **The website follows the app's design** (decided 2 October 2026). Same palette (indigo with tinted greys, the exam-type colours), Roboto Flex `font-expressive` headings over Inter, the exam badges (`ExamBadge`, shapes from `apps/mobile/lib/theme/exam_shape.dart`), search first, and the app's department → course → semester path. Pages: `/questions/departments/:id` (courses A–Z) and `/questions/courses/:id` (exams by semester, exam-type filter, "same course, other names").
 
 ## Roadmap
 
@@ -47,7 +49,8 @@ Done: the question bank runs on ourdiu.com, and diuqbank.com redirects there (it
 - [x] Legal, about, contact, copyright, cookies and delete-account pages say OurDIU; `LEGAL_UPDATED` = 1 October 2026. The contact address stays the question bank's (`AUTHOR.email` in `app/lib/author.ts`). The theme cookie is now `ourdiu_theme`.
 - [x] diuqbank.com redirects (`legacyPath` in `app/lib/redirect.ts`): `/` → `/questions`, `/questions` → `/questions/browse`, `/contributors/*` → `/questions/contributors/*`, `/contribute` → `/questions/contribute`, `/account/submissions*` → `/questions/my-submissions*`; `/api/*` is served unchanged.
 - [x] `pnpm check` green (202 API, 124 web, 53 shared tests), 60 e2e tests green, OpenAPI regenerated.
-- [ ] Not done yet: the one-time "Class Routine is new" banner in the question bank space (mockup), and per-space colours on the web (everything is indigo).
+- [x] Per-space colours on the web: `data-space` on `<body>` sets the space's `--primary` (`app.css`).
+- [ ] Not done yet: the one-time "Class Routine is new" banner in the question bank space (mockup).
 
 Cutover (done 1 October 2026, by hand with the owner). The data is **copied** from diuqbank.com into OurDIU's own resources, then the domain is redirected. `apps/web/wrangler.jsonc` names OurDIU's resources: D1 `ourdiu`, R2 `ourdiu-files`, queues `questions-analysis` / `questions-watermark`, rate-limit namespaces 2001–2004 (1001–1004 are diuqbank's).
 
@@ -73,6 +76,16 @@ The switch (done; only 2 page views on diuqbank.com fell between the export and 
 13. Archive DIUQBank on GitHub. In Play Console, point the privacy policy and delete-account URLs at ourdiu.com; release the app (`mobile-v1.6.0`).
 14. Status: steps 6–12 done (copy Worker deleted); DIUQBank archived. `www.diuqbank.com` is on the `ourdiu` Worker. App `mobile-v1.6.0` (version code 1006000: OurDIU name, switcher, icon and splash, ourdiu.com, `ourdiu` sign-in) was built and uploaded to Play's internal track as a draft by the new `play-publisher@ourdiu` account. Left: roll it out in Play Console, check sign-in on the Play build, and point the Play listing's privacy and delete-account URLs at ourdiu.com.
 15. Later: retire the `questionbank` Worker, D1, R2 (and `r2.diuqbank.com`) and `qb-*` queues, and the `ourdiu` placeholder database, once nothing needs them.
+
+### Website redesign (2 October 2026, branch `web-redesign`)
+
+- [x] Design tokens from the app (`app.css`): palette, exam colours, `primary-container`, Roboto Flex for headings (`font-expressive`).
+- [x] `ExamBadge` / `ExamShape` on question cards, course and paper pages, other semesters, contributor papers; empty states drawn on an exam shape.
+- [x] Course search (`CourseSearch`, `/` or Ctrl/⌘ K, the header and the home's search pill): every word must match, prefix matches first, like the app; the list comes from `/questions/search-index`, recent courses from `localStorage`.
+- [x] Department and course pages; the Question Bank home leads with "Find your paper" and the departments; the Android invite there is the one-line strip.
+- [x] Paper page: badge, breadcrumbs through the department and course, a "Paper 1 of N" switcher on phones, a loading backdrop behind the PDF.
+- [x] Phone header: name, search, menu; the menu has logging in, the visitor's pages, the other spaces and the theme.
+- [ ] Later: course pages in the sitemap (needs the course ids from `/api/v1/sitemap`); departments are in it already.
 
 ### Phase 2 – One app
 

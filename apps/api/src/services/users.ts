@@ -4,22 +4,53 @@ import type {
   ListAdminUsersQuery,
   UserRole,
 } from "@ourdiu/shared";
-import { and, count, desc, eq, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, isNotNull, or, sql } from "drizzle-orm";
 import type { Database } from "../db/client";
-import { user } from "../db/schema";
+import { usernameOf } from "../db/username";
+import { submissions, user } from "../db/schema";
 import { AppError } from "../lib/errors";
+import { countWhereStatus } from "./common";
 
-const userColumns = {
-  id: user.id,
-  username: sql<string>`coalesce(${user.username}, '')`,
-  name: user.name,
-  email: user.email,
-  image: user.image,
-  role: user.role,
-  createdAt: user.createdAt,
-};
+/** Users with their per-status submission counts (zero when they have none). */
+function selectUsers(db: Database) {
+  const counts = db
+    .select({
+      uploaderId: submissions.uploaderId,
+      published: countWhereStatus("published").as("published_count"),
+      pendingReview: countWhereStatus("pending_review").as(
+        "pending_review_count",
+      ),
+      rejected: countWhereStatus("rejected").as("rejected_count"),
+    })
+    .from(submissions)
+    .where(isNotNull(submissions.uploaderId))
+    .groupBy(submissions.uploaderId)
+    .as("uploader_counts");
 
-type UserRow = Omit<AdminUser, "createdAt"> & { createdAt: Date };
+  const orZero = (column: typeof counts.published) =>
+    sql<number>`coalesce(${column}, 0)`.mapWith(Number);
+
+  return db
+    .select({
+      id: user.id,
+      username: usernameOf,
+      name: user.name,
+      email: user.email,
+      image: user.image,
+      role: user.role,
+      createdAt: user.createdAt,
+      submissionCounts: {
+        published: orZero(counts.published),
+        pendingReview: orZero(counts.pendingReview),
+        rejected: orZero(counts.rejected),
+      },
+    })
+    .from(user)
+    .leftJoin(counts, eq(counts.uploaderId, user.id))
+    .$dynamic();
+}
+
+type UserRow = Awaited<ReturnType<typeof selectUsers>>[number];
 
 const toAdminUser = (row: UserRow): AdminUser => ({
   ...row,
@@ -27,7 +58,7 @@ const toAdminUser = (row: UserRow): AdminUser => ({
 });
 
 /** Escapes LIKE wildcards so a search for "50%" matches literally. */
-export const likePattern = (text: string) =>
+const likePattern = (text: string) =>
   `%${text.toLowerCase().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
 /** Users, newest first, optionally filtered by name/email and role. */
@@ -48,9 +79,7 @@ export async function listAdminUsers(
   );
 
   const [rows, [totals]] = await Promise.all([
-    db
-      .select(userColumns)
-      .from(user)
+    selectUsers(db)
       .where(where)
       .orderBy(desc(user.createdAt), desc(user.id))
       .limit(query.pageSize)
@@ -76,11 +105,14 @@ export async function updateUserRole(
   if (actorId === id) {
     throw new AppError(409, "CONFLICT", "You can't change your own role");
   }
-  const [row] = await db
+  const updated = await db
     .update(user)
     .set({ role })
     .where(eq(user.id, id))
-    .returning(userColumns);
-  if (!row) throw new AppError(404, "NOT_FOUND", "User not found");
-  return toAdminUser(row);
+    .returning({ id: user.id });
+  if (updated.length === 0) {
+    throw new AppError(404, "NOT_FOUND", "User not found");
+  }
+  const [row] = await selectUsers(db).where(eq(user.id, id)).limit(1);
+  return toAdminUser(row!);
 }

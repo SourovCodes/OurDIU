@@ -1,19 +1,23 @@
 import type { AdminUser, AdminUserList } from "@ourdiu/shared";
 import {
+  AtSign,
   EllipsisVertical,
+  FileText,
   Search,
   ShieldCheck,
   ShieldOff,
   UserRound,
 } from "lucide-react";
 import { useState } from "react";
-import { Form, useRouteLoaderData } from "react-router";
-import { ConfirmAction } from "~/components/actions";
+import { Form, Link, useRouteLoaderData } from "react-router";
+import { USERNAME_RULES } from "@ourdiu/shared/constants";
+import { ActionDialog, ConfirmAction } from "~/components/actions";
+import { FormField } from "~/components/form";
 import { AdminPageHeader } from "~/components/admin/admin-header";
 import { AdminRouteError } from "~/components/admin/route-error";
 import { TablePagination } from "~/components/table-pagination";
 import { UrlTabs } from "~/components/url-tabs";
-import { UserAvatar } from "~/components/user-avatar";
+import { UserAvatar } from "~/components/admin/user-avatar";
 import { EmptyState } from "~/components/empty-state";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -21,6 +25,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Input } from "~/components/ui/input";
@@ -36,6 +41,7 @@ import { adminGetJson, adminRequest } from "~/lib/admin.server";
 import { formatDate } from "~/lib/dates";
 import type { loader as adminLoader } from "./admin";
 import type { Route } from "./+types/admin-users";
+import { contributorUrl } from "~/lib/submissions";
 
 export const handle = { breadcrumb: "Users" };
 
@@ -68,6 +74,15 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   const form = await request.formData();
+  if (form.get("intent") === "username") {
+    return adminRequest(
+      request,
+      "username",
+      "PUT",
+      `/users/${encodeURIComponent(String(form.get("id")))}/username`,
+      { username: form.get("username") },
+    );
+  }
   return adminRequest(
     request,
     "role",
@@ -79,9 +94,40 @@ export async function action({ request }: Route.ActionArgs) {
 
 export { AdminRouteError as ErrorBoundary };
 
+function PaperCounts({ counts }: { counts: AdminUser["submissionCounts"] }) {
+  const total = counts.published + counts.pendingReview + counts.rejected;
+  if (total === 0) return <span className="text-muted-foreground">—</span>;
+  const parts = [
+    { label: "published", value: counts.published, dot: "bg-emerald-500" },
+    {
+      label: "pending review",
+      value: counts.pendingReview,
+      dot: "bg-amber-500",
+    },
+    { label: "rejected", value: counts.rejected, dot: "bg-red-500" },
+  ];
+  return (
+    <span className="flex items-center gap-3 tabular-nums">
+      {parts.map(({ label, value, dot }) => (
+        <span key={label} title={label} className="flex items-center gap-1.5">
+          <span className={`size-2 rounded-full ${dot}`} aria-hidden />
+          {value}
+          <span className="sr-only">{label}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function RowActions({ user }: { user: AdminUser }) {
   const [confirming, setConfirming] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   const makeAdmin = user.role !== "admin";
+  const hasPapers =
+    user.submissionCounts.published +
+      user.submissionCounts.pendingReview +
+      user.submissionCounts.rejected >
+    0;
 
   return (
     <>
@@ -97,6 +143,21 @@ function RowActions({ user }: { user: AdminUser }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
+          {hasPapers && (
+            <>
+              <DropdownMenuItem asChild>
+                <Link to={contributorUrl(user.username)}>
+                  <FileText />
+                  View papers
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
+          <DropdownMenuItem onSelect={() => setRenaming(true)}>
+            <AtSign />
+            Edit username
+          </DropdownMenuItem>
           <DropdownMenuItem
             variant={makeAdmin ? "default" : "destructive"}
             onSelect={() => setConfirming(true)}
@@ -106,6 +167,31 @@ function RowActions({ user }: { user: AdminUser }) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <ActionDialog
+        open={renaming}
+        onOpenChange={setRenaming}
+        title={`Change ${user.name}’s username`}
+        description={`It’s in their public profile’s address: /contributors/<username>. ${USERNAME_RULES}.`}
+        submitLabel="Save"
+        pendingLabel="Saving…"
+        successMessage="Username changed"
+        fields={{ intent: "username", id: user.id }}
+      >
+        {(fieldErrors) => (
+          <FormField
+            label="Username"
+            name="username"
+            defaultValue={user.username}
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            required
+            minLength={3}
+            maxLength={50}
+            error={fieldErrors.username}
+          />
+        )}
+      </ActionDialog>
       <ConfirmAction
         open={confirming}
         onOpenChange={setConfirming}
@@ -116,8 +202,8 @@ function RowActions({ user }: { user: AdminUser }) {
         }
         description={
           makeAdmin
-            ? "Admins can manage every OurDIU product, the departments and other admins."
-            : "They keep their account, but lose access to the admin panel right away."
+            ? "Admins can publish, reject and delete papers, handle reports, edit the catalog and manage other admins."
+            : "They keep their account and papers, but lose access to the admin panel right away."
         }
         confirmLabel={makeAdmin ? "Make admin" : "Remove admin"}
         destructive={!makeAdmin}
@@ -156,7 +242,7 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
     <>
       <AdminPageHeader
         title="Users"
-        description="Everyone with an OurDIU account, newest first. Grant admin rights to people you trust."
+        description="Everyone with an account, newest first. Grant admin rights to people you trust to moderate."
       />
       <UrlTabs
         label="Filter by role"
@@ -190,6 +276,9 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead className="hidden @xl/main:table-cell">
+                    Papers
+                  </TableHead>
                   <TableHead className="hidden @3xl/main:table-cell">
                     Joined
                   </TableHead>
@@ -228,6 +317,9 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
                           Member
                         </Badge>
                       )}
+                    </TableCell>
+                    <TableCell className="hidden @xl/main:table-cell">
+                      <PaperCounts counts={user.submissionCounts} />
                     </TableCell>
                     <TableCell className="hidden text-muted-foreground @3xl/main:table-cell">
                       {formatDate(user.createdAt)}

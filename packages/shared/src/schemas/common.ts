@@ -40,6 +40,3 @@ export type Paginated<T> = {
   pageSize: number;
   total: number;
 };
-
-/** A positive integer id from a path or query string. */
-export const idQuerySchema = z.coerce.number().int().positive();

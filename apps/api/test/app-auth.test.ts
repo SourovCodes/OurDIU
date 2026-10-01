@@ -61,7 +61,7 @@ beforeAll(async () => {
   )) as CryptoKeyPair;
 });
 
-/** Google's JWKS endpoint, serving the test key. */
+/** Google's JWKS endpoint, serving the test key. Photos aren't found. */
 async function mockGoogleKeys() {
   const jwk = await crypto.subtle.exportKey("jwk", keys.publicKey);
   const realFetch = globalThis.fetch;
@@ -73,6 +73,9 @@ async function mockGoogleKeys() {
           keys: [{ ...jwk, kid: KID, alg: "RS256", use: "sig" }],
         }),
       );
+    }
+    if (url.startsWith("https://lh3.googleusercontent.com/")) {
+      return Promise.resolve(new Response(null, { status: 404 }));
     }
     return realFetch(input, init);
   });
@@ -113,7 +116,7 @@ describe("app sign-in", () => {
       user: { email: claims.email, name: "App User", role: "user" },
     });
     // Protected API routes take it too.
-    const mine = await app("/api/v1/me", {
+    const mine = await app("/api/v1/me/submissions", {
       headers: bearer(token!),
     });
     expect(mine.status).toBe(200);
@@ -178,7 +181,7 @@ describe("app sign-in", () => {
     });
 
     expect(out.status).toBe(200);
-    const mine = await app("/api/v1/me", {
+    const mine = await app("/api/v1/me/submissions", {
       headers: bearer(token),
     });
     expect(mine.status).toBe(401);

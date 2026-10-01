@@ -1,11 +1,15 @@
 import {
+  FileText,
   GraduationCap,
   LogOut,
   Menu,
   Settings,
   ShieldCheck,
+  Upload,
 } from "lucide-react";
-import { Link, NavLink, useSubmit } from "react-router";
+import { Link, NavLink, useLocation, useSubmit } from "react-router";
+import { ContributorAvatar } from "~/components/contributor-avatar";
+import { ProductSwitcher } from "~/components/product-switcher";
 import { ThemeToggle } from "~/components/theme-toggle";
 import { Button, buttonVariants } from "~/components/ui/button";
 import {
@@ -25,31 +29,45 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "~/components/ui/sheet";
-import { UserAvatar } from "~/components/user-avatar";
+import { productAt, type Product } from "~/lib/products";
 import type { SessionUser } from "~/lib/types";
 import { cn } from "~/lib/utils";
 
-/** The products that live on this site; the question bank is linked from the hub. */
-const NAV_ITEMS = [
-  { to: "/routine", label: "Routine" },
-  { to: "/market", label: "Marketplace" },
-];
+type NavItem = { to: string; label: string };
 
-export function Brand() {
+/** Each product's own menu; platform pages (hub, account, legal) have none. */
+const NAV_ITEMS: Record<Product["id"], NavItem[]> = {
+  questions: [
+    { to: "/questions/browse", label: "Browse" },
+    { to: "/questions/contributors", label: "Contributors" },
+  ],
+  routine: [],
+  market: [],
+};
+
+/** The current space's name and home: OurDIU itself, or a product. */
+function Brand({ product }: { product: Product | null }) {
+  const Icon = product?.icon ?? GraduationCap;
   return (
     <Link
-      to="/"
-      className="flex shrink-0 items-center gap-2 font-semibold tracking-tight"
+      to={product?.href ?? "/"}
+      className="flex min-w-0 items-center gap-2 font-semibold tracking-tight"
     >
-      <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <GraduationCap className="size-4" aria-hidden />
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+        <Icon className="size-4" aria-hidden />
       </span>
-      OurDIU
+      <span className="truncate">{product?.name ?? "OurDIU"}</span>
     </Link>
   );
 }
 
-function UserMenu({ user }: { user: SessionUser }) {
+function UserMenu({
+  user,
+  product,
+}: {
+  user: SessionUser;
+  product: Product | null;
+}) {
   const submit = useSubmit();
 
   return (
@@ -61,15 +79,16 @@ function UserMenu({ user }: { user: SessionUser }) {
           className="rounded-full"
           aria-label="Account menu"
         >
-          <UserAvatar name={user.name} image={user.image} />
+          <ContributorAvatar name={user.name} image={user.image} size="sm" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60 rounded-lg">
         <DropdownMenuLabel className="p-0 font-normal">
           <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-            <UserAvatar
+            <ContributorAvatar
               name={user.name}
               image={user.image}
+              size="sm"
               className="rounded-lg"
             />
             <div className="grid flex-1 leading-tight">
@@ -82,10 +101,21 @@ function UserMenu({ user }: { user: SessionUser }) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {user.role === "admin" && (
+          <>
+            <DropdownMenuItem asChild>
+              <Link to="/admin">
+                <ShieldCheck aria-hidden />
+                Admin panel
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        {product?.id === "questions" && (
           <DropdownMenuItem asChild>
-            <Link to="/admin">
-              <ShieldCheck aria-hidden />
-              Admin panel
+            <Link to="/questions/my-submissions">
+              <FileText aria-hidden />
+              My submissions
             </Link>
           </DropdownMenuItem>
         )}
@@ -108,9 +138,18 @@ function UserMenu({ user }: { user: SessionUser }) {
 }
 
 /** Below `md` the page links live in a slide-over menu. */
-function MobileMenu({ user }: { user: SessionUser | null }) {
+function MobileMenu({
+  user,
+  product,
+}: {
+  user: SessionUser | null;
+  product: Product | null;
+}) {
   const links = [
-    ...NAV_ITEMS,
+    ...(product ? NAV_ITEMS[product.id] : []),
+    ...(product?.id === "questions"
+      ? [{ to: "/questions/contribute", label: "Contribute" }]
+      : []),
     ...(user?.role === "admin" ? [{ to: "/admin", label: "Admin panel" }] : []),
   ];
 
@@ -166,13 +205,23 @@ function MobileMenu({ user }: { user: SessionUser | null }) {
   );
 }
 
+/**
+ * The header of the space the page is in: the switcher, the space's name, and its
+ * own menu. Products don't link to each other; the switcher is the way between them.
+ */
 export function SiteHeader({ user }: { user: SessionUser | null }) {
+  const product = productAt(useLocation().pathname);
+  const items = product ? NAV_ITEMS[product.id] : [];
+
   return (
     <header className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur">
       <div className="container flex h-14 items-center gap-6">
-        <Brand />
+        <div className="flex min-w-0 items-center gap-1">
+          <ProductSwitcher current={product} />
+          <Brand product={product} />
+        </div>
         <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
-          {NAV_ITEMS.map(({ to, label }) => (
+          {items.map(({ to, label }) => (
             <NavLink
               key={to}
               to={to}
@@ -189,9 +238,21 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          {product?.id === "questions" && (
+            <Link
+              to="/questions/contribute"
+              className={cn(
+                buttonVariants({ size: "sm" }),
+                "hidden sm:inline-flex",
+              )}
+            >
+              <Upload aria-hidden />
+              Contribute
+            </Link>
+          )}
           <ThemeToggle />
           {user ? (
-            <UserMenu user={user} />
+            <UserMenu user={user} product={product} />
           ) : (
             <Link
               to="/login"
@@ -200,7 +261,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
               Log in
             </Link>
           )}
-          <MobileMenu user={user} />
+          <MobileMenu user={user} product={product} />
         </div>
       </div>
     </header>

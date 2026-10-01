@@ -1,14 +1,69 @@
 // Plain constants with no Zod import, so browser bundles can use them without shipping Zod.
 // Import via `@ourdiu/shared/constants` in client code.
+export const SUBMISSION_STATUSES = [
+  "pending_review",
+  "published",
+  "rejected",
+] as const;
+export const MAX_SUBMISSION_FILE_BYTES = 20 * 1024 * 1024;
 
-// ── Accounts (shared by every OurDIU product) ────────────────────────────────
+/** Why a signed-in user reports a published submission. */
+export const REPORT_REASONS = [
+  "wrong_details",
+  "wrong_file",
+  "unreadable",
+  "duplicate",
+  "inappropriate",
+  "other",
+] as const;
+export const REPORT_STATUSES = ["pending", "resolved", "dismissed"] as const;
+export const MAX_REPORT_DETAILS_LENGTH = 500;
 
-/** `admin` can manage every product's content and the users. */
+export const MAX_REJECTION_REASON_LENGTH = 1000;
+
+/** Common reasons for rejecting a paper, offered to admins as starting points. */
+export const REJECTION_REASON_PRESETS = [
+  {
+    label: "Multiple papers",
+    text: "This PDF contains multiple question papers. Please upload each question paper as a separate PDF.",
+  },
+  {
+    label: "Not a question paper",
+    text: "This file is not a valid exam question paper.",
+  },
+  {
+    label: "Wrong details",
+    text: "The details you provided (department, course, semester or exam type) do not match the uploaded paper.",
+  },
+  {
+    label: "Unreadable",
+    text: "The PDF is too blurry or incomplete to read. Please upload a clearer scan.",
+  },
+  {
+    label: "Duplicate",
+    text: "This paper is already in the question bank.",
+  },
+] as const;
+/**
+ * Pending reports from different users that move a published submission back to
+ * pending review. Enforced by the `submission_reports_after_insert` trigger in
+ * migration 0003 — change both together.
+ */
+export const REPORT_HIDE_THRESHOLD = 3;
+
+export const AVATAR_CONTENT_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+export const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+
+/** `admin` can moderate submissions and reports and manage the catalog and users. */
 export const USER_ROLES = ["user", "admin"] as const;
 
 /**
  * Only DIU addresses (staff and students) can create an account; existing accounts on
- * other addresses (admins listed in ADMIN_EMAILS, later imported users) can still sign in.
+ * other addresses (imported users, admins) can still sign in.
  */
 export const ALLOWED_EMAIL_DOMAINS = ["diu.edu.bd", "s.diu.edu.bd"] as const;
 
@@ -22,10 +77,87 @@ export function isAllowedEmail(email: string): boolean {
   );
 }
 
-/** Usernames: 3–50 of a-z, 0-9, `_`, `.` and `-`. */
+/** Usernames, as on the old site: 3–50 of a-z, 0-9, `_`, `.` and `-`. */
 export const USERNAME_PATTERN = /^[a-z0-9_.-]{3,50}$/;
 export const USERNAME_RULES =
   "3–50 lowercase letters, digits, dots, dashes or underscores";
 
 /** The error Better Auth sends a refused sign-up back with (`?error=`). */
 export const EMAIL_DOMAIN_NOT_ALLOWED = "EMAIL_DOMAIN_NOT_ALLOWED";
+
+/** Lifecycle of a submission's AI analysis (compress, then ask Gemini). */
+export const ANALYSIS_STATUSES = [
+  "queued",
+  "processing",
+  "completed",
+  "failed",
+] as const;
+/**
+ * Lifecycle of a published paper's watermarked copy (the public download). Null
+ * means it was never requested.
+ */
+export const WATERMARK_STATUSES = ["queued", "done", "failed"] as const;
+
+/** Why the AI flags a submission for a closer look. */
+export const ANALYSIS_FLAGS = ["not_a_paper", "multiple_papers"] as const;
+/** Admin submission list filters on the AI result. */
+export const ANALYSIS_FILTERS = ["flagged", "differs"] as const;
+
+/**
+ * Standard spelling for catalog names (departments, courses, semesters, exam types):
+ * trimmed, single spaces, "and" instead of "&", straight quotes, no trailing period
+ * or comma, and a numbered part as its own word ("Physics I", not "Physics-I").
+ * Applied to names typed by users and admins and to the AI's output.
+ */
+export function normalizeCatalogName(name: string): string {
+  return (
+    name
+      .replace(/[‘’]/g, "'")
+      .replace(/[“”]/g, '"')
+      .replace(/\s*[&＆]\s*/g, " and ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/[.,]+$/, "")
+      .trim()
+      // A numbered part is a separate word: "Physics-I" → "Physics I".
+      .replace(
+        /\s*[-–]\s*(I{1,3}|IV|VI{0,3}|IX|X|\d{1,2})$/i,
+        (_, part: string) => ` ${part.toUpperCase()}`,
+      )
+  );
+}
+
+/** Compares catalog names: normalized and case-insensitive. */
+export function catalogKey(name: string): string {
+  return normalizeCatalogName(name).toLowerCase();
+}
+
+/** Semester names are a term and a two-digit year: "Fall 25", "Short 20". */
+export const SEMESTER_TERMS = ["Spring", "Summer", "Fall", "Short"] as const;
+export const MIN_SEMESTER_YEAR = 15;
+export const MAX_SEMESTER_YEAR = 30;
+export const SEMESTER_FORMAT_MESSAGE = `Use a term and a year, e.g. Fall 25 (${SEMESTER_TERMS.join(", ")}; ${MIN_SEMESTER_YEAR}–${MAX_SEMESTER_YEAR})`;
+
+const SEMESTER_PATTERN = new RegExp(
+  `^(${SEMESTER_TERMS.join("|")})[\\s'’_-]*(?:20)?(\\d{2})$`,
+  "i",
+);
+
+/**
+ * The standard spelling of a semester name, or null if it isn't one. Lenient about
+ * case, separators and four-digit years: "fall 2025", "FALL-25" and "Fall'25" all
+ * become "Fall 25".
+ */
+export function parseSemesterName(name: string): string | null {
+  const match = SEMESTER_PATTERN.exec(name.trim());
+  if (!match) return null;
+  const year = Number(match[2]);
+  if (year < MIN_SEMESTER_YEAR || year > MAX_SEMESTER_YEAR) return null;
+  const term = SEMESTER_TERMS.find(
+    (t) => t.toLowerCase() === match[1]!.toLowerCase(),
+  )!;
+  return `${term} ${match[2]}`;
+}
+
+/** Orders for the questions list: newest papers, most viewed, or by name. */
+export const QUESTION_SORTS = ["newest", "popular", "az"] as const;

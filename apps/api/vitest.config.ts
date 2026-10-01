@@ -6,6 +6,7 @@ export default defineConfig(async () => {
   const migrations = await readD1Migrations(
     path.join(import.meta.dirname, "migrations"),
   );
+
   return {
     plugins: [
       cloudflareTest({
@@ -19,6 +20,10 @@ export default defineConfig(async () => {
             GOOGLE_CLIENT_ID: "test-google-client-id",
             GOOGLE_CLIENT_SECRET: "test-google-client-secret",
             ADMIN_EMAILS: "boss@gmail.com",
+            // Never call the real AI services from tests (.dev.vars may hold keys).
+            // Queued analyses then fail fast as "not configured".
+            GEMINI_API_KEY: "",
+            COMPRESSOR_API_KEY: "",
           },
         },
       }),

@@ -1,15 +1,18 @@
 import {
-  Building2,
+  GraduationCap,
   EllipsisVertical,
   ExternalLink,
-  GraduationCap,
+  Flag,
+  FolderTree,
+  Inbox,
+  LayoutDashboard,
   LogOut,
   UserRound,
   Users,
   type LucideIcon,
 } from "lucide-react";
 import { Link, useLocation, useSubmit } from "react-router";
-import { UserAvatar } from "~/components/user-avatar";
+import { UserAvatar } from "~/components/admin/user-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +30,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
@@ -34,12 +38,19 @@ import {
 } from "~/components/ui/sidebar";
 import type { SessionUser } from "~/lib/types";
 
-type NavItem = { title: string; url: string; icon: LucideIcon };
+type NavItem = {
+  title: string;
+  url: string;
+  icon: LucideIcon;
+  /** Items waiting for an admin. */
+  badge?: number;
+};
 
 function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
   const { pathname } = useLocation();
   const { isMobile, setOpenMobile } = useSidebar();
-  const isActive = (url: string) => pathname.startsWith(url);
+  const isActive = (url: string) =>
+    url === "/admin" ? pathname === url : pathname.startsWith(url);
 
   return (
     <SidebarGroup>
@@ -62,6 +73,9 @@ function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
                   <span>{item.title}</span>
                 </Link>
               </SidebarMenuButton>
+              {item.badge ? (
+                <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
+              ) : null}
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
@@ -150,10 +164,10 @@ function NavUser({ user }: { user: SessionUser }) {
 
 type AdminSidebarProps = React.ComponentProps<typeof Sidebar> & {
   user: SessionUser;
+  counts: { pendingReview: number; openReports: number };
 };
 
-/** Platform pages now; each product adds its own group as it launches. */
-export function AdminSidebar({ user, ...props }: AdminSidebarProps) {
+export function AdminSidebar({ user, counts, ...props }: AdminSidebarProps) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -177,15 +191,35 @@ export function AdminSidebar({ user, ...props }: AdminSidebarProps) {
       </SidebarHeader>
       <SidebarContent>
         <NavGroup
-          label="Platform"
+          label="Overview"
+          items={[{ title: "Dashboard", url: "/admin", icon: LayoutDashboard }]}
+        />
+        {/* One group per product; platform pieces (users) last. */}
+        <NavGroup
+          label="Question Bank"
           items={[
-            { title: "Users", url: "/admin/users", icon: Users },
             {
-              title: "Departments",
-              url: "/admin/departments",
-              icon: Building2,
+              title: "Submissions",
+              url: "/admin/questions/submissions",
+              icon: Inbox,
+              badge: counts.pendingReview,
+            },
+            {
+              title: "Reports",
+              url: "/admin/questions/reports",
+              icon: Flag,
+              badge: counts.openReports,
+            },
+            {
+              title: "Catalog",
+              url: "/admin/questions/catalog",
+              icon: FolderTree,
             },
           ]}
+        />
+        <NavGroup
+          label="Platform"
+          items={[{ title: "Users", url: "/admin/users", icon: Users }]}
         />
       </SidebarContent>
       <SidebarFooter>

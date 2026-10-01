@@ -1,26 +1,34 @@
 # OurDIU – working notes
 
-pnpm monorepo, one Cloudflare Worker: `apps/web` (React Router SSR) runs `@ourdiu/api` (Hono, a library in `apps/api`) under `/api/*`. The Worker config (bindings, vars, `.dev.vars`, local state) lives in `apps/web`. See README.md for the architecture and **docs/PLAN.md for the project plan: the decisions, the roadmap and what's in progress. Read it first, and keep it up to date** (tick off steps, record new decisions).
+pnpm monorepo, one Cloudflare Worker: `apps/web` (React Router SSR) runs `@ourdiu/api` (Hono, a library in `apps/api`) under `/api/*` and its queue handlers. The Worker config (bindings, vars, `.dev.vars`, local state) lives in `apps/web`. See README.md for the architecture and **docs/PLAN.md for the project plan: the decisions, the roadmap and what's in progress. Read it first, and keep it up to date** (tick off steps, record new decisions).
+
+Products: the Question Bank (`/questions`, moved in from diuqbank.com), the Class Routine (`/routine`) and the Marketplace (`/market`), both "coming soon" placeholders for now.
 
 ## Commands
 
 - `pnpm check` – run before considering work done (lint, format, typecheck, tests).
 - `pnpm --filter @ourdiu/api test` / `pnpm --filter @ourdiu/web test` – package tests.
-- `pnpm test:e2e` – Playwright; needs `pnpm db:migrate && pnpm db:seed` first.
-- After editing `apps/api/src/db/schema/*`: `pnpm db:generate`, review the SQL, then `pnpm db:migrate`. Never edit a migration that has been applied anywhere.
+- `pnpm test:e2e` – Playwright; needs `pnpm db:migrate && pnpm db:seed` first (tests rely on `apps/api/seeds/dev.sql`).
+- After editing `apps/api/src/db/schema/*`: `pnpm db:generate`, review the SQL, then `pnpm db:migrate`. Never edit a migration that has been applied anywhere: the migrations continue the question bank's production history (`0000`–`0006` are applied there). For SQLite table rebuilds, drizzle-kit may copy newly added columns from the old table (`SELECT "new_col" …` silently yields the string literal) — trim the INSERT to existing columns.
+- Triggers (and other SQL drizzle-kit can't model) go in a custom migration: `pnpm --filter @ourdiu/api exec drizzle-kit generate --custom --name=<name>`, separated with `--> statement-breakpoint` as in `0001_triggers.sql`.
 - After changing an API route or a schema in `packages/shared`: `pnpm openapi` and commit `apps/api/openapi.json` (a test checks it's current). New object schemas that public endpoints return get a `.meta({ id: "Name" })`; make named schemas nullable with `nullableRef`, never `.nullable()`.
 - After editing `apps/web/wrangler.jsonc`: `pnpm --filter @ourdiu/web cf-typegen` and `pnpm --filter @ourdiu/api cf-typegen`. A new binding, var or secret the API uses also goes in `apps/api/src/env.d.ts`.
 
 ## Conventions
 
-- **Products are namespaced everywhere**: pages at `/<product>` (`app/routes/<product>*.tsx`), API at `/api/v1/<product>` and `/api/v1/admin/<product>`, services in `services/<product>/`, tables prefixed `<product>_`, R2 keys under `<product>/`. Platform pieces (users, departments, auth) are shared by all products. A product's card on the hub comes from `app/lib/products.ts`.
+- **Products are separate spaces.** Pages at `/<product>/…`, each space with its own header menu (`NAV_ITEMS` in `components/site-header.tsx`, picked by `productAt(pathname)` from `app/lib/products.ts`) and reached through the switcher; products never show each other's data. Platform pages (hub `/`, `/account`, `/admin`, `/login`, `/about`, `/contact`, legal) sit at the root. Admin pages for a product go under `/admin/<product>/…` with their own sidebar group.
+- **Naming for new products**: API at `/api/v1/<product>` and `/api/v1/admin/<product>`, services in `services/<product>/`, tables prefixed `<product>_`, R2 keys under `<product>/`. The question bank predates this and keeps its names (API `/api/v1/questions`, `/submissions`, `/contributors`, `/taxonomy`; tables `questions`, `submissions`, `courses`, …): the published app and the production database depend on them. `/api/v1` only changes in backward-compatible ways.
+- `diuqbank.com` is an alias: its pages redirect to their new paths (`legacyPath` in `app/lib/redirect.ts`), its `/api/*` is served unchanged for installed apps. Moving a question bank page means adding its old path there.
 - API contracts live in `packages/shared` as Zod schemas; browser code imports constants from `@ourdiu/shared/constants` so Zod stays out of the client bundle.
-- API layering: `routes/` (createRoute + validation, thin) → `services/` (logic, DB, R2). Throw `AppError` for expected failures; errors are `{ error: { code, message, details? } }`.
+- API layering: `routes/` (createRoute + validation, thin) → `services/` (logic, DB, R2). Throw `AppError` for expected failures; errors are `{ error: { code, message, details? } }`. Better Auth owns `/api/auth/*`.
 - Bindings are per request: build DB/auth from `c.env` in middleware, never as module-level singletons.
-- Only protected routes look up sessions (`requireAuth` / `requireAdmin`); public reads stay session-free.
+- Only protected routes look up sessions (`requireAuth` / `requireAdmin`); public reads stay session-free. Admin API routes live in `routes/admin.ts` behind `requireAdmin` (403 for non-admins).
+- Counters maintained by triggers, never written by application code: `submissions.like_count`, `dislike_count`, `pending_report_count` (migration 0001); `questions.published_count`, `pending_review_count`, `rejected_count`, `latest_published_at`, `departments.published_count`, `user.published_submission_count`, `published_view_count` (migration 0006). Public lists read these instead of aggregating `submissions`. View counters are bumped with raw SQL so `updated_at` doesn't change, once per browser per day (the `qb_views_q` / `qb_views_s` cookies, `lib/view-cookie.ts`).
+- Taxonomy for pages comes from `loadTaxonomy` (`app/lib/taxonomy.server.ts`): one `/api/v1/taxonomy` call, cached per isolate for 60s. Admin loaders pass `{ fresh: true }`; admin actions that change the catalog call `invalidateTaxonomy()`.
 - Web: data loading happens in loaders/actions via `apiFetch` (`app/lib/api.server.ts`, an in-process call into the API), never directly against D1/R2. Server-only modules end in `.server.ts`. Admin pages sit under `/admin` (the layout calls `requireAdmin`; loaders use `adminGetJson`, actions `adminRequest`).
-- UI uses shadcn/ui in `app/components/ui` (add with `pnpm dlx shadcn@latest add <name>` from `apps/web`), plus `PageHeader`, `EmptyState`, `UserAvatar`, `UrlTabs`, `TablePagination` and `components/actions.tsx` (`ActionDialog`, `ConfirmAction`, `useFormAction`). When an action removes the row it started from, run it through a `useFormAction` owned by the page.
-- Sign-in is Google-only. API tests sign in with `signIn()` (Better Auth `testUtils`), e2e tests with `logInAs(page, NEW_USER | SEED_ADMIN, path)`.
-- Theme: the `dark` class on `<html>` is set by `THEME_SCRIPT` / `setTheme` (`app/lib/theme.ts`), never rendered by React.
-- Legal pages (`/privacy`, `/terms`) must match what the site collects; update `LEGAL_UPDATED` in `app/lib/legal.ts` with any change.
+- UI uses shadcn/ui in `app/components/ui` (add with `pnpm dlx shadcn@latest add <name>` from `apps/web`). Shared pieces: `PageHeader`, `EmptyState`, `StatusBadge`, `ContributorAvatar`, `TablePagination`, `UrlTabs`, `ComingSoon`, and `components/actions.tsx` (`ActionDialog`, `ConfirmAction`, `useFormAction`, with sonner toasts). Public lists are card grids (`CARD_GRID`, `LINK_CARD`, `STRETCHED_LINK` in `components/question-cards.tsx`); account and admin lists are bordered `Table`s with a `bg-muted` header and row `DropdownMenu`s. When an action removes the row it started from, run it through a `useFormAction` owned by the page.
+- Sign-in is Google-only; the mobile app swaps a Google ID token for a session at `/api/auth/sign-in/social` and sends it as a bearer token. New accounts need a DIU email unless listed in `ADMIN_EMAILS`. API tests sign in with `signIn()` (Better Auth `testUtils`), e2e tests with `logInAs(page, NEW_USER | SEED_ADMIN, path)`. Don't write to the local D1 file while e2e tests run.
+- Theme: the `dark` class on `<html>` is set by `THEME_SCRIPT` / `setTheme` (`app/lib/theme.ts`), never rendered by React. Give hard-coded palette colours a `dark:` variant.
+- Legal pages (`/privacy`, `/terms`, `/copyright`, `/cookies`) must match what the site collects; update `LEGAL_UPDATED` in `app/lib/legal.ts` with any change.
 - Every new API route gets an integration test in `apps/api/test`; user-facing flows get a Playwright test.
+- Secrets are set by the owner (`wrangler secret put … --name ourdiu`), never by Claude. Production changes outside CI (remote migrations, deploys, domains, bindings) need the owner's go-ahead.

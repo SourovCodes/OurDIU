@@ -3,13 +3,23 @@ import { betterAuth } from "better-auth";
 import { testUtils } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import { createDb } from "../src/db/client";
-import { departments, user } from "../src/db/schema";
+import {
+  courses,
+  departments,
+  examTypes,
+  questions,
+  semesters,
+  submissions,
+  type NewQuestionRow,
+  type NewSubmissionRow,
+  user,
+} from "../src/db/schema";
 import { authOptions } from "../src/lib/auth";
 
 export const ORIGIN = "http://localhost:5173";
 
-/** Inserts a user directly (no session), e.g. an existing account. */
-export async function seedUser(name = "Test User") {
+/** Inserts a user directly (no password), for tests that only need an uploader. */
+export async function seedUser(name = "Test Contributor") {
   const id = crypto.randomUUID();
   const [row] = await createDb(env.DB)
     .insert(user)
@@ -53,6 +63,74 @@ export async function signIn(email = `user-${crypto.randomUUID()}@diu.edu.bd`) {
   return { email, cookie: headers.get("cookie")!, id: saved.id };
 }
 
+/**
+ * Inserts two departments with one course each, two semesters and two exam types.
+ * Names get a random suffix so tests stay independent even when storage is shared.
+ */
+export async function seedTaxonomy() {
+  const tag = crypto.randomUUID().slice(0, 8);
+  const [cse, eee] = await db()
+    .insert(departments)
+    .values([
+      { name: `Computer Science ${tag}`, shortName: `CSE-${tag}` },
+      { name: `Electrical Engineering ${tag}`, shortName: `EEE-${tag}` },
+    ])
+    // As questions show a department (the row also has its trigger-kept count).
+    .returning({
+      id: departments.id,
+      name: departments.name,
+      shortName: departments.shortName,
+    });
+  const [algorithms, circuits] = await db()
+    .insert(courses)
+    .values([
+      { name: `Algorithms ${tag}`, departmentId: cse!.id },
+      { name: `Circuits ${tag}`, departmentId: eee!.id },
+    ])
+    .returning();
+  const [sem1, sem2] = await db()
+    .insert(semesters)
+    .values([{ name: `1st Semester ${tag}` }, { name: `2nd Semester ${tag}` }])
+    .returning();
+  const [midterm, final] = await db()
+    .insert(examTypes)
+    .values([{ name: `Midterm ${tag}` }, { name: `Final ${tag}` }])
+    .returning();
+
+  return {
+    cse: cse!,
+    eee: eee!,
+    algorithms: algorithms!,
+    circuits: circuits!,
+    sem1: sem1!,
+    sem2: sem2!,
+    midterm: midterm!,
+    final: final!,
+  };
+}
+
+export async function seedQuestion(values: NewQuestionRow) {
+  const [row] = await db().insert(questions).values(values).returning();
+  return row!;
+}
+
+export async function seedSubmission(
+  questionId: number,
+  overrides: Partial<NewSubmissionRow> = {},
+) {
+  const [row] = await db()
+    .insert(submissions)
+    .values({
+      questionId,
+      status: "published",
+      fileKey: `submissions/${crypto.randomUUID()}.pdf`,
+      fileSize: 1234,
+      ...overrides,
+    })
+    .returning();
+  return row!;
+}
+
 /** Signs in a fresh user and makes them an admin. */
 export async function signInAdmin() {
   const admin = await signIn();
@@ -76,19 +154,6 @@ export function jsonRequest(
   };
 }
 
-/** A department with a random short name, so tests sharing storage stay apart. */
-export async function seedDepartment(
-  name = "Computer Science and Engineering",
-) {
-  const shortName = `T${crypto
-    .randomUUID()
-    .replace(/[^a-f]/g, "")
-    .slice(0, 6)}`
-    .toUpperCase()
-    .padEnd(4, "X");
-  const [row] = await db()
-    .insert(departments)
-    .values({ name, shortName })
-    .returning();
-  return row!;
+export function pdfFile(name = "paper.pdf") {
+  return new File(["%PDF-1.7\n%test\n"], name, { type: "application/pdf" });
 }

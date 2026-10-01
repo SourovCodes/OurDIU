@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { canonicalHostRedirect, safeRedirect } from "./redirect";
+import { canonicalHostRedirect, legacyPath, safeRedirect } from "./redirect";
 
 describe("safeRedirect", () => {
-  it.each(["/", "/contribute", "/papers/1?x=1"])(
+  it.each(["/", "/questions/contribute", "/papers/1?x=1"])(
     "allows relative path %s",
     (to) => {
       expect(safeRedirect(to)).toBe(to);
@@ -26,12 +26,14 @@ describe("canonicalHostRedirect", () => {
   const SITE = "https://ourdiu.com";
 
   it.each([
-    "https://www.ourdiu.com/routine?x=1",
-    "https://ourdiu.example.workers.dev/routine?x=1",
+    "https://www.ourdiu.com/questions/5?submission=7",
+    "https://ourdiu.example.workers.dev/questions/5?submission=7",
   ])("sends %s to the site's host", (from) => {
     const res = canonicalHostRedirect(new Request(from), SITE)!;
     expect(res.status).toBe(301);
-    expect(res.headers.get("location")).toBe("https://ourdiu.com/routine?x=1");
+    expect(res.headers.get("location")).toBe(
+      "https://ourdiu.com/questions/5?submission=7",
+    );
   });
 
   it("keeps the method for other requests", () => {
@@ -39,6 +41,26 @@ describe("canonicalHostRedirect", () => {
       method: "POST",
     });
     expect(canonicalHostRedirect(req, SITE)!.status).toBe(308);
+  });
+
+  it("sends the old question bank's pages to their new paths", () => {
+    const res = canonicalHostRedirect(
+      new Request("https://diuqbank.com/questions?departmentId=3"),
+      SITE,
+    )!;
+    expect(res.status).toBe(301);
+    expect(res.headers.get("location")).toBe(
+      "https://ourdiu.com/questions/browse?departmentId=3",
+    );
+  });
+
+  it("keeps serving the old question bank's API for the installed app", () => {
+    for (const host of ["diuqbank.com", "www.diuqbank.com"]) {
+      const req = new Request(`https://${host}/api/v1/questions`, {
+        method: "POST",
+      });
+      expect(canonicalHostRedirect(req, SITE)).toBeNull();
+    }
   });
 
   it("leaves the site itself and local dev alone", () => {
@@ -51,5 +73,22 @@ describe("canonicalHostRedirect", () => {
         "http://localhost:5173",
       ),
     ).toBeNull();
+  });
+});
+
+describe("legacyPath", () => {
+  it.each([
+    ["/", "/questions"],
+    ["/questions", "/questions/browse"],
+    ["/questions/42", "/questions/42"],
+    ["/contributors", "/questions/contributors"],
+    ["/contributors/sourov", "/questions/contributors/sourov"],
+    ["/contribute", "/questions/contribute"],
+    ["/account/submissions", "/questions/my-submissions"],
+    ["/account/submissions/abc", "/questions/my-submissions/abc"],
+    ["/account", "/account"],
+    ["/privacy", "/privacy"],
+  ])("maps %s to %s", (from, to) => {
+    expect(legacyPath(from)).toBe(to);
   });
 });

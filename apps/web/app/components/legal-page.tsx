@@ -1,6 +1,8 @@
-import { NavLink } from "react-router";
+import { Mail } from "lucide-react";
+import { Link, NavLink } from "react-router";
 import { PageHeader } from "~/components/page-header";
-import { CONTACT_EMAIL, LEGAL_PAGES, LEGAL_UPDATED } from "~/lib/legal";
+import { AUTHOR } from "~/lib/author";
+import { LEGAL_PAGES, LEGAL_UPDATED } from "~/lib/legal";
 import { cn } from "~/lib/utils";
 
 // Readable long-form text without the typography plugin: paragraphs, lists, links
@@ -16,7 +18,7 @@ type LegalPageProps = {
 };
 
 /**
- * The shell of /privacy and /terms: title, last update, tabs
+ * The shell of /privacy, /terms, /copyright and /cookies: title, last update, tabs
  * between the legal pages, the sections, and where to send questions.
  */
 export function LegalPage({ title, description, children }: LegalPageProps) {
@@ -54,17 +56,24 @@ export function LegalPage({ title, description, children }: LegalPageProps) {
 
       <article className={PROSE}>{children}</article>
 
-      <aside className="rounded-xl border bg-muted/40 p-5 text-sm">
+      <aside className="flex flex-col gap-3 rounded-xl border bg-muted/40 p-5 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="text-pretty">
           Questions about this page? Email{" "}
           <a
-            href={`mailto:${CONTACT_EMAIL}`}
+            href={`mailto:${AUTHOR.email}`}
             className="font-medium break-all underline underline-offset-4"
           >
-            {CONTACT_EMAIL}
+            {AUTHOR.email}
           </a>
           .
         </p>
+        <Link
+          to="/contact"
+          className="inline-flex shrink-0 items-center gap-1.5 font-medium underline-offset-4 hover:underline"
+        >
+          <Mail className="size-4" aria-hidden />
+          Contact page
+        </Link>
       </aside>
     </div>
   );

@@ -1,8 +1,10 @@
+import type { AdminStats } from "@ourdiu/shared";
 import { Outlet } from "react-router";
 import { AdminHeader, type AdminHandle } from "~/components/admin/admin-header";
 import { AdminSidebar } from "~/components/admin/app-sidebar";
 import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
 import { TooltipProvider } from "~/components/ui/tooltip";
+import { apiGetJson } from "~/lib/api.server";
 import { requireAdmin } from "~/lib/session.server";
 import type { RouteHandle } from "~/root";
 import type { Route } from "./+types/admin";
@@ -19,17 +21,18 @@ export const meta: Route.MetaFunction = () => [
 
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await requireAdmin(request);
+  const stats = await apiGetJson<AdminStats>(request, "/api/v1/admin/stats");
   // The sidebar remembers whether it was collapsed in a cookie; read it so the
   // server renders the same state.
   const sidebarOpen = !/(?:^|;\s*)sidebar_state=false/.test(
     request.headers.get("cookie") ?? "",
   );
-  return { user, sidebarOpen };
+  return { user, stats, sidebarOpen };
 }
 
 /** The admin panel's own shell: shadcn sidebar plus an inset with a top bar. */
 export default function AdminLayout({ loaderData }: Route.ComponentProps) {
-  const { user, sidebarOpen } = loaderData;
+  const { user, stats, sidebarOpen } = loaderData;
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -42,7 +45,14 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           } as React.CSSProperties
         }
       >
-        <AdminSidebar variant="inset" user={user} />
+        <AdminSidebar
+          variant="inset"
+          user={user}
+          counts={{
+            pendingReview: stats.submissions.pendingReview,
+            openReports: stats.openReports,
+          }}
+        />
         <SidebarInset>
           <AdminHeader />
           <div className="@container/main flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">

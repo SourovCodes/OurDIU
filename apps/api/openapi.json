@@ -6,42 +6,144 @@
   },
   "components": {
     "schemas": {
-      "Profile": {
+      "Taxonomy": {
+        "type": "object",
+        "properties": {
+          "departments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DepartmentListItem"
+            }
+          },
+          "courses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Course"
+            }
+          },
+          "semesters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Semester"
+            }
+          },
+          "examTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExamType"
+            }
+          }
+        },
+        "required": [
+          "departments",
+          "courses",
+          "semesters",
+          "examTypes"
+        ]
+      },
+      "DepartmentListItem": {
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "integer",
+            "exclusiveMinimum": 0
           },
           "name": {
             "type": "string"
           },
-          "email": {
+          "shortName": {
             "type": "string"
           },
-          "username": {
-            "type": "string"
-          },
-          "image": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "role": {
-            "type": "string",
-            "enum": [
-              "user",
-              "admin"
-            ]
+          "publishedCount": {
+            "type": "integer"
           }
         },
         "required": [
           "id",
           "name",
-          "email",
-          "username",
-          "image",
-          "role"
+          "shortName",
+          "publishedCount"
+        ]
+      },
+      "Course": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "name": {
+            "type": "string"
+          },
+          "departmentId": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "departmentId"
+        ]
+      },
+      "Semester": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "ExamType": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "DepartmentList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DepartmentListItem"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "CourseList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Course"
+            }
+          }
+        },
+        "required": [
+          "items"
         ]
       },
       "ApiError": {
@@ -68,6 +170,1078 @@
           "error"
         ]
       },
+      "SemesterList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Semester"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "ExamTypeList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExamType"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "QuestionList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Question"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ]
+      },
+      "Question": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "department": {
+            "$ref": "#/components/schemas/Department"
+          },
+          "course": {
+            "$ref": "#/components/schemas/QuestionCourse"
+          },
+          "semester": {
+            "$ref": "#/components/schemas/Semester"
+          },
+          "examType": {
+            "$ref": "#/components/schemas/ExamType"
+          },
+          "submissionCounts": {
+            "$ref": "#/components/schemas/SubmissionCounts"
+          },
+          "viewCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "department",
+          "course",
+          "semester",
+          "examType",
+          "submissionCounts",
+          "viewCount"
+        ]
+      },
+      "Department": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "name": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "shortName"
+        ]
+      },
+      "QuestionCourse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "SubmissionCounts": {
+        "type": "object",
+        "properties": {
+          "published": {
+            "type": "integer"
+          },
+          "pendingReview": {
+            "type": "integer"
+          },
+          "rejected": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "published",
+          "pendingReview",
+          "rejected"
+        ]
+      },
+      "QuestionSort": {
+        "type": "string",
+        "enum": [
+          "newest",
+          "popular",
+          "az"
+        ],
+        "default": "newest"
+      },
+      "QuestionDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "department": {
+            "$ref": "#/components/schemas/Department"
+          },
+          "course": {
+            "$ref": "#/components/schemas/QuestionCourse"
+          },
+          "semester": {
+            "$ref": "#/components/schemas/Semester"
+          },
+          "examType": {
+            "$ref": "#/components/schemas/ExamType"
+          },
+          "submissionCounts": {
+            "$ref": "#/components/schemas/SubmissionCounts"
+          },
+          "viewCount": {
+            "type": "integer"
+          },
+          "submissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Submission"
+            }
+          },
+          "viewToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "department",
+          "course",
+          "semester",
+          "examType",
+          "submissionCounts",
+          "viewCount",
+          "submissions",
+          "viewToken"
+        ]
+      },
+      "Submission": {
+        "type": "object",
+        "properties": {
+          "likeCount": {
+            "type": "integer"
+          },
+          "dislikeCount": {
+            "type": "integer"
+          },
+          "viewCount": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubmissionStatus"
+          },
+          "fileSize": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "section": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "batch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "uploader": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Uploader"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fileUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "likeCount",
+          "dislikeCount",
+          "viewCount",
+          "id",
+          "status",
+          "fileSize",
+          "createdAt",
+          "section",
+          "batch",
+          "uploader",
+          "fileUrl"
+        ]
+      },
+      "SubmissionStatus": {
+        "type": "string",
+        "enum": [
+          "pending_review",
+          "published",
+          "rejected"
+        ]
+      },
+      "Uploader": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "image": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "name",
+          "image"
+        ]
+      },
+      "CreatedSubmission": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubmissionStatus"
+          },
+          "questionId": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "questionId"
+        ]
+      },
+      "ContributorList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Contributor"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ]
+      },
+      "Contributor": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "image": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "publishedCount": {
+            "type": "integer"
+          },
+          "viewCount": {
+            "type": "integer"
+          },
+          "departments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContributorDepartment"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "name",
+          "image",
+          "joinedAt",
+          "publishedCount",
+          "viewCount",
+          "departments"
+        ]
+      },
+      "ContributorDepartment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": "string"
+          },
+          "publishedCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "shortName",
+          "publishedCount"
+        ]
+      },
+      "ContributorDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "image": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "publishedCount": {
+            "type": "integer"
+          },
+          "viewCount": {
+            "type": "integer"
+          },
+          "departments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContributorDepartment"
+            }
+          },
+          "submissions": {
+            "$ref": "#/components/schemas/ContributorSubmissionList"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "name",
+          "image",
+          "joinedAt",
+          "publishedCount",
+          "viewCount",
+          "departments",
+          "submissions"
+        ]
+      },
+      "ContributorSubmissionList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContributorSubmission"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ]
+      },
+      "ContributorSubmission": {
+        "type": "object",
+        "properties": {
+          "likeCount": {
+            "type": "integer"
+          },
+          "dislikeCount": {
+            "type": "integer"
+          },
+          "viewCount": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubmissionStatus"
+          },
+          "fileSize": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "section": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "batch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "questionId": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "classification": {
+            "$ref": "#/components/schemas/SubmissionClassification"
+          }
+        },
+        "required": [
+          "likeCount",
+          "dislikeCount",
+          "viewCount",
+          "id",
+          "status",
+          "fileSize",
+          "createdAt",
+          "section",
+          "batch",
+          "questionId",
+          "classification"
+        ]
+      },
+      "SubmissionClassification": {
+        "type": "object",
+        "properties": {
+          "department": {
+            "$ref": "#/components/schemas/ClassifiedDepartment"
+          },
+          "course": {
+            "$ref": "#/components/schemas/ClassifiedValue"
+          },
+          "semester": {
+            "$ref": "#/components/schemas/ClassifiedValue"
+          },
+          "examType": {
+            "$ref": "#/components/schemas/ExamType"
+          }
+        },
+        "required": [
+          "department",
+          "course",
+          "semester",
+          "examType"
+        ]
+      },
+      "ClassifiedDepartment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "shortName"
+        ]
+      },
+      "ClassifiedValue": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "Profile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "image": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "publishedCount": {
+            "type": "integer"
+          },
+          "viewCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "username",
+          "image",
+          "publishedCount",
+          "viewCount"
+        ]
+      },
+      "MySubmissionList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MySubmission"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "MySubmission": {
+        "type": "object",
+        "properties": {
+          "likeCount": {
+            "type": "integer"
+          },
+          "dislikeCount": {
+            "type": "integer"
+          },
+          "viewCount": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubmissionStatus"
+          },
+          "fileSize": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "section": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "batch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "questionId": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "classification": {
+            "$ref": "#/components/schemas/SubmissionClassification"
+          },
+          "autoPublished": {
+            "type": "boolean"
+          },
+          "rejectionReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "analysis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "likeCount",
+          "dislikeCount",
+          "viewCount",
+          "id",
+          "status",
+          "fileSize",
+          "createdAt",
+          "section",
+          "batch",
+          "questionId",
+          "classification",
+          "autoPublished",
+          "rejectionReason",
+          "analysis"
+        ]
+      },
+      "AnalysisSummary": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/AnalysisStatus"
+          },
+          "flag": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisFlag"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "matches": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "flag",
+          "matches"
+        ]
+      },
+      "AnalysisStatus": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "processing",
+          "completed",
+          "failed"
+        ]
+      },
+      "AnalysisFlag": {
+        "type": "string",
+        "enum": [
+          "not_a_paper",
+          "multiple_papers"
+        ]
+      },
+      "MySubmissionDetail": {
+        "type": "object",
+        "properties": {
+          "likeCount": {
+            "type": "integer"
+          },
+          "dislikeCount": {
+            "type": "integer"
+          },
+          "viewCount": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubmissionStatus"
+          },
+          "fileSize": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "section": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "batch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "questionId": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "classification": {
+            "$ref": "#/components/schemas/SubmissionClassification"
+          },
+          "autoPublished": {
+            "type": "boolean"
+          },
+          "rejectionReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "analysis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "analysisDetail": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UploaderAnalysis"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "likeCount",
+          "dislikeCount",
+          "viewCount",
+          "id",
+          "status",
+          "fileSize",
+          "createdAt",
+          "section",
+          "batch",
+          "questionId",
+          "classification",
+          "autoPublished",
+          "rejectionReason",
+          "analysis",
+          "analysisDetail"
+        ]
+      },
+      "UploaderAnalysis": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/AnalysisStatus"
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "isQuestionPaper": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "paperCount": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "flag": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisFlag"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "values": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisValues"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "requestedAt",
+          "completedAt",
+          "isQuestionPaper",
+          "paperCount",
+          "note",
+          "flag",
+          "values"
+        ]
+      },
+      "AnalysisValues": {
+        "type": "object",
+        "properties": {
+          "department": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractedDepartment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "course": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractedValue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "semester": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractedValue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "examType": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractedValue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "section": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "batch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "department",
+          "course",
+          "semester",
+          "examType",
+          "section",
+          "batch"
+        ]
+      },
+      "ExtractedDepartment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "shortName"
+        ]
+      },
+      "ExtractedValue": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
       "UpdateUsernameInput": {
         "type": "object",
         "properties": {
@@ -78,6 +1252,253 @@
         },
         "required": [
           "username"
+        ]
+      },
+      "ReportReason": {
+        "type": "string",
+        "enum": [
+          "wrong_details",
+          "wrong_file",
+          "unreadable",
+          "duplicate",
+          "inappropriate",
+          "other"
+        ]
+      },
+      "ReportStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "resolved",
+          "dismissed"
+        ]
+      },
+      "SubmissionAnalysis": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/AnalysisStatus"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "isQuestionPaper": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "paperCount": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "flag": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisFlag"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "values": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisValues"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "originalBytes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "sentBytes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "error",
+          "model",
+          "requestedAt",
+          "completedAt",
+          "isQuestionPaper",
+          "paperCount",
+          "note",
+          "flag",
+          "values",
+          "originalBytes",
+          "sentBytes"
+        ]
+      },
+      "VoteResult": {
+        "type": "object",
+        "properties": {
+          "likeCount": {
+            "type": "integer"
+          },
+          "dislikeCount": {
+            "type": "integer"
+          },
+          "viewCount": {
+            "type": "integer"
+          },
+          "myVote": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VoteValue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "likeCount",
+          "dislikeCount",
+          "viewCount",
+          "myVote"
+        ]
+      },
+      "VoteValue": {
+        "type": "integer",
+        "enum": [
+          1,
+          -1
+        ]
+      },
+      "CastVoteInput": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "$ref": "#/components/schemas/VoteValue"
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "CreatedReport": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReportStatus"
+          },
+          "submissionHidden": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "submissionHidden"
+        ]
+      },
+      "CreateReportInput": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "$ref": "#/components/schemas/ReportReason"
+          },
+          "details": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "QuestionInteractions": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "votes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionVote"
+            }
+          },
+          "reportedSubmissionIds": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "votes",
+          "reportedSubmissionIds"
+        ]
+      },
+      "QuestionVote": {
+        "type": "object",
+        "properties": {
+          "submissionId": {
+            "type": "integer"
+          },
+          "value": {
+            "$ref": "#/components/schemas/VoteValue"
+          }
+        },
+        "required": [
+          "submissionId",
+          "value"
+        ]
+      },
+      "Avatar": {
+        "type": "object",
+        "properties": {
+          "image": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "image"
         ]
       }
     },
@@ -114,12 +1535,640 @@
         }
       }
     },
+    "/api/v1/taxonomy": {
+      "get": {
+        "tags": [
+          "Taxonomy"
+        ],
+        "summary": "List departments, courses, semesters and exam types at once",
+        "responses": {
+          "200": {
+            "description": "All four lists, ordered as below",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Taxonomy"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/departments": {
+      "get": {
+        "tags": [
+          "Taxonomy"
+        ],
+        "summary": "List departments",
+        "responses": {
+          "200": {
+            "description": "Departments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/courses": {
+      "get": {
+        "tags": [
+          "Taxonomy"
+        ],
+        "summary": "List courses, optionally for one department",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": false,
+            "name": "departmentId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Courses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/semesters": {
+      "get": {
+        "tags": [
+          "Taxonomy"
+        ],
+        "summary": "List semesters",
+        "responses": {
+          "200": {
+            "description": "Semesters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SemesterList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam-types": {
+      "get": {
+        "tags": [
+          "Taxonomy"
+        ],
+        "summary": "List exam types",
+        "responses": {
+          "200": {
+            "description": "Exam types",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExamTypeList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sitemap": {
+      "get": {
+        "tags": [
+          "Sitemap"
+        ],
+        "summary": "List the public pages with published papers, for sitemap.xml",
+        "responses": {
+          "200": {
+            "description": "Questions and contributors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "questions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "lastModified": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "lastModified"
+                        ]
+                      }
+                    },
+                    "contributors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "username": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "username"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "questions",
+                    "contributors"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/questions": {
+      "get": {
+        "tags": [
+          "Questions"
+        ],
+        "summary": "List questions that have published submissions",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/QuestionSort"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": false,
+            "name": "departmentId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": false,
+            "name": "courseId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": false,
+            "name": "semesterId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": false,
+            "name": "examTypeId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Questions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/questions/{id}": {
+      "get": {
+        "tags": [
+          "Questions"
+        ],
+        "summary": "Get a question with its published submissions",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Question",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Question not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/submissions": {
+      "post": {
+        "tags": [
+          "Submissions"
+        ],
+        "summary": "Contribute a question paper (requires sign-in)",
+        "description": "Department, course and semester can each be an existing id or a new name. Submissions with new names have no question until an admin approves the new values.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "departmentId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "customDepartmentName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  },
+                  "customDepartmentShortName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 20
+                  },
+                  "courseId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "customCourseName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  },
+                  "semesterId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "customSemesterName": {
+                    "type": "string"
+                  },
+                  "examTypeId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "section": {
+                    "type": "string",
+                    "maxLength": 10
+                  },
+                  "batch": {
+                    "type": "string",
+                    "maxLength": 10
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "examTypeId",
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Submitted for review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedSubmission"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many uploads",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/submissions/{id}/file": {
+      "get": {
+        "tags": [
+          "Submissions"
+        ],
+        "summary": "Download the PDF of a published submission",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PDF file",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/contributors": {
+      "get": {
+        "tags": [
+          "Contributors"
+        ],
+        "summary": "List users who have submitted papers, most published first",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contributors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContributorList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/contributors/{username}": {
+      "get": {
+        "tags": [
+          "Contributors"
+        ],
+        "summary": "Get a contributor with a page of their published papers",
+        "description": "By username (any case). A user id works too, for links made before usernames.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 24
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": false,
+            "name": "departmentId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contributor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContributorDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contributor not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me": {
       "get": {
         "tags": [
           "Account"
         ],
-        "summary": "Get your profile",
+        "summary": "Get your profile and the counts on your contributor page",
         "responses": {
           "200": {
             "description": "Your profile",
@@ -144,13 +2193,327 @@
         }
       }
     },
+    "/api/v1/me/submissions": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "List your own submissions, in every status",
+        "responses": {
+          "200": {
+            "description": "Your submissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MySubmissionList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/submissions/{id}": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Get one of your submissions with its review status and AI check",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Your submission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MySubmissionDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Withdraw one of your submissions that isn't published",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Withdrawn; the PDF is deleted"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Published submissions can't be withdrawn",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/submissions/{id}/classification": {
+      "put": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Correct the details of one of your papers waiting for review",
+        "description": "Same fields as uploading. The new details are compared with the AI check's reading, and the paper is published right away if they match.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "departmentId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "customDepartmentName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  },
+                  "customDepartmentShortName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 20
+                  },
+                  "courseId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "customCourseName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  },
+                  "semesterId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "customSemesterName": {
+                    "type": "string"
+                  },
+                  "examTypeId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "section": {
+                    "type": "string",
+                    "maxLength": 10
+                  },
+                  "batch": {
+                    "type": "string",
+                    "maxLength": 10
+                  }
+                },
+                "required": [
+                  "examTypeId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated submission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MySubmissionDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The paper isn't waiting for review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/submissions/{id}/file": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Download the PDF of one of your submissions, in any status",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PDF file",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/username": {
       "put": {
         "tags": [
           "Account"
         ],
         "summary": "Change your username",
-        "description": "3–50 lowercase letters, digits, dots, dashes or underscores; saved in lowercase.",
+        "description": "Used in your contributor page's URL. 3–50 lowercase letters, digits, dots, dashes or underscores; saved in lowercase.",
         "requestBody": {
           "required": true,
           "content": {
@@ -194,6 +2557,3400 @@
           },
           "422": {
             "description": "Not a valid username",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/stats": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Headline numbers for the admin dashboard",
+        "responses": {
+          "200": {
+            "description": "Dashboard numbers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "submissions": {
+                      "type": "object",
+                      "properties": {
+                        "published": {
+                          "type": "integer"
+                        },
+                        "pendingReview": {
+                          "type": "integer"
+                        },
+                        "rejected": {
+                          "type": "integer"
+                        },
+                        "awaitingClassification": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "published",
+                        "pendingReview",
+                        "rejected",
+                        "awaitingClassification"
+                      ]
+                    },
+                    "openReports": {
+                      "type": "integer"
+                    },
+                    "questions": {
+                      "type": "integer"
+                    },
+                    "users": {
+                      "type": "integer"
+                    },
+                    "contributors": {
+                      "type": "integer"
+                    },
+                    "views": {
+                      "type": "integer"
+                    },
+                    "catalog": {
+                      "type": "object",
+                      "properties": {
+                        "departments": {
+                          "type": "integer"
+                        },
+                        "courses": {
+                          "type": "integer"
+                        },
+                        "semesters": {
+                          "type": "integer"
+                        },
+                        "examTypes": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "departments",
+                        "courses",
+                        "semesters",
+                        "examTypes"
+                      ]
+                    },
+                    "dailySubmissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "date": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "count": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "date",
+                          "count"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "submissions",
+                    "openReports",
+                    "questions",
+                    "users",
+                    "contributors",
+                    "views",
+                    "catalog",
+                    "dailySubmissions"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/submissions": {
+      "get": {
+        "tags": [
+          "Admin: submissions"
+        ],
+        "summary": "List submissions in any status, the most reported first",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/SubmissionStatus"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "flagged",
+                "differs"
+              ]
+            },
+            "required": false,
+            "name": "ai",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "likeCount": {
+                            "type": "integer"
+                          },
+                          "dislikeCount": {
+                            "type": "integer"
+                          },
+                          "viewCount": {
+                            "type": "integer"
+                          },
+                          "id": {
+                            "type": "integer"
+                          },
+                          "status": {
+                            "$ref": "#/components/schemas/SubmissionStatus"
+                          },
+                          "fileSize": {
+                            "type": "integer"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "section": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "batch": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "questionId": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "classification": {
+                            "$ref": "#/components/schemas/SubmissionClassification"
+                          },
+                          "uploader": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "username": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "email": {
+                                "type": "string"
+                              },
+                              "image": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "username",
+                              "name",
+                              "email",
+                              "image"
+                            ]
+                          },
+                          "pendingReportCount": {
+                            "type": "integer"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "analysis": {
+                            "anyOf": [
+                              {
+                                "$ref": "#/components/schemas/AnalysisSummary"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "autoPublished": {
+                            "type": "boolean"
+                          },
+                          "rejectionReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "watermark": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "queued",
+                                  "done",
+                                  "failed"
+                                ]
+                              },
+                              "error": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "fileSize": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "status",
+                              "error",
+                              "fileSize"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "likeCount",
+                          "dislikeCount",
+                          "viewCount",
+                          "id",
+                          "status",
+                          "fileSize",
+                          "createdAt",
+                          "section",
+                          "batch",
+                          "questionId",
+                          "classification",
+                          "uploader",
+                          "pendingReportCount",
+                          "updatedAt",
+                          "analysis",
+                          "autoPublished",
+                          "rejectionReason",
+                          "watermark"
+                        ]
+                      }
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "pageSize": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "counts": {
+                      "$ref": "#/components/schemas/SubmissionCounts"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "page",
+                    "pageSize",
+                    "total",
+                    "counts"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/submissions/{id}": {
+      "get": {
+        "tags": [
+          "Admin: submissions"
+        ],
+        "summary": "Get a submission with its reports",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "likeCount": {
+                      "type": "integer"
+                    },
+                    "dislikeCount": {
+                      "type": "integer"
+                    },
+                    "viewCount": {
+                      "type": "integer"
+                    },
+                    "id": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "$ref": "#/components/schemas/SubmissionStatus"
+                    },
+                    "fileSize": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "section": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "batch": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "questionId": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "classification": {
+                      "$ref": "#/components/schemas/SubmissionClassification"
+                    },
+                    "uploader": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "image": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "username",
+                        "name",
+                        "email",
+                        "image"
+                      ]
+                    },
+                    "pendingReportCount": {
+                      "type": "integer"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "analysis": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/AnalysisSummary"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "autoPublished": {
+                      "type": "boolean"
+                    },
+                    "rejectionReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "watermark": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "queued",
+                            "done",
+                            "failed"
+                          ]
+                        },
+                        "error": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "fileSize": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "error",
+                        "fileSize"
+                      ]
+                    },
+                    "reports": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "reason": {
+                            "$ref": "#/components/schemas/ReportReason"
+                          },
+                          "details": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "$ref": "#/components/schemas/ReportStatus"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "reporter": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "username": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "email": {
+                                "type": "string"
+                              },
+                              "image": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "username",
+                              "name",
+                              "email",
+                              "image"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "reason",
+                          "details",
+                          "status",
+                          "createdAt",
+                          "reporter"
+                        ]
+                      }
+                    },
+                    "analysisDetail": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/SubmissionAnalysis"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "likeCount",
+                    "dislikeCount",
+                    "viewCount",
+                    "id",
+                    "status",
+                    "fileSize",
+                    "createdAt",
+                    "section",
+                    "batch",
+                    "questionId",
+                    "classification",
+                    "uploader",
+                    "pendingReportCount",
+                    "updatedAt",
+                    "analysis",
+                    "autoPublished",
+                    "rejectionReason",
+                    "watermark",
+                    "reports",
+                    "analysisDetail"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Admin: submissions"
+        ],
+        "summary": "Publish, reject or re-queue a submission",
+        "description": "A submission that proposes new catalog entries has to be classified before it can be published.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "$ref": "#/components/schemas/SubmissionStatus"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated submission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "likeCount": {
+                      "type": "integer"
+                    },
+                    "dislikeCount": {
+                      "type": "integer"
+                    },
+                    "viewCount": {
+                      "type": "integer"
+                    },
+                    "id": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "$ref": "#/components/schemas/SubmissionStatus"
+                    },
+                    "fileSize": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "section": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "batch": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "questionId": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "classification": {
+                      "$ref": "#/components/schemas/SubmissionClassification"
+                    },
+                    "uploader": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "image": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "username",
+                        "name",
+                        "email",
+                        "image"
+                      ]
+                    },
+                    "pendingReportCount": {
+                      "type": "integer"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "analysis": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/AnalysisSummary"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "autoPublished": {
+                      "type": "boolean"
+                    },
+                    "rejectionReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "watermark": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "queued",
+                            "done",
+                            "failed"
+                          ]
+                        },
+                        "error": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "fileSize": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "error",
+                        "fileSize"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "likeCount",
+                    "dislikeCount",
+                    "viewCount",
+                    "id",
+                    "status",
+                    "fileSize",
+                    "createdAt",
+                    "section",
+                    "batch",
+                    "questionId",
+                    "classification",
+                    "uploader",
+                    "pendingReportCount",
+                    "updatedAt",
+                    "analysis",
+                    "autoPublished",
+                    "rejectionReason",
+                    "watermark"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Needs classification before publishing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin: submissions"
+        ],
+        "summary": "Delete a submission in any status, with its PDF",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/submissions/{id}/file": {
+      "get": {
+        "tags": [
+          "Admin: submissions"
+        ],
+        "summary": "Download the PDF of a submission in any status",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PDF file",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/submissions/{id}/classification": {
+      "put": {
+        "tags": [
+          "Admin: submissions"
+        ],
+        "summary": "File a submission under a department, course, semester and exam type",
+        "description": "Each of department, course and semester is an existing id or a new name, which is created. Use it to approve a proposal or to correct a paper's details. The status doesn't change.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "departmentId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "customDepartmentName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  },
+                  "customDepartmentShortName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 20
+                  },
+                  "courseId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "customCourseName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  },
+                  "semesterId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "customSemesterName": {
+                    "type": "string"
+                  },
+                  "examTypeId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "section": {
+                    "type": "string",
+                    "maxLength": 10
+                  },
+                  "batch": {
+                    "type": "string",
+                    "maxLength": 10
+                  }
+                },
+                "required": [
+                  "examTypeId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reclassified submission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "likeCount": {
+                      "type": "integer"
+                    },
+                    "dislikeCount": {
+                      "type": "integer"
+                    },
+                    "viewCount": {
+                      "type": "integer"
+                    },
+                    "id": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "$ref": "#/components/schemas/SubmissionStatus"
+                    },
+                    "fileSize": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "section": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "batch": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "questionId": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "classification": {
+                      "$ref": "#/components/schemas/SubmissionClassification"
+                    },
+                    "uploader": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "image": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "username",
+                        "name",
+                        "email",
+                        "image"
+                      ]
+                    },
+                    "pendingReportCount": {
+                      "type": "integer"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "analysis": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/AnalysisSummary"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "autoPublished": {
+                      "type": "boolean"
+                    },
+                    "rejectionReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "watermark": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "queued",
+                            "done",
+                            "failed"
+                          ]
+                        },
+                        "error": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "fileSize": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "error",
+                        "fileSize"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "likeCount",
+                    "dislikeCount",
+                    "viewCount",
+                    "id",
+                    "status",
+                    "fileSize",
+                    "createdAt",
+                    "section",
+                    "batch",
+                    "questionId",
+                    "classification",
+                    "uploader",
+                    "pendingReportCount",
+                    "updatedAt",
+                    "analysis",
+                    "autoPublished",
+                    "rejectionReason",
+                    "watermark"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A new name clashes with an existing entry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid classification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/submissions/{id}/analysis": {
+      "post": {
+        "tags": [
+          "Admin: submissions"
+        ],
+        "summary": "Run the AI analysis of a submission again",
+        "description": "Queues a new run (compress the PDF, ask Gemini) and clears the previous result.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Analysis queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionAnalysis"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/submissions/analysis": {
+      "post": {
+        "tags": [
+          "Admin: submissions"
+        ],
+        "summary": "Run the AI check on pending papers that were never checked",
+        "description": "Runs the upload check (which publishes papers it confirms) on up to 100 pending papers without an analysis, such as imported ones. Call again for the rest.",
+        "responses": {
+          "202": {
+            "description": "Papers queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "queued": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "queued"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/submissions/watermark": {
+      "post": {
+        "tags": [
+          "Admin: submissions"
+        ],
+        "summary": "Watermark every published paper that has no watermarked copy",
+        "description": "Queues published papers that were never watermarked or whose watermark failed. Until a copy is ready, the public downloads the original.",
+        "responses": {
+          "202": {
+            "description": "Papers queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "queued": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "queued"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/submissions/{id}/watermark": {
+      "post": {
+        "tags": [
+          "Admin: submissions"
+        ],
+        "summary": "Make the watermarked copy of a published paper again",
+        "description": "E.g. after the contributor changed their name. The current copy is served until the new one is ready.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Watermark queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "queued",
+                        "done",
+                        "failed"
+                      ]
+                    },
+                    "error": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "fileSize": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "error",
+                    "fileSize"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The submission isn't published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/reports": {
+      "get": {
+        "tags": [
+          "Admin: reports"
+        ],
+        "summary": "List reports, newest first",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/ReportStatus"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reports",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "reason": {
+                            "$ref": "#/components/schemas/ReportReason"
+                          },
+                          "details": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "$ref": "#/components/schemas/ReportStatus"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "reporter": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "username": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "email": {
+                                "type": "string"
+                              },
+                              "image": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "username",
+                              "name",
+                              "email",
+                              "image"
+                            ]
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "submission": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer"
+                              },
+                              "status": {
+                                "$ref": "#/components/schemas/SubmissionStatus"
+                              },
+                              "questionId": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "pendingReportCount": {
+                                "type": "integer"
+                              },
+                              "classification": {
+                                "$ref": "#/components/schemas/SubmissionClassification"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "status",
+                              "questionId",
+                              "pendingReportCount",
+                              "classification"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "reason",
+                          "details",
+                          "status",
+                          "createdAt",
+                          "reporter",
+                          "updatedAt",
+                          "submission"
+                        ]
+                      }
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "pageSize": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "pending": {
+                          "type": "integer"
+                        },
+                        "resolved": {
+                          "type": "integer"
+                        },
+                        "dismissed": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "pending",
+                        "resolved",
+                        "dismissed"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "page",
+                    "pageSize",
+                    "total",
+                    "counts"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/reports/{id}": {
+      "patch": {
+        "tags": [
+          "Admin: reports"
+        ],
+        "summary": "Resolve, dismiss or reopen a report",
+        "description": "The paper's status doesn't change: publish a hidden paper again separately.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "$ref": "#/components/schemas/ReportStatus"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "reason": {
+                      "$ref": "#/components/schemas/ReportReason"
+                    },
+                    "details": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "$ref": "#/components/schemas/ReportStatus"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "reporter": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "image": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "username",
+                        "name",
+                        "email",
+                        "image"
+                      ]
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "submission": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "status": {
+                          "$ref": "#/components/schemas/SubmissionStatus"
+                        },
+                        "questionId": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "pendingReportCount": {
+                          "type": "integer"
+                        },
+                        "classification": {
+                          "$ref": "#/components/schemas/SubmissionClassification"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "status",
+                        "questionId",
+                        "pendingReportCount",
+                        "classification"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "reason",
+                    "details",
+                    "status",
+                    "createdAt",
+                    "reporter",
+                    "updatedAt",
+                    "submission"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Report not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The reporter already has an open report on the paper",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/catalog": {
+      "get": {
+        "tags": [
+          "Admin: catalog"
+        ],
+        "summary": "Departments, courses, semesters and exam types with their usage",
+        "responses": {
+          "200": {
+            "description": "Catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "departments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "shortName": {
+                            "type": "string"
+                          },
+                          "questionCount": {
+                            "type": "integer"
+                          },
+                          "submissionCount": {
+                            "type": "integer"
+                          },
+                          "courseCount": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "shortName",
+                          "questionCount",
+                          "submissionCount",
+                          "courseCount"
+                        ]
+                      }
+                    },
+                    "courses": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "departmentId": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0
+                          },
+                          "questionCount": {
+                            "type": "integer"
+                          },
+                          "submissionCount": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "departmentId",
+                          "questionCount",
+                          "submissionCount"
+                        ]
+                      }
+                    },
+                    "semesters": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "questionCount": {
+                            "type": "integer"
+                          },
+                          "submissionCount": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "questionCount",
+                          "submissionCount"
+                        ]
+                      }
+                    },
+                    "examTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "questionCount": {
+                            "type": "integer"
+                          },
+                          "submissionCount": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "questionCount",
+                          "submissionCount"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "departments",
+                    "courses",
+                    "semesters",
+                    "examTypes"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/departments": {
+      "post": {
+        "tags": [
+          "Admin: catalog"
+        ],
+        "summary": "Create a department",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  },
+                  "shortName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 20
+                  }
+                },
+                "required": [
+                  "name",
+                  "shortName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created department",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "shortName": {
+                      "type": "string"
+                    },
+                    "questionCount": {
+                      "type": "integer"
+                    },
+                    "submissionCount": {
+                      "type": "integer"
+                    },
+                    "courseCount": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "shortName",
+                    "questionCount",
+                    "submissionCount",
+                    "courseCount"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A department with this name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/departments/{id}": {
+      "patch": {
+        "tags": [
+          "Admin: catalog"
+        ],
+        "summary": "Rename a department",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  },
+                  "shortName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 20
+                  }
+                },
+                "required": [
+                  "name",
+                  "shortName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated department",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "shortName": {
+                      "type": "string"
+                    },
+                    "questionCount": {
+                      "type": "integer"
+                    },
+                    "submissionCount": {
+                      "type": "integer"
+                    },
+                    "courseCount": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "shortName",
+                    "questionCount",
+                    "submissionCount",
+                    "courseCount"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "department not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A department with this name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin: catalog"
+        ],
+        "summary": "Delete an unused department",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "department not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The department is still in use",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/courses": {
+      "post": {
+        "tags": [
+          "Admin: catalog"
+        ],
+        "summary": "Create a course",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  },
+                  "departmentId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "required": [
+                  "name",
+                  "departmentId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created course",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "departmentId": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "questionCount": {
+                      "type": "integer"
+                    },
+                    "submissionCount": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "departmentId",
+                    "questionCount",
+                    "submissionCount"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A course with this name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/courses/{id}": {
+      "patch": {
+        "tags": [
+          "Admin: catalog"
+        ],
+        "summary": "Rename a course",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated course",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "departmentId": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "questionCount": {
+                      "type": "integer"
+                    },
+                    "submissionCount": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "departmentId",
+                    "questionCount",
+                    "submissionCount"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "course not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A course with this name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin: catalog"
+        ],
+        "summary": "Delete an unused course",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "course not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The course is still in use",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/semesters": {
+      "post": {
+        "tags": [
+          "Admin: catalog"
+        ],
+        "summary": "Create a semester",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created semester",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "questionCount": {
+                      "type": "integer"
+                    },
+                    "submissionCount": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "questionCount",
+                    "submissionCount"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A semester with this name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/semesters/{id}": {
+      "patch": {
+        "tags": [
+          "Admin: catalog"
+        ],
+        "summary": "Rename a semester",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated semester",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "questionCount": {
+                      "type": "integer"
+                    },
+                    "submissionCount": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "questionCount",
+                    "submissionCount"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "semester not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A semester with this name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin: catalog"
+        ],
+        "summary": "Delete an unused semester",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "semester not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The semester is still in use",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/exam-types": {
+      "post": {
+        "tags": [
+          "Admin: catalog"
+        ],
+        "summary": "Create a exam type",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created exam type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "questionCount": {
+                      "type": "integer"
+                    },
+                    "submissionCount": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "questionCount",
+                    "submissionCount"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A exam type with this name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/exam-types/{id}": {
+      "patch": {
+        "tags": [
+          "Admin: catalog"
+        ],
+        "summary": "Rename a exam type",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated exam type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "questionCount": {
+                      "type": "integer"
+                    },
+                    "submissionCount": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "questionCount",
+                    "submissionCount"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "exam type not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A exam type with this name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin: catalog"
+        ],
+        "summary": "Delete an unused exam type",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "exam type not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The exam type is still in use",
             "content": {
               "application/json": {
                 "schema": {
@@ -296,6 +6053,9 @@
                           "createdAt": {
                             "type": "string",
                             "format": "date-time"
+                          },
+                          "submissionCounts": {
+                            "$ref": "#/components/schemas/SubmissionCounts"
                           }
                         },
                         "required": [
@@ -305,7 +6065,8 @@
                           "email",
                           "image",
                           "role",
-                          "createdAt"
+                          "createdAt",
+                          "submissionCounts"
                         ]
                       }
                     },
@@ -437,6 +6198,9 @@
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "submissionCounts": {
+                      "$ref": "#/components/schemas/SubmissionCounts"
                     }
                   },
                   "required": [
@@ -446,7 +6210,8 @@
                     "email",
                     "image",
                     "role",
-                    "createdAt"
+                    "createdAt",
+                    "submissionCounts"
                   ]
                 }
               }
@@ -505,183 +6270,18 @@
         }
       }
     },
-    "/api/v1/admin/departments": {
-      "get": {
-        "tags": [
-          "Admin: departments"
-        ],
-        "summary": "List departments",
-        "responses": {
-          "200": {
-            "description": "Departments",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "shortName": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "shortName",
-                          "name"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "items"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not signed in",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not an admin",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Admin: departments"
-        ],
-        "summary": "Add a department",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "shortName": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z]{2,10}$"
-                  },
-                  "name": {
-                    "type": "string",
-                    "minLength": 2,
-                    "maxLength": 120
-                  }
-                },
-                "required": [
-                  "shortName",
-                  "name"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Added",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer"
-                    },
-                    "shortName": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "shortName",
-                    "name"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not signed in",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not an admin",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The short name is taken",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Invalid department",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/admin/departments/{id}": {
+    "/api/v1/admin/users/{id}/username": {
       "put": {
         "tags": [
-          "Admin: departments"
+          "Admin: users"
         ],
-        "summary": "Rename a department",
+        "summary": "Change a user's username",
+        "description": "Same rules as changing your own: 3–50 lowercase letters, digits, dots, dashes or underscores; saved in lowercase.",
         "parameters": [
           {
             "schema": {
-              "type": "integer",
-              "exclusiveMinimum": 0
+              "type": "string",
+              "minLength": 1
             },
             "required": true,
             "name": "id",
@@ -693,49 +6293,18 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "shortName": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z]{2,10}$"
-                  },
-                  "name": {
-                    "type": "string",
-                    "minLength": 2,
-                    "maxLength": 120
-                  }
-                },
-                "required": [
-                  "shortName",
-                  "name"
-                ]
+                "$ref": "#/components/schemas/UpdateUsernameInput"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Updated",
+            "description": "Their new username",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer"
-                    },
-                    "shortName": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "shortName",
-                    "name"
-                  ]
+                  "$ref": "#/components/schemas/UpdateUsernameInput"
                 }
               }
             }
@@ -761,7 +6330,7 @@
             }
           },
           "404": {
-            "description": "Department not found",
+            "description": "User not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -771,7 +6340,7 @@
             }
           },
           "409": {
-            "description": "The short name is taken",
+            "description": "Someone else already has that username",
             "content": {
               "application/json": {
                 "schema": {
@@ -781,7 +6350,198 @@
             }
           },
           "422": {
-            "description": "Invalid department",
+            "description": "Not a valid username",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/questions/{id}/views": {
+      "post": {
+        "tags": [
+          "Engagement"
+        ],
+        "summary": "Count a question page view",
+        "description": "Public and unauthenticated. Counts only views sent from the question's page: `viewToken` from `GET /questions/{id}` in `X-View-Token`, from a browser or app rather than a crawler or script. A token counts each page at most once a minute, and a browser once a day. Other requests are ignored, still with 204.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The question's `viewToken`"
+            },
+            "required": false,
+            "description": "The question's `viewToken`",
+            "name": "x-view-token",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Counted, or ignored as not a visitor's view"
+          },
+          "404": {
+            "description": "Question not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/submissions/{id}/views": {
+      "post": {
+        "tags": [
+          "Engagement"
+        ],
+        "summary": "Count a view of a published paper",
+        "description": "Public and unauthenticated. Counts only views sent from the question's page: `viewToken` from `GET /questions/{id}` in `X-View-Token`, from a browser or app rather than a crawler or script. A token counts each page at most once a minute, and a browser once a day. Other requests are ignored, still with 204.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The question's `viewToken`"
+            },
+            "required": false,
+            "description": "The question's `viewToken`",
+            "name": "x-view-token",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Counted, or ignored as not a visitor's view"
+          },
+          "404": {
+            "description": "Submission not found or not published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/submissions/{id}/vote": {
+      "put": {
+        "tags": [
+          "Engagement"
+        ],
+        "summary": "Like (1) or dislike (-1) a published paper",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CastVoteInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated counts and your vote",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoteResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "You can't vote on your own paper",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found or not published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid vote",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many votes",
             "content": {
               "application/json": {
                 "schema": {
@@ -794,9 +6554,9 @@
       },
       "delete": {
         "tags": [
-          "Admin: departments"
+          "Engagement"
         ],
-        "summary": "Delete a department",
+        "summary": "Remove your like or dislike",
         "parameters": [
           {
             "schema": {
@@ -809,8 +6569,15 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "Deleted"
+          "200": {
+            "description": "Updated counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoteResult"
+                }
+              }
+            }
           },
           "401": {
             "description": "Not signed in",
@@ -823,7 +6590,7 @@
             }
           },
           "403": {
-            "description": "Not an admin",
+            "description": "You can't vote on your own paper",
             "content": {
               "application/json": {
                 "schema": {
@@ -833,7 +6600,312 @@
             }
           },
           "404": {
-            "description": "Department not found",
+            "description": "Submission not found or not published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many votes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/submissions/{id}/reports": {
+      "post": {
+        "tags": [
+          "Engagement"
+        ],
+        "summary": "Report a problem with a published paper",
+        "description": "Reports are reviewed by an admin. A paper with 3 open reports from different users is hidden (moved back to pending review) automatically.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReportInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Report filed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedReport"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "You can't report your own paper",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found or not published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "You already have an open report on this paper",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many reports",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/questions/{id}/interactions": {
+      "get": {
+        "tags": [
+          "Engagement"
+        ],
+        "summary": "Your votes and open reports on a question's papers",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Your interactions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionInteractions"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/avatar": {
+      "put": {
+        "tags": [
+          "Profile images"
+        ],
+        "summary": "Upload or replace your profile image (JPEG, PNG or WebP, max 2 MB)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The new image URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Avatar"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid image",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "No file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Profile images"
+        ],
+        "summary": "Remove your profile image",
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/avatars/{id}": {
+      "get": {
+        "tags": [
+          "Profile images"
+        ],
+        "summary": "A profile image",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image",
+            "content": {
+              "image/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Image not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid id",
             "content": {
               "application/json": {
                 "schema": {

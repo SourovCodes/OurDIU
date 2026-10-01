@@ -1,25 +1,49 @@
 // Tables required by Better Auth. Keep in sync with its core schema when upgrading
 // (compare against `npx auth@latest generate` output).
-// One account system for every OurDIU product.
 import { USER_ROLES } from "@ourdiu/shared";
+import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { timestamps } from "./columns";
 
-export const user = sqliteTable("user", {
-  id: text().primaryKey(),
-  name: text().notNull(),
-  email: text().notNull().unique(),
-  emailVerified: integer({ mode: "boolean" }).notNull().default(false),
-  image: text(),
-  /** Declared as an additional field in `lib/auth.ts`; users can't set it themselves. */
-  role: text({ enum: USER_ROLES }).notNull().default("user"),
-  /**
-   * Public handle, lowercase, see USERNAME_PATTERN. Set for every user at sign-up;
-   * nullable only because SQLite can't add a NOT NULL column without a table rebuild.
-   */
-  username: text().unique(),
-  ...timestamps,
-});
+const timestamps = {
+  createdAt: integer({ mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`),
+  updatedAt: integer({ mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .$onUpdate(() => new Date()),
+};
+
+export const user = sqliteTable(
+  "user",
+  {
+    id: text().primaryKey(),
+    name: text().notNull(),
+    email: text().notNull().unique(),
+    emailVerified: integer({ mode: "boolean" }).notNull().default(false),
+    image: text(),
+    /** Declared as an additional field in `lib/auth.ts`; users can't set it themselves. */
+    role: text({ enum: USER_ROLES }).notNull().default("user"),
+    /**
+     * Public handle in contributor URLs (`/questions/contributors/<username>`), lowercase, see
+     * USERNAME_PATTERN. Set for every user (at sign-up, or by migration 0003); nullable
+     * only because SQLite can't add a NOT NULL column without rebuilding the table.
+     */
+    username: text().unique(),
+    // Published papers and their views, kept in sync from submissions by triggers
+    // (migration 0006) for the contributor pages; never write them from application code.
+    publishedSubmissionCount: integer().notNull().default(0),
+    publishedViewCount: integer().notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [
+    // Contributors, the most published first.
+    index("user_published_submission_count_name_idx").on(
+      t.publishedSubmissionCount,
+      t.name,
+    ),
+  ],
+);
 
 export const session = sqliteTable(
   "session",

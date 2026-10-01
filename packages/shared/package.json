@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Contracts (Zod schemas + types) shared by the API, the web app and the mobile app.",
+  "description": "Contracts (Zod schemas + types) shared by the API, web app and future mobile apps.",
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",

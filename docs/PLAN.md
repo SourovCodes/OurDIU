@@ -8,11 +8,11 @@ Last updated: 1 October 2026.
 
 [ourdiu.com](https://ourdiu.com) is one home for Daffodil International University (DIU) student tools, on the web and in one mobile app:
 
-| Product       | Path         | Status                                                                                       |
-| ------------- | ------------ | -------------------------------------------------------------------------------------------- |
-| Question Bank | `/questions` | Live today at [diuqbank.com](https://diuqbank.com) (repo `../QuestionBank`); moving here now |
-| Class Routine | `/routine`   | "Coming soon" placeholder; to be built from scratch after the question bank                  |
-| Marketplace   | `/market`    | "Coming soon" placeholder; later                                                             |
+| Product       | Path         | Status                                                                                                                                   |
+| ------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Question Bank | `/questions` | Live at [diuqbank.com](https://diuqbank.com) (repo `../QuestionBank`); moved here on the `question-bank` branch, waiting for the cutover |
+| Class Routine | `/routine`   | "Coming soon" placeholder; to be built from scratch after the question bank                                                              |
+| Marketplace   | `/market`    | "Coming soon" placeholder; later                                                                                                         |
 
 Most users come from the question bank, so it moves in first and the others are discovered from it.
 
@@ -37,24 +37,27 @@ Design mockups (website, Material app, and the rejected iOS style): <https://cla
 - [x] Hub page, `/routine` and `/market` "coming soon" pages, account page, admin panel (users, departments), privacy and terms.
 - [x] Deployed: Worker `ourdiu` on `ourdiu.com` (+ `www` → apex), D1 `ourdiu`, R2 `ourdiu-files`, CI deploys `main` after checks and e2e pass.
 
-### Phase 1 – Question bank moves in (in progress)
+### Phase 1 – Question bank moves in (code done, cutover pending)
 
-Code, on the branch `question-bank` (not `main`: a push to `main` deploys, and the code needs the question bank's database, see the cutover):
+Code, on the branch `question-bank`. Not merged to `main` yet: a push to `main` deploys, and this code needs the question bank's production database, so merging it **is** the cutover below.
 
-- [ ] Bring in the question bank's API, schema, migrations (its `0000`–`0006` replace this repo's `0000_init`), shared schemas, tests, and its web pages, renamed `@qb/*` → `@ourdiu/*`.
-- [ ] Pages move under the product path: `/questions` (browse, the space's home), `/questions/:id`, `/questions/contributors`, `/questions/contributors/:username`, `/questions/contribute`, `/questions/my-submissions` (+ `/:id`). Account (profile) stays at `/account`, shared. Admin: `/admin/questions/{submissions,reports,catalog}` plus a dashboard; users stay platform-wide.
-- [ ] The question bank space has its own header (switcher, "Question Bank", Browse / Contributors / My submissions, Contribute), per the mockup; the hub stays a chooser; routine and market remain "coming soon".
-- [ ] Legal pages merge (the question bank collects more: uploads, votes, reports, views, AI analysis); `/about`, `/contact`, `/copyright`, `/cookies`, `/delete-account` come along.
-- [ ] Old diuqbank.com paths map to the new ones (`canonicalHostRedirect` / a redirect table): `/` → `/questions`, `/contributors/*` → `/questions/contributors/*`, `/contribute` → `/questions/contribute`, `/account/submissions*` → `/questions/my-submissions*`; `/api/*` is served on diuqbank.com unchanged (old app versions).
-- [ ] `pnpm check` and e2e green; OpenAPI regenerated.
+- [x] The question bank's API, schema, migrations (its `0000`–`0006` replace this repo's old `0000_init`), shared schemas, tests and web pages, renamed `@qb/*` → `@ourdiu/*`. `ADMIN_EMAILS` kept. The platform's separate `departments` admin page went away: the question bank's catalog manages departments.
+- [x] Pages under the product path: `/questions` (the space's home), `/questions/browse`, `/questions/:id`, `/questions/contributors[/:username]`, `/questions/contribute`, `/questions/my-submissions[/:id]`. `/account` is the shared profile. Admin: `/admin` (dashboard, question bank numbers for now), `/admin/questions/{submissions,reports,catalog}`, `/admin/users`; the sidebar has a group per product plus "Platform".
+- [x] Per-space header with the product switcher (`components/product-switcher.tsx`); the hub at `/` is the chooser; routine and market are "coming soon".
+- [x] Legal, about, contact, copyright, cookies and delete-account pages say OurDIU; `LEGAL_UPDATED` = 1 October 2026. The contact address stays the question bank's (`AUTHOR.email` in `app/lib/author.ts`). The theme cookie is now `ourdiu_theme`.
+- [x] diuqbank.com redirects (`legacyPath` in `app/lib/redirect.ts`): `/` → `/questions`, `/questions` → `/questions/browse`, `/contributors/*` → `/questions/contributors/*`, `/contribute` → `/questions/contribute`, `/account/submissions*` → `/questions/my-submissions*`; `/api/*` is served unchanged.
+- [x] `pnpm check` green (202 API, 124 web, 53 shared tests), 60 e2e tests green, OpenAPI regenerated.
+- [ ] Not done yet: the one-time "Class Routine is new" banner in the question bank space (mockup), and per-space colours on the web (everything is indigo).
 
-Cutover (production, done by hand with the owner, never by CI on its own):
+Cutover (production, done by hand with the owner, never by CI on its own). `apps/web/wrangler.jsonc` on the branch already names the question bank's production resources (D1 `questionbank` `ad50a07f-3aed-4006-9974-78df2b9bcfc6`, which has migrations `0000`–`0006`; R2 `questionbank-papers`; the `qb-*` queues; the rate limits; `PDF_PROCESSOR_URL`, `GEMINI_MODEL`), so the data is adopted, not copied.
 
-1. Point `apps/web/wrangler.jsonc` at the question bank's production resources instead of copying data: D1 `questionbank` (`ad50a07f-3aed-4006-9974-78df2b9bcfc6`, already has migrations `0000`–`0006`), R2 `questionbank-papers`, the `qb-*` queues and rate limits, `FILES_URL`, `PDF_PROCESSOR_URL`, `GEMINI_MODEL`. The empty `ourdiu` D1 and `ourdiu-files` R2 are then retired.
-2. Secrets on the `ourdiu` Worker (the owner runs these): `GEMINI_API_KEY`, `COMPRESSOR_API_KEY`, and `BETTER_AUTH_SECRET` equal to the question bank's, so existing web sessions and the app's bearer tokens stay valid.
-3. Google sign-in: the installed app sends ID tokens issued for the question bank's OAuth client. Either use that client for ourdiu.com (add `https://ourdiu.com` and its callback to it), or accept both client IDs. Decide before cutover.
-4. Move the `diuqbank.com` custom domain from the `questionbank` Worker to `ourdiu`; pages 301 to ourdiu.com, `/api/*` keeps working. Then retire the `questionbank` Worker and archive `../QuestionBank`.
-5. Re-run `ADMIN_EMAILS` / `pnpm make-admin --remote` for the owner if needed.
+1. Secrets on the `ourdiu` Worker, run by the owner (`wrangler secret put <NAME> --name ourdiu`): `GEMINI_API_KEY`, `COMPRESSOR_API_KEY`, and `BETTER_AUTH_SECRET` set to the question bank's value, so existing web sessions and the app's bearer tokens stay valid.
+2. Google sign-in: the installed app sends ID tokens issued for the question bank's OAuth client, and Better Auth checks their audience against `GOOGLE_CLIENT_ID`. Recommended: use the question bank's OAuth client for ourdiu.com too (set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` to it, add `https://ourdiu.com` and `https://ourdiu.com/api/auth/callback/google` to it), and retire the new `279664469023-…` client.
+3. GitHub repository variable `FILES_URL` = the question bank's value (the R2 bucket's public domain).
+4. Queues allow one consumer: remove the `questionbank` Worker's consumers first (`wrangler queues consumer remove qb-submission-analysis questionbank`, same for `qb-pdf-watermark`).
+5. Merge `question-bank` into `main`. CI runs the (no-op) migrations against `questionbank` and deploys `ourdiu`.
+6. Move the `diuqbank.com` and `www.diuqbank.com` custom domains from the `questionbank` Worker to `ourdiu`; pages 301 to ourdiu.com, `/api/*` keeps working. Check sign-in on the site and in the installed app, an upload (AI check, watermark) and a download.
+7. Retire the `questionbank` Worker, the empty `ourdiu` D1 and `ourdiu-files` R2, and archive `../QuestionBank`. Make the owner an admin again if needed (`ADMIN_EMAILS`, or `pnpm make-admin <email> --remote`).
 
 ### Phase 2 – One app
 
@@ -82,4 +85,4 @@ Not designed yet.
 - **Secrets are entered by the owner, never by Claude**: `wrangler secret put …` commands are given to the owner to run. Don't read OAuth client-secret files.
 - **Production changes need the owner's go-ahead**: remote migrations, deploys outside CI, DNS / custom domains, binding production resources.
 - `main` deploys automatically; work that isn't ready for production goes on a branch.
-- Contact address on the legal pages: sourovcodes@gmail.com.
+- Contact address on the site and legal pages: `AUTHOR.email` (`app/lib/author.ts`).

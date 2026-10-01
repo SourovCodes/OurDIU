@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm";
 import type { Database } from "../db/client";
 import * as schema from "../db/schema";
 import { user } from "../db/schema";
+import { importGoogleAvatar } from "../services/avatars";
 
 /** A sign-up refused by the DIU email rule; the login page explains it. */
 const notAllowed = () =>
@@ -95,6 +96,17 @@ export function authOptions(env: Env, db: Database) {
                 ...(isAdmin ? { role: "admin" } : {}),
               },
             };
+          },
+          // Google gives a new user its photo URL; keep a copy of our own instead.
+          after: async (created) => {
+            if (created.image) {
+              await importGoogleAvatar(
+                db,
+                env.BUCKET,
+                created.id,
+                created.image,
+              );
+            }
           },
         },
       },

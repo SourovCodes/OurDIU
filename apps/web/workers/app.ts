@@ -1,4 +1,4 @@
-import api from "@ourdiu/api";
+import api, { type QueueJob } from "@ourdiu/api";
 import { createRequestHandler } from "react-router";
 import { canonicalHostRedirect } from "../app/lib/redirect";
 
@@ -12,10 +12,12 @@ export default {
     const redirect = canonicalHostRedirect(request, env.SITE_URL);
     if (redirect) return redirect;
     // The API (and Better Auth) lives under /api/* on the same origin, so session
-    // cookies stay first-party and no CORS is needed. The app calls it here too.
+    // cookies stay first-party and no CORS is needed. Native apps call it here too.
     if (new URL(request.url).pathname.startsWith("/api/")) {
       return api.fetch(request, env, ctx);
     }
     return requestHandler(request);
   },
-} satisfies ExportedHandler<Env>;
+  // Upload analysis and PDF watermarks (queue consumers in wrangler.jsonc).
+  queue: api.queue,
+} satisfies ExportedHandler<Env, QueueJob>;

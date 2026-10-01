@@ -1,8 +1,8 @@
 import { ComingSoon } from "~/components/coming-soon";
-import { PRODUCTS } from "~/lib/products";
+import { product as findProduct } from "~/lib/products";
 import type { Route } from "./+types/routine";
 
-const product = PRODUCTS.find((p) => p.name === "Class Routine")!;
+const product = findProduct("routine");
 
 export const meta: Route.MetaFunction = () => [
   { title: "Class routine — OurDIU" },

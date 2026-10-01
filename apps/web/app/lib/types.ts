@@ -7,5 +7,6 @@ export type SessionUser = {
   /** Profile image URL, or null to show initials. */
   image?: string | null;
   role?: UserRole;
+  /** In their contributor page's URL; null only for rows made without one. */
   username?: string | null;
 };

@@ -14,7 +14,29 @@ describe("system routes", () => {
     expect(res.status).toBe(200);
     const doc = await res.json<{ paths: Record<string, unknown> }>();
     expect(Object.keys(doc.paths)).toEqual(
-      expect.arrayContaining(["/api/v1/health", "/api/v1/me"]),
+      expect.arrayContaining([
+        "/api/v1/health",
+        "/api/v1/departments",
+        "/api/v1/courses",
+        "/api/v1/semesters",
+        "/api/v1/exam-types",
+        "/api/v1/questions",
+        "/api/v1/questions/{id}",
+        "/api/v1/submissions/{id}/file",
+        "/api/v1/contributors",
+        "/api/v1/contributors/{username}",
+        "/api/v1/submissions",
+        "/api/v1/me/submissions",
+        "/api/v1/me/submissions/{id}",
+        "/api/v1/me/submissions/{id}/file",
+        "/api/v1/questions/{id}/views",
+        "/api/v1/submissions/{id}/views",
+        "/api/v1/submissions/{id}/vote",
+        "/api/v1/submissions/{id}/reports",
+        "/api/v1/me/questions/{id}/interactions",
+        "/api/v1/me/avatar",
+        "/api/v1/avatars/{id}",
+      ]),
     );
   });
 
@@ -38,6 +60,18 @@ describe("system routes", () => {
       .map(([name]) => name);
     expect(nullable).toEqual([]);
     expect(text).not.toMatch(/"allOf":\[\{"\$ref"/);
+  });
+
+  // Zod's export of `z.literal([1, -1])` keeps only the first value.
+  it("lists both vote values", async () => {
+    const res = await api("/api/v1/openapi.json");
+    const doc = await res.json<{
+      components: { schemas: Record<string, unknown> };
+    }>();
+    expect(doc.components.schemas.VoteValue).toEqual({
+      type: "integer",
+      enum: [1, -1],
+    });
   });
 
   it("returns a structured 404 for unknown routes", async () => {

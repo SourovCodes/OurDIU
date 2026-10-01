@@ -17,9 +17,12 @@ export default defineConfig({
     // visit and force-reloads the page, which also breaks the first e2e run.
     include: [
       "class-variance-authority",
+      "cmdk",
       "cn",
       "lucide-react",
       "radix-ui",
+      "react-easy-crop",
+      "recharts",
       "sonner",
     ],
   },

@@ -22,11 +22,22 @@ export default function NotFound() {
       className="min-h-[60svh] border-none"
       icon={FileQuestion}
       title="Page not found"
-      description="The link may be old, or the page may have moved."
+      description="The link may be old, or the page may have moved. Try browsing the question papers instead."
       action={
-        <Link to="/" className={buttonVariants({ size: "sm" })}>
-          Back to OurDIU
-        </Link>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Link
+            to="/questions/browse"
+            className={buttonVariants({ size: "sm" })}
+          >
+            Browse questions
+          </Link>
+          <Link
+            to="/"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            Back to home
+          </Link>
+        </div>
       }
     />
   );

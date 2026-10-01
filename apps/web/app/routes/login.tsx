@@ -91,7 +91,7 @@ export default function Login({
   return (
     <AuthCard
       title="Log in"
-      description={`Sign in with your DIU Google account (${DOMAINS}). One account works across all of OurDIU.`}
+      description={`Sign in with your DIU Google account (${DOMAINS}) to contribute question papers.`}
       footer="New here? Your account is created the first time you log in. We only use your name, email and photo."
     >
       <Form method="post" className="grid gap-4">

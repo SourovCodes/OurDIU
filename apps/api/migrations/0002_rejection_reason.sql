@@ -1,0 +1,1 @@
+ALTER TABLE `submissions` ADD `rejection_reason` text;

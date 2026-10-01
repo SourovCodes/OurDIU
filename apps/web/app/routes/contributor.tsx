@@ -1,0 +1,171 @@
+import type { ContributorDetail } from "@ourdiu/shared";
+import { data, Link, redirect, useSearchParams } from "react-router";
+import { ContributorAvatar } from "~/components/contributor-avatar";
+import { Breadcrumbs } from "~/components/page-header";
+import { SubmissionCards } from "~/components/submission-cards";
+import { TablePagination } from "~/components/table-pagination";
+import { UrlTabs } from "~/components/url-tabs";
+import { apiFetch, readJson } from "~/lib/api.server";
+import { formatMonth } from "~/lib/dates";
+import { formatCount } from "~/lib/format";
+import { contributorUrl, plural } from "~/lib/submissions";
+import type { Route } from "./+types/contributor";
+
+export async function loader({ request, params }: Route.LoaderArgs) {
+  const url = new URL(request.url);
+  const query = new URLSearchParams();
+  for (const key of ["page", "departmentId"]) {
+    const value = url.searchParams.get(key);
+    if (value) query.set(key, value);
+  }
+  const res = await apiFetch(
+    request,
+    `/api/v1/contributors/${encodeURIComponent(params.username)}?${query}`,
+  );
+  if (res.status === 404 || res.status === 422) {
+    throw data("Contributor not found", { status: 404 });
+  }
+  if (!res.ok) throw data("Failed to load contributor", { status: 502 });
+  const contributor = await readJson<ContributorDetail>(res);
+  // Found by user id (links from before usernames) or in other case: send to the
+  // one URL for this page.
+  if (contributor.username !== params.username) {
+    throw redirect(`${contributorUrl(contributor.username)}${url.search}`, 301);
+  }
+  return { contributor };
+}
+
+export const meta: Route.MetaFunction = ({ loaderData }) => {
+  if (!loaderData)
+    return [{ title: "Contributor not found — OurDIU Question Bank" }];
+  const { name, publishedCount } = loaderData.contributor;
+  return [
+    { title: `${name} — Contributor — OurDIU Question Bank` },
+    {
+      name: "description",
+      content: `${name} has shared ${plural(publishedCount, "question paper")} on the OurDIU Question Bank.`,
+    },
+  ];
+};
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="grid gap-0.5">
+      <dd className="text-xl font-semibold tabular-nums">{value}</dd>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+    </div>
+  );
+}
+
+export default function ContributorPage({ loaderData }: Route.ComponentProps) {
+  const { contributor } = loaderData;
+  const papers = contributor.submissions;
+  const [searchParams] = useSearchParams();
+  const departmentId = searchParams.get("departmentId");
+  const { departments } = contributor;
+
+  // One tab per department they've shared papers for, when there's more than one.
+  const tabs = [
+    {
+      value: "all",
+      label: "All",
+      search: "",
+      count: contributor.publishedCount,
+    },
+    ...departments.map((department) => ({
+      value: String(department.id),
+      label: department.shortName,
+      search: `?departmentId=${department.id}`,
+      count: department.publishedCount,
+    })),
+  ];
+  const hrefFor = (page: number) => {
+    const params = new URLSearchParams();
+    if (departmentId) params.set("departmentId", departmentId);
+    if (page > 1) params.set("page", String(page));
+    return `?${params}`;
+  };
+
+  const list = (
+    <>
+      <SubmissionCards submissions={papers.items} />
+      <TablePagination
+        page={papers.page}
+        pageSize={papers.pageSize}
+        total={papers.total}
+        noun="paper"
+        hrefFor={hrefFor}
+      />
+    </>
+  );
+
+  return (
+    <div className="space-y-8">
+      <div className="space-y-4">
+        <Breadcrumbs
+          crumbs={[
+            { label: "Contributors", to: "/questions/contributors" },
+            { label: contributor.name },
+          ]}
+        />
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
+            <ContributorAvatar
+              name={contributor.name}
+              image={contributor.image}
+              size="xl"
+              className="max-sm:size-14 max-sm:text-lg"
+            />
+            <div className="min-w-0 space-y-1">
+              <h1 className="text-2xl font-semibold tracking-tight break-words">
+                {contributor.name}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Contributor since {formatMonth(contributor.joinedAt)}
+              </p>
+            </div>
+          </div>
+          <dl className="flex gap-8 sm:pr-2">
+            <Stat
+              value={formatCount(contributor.publishedCount)}
+              label={contributor.publishedCount === 1 ? "paper" : "papers"}
+            />
+            <Stat
+              value={formatCount(contributor.viewCount)}
+              label={contributor.viewCount === 1 ? "view" : "views"}
+            />
+            <Stat
+              value={String(departments.length)}
+              label={departments.length === 1 ? "department" : "departments"}
+            />
+          </dl>
+        </div>
+      </div>
+
+      <section aria-labelledby="papers-heading" className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="papers-heading" className="text-lg font-semibold">
+            Papers
+          </h2>
+          <Link
+            to="/questions/contribute"
+            className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Share a paper too
+          </Link>
+        </div>
+        {departments.length > 1 ? (
+          <UrlTabs
+            label="Filter by department"
+            tabs={tabs}
+            value={departmentId ?? "all"}
+          >
+            {list}
+          </UrlTabs>
+        ) : (
+          list
+        )}
+      </section>
+    </div>
+  );
+}

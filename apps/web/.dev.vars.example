@@ -3,9 +3,13 @@
 BETTER_AUTH_SECRET=replace-me-with-a-random-32-plus-character-string
 # Google sign-in (the only way to log in). Create an OAuth client ("Web application")
 # in Google Cloud Console → APIs & Services → Credentials, with the authorised
-# redirect URI http://localhost:5173/api/auth/callback/google (and
-# https://ourdiu.com/api/auth/callback/google for production).
+# redirect URI http://localhost:5173/api/auth/callback/google (and the production
+# origin's /api/auth/callback/google).
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
+# AI analysis of uploads and watermarks on published PDFs (optional locally; without
+# them both fail as "not configured").
+GEMINI_API_KEY=
+COMPRESSOR_API_KEY=
 # Comma-separated addresses that may sign up without a DIU email, as admins.
 ADMIN_EMAILS=

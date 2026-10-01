@@ -1,8 +1,8 @@
 import { ComingSoon } from "~/components/coming-soon";
-import { PRODUCTS } from "~/lib/products";
+import { product as findProduct } from "~/lib/products";
 import type { Route } from "./+types/market";
 
-const product = PRODUCTS.find((p) => p.name === "Marketplace")!;
+const product = findProduct("market");
 
 export const meta: Route.MetaFunction = () => [
   { title: "Marketplace — OurDIU" },

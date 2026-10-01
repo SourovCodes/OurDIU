@@ -5,7 +5,7 @@ import { account, user } from "../src/db/schema";
 import { api, db, jsonRequest, ORIGIN, seedUser, signIn } from "./helpers";
 
 /** Starts a Google sign-in and returns the Google URL and the state cookie. */
-async function startGoogleSignIn(callbackURL = "/routine") {
+async function startGoogleSignIn(callbackURL = "/questions/contribute") {
   const res = await api(
     "/api/auth/sign-in/social",
     jsonRequest("POST", { provider: "google", callbackURL }),
@@ -29,13 +29,29 @@ function idToken(claims: Record<string, unknown>) {
   return `${part({ alg: "none", typ: "JWT" })}.${part(claims)}.`;
 }
 
-type GoogleProfile = { sub: string; email: string; name: string };
+type GoogleProfile = {
+  sub: string;
+  email: string;
+  name: string;
+  picture?: string;
+};
 
-/** Stands in for Google: its token endpoint answers with an ID token for the profile. */
-function mockGoogle(profile: GoogleProfile) {
+/**
+ * Stands in for Google: its token endpoint answers with an ID token for the given
+ * profile, and `photos` answers photo downloads (anything else is a 404).
+ */
+function mockGoogle(profile: GoogleProfile, photos: Record<string, Blob> = {}) {
   const realFetch = globalThis.fetch;
+  const fetched: string[] = [];
   vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
     const url = input instanceof Request ? input.url : String(input);
+    if (url.startsWith("https://lh3.googleusercontent.com/")) {
+      fetched.push(url);
+      const photo = photos[url];
+      return Promise.resolve(
+        photo ? new Response(photo) : new Response(null, { status: 404 }),
+      );
+    }
     if (!url.startsWith("https://oauth2.googleapis.com/token"))
       return realFetch(input, init);
     return Promise.resolve(
@@ -54,21 +70,25 @@ function mockGoogle(profile: GoogleProfile) {
       }),
     );
   });
+  return { fetched };
 }
 
 /**
  * Runs a whole Google sign-in: start, then Google's redirect back to the callback with
  * a code that the mocked token endpoint exchanges for the given profile.
  */
-async function completeGoogleSignIn(profile: GoogleProfile) {
+async function completeGoogleSignIn(
+  profile: GoogleProfile,
+  photos?: Record<string, Blob>,
+) {
   const { url, cookie } = await startGoogleSignIn();
-  mockGoogle(profile);
+  const google = mockGoogle(profile, photos);
   const res = await api(
     `/api/auth/callback/google?code=test-code&state=${url.searchParams.get("state")}`,
     // Keep the redirect to look at, instead of following it into the API.
     { headers: { cookie }, redirect: "manual" },
   );
-  return { res };
+  return { res, fetchedPhotos: google.fetched };
 }
 
 /** The user signed in by a response's session cookie. */
@@ -125,8 +145,8 @@ describe("auth", () => {
     expect(cookie).not.toBe("");
   });
 
-  it("links a Google sign-in to an existing user with that email", async () => {
-    // Like a user imported from the question bank: email verified, no Google account yet.
+  it("links a Google sign-in to the imported user with that email", async () => {
+    // Like a user imported from the old site: email verified, no Google account yet.
     const existing = await seedUser("Existing Contributor");
     await db()
       .update(user)
@@ -140,7 +160,7 @@ describe("auth", () => {
     });
 
     expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe("/routine");
+    expect(res.headers.get("location")).toBe("/questions/contribute");
     expect(await sessionUser(res)).toMatchObject({
       id: existing.id,
       name: "Existing Contributor",
@@ -206,7 +226,7 @@ describe("auth", () => {
         name: "Old Contributor",
       });
 
-      expect(res.headers.get("location")).toBe("/routine");
+      expect(res.headers.get("location")).toBe("/questions/contribute");
       expect(await sessionUser(res)).toMatchObject({ id: existing.id });
     });
   });
@@ -223,6 +243,52 @@ describe("auth", () => {
     expect(await sessionUser(res)).toMatchObject({
       email: "boss@gmail.com",
       role: "admin",
+    });
+  });
+
+  describe("Google photo", () => {
+    const JPEG = new Blob([
+      new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0]),
+    ]);
+    const sized = "https://lh3.googleusercontent.com/a/photo-id=s96-c";
+    const fullSize = "https://lh3.googleusercontent.com/a/photo-id";
+    const newProfile = () => {
+      const email = `photo-${crypto.randomUUID()}@diu.edu.bd`;
+      return {
+        sub: `google-${email}`,
+        email,
+        name: "Photo User",
+        picture: sized,
+      };
+    };
+
+    it("stores the full-size photo and serves it from our own URL", async () => {
+      const { res, fetchedPhotos } = await completeGoogleSignIn(newProfile(), {
+        [fullSize]: JPEG,
+      });
+
+      expect(fetchedPhotos).toEqual([fullSize]);
+      const { image } = (await sessionUser(res)) as { image: string };
+      expect(image).toMatch(/^\/api\/v1\/avatars\/[\w-]+$/);
+      const served = await api(image);
+      expect(served.status).toBe(200);
+      expect(served.headers.get("content-type")).toBe("image/jpeg");
+    });
+
+    it("falls back to the size Google sent", async () => {
+      const { res, fetchedPhotos } = await completeGoogleSignIn(newProfile(), {
+        [sized]: JPEG,
+      });
+
+      expect(fetchedPhotos).toEqual([fullSize, sized]);
+      expect((await sessionUser(res)).image).toMatch(/^\/api\/v1\/avatars\//);
+    });
+
+    it("keeps Google's URL when the photo can't be copied", async () => {
+      const { res } = await completeGoogleSignIn(newProfile());
+
+      expect(res.status).toBe(302);
+      expect((await sessionUser(res)).image).toBe(sized);
     });
   });
 });

@@ -5,8 +5,15 @@ import { handleError, handleNotFound, validationHook } from "./lib/errors";
 import { openApiConfig } from "./lib/openapi";
 import { contextMiddleware } from "./middleware/context";
 import { adminRoutes } from "./routes/admin";
+import { avatarRoutes } from "./routes/avatars";
+import { contributorRoutes } from "./routes/contributors";
+import { engagementRoutes } from "./routes/engagement";
 import { healthRoutes } from "./routes/health";
 import { meRoutes } from "./routes/me";
+import { questionRoutes } from "./routes/questions";
+import { sitemapRoutes } from "./routes/sitemap";
+import { submissionRoutes } from "./routes/submissions";
+import { taxonomyRoutes } from "./routes/taxonomy";
 import type { AppEnv } from "./types";
 
 export function createApp() {
@@ -15,16 +22,20 @@ export function createApp() {
   app.use("*", secureHeaders());
   app.use("*", contextMiddleware);
 
-  // Better Auth owns everything under /api/auth (sign-in, sessions, ...). One account
-  // system for every OurDIU product.
+  // Better Auth owns everything under /api/auth (sign-up, sign-in, sessions, ...).
   app.on(["GET", "POST"], "/api/auth/*", (c) => c.var.auth.handler(c.req.raw));
 
-  // Products (routine, question bank, marketplace) will each get their own prefix
-  // next to the platform's own routes, e.g. /api/v1/routine.
   const v1 = new OpenAPIHono<AppEnv>({ defaultHook: validationHook })
     .route("/", healthRoutes)
+    .route("/", taxonomyRoutes)
+    .route("/", sitemapRoutes)
+    .route("/questions", questionRoutes)
+    .route("/submissions", submissionRoutes)
+    .route("/contributors", contributorRoutes)
     .route("/me", meRoutes)
-    .route("/admin", adminRoutes);
+    .route("/admin", adminRoutes)
+    .route("/", engagementRoutes)
+    .route("/", avatarRoutes);
   app.route("/api/v1", v1);
 
   app.doc31("/api/v1/openapi.json", openApiConfig);

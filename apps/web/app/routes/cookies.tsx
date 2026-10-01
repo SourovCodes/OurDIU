@@ -147,6 +147,11 @@ export default function Cookies() {
           resets your choices.
         </p>
         <CookieTable label="Preference cookies" rows={PREFERENCES} />
+        <p>
+          Your browser’s own storage (not a cookie) also keeps the courses you
+          opened recently, for the course search’s Recent list, and whether you
+          closed the Android app invitation. It never leaves your browser.
+        </p>
       </LegalSection>
 
       <LegalSection id="analytics" title="Analytics">

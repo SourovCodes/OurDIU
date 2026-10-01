@@ -4,7 +4,7 @@ import {
   ExternalLink,
   Smartphone,
 } from "lucide-react";
-import { Badge } from "~/components/ui/badge";
+import { ExamShape } from "~/components/exam-badge";
 import { Button } from "~/components/ui/button";
 import {
   ANDROID_BETA,
@@ -39,7 +39,7 @@ function ExternalButton({
   children: React.ReactNode;
 }) {
   return (
-    <Button size="sm" variant={primary ? "default" : "outline"} asChild>
+    <Button variant={primary ? "default" : "outline"} asChild>
       <a href={href} target="_blank" rel="noopener noreferrer">
         {children}
       </a>
@@ -84,7 +84,7 @@ export default function AndroidApp() {
   if (!ANDROID_BETA) {
     return (
       <article className="mx-auto max-w-xl space-y-4 py-4 sm:py-10">
-        <h1 className="text-3xl font-semibold tracking-tight text-balance">
+        <h1 className="font-display-xl text-5xl text-balance">
           The OurDIU app for Android
         </h1>
         <p className="text-muted-foreground">
@@ -99,62 +99,66 @@ export default function AndroidApp() {
   }
 
   return (
-    <article className="mx-auto max-w-xl space-y-8 py-4 sm:py-10">
-      <header className="space-y-3">
-        <Badge variant="secondary" className="rounded-full px-3 py-1">
-          <Smartphone />
+    <article className="mx-auto max-w-3xl space-y-6 py-2 sm:py-6">
+      <header className="relative space-y-5 overflow-hidden rounded-[2rem] bg-primary p-7 text-primary-foreground sm:p-10">
+        <ExamShape
+          kind="final"
+          colored={false}
+          className="absolute -top-10 -right-10 size-56 text-primary-foreground/15"
+        />
+        <span className="relative inline-flex items-center gap-2 rounded-full bg-primary-foreground/15 px-3 py-1 text-sm font-medium">
+          <Smartphone className="size-4" aria-hidden />
           Android · Early access
-        </Badge>
-        <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+        </span>
+        <h1 className="relative font-display-xl text-4xl text-balance sm:text-6xl">
           Test the OurDIU app before everyone else
         </h1>
-        <p className="text-lg text-pretty text-muted-foreground">
-          Google needs 12 testers before the app can go on the Play Store. Three
-          steps, about a minute.
+        <p className="relative max-w-xl text-lg text-pretty opacity-90">
+          Papers in your pocket: save them for exam week, read them full screen
+          and share one straight from your camera. Google needs 12 testers
+          before it can go on the Play Store; three steps, about a minute.
         </p>
       </header>
 
-      <ol className="space-y-3">
+      <ol className="grid gap-3 sm:grid-cols-3">
         {STEPS.map(({ title, body, action }, index) => (
-          <li key={title} className="flex gap-4 rounded-xl border p-4">
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-full border bg-muted text-sm font-medium">
+          <li
+            key={title}
+            className="flex flex-col gap-4 rounded-[1.75rem] bg-surface p-6"
+          >
+            <span className="flex size-10 items-center justify-center rounded-full bg-primary-container font-expressive text-lg text-primary-container-foreground">
               {index + 1}
             </span>
-            <div className="grid gap-3">
-              <div className="space-y-0.5">
-                <h2 className="font-medium">{title}</h2>
-                <p className="text-sm text-muted-foreground">{body}</p>
-              </div>
-              <div>{action}</div>
+            <div className="flex-1 space-y-1">
+              <h2 className="font-expressive text-xl">{title}</h2>
+              <p className="text-sm text-muted-foreground">{body}</p>
             </div>
+            <div>{action}</div>
           </li>
         ))}
       </ol>
 
-      <p className="flex gap-3 rounded-xl bg-muted/60 p-4 text-sm">
-        <CalendarClock
-          className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-          aria-hidden
-        />
+      <p className="flex gap-3 rounded-3xl bg-primary-container p-5 text-sm text-primary-container-foreground">
+        <CalendarClock className="mt-0.5 size-4 shrink-0" aria-hidden />
         <span>
           <span className="font-medium">Keep it installed for 14 days.</span>{" "}
-          <span className="text-muted-foreground">
+          <span className="opacity-85">
             Google only counts testers who stay for two weeks. Found a problem?
             Tell us from Account → Send feedback in the app.
           </span>
         </span>
       </p>
 
-      <section className="space-y-4 text-sm">
-        <div className="space-y-1">
-          <h2 className="font-medium">“App not available” on Google Play?</h2>
+      <section className="grid gap-3 text-sm sm:grid-cols-2">
+        <div className="space-y-1 rounded-3xl bg-surface p-5">
+          <h2 className="font-semibold">“App not available” on Google Play?</h2>
           <p className="text-muted-foreground">
             Join the group with the same Google account your Play Store uses,
             then open the testing page again.
           </p>
         </div>
-        <div className="space-y-1">
-          <h2 className="font-medium">On iPhone?</h2>
+        <div className="space-y-1 rounded-3xl bg-surface p-5">
+          <h2 className="font-semibold">On iPhone?</h2>
           <p className="text-muted-foreground">
             The app is Android only for now. Everything is on ourdiu.com too.
           </p>

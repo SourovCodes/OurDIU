@@ -58,6 +58,12 @@ export default function Privacy() {
           stores your choice, and for reports the reason and any note you wrote.
         </p>
         <p>
+          <strong>When you save a paper</strong>, the site stores which papers
+          you saved and when, so your Saved list is the same on the website and
+          in the app. Only you can see it, and removing a paper from it deletes
+          that record.
+        </p>
+        <p>
           <strong>View counts</strong> aren’t tied to you: a cookie in your
           browser only remembers which pages it already counted today (see the{" "}
           <Link to="/cookies">cookie notice</Link>).
@@ -76,8 +82,11 @@ export default function Privacy() {
             secure storage, so you stay signed in. Signing out removes it.
           </li>
           <li>
-            <strong>Saved papers, recent courses and your theme</strong> are
-            kept on your phone only, and are removed when you uninstall the app.
+            <strong>Recent courses and your theme</strong> are kept on your
+            phone only, and are removed when you uninstall the app.{" "}
+            <strong>Saved papers</strong> are kept on your phone too, and once
+            you sign in they are saved to your account, the same list as on the
+            website.
           </li>
           <li>
             <strong>Scanning a paper</strong> uses the camera through Google’s
@@ -155,9 +164,10 @@ export default function Privacy() {
             can keep using them.
           </li>
           <li>
-            If your account is deleted, your likes, dislikes and reports are
-            deleted with it. Papers you published stay, no longer linked to you;
-            ask, and their public copies are re-made without your name.
+            If your account is deleted, your likes, dislikes, reports and saved
+            papers are deleted with it. Papers you published stay, no longer
+            linked to you; ask, and their public copies are re-made without your
+            name.
           </li>
         </ul>
       </LegalSection>

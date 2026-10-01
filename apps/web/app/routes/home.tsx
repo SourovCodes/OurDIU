@@ -1,14 +1,9 @@
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router";
 import { AndroidBetaBanner } from "~/components/android-beta";
-import { Badge } from "~/components/ui/badge";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
+import { SpaceIcon } from "~/components/space-icon";
 import { PRODUCTS, type Product } from "~/lib/products";
+import { cn } from "~/lib/utils";
 import type { Route } from "./+types/home";
 
 export const meta: Route.MetaFunction = () => [
@@ -20,55 +15,64 @@ export const meta: Route.MetaFunction = () => [
   },
 ];
 
-function ProductCard({ product }: { product: Product }) {
-  const { icon: Icon, name, description, href, status } = product;
-  const content = (
-    <Card className="h-full gap-4 transition-colors group-hover:border-primary/40 group-hover:bg-muted/40">
-      <CardHeader className="gap-3">
-        <div className="flex items-center justify-between">
-          <span className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Icon className="size-5" aria-hidden />
-          </span>
-          {status === "soon" ? (
-            <Badge variant="secondary">Coming soon</Badge>
-          ) : (
-            <ArrowRight className="size-4 text-muted-foreground" aria-hidden />
-          )}
-        </div>
-        <CardTitle className="text-lg">{name}</CardTitle>
-        <CardDescription className="text-pretty">{description}</CardDescription>
-      </CardHeader>
-    </Card>
-  );
+/** A product as a tile in its own colours, like the app's "What do you need?". */
+function ProductTile({ product }: { product: Product }) {
+  const soon = product.status === "soon";
   return (
     <Link
-      to={href}
-      className="group rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      to={product.href}
+      className={cn(
+        "group flex min-h-72 flex-col justify-between gap-8 rounded-[2rem] p-6 transition-[scale,opacity] focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:scale-[0.98] sm:p-8",
+        product.tone.container,
+        soon && "opacity-85 hover:opacity-100",
+      )}
     >
-      {content}
+      <div className="flex items-start justify-between">
+        <SpaceIcon
+          product={product}
+          size={80}
+          className="transition-transform duration-500 group-hover:rotate-12"
+        />
+        {soon ? (
+          <span className="rounded-full bg-current/10 px-3 py-1 text-xs font-semibold">
+            Coming soon
+          </span>
+        ) : (
+          <span className="flex size-11 items-center justify-center rounded-full bg-current/10">
+            <ArrowRight className="size-5" aria-hidden />
+          </span>
+        )}
+      </div>
+      <div className="space-y-2">
+        <p className="text-sm font-semibold opacity-80">{product.name}</p>
+        <h2 className="font-expressive text-3xl sm:text-4xl">
+          {product.title}
+        </h2>
+        <p className="text-pretty opacity-85">{product.tagline}</p>
+      </div>
     </Link>
   );
 }
 
 export default function Home() {
   return (
-    <div className="space-y-12 py-4 sm:py-10">
+    <div className="space-y-10 py-2 sm:py-8">
       <div className="mx-auto max-w-2xl empty:hidden">
         <AndroidBetaBanner />
       </div>
-      <section className="mx-auto max-w-2xl space-y-4 text-center">
-        <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+      <section className="max-w-3xl space-y-5">
+        <h1 className="font-display-xl text-6xl sm:text-8xl">
           What do you need today?
         </h1>
-        <p className="text-lg text-pretty text-muted-foreground">
+        <p className="max-w-xl text-lg text-pretty text-muted-foreground">
           Past question papers, your class routine and a student marketplace for
           DIU, with one account, on the web and in the OurDIU app.
         </p>
       </section>
 
-      <section aria-label="Products" className="grid gap-4 md:grid-cols-3">
+      <section aria-label="Products" className="grid gap-3 md:grid-cols-3">
         {PRODUCTS.map((product) => (
-          <ProductCard key={product.id} product={product} />
+          <ProductTile key={product.id} product={product} />
         ))}
       </section>
     </div>

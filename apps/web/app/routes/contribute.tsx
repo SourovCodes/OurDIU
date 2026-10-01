@@ -1,21 +1,20 @@
 import type { ApiError, CreatedSubmission } from "@ourdiu/shared";
 import { canContribute, DIU_EMAIL_DOMAINS } from "@ourdiu/shared/constants";
-import { ChevronDown, Lightbulb, MailWarning } from "lucide-react";
+import { MailWarning } from "lucide-react";
 import { Form, redirect, useNavigation } from "react-router";
 import { AndroidBetaLink } from "~/components/android-beta";
 import { ContributeForm } from "~/components/contribute-form";
 import { EmptyState } from "~/components/empty-state";
 import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { PageHeader } from "~/components/page-header";
 import { apiFetch, readJson } from "~/lib/api.server";
 import { fieldErrorsFrom } from "~/lib/api-errors";
 import { requireUser } from "~/lib/session.server";
+import { rememberedDepartment } from "~/lib/department-preference";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
 import type { Route } from "./+types/contribute";
 
 export const meta: Route.MetaFunction = () => [
-  { title: "Contribute a paper — OurDIU Question Bank" },
+  { title: "Share a paper — OurDIU Question Bank" },
   { name: "robots", content: "noindex" },
 ];
 
@@ -28,7 +27,18 @@ export async function loader({ request }: Route.LoaderArgs) {
   if (!canContribute({ email: user.email, role: user.role })) {
     return { allowed: false as const, email: user.email };
   }
-  return { allowed: true as const, ...(await loadTaxonomy(request)) };
+  const taxonomy = await loadTaxonomy(request);
+  // Starts on the department the visitor browses, as the app starts on the one
+  // they share or read most.
+  const remembered = rememberedDepartment(request.headers.get("cookie"));
+  const department = taxonomy.departments.find(
+    (d) => String(d.id) === remembered,
+  );
+  return {
+    allowed: true as const,
+    ...taxonomy,
+    defaultDepartmentId: department ? String(department.id) : null,
+  };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -58,33 +68,48 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 const STEPS = [
-  "Choose the department, course, semester and exam type.",
-  "Upload the question paper as a PDF.",
-  "AI checks it. If it’s one question paper with the details you chose, it’s published right away.",
-  "Otherwise, or if it adds new entries, an admin reviews it first.",
+  {
+    title: "Upload",
+    text: "The PDF and which exam it is. Takes a minute.",
+  },
+  {
+    title: "AI check",
+    text: "It reads the paper. One exam with the details you chose is published straight away.",
+  },
+  {
+    title: "Review",
+    text: "Anything else, or a new course or semester, waits for an admin.",
+  },
+  {
+    title: "Published",
+    text: "Your name goes on it, and you can follow its views in My submissions.",
+  },
 ];
 
+/** The review as a timeline, like a paper's status page. */
 function HowItWorks() {
   return (
-    <div className="grid gap-4 text-sm">
-      <ol className="space-y-3">
-        {STEPS.map((step, index) => (
-          <li key={step} className="flex gap-3">
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-background text-xs font-medium shadow-xs ring-1 ring-border">
-              {index + 1}
+    <ol className="grid gap-0">
+      {STEPS.map((step, index) => (
+        <li key={step.title} className="relative flex gap-4 pb-5 last:pb-0">
+          {index < STEPS.length - 1 && (
+            <span
+              aria-hidden
+              className="absolute top-8 bottom-0 left-[0.9375rem] w-0.5 bg-primary/20"
+            />
+          )}
+          <span className="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-container text-sm font-bold text-primary-container-foreground">
+            {index + 1}
+          </span>
+          <span className="pt-1">
+            <span className="block font-semibold">{step.title}</span>
+            <span className="block text-sm text-muted-foreground">
+              {step.text}
             </span>
-            <span className="pt-0.5 text-muted-foreground">{step}</span>
-          </li>
-        ))}
-      </ol>
-      <p className="flex gap-2 border-t pt-4 text-muted-foreground">
-        <Lightbulb className="mt-0.5 size-4 shrink-0" aria-hidden />
-        <span>
-          Can’t find a department, course or semester? Type its name and choose
-          “Add”.
-        </span>
-      </p>
-    </div>
+          </span>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -98,14 +123,15 @@ export default function Contribute({
   if (!loaderData.allowed) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Contribute a paper" />
+        <h1 className="font-display-xl text-5xl sm:text-6xl">Share a paper</h1>
         <EmptyState
           icon={MailWarning}
-          title="Uploading needs a DIU email"
+          shape="midterm"
+          title="Sharing needs a DIU email"
           description={
             <>
               You’re signed in as {loaderData.email}. To keep the papers
-              trustworthy, only DIU accounts ({DOMAINS}) can upload. Sign in
+              trustworthy, only DIU accounts ({DOMAINS}) can share them. Sign in
               with your DIU Google account to contribute.
             </>
           }
@@ -124,50 +150,49 @@ export default function Contribute({
     );
   }
 
+  const { defaultDepartmentId, ...taxonomy } = loaderData;
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Contribute a paper"
-        description="Upload a question paper PDF and tell us where it belongs. It’s checked by AI, and by an admin when needed, before it is published."
-      />
-
-      {/* Below `lg` the steps would come after the submit button, so they sit
-          above the form, folded away. */}
-      <details className="group rounded-xl border bg-muted/30 lg:hidden">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
-          How it works
-          <ChevronDown
-            className="size-4 text-muted-foreground transition-transform group-open:rotate-180"
-            aria-hidden
-          />
-        </summary>
-        <div className="px-4 pb-4">
-          <HowItWorks />
-        </div>
-      </details>
+    <div className="space-y-8">
+      <div className="space-y-3">
+        <h1 className="font-display-xl text-5xl sm:text-7xl">Share a paper</h1>
+        <p className="max-w-2xl text-lg text-pretty text-muted-foreground">
+          Just sat an exam? Share the question paper so the next batch can study
+          from it.
+        </p>
+      </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-8">
-        <div className="grid gap-4">
-          <ContributeForm
-            {...loaderData}
-            fieldErrors={failed?.fieldErrors ?? {}}
-            message={failed?.message}
-            submitting={submitting}
-          />
+        <ContributeForm
+          {...taxonomy}
+          defaults={
+            defaultDepartmentId
+              ? {
+                  department: { kind: "existing", id: defaultDepartmentId },
+                  shortName: "",
+                  course: null,
+                  semester: null,
+                  examType: null,
+                }
+              : undefined
+          }
+          fieldErrors={failed?.fieldErrors ?? {}}
+          message={failed?.message}
+          submitting={submitting}
+        />
+        <aside className="grid gap-4 lg:sticky lg:top-24">
+          <section
+            aria-labelledby="how-heading"
+            className="rounded-[1.75rem] bg-surface p-6"
+          >
+            <h2 id="how-heading" className="mb-4 font-expressive text-xl">
+              What happens next
+            </h2>
+            <HowItWorks />
+          </section>
           <AndroidBetaLink>
             Scan papers with your camera in the OurDIU Android app.
           </AndroidBetaLink>
-        </div>
-        <Card className="gap-4 bg-muted/30 shadow-none max-lg:hidden">
-          <CardHeader>
-            <CardTitle>
-              <h2>How it works</h2>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <HowItWorks />
-          </CardContent>
-        </Card>
+        </aside>
       </div>
     </div>
   );

@@ -77,15 +77,20 @@ The switch (done; only 2 page views on diuqbank.com fell between the export and 
 14. Status: steps 6–12 done (copy Worker deleted); DIUQBank archived. `www.diuqbank.com` is on the `ourdiu` Worker. App `mobile-v1.6.0` (version code 1006000: OurDIU name, switcher, icon and splash, ourdiu.com, `ourdiu` sign-in) was built and uploaded to Play's internal track as a draft by the new `play-publisher@ourdiu` account. Left: roll it out in Play Console, check sign-in on the Play build, and point the Play listing's privacy and delete-account URLs at ourdiu.com.
 15. Later: retire the `questionbank` Worker, D1, R2 (and `r2.diuqbank.com`) and `qb-*` queues, and the `ourdiu` placeholder database, once nothing needs them.
 
-### Website redesign (2 October 2026, branch `web-redesign`)
+### Design overhaul: website and app as one (started 2 October 2026, branch `web-redesign`, PR #1)
 
-- [x] Design tokens from the app (`app.css`): palette, exam colours, `primary-container`, Roboto Flex for headings (`font-expressive`).
-- [x] `ExamBadge` / `ExamShape` on question cards, course and paper pages, other semesters, contributor papers; empty states drawn on an exam shape.
-- [x] Course search (`CourseSearch`, `/` or Ctrl/⌘ K, the header and the home's search pill): every word must match, prefix matches first, like the app; the list comes from `/questions/search-index`, recent courses from `localStorage`.
-- [x] Department and course pages; the Question Bank home leads with "Find your paper" and the departments; the Android invite there is the one-line strip.
-- [x] Paper page: badge, breadcrumbs through the department and course, a "Paper 1 of N" switcher on phones, a loading backdrop behind the PDF.
-- [x] Phone header: name, search, menu; the menu has logging in, the visitor's pages, the other spaces and the theme.
-- [ ] Later: course pages in the sitemap (needs the course ids from `/api/v1/sitemap`); departments are in it already.
+The owner asked for a very thoughtful UI/UX across the whole public website (not the admin panel) and the app, matching each other: Material 3 Expressive, the app's palette, Roboto Flex everywhere, exam shapes and colours, tonal surfaces instead of borders. Reference mockups: <https://claude.ai/artifact/Mh2DpngKUFRop8H1UQ7Vnj> (approved; the owner prefers its department and course pages) and the earlier QuestionBank web redesign (home, browse, paper). The owner allowed API changes or a v2 where they help.
+
+Phases (tick as they land):
+
+- [x] W1 foundation: tokens (`surface-*`, `primary-container`, exam colours), `font-expressive` / `font-display-xl`, shadcn components reshaped (pill buttons, 28px dialogs/sheets, outlined fields, tonal cards), header (Browse, All papers, Contributors, search, saved, "Share a paper"), three-column footer.
+- [x] W1 Question Bank: home (exam-coloured "Most viewed" tiles, department tiles, two calls to action), Browse (department tiles), department and course pages (as in the approved mockup), All papers, paper page (save, share, "N copies of this exam", "Was this paper useful?", phone bottom bar), course search.
+- [x] W1 Saved papers synced to the account: `saved_questions` (0007), `/api/v1/me/saved` (GET, PUT/DELETE `/{id}`, POST bulk), `saved` in interactions; web Saved page and bookmark.
+- [x] W2 hub (product tiles in each space's colours, as the app's chooser), coming-soon pages, contributors (podium + rows), contributor profile, login.
+- [ ] W2 contribute flow (like the app's upload: file card, pickers, exam chips, "this exam already has N papers"), my submissions and a submission's status (status hero, timeline, AI comparison), account page, about, contact, legal pages, `/app`, 404/error, delete-account.
+- [ ] W3 web polish: loading states, motion, dark mode and phone pass on every page, accessibility pass, e2e updated.
+- [ ] A1 app: saved papers synced with the account (merge the phone's list on sign-in), contributors and contributor screens, course page "This course" / "Same course, other names", paper reader wording ("N copies of this exam", "Was this paper useful?", share), anything the website now does better.
+- [ ] A2 app polish; `flutter analyze`, `flutter test`; screenshots.
 
 ### Phase 2 – One app
 

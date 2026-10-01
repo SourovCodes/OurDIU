@@ -59,7 +59,7 @@ export default function DeleteAccount() {
             Your account and profile: name, email address, photo and username.
           </li>
           <li>Your sign-in sessions, on the site and in the app.</li>
-          <li>Your likes, dislikes and reports.</li>
+          <li>Your likes, dislikes and reports, and your saved papers.</li>
           <li>Uploads that aren’t published yet.</li>
         </ul>
       </LegalSection>
@@ -74,9 +74,9 @@ export default function DeleteAccount() {
       </LegalSection>
       <LegalSection id="app-data" title="Data on your phone">
         <p>
-          Saved papers, recent courses and your theme live only in the app on
-          your phone. Signing out removes your session from it, and uninstalling
-          the app removes everything else.
+          Recent courses and your theme live only in the app on your phone, as
+          does its copy of your saved papers. Signing out removes your session
+          from it, and uninstalling the app removes everything else.
         </p>
       </LegalSection>
     </LegalPage>

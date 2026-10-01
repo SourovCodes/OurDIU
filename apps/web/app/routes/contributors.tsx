@@ -3,17 +3,10 @@ import { Users } from "lucide-react";
 import { data, Link } from "react-router";
 import { ContributorAvatar } from "~/components/contributor-avatar";
 import { EmptyState } from "~/components/empty-state";
-import { PageHeader } from "~/components/page-header";
+import { EXAM_TONE } from "~/components/exam-badge";
 import { TablePagination } from "~/components/table-pagination";
-import {
-  CARD_GRID,
-  LINK_CARD,
-  STRETCHED_LINK,
-} from "~/components/question-cards";
-import { Badge } from "~/components/ui/badge";
-import { Card, CardTitle } from "~/components/ui/card";
 import { apiFetch, readJson } from "~/lib/api.server";
-import { formatCount } from "~/lib/format";
+import { formatCount, formatNumber } from "~/lib/format";
 import { contributorUrl, plural } from "~/lib/submissions";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/contributors";
@@ -47,21 +40,23 @@ export async function loader({ request }: Route.LoaderArgs) {
   return { list: await readJson<ContributorList>(res) };
 }
 
+/** The top three, on the first page: tiles in the exam colours. */
+const PODIUM = [EXAM_TONE.final, EXAM_TONE.midterm, EXAM_TONE.quiz];
+
 export default function Contributors({ loaderData }: Route.ComponentProps) {
   const { list } = loaderData;
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Contributors"
-        description="The students who share question papers with everyone."
-      />
+    <div className="space-y-8">
+      <div className="space-y-3">
+        <h1 className="font-display-xl text-5xl sm:text-7xl">Contributors</h1>
+        <p className="max-w-xl text-muted-foreground">
+          The {formatNumber(list.total)} students who share question papers with
+          everyone. Most papers first.
+        </p>
+      </div>
 
-      <section aria-labelledby="contributors-heading" className="space-y-4">
-        <h2 id="contributors-heading" className="text-sm font-medium">
-          {plural(list.total, "contributor")}
-        </h2>
-
+      <section className="space-y-4">
         {list.items.length === 0 ? (
           <EmptyState
             icon={Users}
@@ -69,59 +64,59 @@ export default function Contributors({ loaderData }: Route.ComponentProps) {
             description="People who upload question papers will be listed here."
           />
         ) : (
-          <ul aria-label="Contributors" className={CARD_GRID}>
+          <ul
+            aria-label="Contributors"
+            className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+          >
             {list.items.map((contributor, index) => {
               const rank = (list.page - 1) * list.pageSize + index + 1;
+              const podium = rank <= 3 ? PODIUM[rank - 1] : null;
               return (
                 <li key={contributor.id} className="grid">
-                  <Card className={cn(LINK_CARD, "gap-0 py-0")}>
-                    <div className="flex items-center gap-4 p-4">
-                      <ContributorAvatar
-                        name={contributor.name}
-                        image={contributor.image}
-                        size="lg"
-                      />
-                      <div className="grid min-w-0 flex-1 gap-1">
-                        <CardTitle className="truncate text-[0.9375rem] leading-snug">
-                          <Link
-                            to={contributorUrl(contributor.username)}
-                            prefetch="intent"
-                            className={STRETCHED_LINK}
+                  <Link
+                    to={contributorUrl(contributor.username)}
+                    prefetch="intent"
+                    className={cn(
+                      "flex gap-4 rounded-3xl transition-[background-color,scale] focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:scale-[0.99]",
+                      podium
+                        ? cn("min-h-52 flex-col justify-between p-6", podium)
+                        : "items-center bg-surface p-4 hover:bg-surface-high",
+                    )}
+                  >
+                    {podium ? (
+                      <>
+                        <div className="flex items-start justify-between">
+                          <ContributorAvatar
+                            name={contributor.name}
+                            image={contributor.image}
+                            size="xl"
+                          />
+                          <span
+                            className="font-display-xl text-6xl opacity-80"
+                            title={`Ranked #${rank} by published papers`}
                           >
-                            {contributor.name}
-                          </Link>
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                          <span className="font-medium text-foreground">
-                            {plural(contributor.publishedCount, "paper")}
+                            #{rank}
                           </span>
-                          {" · "}
-                          {formatCount(contributor.viewCount)}{" "}
-                          {contributor.viewCount === 1 ? "view" : "views"}
-                        </p>
-                        {contributor.departments.length > 0 && (
-                          <p className="flex flex-wrap gap-1 pt-0.5">
-                            {contributor.departments.slice(0, 3).map((d) => (
-                              <Badge
-                                key={d.id}
-                                variant="secondary"
-                                title={d.name}
-                                className="font-normal"
-                              >
-                                {d.shortName}
-                              </Badge>
-                            ))}
-                          </p>
-                        )}
-                      </div>
-                      <span
-                        className="self-start text-xs font-medium text-muted-foreground tabular-nums"
-                        title={`Ranked #${rank} by published papers`}
-                      >
-                        #{rank}
-                      </span>
-                    </div>
-                  </Card>
+                        </div>
+                        <ContributorText contributor={contributor} large />
+                      </>
+                    ) : (
+                      <>
+                        <ContributorAvatar
+                          name={contributor.name}
+                          image={contributor.image}
+                          size="lg"
+                        />
+                        <ContributorText contributor={contributor} />
+                        <span
+                          className="self-start text-sm font-semibold text-muted-foreground tabular-nums"
+                          title={`Ranked #${rank} by published papers`}
+                        >
+                          #{rank}
+                        </span>
+                      </>
+                    )}
+                  </Link>
                 </li>
               );
             })}
@@ -137,5 +132,39 @@ export default function Contributors({ loaderData }: Route.ComponentProps) {
         />
       </section>
     </div>
+  );
+}
+
+function ContributorText({
+  contributor,
+  large = false,
+}: {
+  contributor: ContributorList["items"][number];
+  large?: boolean;
+}) {
+  return (
+    <span className="grid min-w-0 flex-1 gap-1">
+      <span
+        className={cn(
+          "truncate",
+          large ? "font-expressive text-2xl" : "font-semibold",
+        )}
+      >
+        {contributor.name}
+      </span>
+      <span className={cn("text-sm", !large && "text-muted-foreground")}>
+        <span className="font-semibold">
+          {plural(contributor.publishedCount, "paper")}
+        </span>
+        {" · "}
+        {formatCount(contributor.viewCount)}{" "}
+        {contributor.viewCount === 1 ? "view" : "views"}
+        {contributor.departments.length > 0 &&
+          ` · ${contributor.departments
+            .slice(0, 3)
+            .map((d) => d.shortName)
+            .join(", ")}`}
+      </span>
+    </span>
   );
 }

@@ -115,15 +115,14 @@ export async function uploadPaperWithNewCourse(page: Page, courseName: string) {
 
   await openCombobox(page, "Semester");
   await page.getByRole("option", { name: "Fall 24" }).click();
-  await openCombobox(page, "Exam type");
-  await page.getByRole("option", { name: "Final" }).click();
+  await page.getByRole("radio", { name: "Final", exact: true }).check();
 
   await page.getByLabel("PDF file").setInputFiles({
     name: "paper.pdf",
     mimeType: "application/pdf",
     buffer: Buffer.from("%PDF-1.7\n%e2e upload\n"),
   });
-  await page.getByRole("button", { name: "Submit paper" }).click();
+  await page.getByRole("button", { name: "Share paper" }).click();
   // Lands on the paper's status page.
   await expect(page).toHaveURL(/\/questions\/my-submissions\/\d+/);
   await expect(

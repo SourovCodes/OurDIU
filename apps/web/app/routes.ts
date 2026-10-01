@@ -10,6 +10,7 @@ export default [
   route("questions/browse", "routes/questions.tsx"),
   route("questions/search-index", "routes/questions-search-index.ts"),
   route("questions/saved", "routes/questions-saved.tsx"),
+  route("questions/exam-papers", "routes/questions-exam-papers.ts"),
   route("questions/departments", "routes/questions-departments.tsx"),
   route("questions/departments/:id", "routes/questions-department.tsx"),
   route("questions/courses/:id", "routes/questions-course.tsx"),

@@ -7,7 +7,6 @@ import { AvatarInput } from "~/components/avatar-input";
 import { ContributorAvatar } from "~/components/contributor-avatar";
 import { FormField, FormMessage } from "~/components/form";
 import { Button } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
 import { apiFetch, readJson, setCookieHeaders } from "~/lib/api.server";
 import { requireUser } from "~/lib/session.server";
 import type { Route } from "./+types/account-profile";
@@ -153,15 +152,15 @@ function SettingsSection({
   return (
     <section
       aria-labelledby={headingId}
-      className="grid gap-4 md:grid-cols-[13rem_minmax(0,1fr)] md:gap-8"
+      className="overflow-hidden rounded-3xl bg-surface"
     >
-      <div className="space-y-1">
-        <h2 id={headingId} className="font-medium">
+      <div className="space-y-1 px-6 pt-6">
+        <h2 id={headingId} className="font-expressive text-xl">
           {title}
         </h2>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
-      <Card className="gap-0 py-0">{children}</Card>
+      <div>{children}</div>
     </section>
   );
 }
@@ -285,7 +284,7 @@ function ProfileSection({
       description="Your photo and name are shown on the papers you contribute, and your username is in your public profile’s address."
     >
       {/* The photo has forms of its own, so it sits outside the profile form. */}
-      <div className="border-b p-6">
+      <div className="border-b border-surface-highest p-6">
         {/* Re-mounted when the image changes, which clears the local preview. */}
         <AvatarField
           key={user.image ?? "none"}
@@ -341,7 +340,7 @@ function ProfileSection({
           </div>
           <FormMessage message={profile?.error} />
         </div>
-        <div className="flex items-center justify-end gap-3 border-t px-6 py-4">
+        <div className="flex items-center justify-end gap-3 border-t border-surface-highest px-6 py-4">
           {profile?.success && !submitting && (
             <Saved message={profile.success} />
           )}

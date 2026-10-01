@@ -50,9 +50,9 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="grid gap-0.5">
-      <dd className="text-xl font-semibold tabular-nums">{value}</dd>
-      <dt className="text-xs text-muted-foreground">{label}</dt>
+    <div className="grid gap-1 rounded-2xl bg-card/60 px-4 py-3">
+      <dd className="font-expressive text-2xl tabular-nums">{value}</dd>
+      <dt className="text-xs font-medium opacity-80">{label}</dt>
     </div>
   );
 }
@@ -108,24 +108,24 @@ export default function ContributorPage({ loaderData }: Route.ComponentProps) {
             { label: contributor.name },
           ]}
         />
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-4">
+        <section className="grid gap-6 rounded-[2rem] bg-primary-container p-6 text-primary-container-foreground sm:p-8 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+          <div className="flex min-w-0 items-center gap-5">
             <ContributorAvatar
               name={contributor.name}
               image={contributor.image}
               size="xl"
-              className="max-sm:size-14 max-sm:text-lg"
+              className="size-24 text-3xl max-sm:size-16 max-sm:text-xl"
             />
-            <div className="min-w-0 space-y-1">
-              <h1 className="text-2xl font-semibold tracking-tight break-words">
+            <div className="min-w-0 space-y-1.5">
+              <h1 className="font-display-xl text-3xl break-words sm:text-5xl">
                 {contributor.name}
               </h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm opacity-85">
                 Contributor since {formatMonth(contributor.joinedAt)}
               </p>
             </div>
           </div>
-          <dl className="flex gap-8 sm:pr-2">
+          <dl className="grid grid-cols-3 gap-2">
             <Stat
               value={formatCount(contributor.publishedCount)}
               label={contributor.publishedCount === 1 ? "paper" : "papers"}
@@ -139,17 +139,17 @@ export default function ContributorPage({ loaderData }: Route.ComponentProps) {
               label={departments.length === 1 ? "department" : "departments"}
             />
           </dl>
-        </div>
+        </section>
       </div>
 
       <section aria-labelledby="papers-heading" className="space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <h2 id="papers-heading" className="text-lg font-semibold">
+          <h2 id="papers-heading" className="font-expressive text-2xl">
             Papers
           </h2>
           <Link
             to="/questions/contribute"
-            className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            className="text-sm font-semibold text-primary underline-offset-4 hover:underline"
           >
             Share a paper too
           </Link>

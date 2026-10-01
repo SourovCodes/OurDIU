@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
-import { PageHeader } from "~/components/page-header";
 import { LINK_CARD, STRETCHED_LINK } from "~/components/question-cards";
 import { SocialIcon } from "~/components/social-icons";
 import { Button, buttonVariants } from "~/components/ui/button";
@@ -100,29 +99,36 @@ async function copyEmail() {
 export default function Contact() {
   return (
     <div className="mx-auto max-w-3xl space-y-8">
-      <PageHeader
-        title="Contact"
-        description="Found a bug, have an idea, or need a paper removed? Email me."
-      />
+      <div className="space-y-3">
+        <h1 className="font-display-xl text-5xl sm:text-7xl">Contact</h1>
+        <p className="text-lg text-muted-foreground">
+          Found a bug, have an idea, or need a paper removed? Email me.
+        </p>
+      </div>
 
-      <Card className="bg-gradient-to-t from-primary/5 to-card shadow-xs">
+      <Card className="bg-primary-container text-primary-container-foreground">
         <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-background shadow-xs max-sm:hidden">
-              <Mail className="size-4" aria-hidden />
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground max-sm:hidden">
+              <Mail className="size-5" aria-hidden />
             </div>
             <div className="min-w-0">
-              <p className="text-sm text-muted-foreground">Email</p>
+              <p className="text-sm opacity-80">Email</p>
               <a
                 href={`mailto:${AUTHOR.email}`}
-                className="font-medium break-all underline-offset-4 hover:underline"
+                className="font-expressive text-lg break-all underline-offset-4 hover:underline"
               >
                 {AUTHOR.email}
               </a>
             </div>
           </div>
           <div className="flex shrink-0 gap-2">
-            <Button variant="outline" size="sm" onClick={copyEmail}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={copyEmail}
+              className="border-current/30 text-current"
+            >
               <Copy aria-hidden />
               Copy
             </Button>
@@ -138,10 +144,7 @@ export default function Contact() {
 
       <section aria-labelledby="topics-heading" className="space-y-4">
         <div className="space-y-1">
-          <h2
-            id="topics-heading"
-            className="text-xl font-semibold tracking-tight"
-          >
+          <h2 id="topics-heading" className="font-expressive text-2xl">
             What’s it about?
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -152,10 +155,10 @@ export default function Contact() {
         <ul className="grid gap-4 sm:grid-cols-2">
           {TOPICS.map(({ icon: Icon, title, description, subject, body }) => (
             <li key={title} className="grid">
-              <Card className={cn(LINK_CARD, "py-5 shadow-xs")}>
+              <Card className={cn(LINK_CARD, "py-5")}>
                 <CardContent className="space-y-2 px-5">
-                  <div className="flex size-9 items-center justify-center rounded-lg border bg-background shadow-xs">
-                    <Icon className="size-4" aria-hidden />
+                  <div className="flex size-11 items-center justify-center rounded-2xl bg-primary-container text-primary-container-foreground">
+                    <Icon className="size-5" aria-hidden />
                   </div>
                   <h3 className="font-semibold">
                     <a
@@ -173,7 +176,7 @@ export default function Contact() {
         </ul>
       </section>
 
-      <section className="space-y-3 rounded-xl border bg-muted/40 p-6 text-sm">
+      <section className="space-y-3 rounded-3xl bg-surface p-6 text-sm">
         <p className="text-pretty">
           I run OurDIU in my spare time, so a reply can take a few days. Wrong
           details on a paper? Signed-in students can also use the{" "}

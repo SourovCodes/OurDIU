@@ -8,7 +8,7 @@ import { cn } from "~/lib/utils";
 // Readable long-form text without the typography plugin: paragraphs, lists, links
 // and tables inside a legal page's sections.
 const PROSE =
-  "space-y-10 leading-7 text-pretty [&_a]:font-medium [&_a]:underline [&_a]:underline-offset-4 [&_a:hover]:text-primary [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.85em] [&_li]:pl-1 [&_ol]:list-decimal [&_ol]:space-y-2 [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-6";
+  "space-y-10 leading-7 text-pretty [&_a]:font-medium [&_a]:underline [&_a]:underline-offset-4 [&_a:hover]:text-primary [&_code]:rounded [&_code]:bg-surface [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.85em] [&_li]:pl-1 [&_ol]:list-decimal [&_ol]:space-y-2 [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-6";
 
 type LegalPageProps = {
   title: string;
@@ -32,9 +32,7 @@ export function LegalPage({ title, description, children }: LegalPageProps) {
 
       <nav
         aria-label="Legal pages"
-        // The divider is a shadow rather than a border, so the active tab's
-        // underline can cover it without the scrolling row growing a scrollbar.
-        className="flex gap-1 overflow-x-auto shadow-[inset_0_-1px_0_var(--color-border)]"
+        className="-mx-4 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0"
       >
         {LEGAL_PAGES.map(({ path, label }) => (
           <NavLink
@@ -42,10 +40,10 @@ export function LegalPage({ title, description, children }: LegalPageProps) {
             to={path}
             className={({ isActive }) =>
               cn(
-                "border-b-2 px-3 py-2 text-sm whitespace-nowrap transition-colors",
+                "flex h-10 shrink-0 items-center rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors",
                 isActive
-                  ? "border-primary font-medium text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
+                  ? "border-primary-container bg-primary-container font-semibold text-primary-container-foreground"
+                  : "border-input hover:bg-accent",
               )
             }
           >
@@ -56,7 +54,7 @@ export function LegalPage({ title, description, children }: LegalPageProps) {
 
       <article className={PROSE}>{children}</article>
 
-      <aside className="flex flex-col gap-3 rounded-xl border bg-muted/40 p-5 text-sm sm:flex-row sm:items-center sm:justify-between">
+      <aside className="flex flex-col gap-3 rounded-3xl bg-surface p-6 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="text-pretty">
           Questions about this page? Email{" "}
           <a
@@ -90,7 +88,7 @@ type LegalSectionProps = {
 export function LegalSection({ id, title, children }: LegalSectionProps) {
   return (
     <section aria-labelledby={id} className="scroll-mt-20 space-y-3">
-      <h2 id={id} className="text-xl font-semibold tracking-tight">
+      <h2 id={id} className="font-expressive text-2xl">
         {title}
       </h2>
       {children}

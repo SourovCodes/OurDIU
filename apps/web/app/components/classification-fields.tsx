@@ -9,7 +9,8 @@ import {
   parseSemesterName,
   SEMESTER_FORMAT_MESSAGE,
 } from "@ourdiu/shared/constants";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { ExamShape, EXAM_TONE, examKind } from "~/components/exam-badge";
 import { SearchableSelect } from "~/components/searchable-select";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -19,6 +20,7 @@ import {
   findSemesterByName,
 } from "~/lib/choices";
 import { courseOptions, type SelectOption } from "~/lib/filters";
+import { cn } from "~/lib/utils";
 
 /** An existing value (by id) or a new name typed by the user. */
 export type Choice =
@@ -137,6 +139,14 @@ type ClassificationFieldsProps = {
   defaults?: ClassificationDefaults;
   /** Whether a new department may leave out its short name. Defaults to true. */
   shortNameOptional?: boolean;
+  /** Exam types as chips in their colours and shapes (the contribute form). */
+  examTypeChips?: boolean;
+  /** Told the chosen existing course, semester and exam type as they change. */
+  onClassify?: (chosen: {
+    courseId: string | null;
+    semesterId: string | null;
+    examTypeId: string | null;
+  }) => void;
 };
 
 /**
@@ -151,6 +161,8 @@ export function ClassificationFields({
   fieldErrors,
   defaults = EMPTY,
   shortNameOptional = true,
+  examTypeChips = false,
+  onClassify,
 }: ClassificationFieldsProps) {
   const [department, setDepartment] = useState<Choice>(defaults.department);
   const [shortName, setShortName] = useState(defaults.shortName);
@@ -210,6 +222,15 @@ export function ClassificationFields({
     const typed = { ...next, name: parseSemesterName(next.name) ?? next.name };
     setSemester(existing(findSemesterByName(semesters, typed.name), typed));
   };
+  const idOf = (choice: Choice) =>
+    choice?.kind === "existing" ? choice.id : null;
+  const courseId = idOf(course);
+  const semesterId = idOf(semester);
+  const examTypeId = idOf(examType);
+  useEffect(() => {
+    onClassify?.({ courseId, semesterId, examTypeId });
+  }, [onClassify, courseId, semesterId, examTypeId]);
+
   const semesterFormatError =
     semester?.kind === "new" && parseSemesterName(semester.name) === null
       ? SEMESTER_FORMAT_MESSAGE
@@ -305,18 +326,59 @@ export function ClassificationFields({
         hint="A term and a year, e.g. Fall 25"
       />
 
-      <ChoiceField
-        label="Exam type"
-        noun="exam type"
-        options={examTypes.map((e) => ({
-          value: String(e.id),
-          label: e.name,
-        }))}
-        value={examType}
-        onChange={setExamType}
-        idField="examTypeId"
-        error={errorFor("examTypeId")}
-      />
+      {examTypeChips ? (
+        <fieldset className="grid gap-2 sm:col-span-2">
+          <legend className="mb-2 text-sm font-medium">Exam type</legend>
+          <div className="flex flex-wrap gap-2">
+            {examTypes.map((type) => {
+              const kind = examKind(type.name);
+              const on =
+                examType?.kind === "existing" &&
+                examType.id === String(type.id);
+              return (
+                <label
+                  key={type.id}
+                  className={cn(
+                    "flex h-11 cursor-pointer items-center gap-2 rounded-xl border pr-4 pl-2.5 text-sm font-semibold transition-colors has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50",
+                    on
+                      ? cn("border-transparent", EXAM_TONE[kind])
+                      : "border-input hover:bg-accent",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="examTypeId"
+                    value={type.id}
+                    checked={on}
+                    onChange={() =>
+                      setExamType({ kind: "existing", id: String(type.id) })
+                    }
+                    className="sr-only"
+                  />
+                  <ExamShape kind={kind} className="size-6" />
+                  {type.name}
+                </label>
+              );
+            })}
+          </div>
+          {errorFor("examTypeId") && (
+            <p className="text-sm text-destructive">{errorFor("examTypeId")}</p>
+          )}
+        </fieldset>
+      ) : (
+        <ChoiceField
+          label="Exam type"
+          noun="exam type"
+          options={examTypes.map((e) => ({
+            value: String(e.id),
+            label: e.name,
+          }))}
+          value={examType}
+          onChange={setExamType}
+          idField="examTypeId"
+          error={errorFor("examTypeId")}
+        />
+      )}
     </>
   );
 }

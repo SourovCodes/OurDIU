@@ -1,6 +1,7 @@
 import { MAX_SUBMISSION_FILE_BYTES } from "@ourdiu/shared/constants";
 import { FileText, Upload } from "lucide-react";
 import { useId, useRef, useState } from "react";
+import { ExamShape } from "~/components/exam-badge";
 import { buttonVariants } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { formatBytes } from "~/lib/format";
@@ -33,7 +34,9 @@ export function PdfFileInput({ name, label, error }: PdfFileInputProps) {
 
   return (
     <div className="grid gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className="sr-only">
+        {label}
+      </Label>
       <div
         onDragOver={(event) => {
           event.preventDefault();
@@ -42,33 +45,50 @@ export function PdfFileInput({ name, label, error }: PdfFileInputProps) {
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         className={cn(
-          "relative flex items-center gap-3 rounded-lg border border-dashed border-muted-foreground/30 p-3 transition-colors hover:bg-muted/40 has-focus-visible:border-ring has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50 sm:p-4",
-          dragging && "border-primary bg-primary/5",
+          "relative flex items-center gap-4 overflow-hidden rounded-[1.75rem] border-2 border-dashed p-5 transition-colors has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50 sm:p-6",
+          file
+            ? "border-transparent bg-surface"
+            : "border-primary/30 bg-primary-container/60 hover:bg-primary-container",
+          dragging && "border-primary bg-primary-container",
           error && "border-destructive",
         )}
       >
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+        <span className="relative flex size-16 shrink-0 items-center justify-center">
+          <ExamShape
+            kind={file ? "lab" : "final"}
+            colored={false}
+            className="absolute inset-0 size-full text-primary"
+          />
           {file ? (
-            <FileText className="size-5" aria-hidden />
+            <FileText
+              className="relative size-7 text-primary-foreground"
+              aria-hidden
+            />
           ) : (
-            <Upload className="size-5" aria-hidden />
+            <Upload
+              className="relative size-7 text-primary-foreground"
+              aria-hidden
+            />
           )}
-        </div>
+        </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">
-            {file ? file.name : "Drop a PDF here or browse"}
+          <p className="truncate font-expressive text-lg">
+            {file ? file.name : "Drop the question paper here"}
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {file
-              ? formatBytes(file.size)
-              : `PDF only, up to ${formatBytes(MAX_SUBMISSION_FILE_BYTES)}`}
+              ? `${formatBytes(file.size)} · PDF`
+              : `Or choose a PDF, up to ${formatBytes(MAX_SUBMISSION_FILE_BYTES)}. One exam per file.`}
           </p>
         </div>
         <span
           aria-hidden
-          className={buttonVariants({ variant: "outline", size: "sm" })}
+          className={cn(
+            buttonVariants({ variant: file ? "outline" : "default" }),
+            "max-sm:hidden",
+          )}
         >
-          {file ? "Change" : "Browse"}
+          {file ? "Change" : "Choose PDF"}
         </span>
         {/* Transparent over the whole zone, so clicks and focus reach the real input. */}
         <input

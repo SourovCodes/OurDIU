@@ -1,6 +1,7 @@
 import type { MySubmissionDetail, UploaderAnalysis } from "@ourdiu/shared";
 import {
   Bot,
+  Check,
   ChevronDown,
   CircleCheck,
   CircleHelp,
@@ -21,11 +22,12 @@ import {
   ClassificationFields,
   defaultsFrom,
 } from "~/components/classification-fields";
+import { ExamShape } from "~/components/exam-badge";
 import { PageHeader } from "~/components/page-header";
 import { PaperDetailsFields } from "~/components/paper-details-fields";
 import { PdfViewer } from "~/components/pdf-viewer";
 import { RelativeTime } from "~/components/relative-time";
-import { TONE_CLASSES, ToneIcon } from "~/components/review-stage";
+import { ToneIcon } from "~/components/review-stage";
 import { StatusBadge } from "~/components/status-badge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -103,34 +105,52 @@ export async function action({ request, params }: Route.ActionArgs) {
   throw new Response("Unknown intent", { status: 400 });
 }
 
-const BANNER_TONES: Record<ReviewStage["tone"], string> = {
-  progress: "border-sky-500/30 bg-sky-500/5",
-  success: "border-emerald-500/30 bg-emerald-500/5",
-  attention: "border-amber-500/40 bg-amber-500/5",
-  neutral: "bg-muted/40",
+/** One sentence of where the paper stands, coloured by how it's going. */
+const HERO_TONES: Record<ReviewStage["tone"], string> = {
+  progress: "bg-primary-container text-primary-container-foreground",
+  success:
+    "bg-emerald-100 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100",
+  attention:
+    "bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-100",
+  neutral: "bg-surface text-foreground",
 };
 
-/** One sentence of where the paper stands, coloured by how it's going. */
-function StatusBanner({ stage }: { stage: ReviewStage }) {
+/** Where the paper is, in one sentence, on a block in the stage's colour. */
+function StatusHero({ stage }: { stage: ReviewStage }) {
   return (
-    <div
+    <section
       role="status"
       className={cn(
-        "flex gap-3 rounded-xl border p-4",
-        BANNER_TONES[stage.tone],
+        "relative flex items-center gap-5 overflow-hidden rounded-[2rem] p-6 sm:p-8",
+        HERO_TONES[stage.tone],
       )}
     >
-      <ToneIcon
-        tone={stage.tone}
-        className={cn("mt-0.5 size-5", TONE_CLASSES[stage.tone])}
-      />
-      <div className="grid gap-0.5">
-        <p className={cn("font-medium", TONE_CLASSES[stage.tone])}>
-          {stage.label}
-        </p>
-        <p className="text-sm text-muted-foreground">{stage.description}</p>
+      <span
+        aria-hidden
+        className="relative flex size-16 shrink-0 items-center justify-center sm:size-20"
+      >
+        <ExamShape
+          kind={
+            stage.tone === "success"
+              ? "final"
+              : stage.tone === "attention"
+                ? "midterm"
+                : "quiz"
+          }
+          colored={false}
+          className={cn(
+            "absolute inset-0 size-full opacity-20",
+            stage.tone === "progress" &&
+              "animate-[spin_6s_linear_infinite] motion-reduce:animate-none",
+          )}
+        />
+        <ToneIcon tone={stage.tone} className="relative size-8" />
+      </span>
+      <div className="grid gap-1.5">
+        <p className="font-expressive text-2xl sm:text-3xl">{stage.label}</p>
+        <p className="max-w-2xl text-pretty opacity-85">{stage.description}</p>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -392,33 +412,109 @@ function DetailsCheck({
   );
 }
 
-/** When things happened, and the file. */
-function ActivityCard({ submission }: { submission: MySubmissionDetail }) {
-  const completedAt = submission.analysisDetail?.completedAt;
-  const rows: { label: string; value: React.ReactNode }[] = [
-    { label: "Uploaded", value: <RelativeTime iso={submission.createdAt} /> },
-    ...(completedAt
-      ? [{ label: "AI checked", value: <RelativeTime iso={completedAt} /> }]
-      : []),
-    { label: "File size", value: formatBytes(submission.fileSize) },
-  ];
+type StepState = "done" | "active" | "waiting";
+
+/** Uploaded → AI check → decision, as in the app's paper status. */
+function Timeline({ submission }: { submission: MySubmissionDetail }) {
+  const analysis = submission.analysisDetail;
+  const checking = isChecking(submission);
+  const decided = submission.status !== "pending_review";
+  const steps: { title: string; detail: React.ReactNode; state: StepState }[] =
+    [
+      {
+        title: "Uploaded",
+        detail: (
+          <>
+            <RelativeTime iso={submission.createdAt} /> ·{" "}
+            {formatBytes(submission.fileSize)}
+          </>
+        ),
+        state: "done",
+      },
+      {
+        title: "AI check",
+        detail: checking ? (
+          "Reading your paper…"
+        ) : analysis?.completedAt ? (
+          <RelativeTime iso={analysis.completedAt} />
+        ) : (
+          "Skipped"
+        ),
+        state: checking ? "active" : "done",
+      },
+      {
+        title:
+          submission.status === "published"
+            ? "Published"
+            : submission.status === "rejected"
+              ? "Not published"
+              : "Decision",
+        detail: decided
+          ? submission.status === "published"
+            ? "Students can read it now."
+            : "See the reason above."
+          : checking
+            ? "Next, once the check is done."
+            : "Waiting for an admin, or for your edit.",
+        state: decided ? "done" : checking ? "waiting" : "active",
+      },
+    ];
 
   return (
-    <Card className="gap-4">
-      <CardHeader>
-        <CardTitle>Activity</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-          {rows.map(({ label, value }) => (
-            <div key={label} className="contents">
-              <dt className="text-muted-foreground">{label}</dt>
-              <dd className="text-right">{value}</dd>
-            </div>
-          ))}
-        </dl>
-      </CardContent>
-    </Card>
+    <section
+      aria-labelledby="timeline-heading"
+      className="rounded-[1.75rem] bg-surface p-6"
+    >
+      <h2 id="timeline-heading" className="mb-4 font-expressive text-xl">
+        Review
+      </h2>
+      <ol>
+        {steps.map((step, index) => (
+          <li key={step.title} className="relative flex gap-4 pb-5 last:pb-0">
+            {index < steps.length - 1 && (
+              <span
+                aria-hidden
+                className={cn(
+                  "absolute top-8 bottom-0 left-[0.9375rem] w-0.5",
+                  step.state === "done" ? "bg-primary" : "bg-primary/20",
+                )}
+              />
+            )}
+            <span
+              className={cn(
+                "relative flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                step.state === "done" && "bg-primary text-primary-foreground",
+                step.state === "active" &&
+                  "bg-primary-container text-primary-container-foreground ring-2 ring-primary",
+                step.state === "waiting" &&
+                  "bg-surface-high text-muted-foreground",
+              )}
+            >
+              {step.state === "done" ? (
+                <Check className="size-4" aria-hidden />
+              ) : step.state === "active" && checking ? (
+                <LoaderCircle className="size-4 animate-spin" aria-hidden />
+              ) : (
+                index + 1
+              )}
+              <span className="sr-only">
+                {step.state === "done"
+                  ? "Done"
+                  : step.state === "active"
+                    ? "Now"
+                    : "Not yet"}
+              </span>
+            </span>
+            <span className="pt-1">
+              <span className="block font-semibold">{step.title}</span>
+              <span className="block text-sm text-muted-foreground">
+                {step.detail}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 
@@ -544,7 +640,7 @@ export default function AccountSubmission({
         </div>
       </PageHeader>
 
-      <StatusBanner stage={reviewStage(submission)} />
+      <StatusHero stage={reviewStage(submission)} />
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="grid gap-4 lg:order-2">
@@ -552,7 +648,7 @@ export default function AccountSubmission({
             submission={submission}
             onWithdraw={() => setWithdrawing(true)}
           />
-          <ActivityCard submission={submission} />
+          <Timeline submission={submission} />
         </div>
         <div className="min-w-0 lg:order-1">
           <PdfViewer

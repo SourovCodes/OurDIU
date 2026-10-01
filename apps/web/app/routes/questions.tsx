@@ -403,7 +403,7 @@ export default function Questions({ loaderData }: Route.ComponentProps) {
                 </Button>
               ) : (
                 <Button variant="outline" size="sm" asChild>
-                  <Link to="/questions/contribute">Contribute a paper</Link>
+                  <Link to="/questions/contribute">Share a paper</Link>
                 </Button>
               )
             }

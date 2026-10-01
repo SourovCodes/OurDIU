@@ -37,7 +37,6 @@ import {
 import { UrlTabs } from "~/components/url-tabs";
 import type { ActionResult } from "~/lib/action-result";
 import { apiFetch, apiGetJson, readJson } from "~/lib/api.server";
-import { PageHeader } from "~/components/page-header";
 import { isChecking } from "~/lib/review";
 import { useRefreshWhile } from "~/hooks/use-refresh-while";
 import { requireUser } from "~/lib/session.server";
@@ -47,6 +46,7 @@ import {
   publicUrl,
   STATUS_LABELS,
 } from "~/lib/submissions";
+import { formatCount } from "~/lib/format";
 import type { Route } from "./+types/account-submissions";
 
 export const meta: Route.MetaFunction = () => [
@@ -213,10 +213,41 @@ export default function AccountSubmissions({
   // The actions share the row with the status tabs.
   return (
     <section className="space-y-6">
-      <PageHeader
-        title="My submissions"
-        description="The papers you've shared, and where each one is in review."
-      />
+      <div className="space-y-3">
+        <h1 className="font-display-xl text-5xl sm:text-7xl">My submissions</h1>
+        <p className="text-muted-foreground">
+          The papers you’ve shared, and where each one is in review.
+        </p>
+      </div>
+      {submissions.length > 0 && (
+        <dl className="grid grid-cols-3 gap-2 sm:max-w-xl">
+          {[
+            {
+              label: "published",
+              value: submissions.filter((s) => s.status === "published").length,
+            },
+            {
+              label: "in review",
+              value: submissions.filter((s) => s.status === "pending_review")
+                .length,
+            },
+            {
+              label: "views",
+              value: submissions.reduce((sum, s) => sum + s.viewCount, 0),
+            },
+          ].map(({ label, value }) => (
+            <div
+              key={label}
+              className="grid gap-0.5 rounded-2xl bg-primary-container px-4 py-3 text-primary-container-foreground"
+            >
+              <dd className="font-expressive text-2xl tabular-nums">
+                {formatCount(value)}
+              </dd>
+              <dt className="text-xs font-medium opacity-80">{label}</dt>
+            </div>
+          ))}
+        </dl>
+      )}
 
       {submissions.length === 0 ? (
         <EmptyState
@@ -227,7 +258,7 @@ export default function AccountSubmissions({
             <Button size="sm" asChild>
               <Link to="/questions/contribute">
                 <Upload />
-                Contribute a paper
+                Share a paper
               </Link>
             </Button>
           }
@@ -245,7 +276,7 @@ export default function AccountSubmissions({
               <Button size="sm" asChild>
                 <Link to="/questions/contribute">
                   <Upload />
-                  Contribute
+                  Share a paper
                 </Link>
               </Button>
             </>

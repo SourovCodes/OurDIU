@@ -526,7 +526,7 @@ test("an account without a DIU email is asked to switch before contributing", as
   page,
 }) => {
   const { email } = await logInAs(page, NEW_READER, "/questions/contribute");
-  await expect(page.getByText("Uploading needs a DIU email")).toBeVisible();
+  await expect(page.getByText("Sharing needs a DIU email")).toBeVisible();
   await expect(page.getByRole("main")).toContainText(email);
 
   // A click during hydration can be lost; once it lands, the button is gone.

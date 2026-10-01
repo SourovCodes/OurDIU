@@ -186,14 +186,14 @@
 }
 .dark [data-space="routine"],
 .dark[data-space="routine"] {
-  --primary: #7fd8c3;
+  --primary: #80d5c4;
   --primary-foreground: #00382f;
   --primary-container: #005145;
   --primary-container-foreground: #b9f0e3;
   --ring: #7fd8c3;
 }
 [data-space="market"] {
-  --primary: #a3385f;
+  --primary: #8e3a5a;
   --primary-container: #ffd9e3;
   --primary-container-foreground: #3e0019;
   --ring: #a3385f;

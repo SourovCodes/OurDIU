@@ -1,5 +1,5 @@
 import type { MySubmission } from "@ourdiu/shared";
-import { CalendarDays, Eye, ThumbsUp } from "lucide-react";
+import { Eye, ThumbsUp } from "lucide-react";
 import { Link } from "react-router";
 import {
   CARD_GRID,
@@ -8,19 +8,12 @@ import {
 } from "~/components/question-cards";
 import { ReviewStageLabel } from "~/components/review-stage";
 import { StatusBadge } from "~/components/status-badge";
-import { Badge } from "~/components/ui/badge";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
+import { ExamBadge } from "~/components/exam-badge";
+import { Card, CardTitle } from "~/components/ui/card";
 import { formatDate } from "~/lib/dates";
 import { formatCount } from "~/lib/format";
 import { paperDetails } from "~/lib/submissions";
+import { cn } from "~/lib/utils";
 
 export const mySubmissionUrl = (id: number) =>
   `/questions/my-submissions/${id}`;
@@ -36,40 +29,36 @@ function MySubmissionCard({
   const { department, course, semester, examType } = submission.classification;
 
   return (
-    <Card className={LINK_CARD}>
-      <CardHeader className="gap-3">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <StatusBadge status={submission.status} />
-          <Badge variant="secondary" title={department.name}>
-            {department.shortName ?? department.name}
-          </Badge>
-          <Badge variant="outline" className="text-muted-foreground">
-            {examType.name}
-          </Badge>
+    <Card className={cn(LINK_CARD, "gap-4 py-5")}>
+      <div className="flex items-start gap-3.5 px-5">
+        <ExamBadge examType={examType.name} />
+        <div className="min-w-0 flex-1 space-y-1">
+          <CardTitle className="text-base leading-snug">
+            <Link
+              to={mySubmissionUrl(submission.id)}
+              prefetch="intent"
+              className={STRETCHED_LINK}
+            >
+              {course.name}
+            </Link>
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            <span title={department.name}>
+              {department.shortName ?? department.name}
+            </span>
+            {" · "}
+            {examType.name} · {semester.name}
+            {details && ` · ${details}`}
+          </p>
         </div>
         {/* Above the stretched link, so the menu stays clickable. */}
-        {actions && (
-          <CardAction className="relative z-10">{actions}</CardAction>
-        )}
-        <CardTitle className="text-base leading-snug">
-          <Link
-            to={mySubmissionUrl(submission.id)}
-            prefetch="intent"
-            className={STRETCHED_LINK}
-          >
-            {course.name}
-          </Link>
-        </CardTitle>
-        <CardDescription className="flex items-center gap-1.5">
-          <CalendarDays className="size-3.5" aria-hidden />
-          {semester.name}
-          {details && ` · ${details}`}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+        {actions && <div className="relative z-10 -mt-1 -mr-2">{actions}</div>}
+      </div>
+      <div className="grid gap-2 px-5">
+        <StatusBadge status={submission.status} />
         <ReviewStageLabel submission={submission} />
-      </CardContent>
-      <CardFooter className="mt-auto justify-between gap-3 border-t text-sm text-muted-foreground [.border-t]:pt-4">
+      </div>
+      <div className="mt-auto flex items-center justify-between gap-3 px-5 text-sm text-muted-foreground">
         <span>Added {formatDate(submission.createdAt)}</span>
         {submission.status === "published" && (
           <span className="flex items-center gap-3 tabular-nums">
@@ -85,7 +74,7 @@ function MySubmissionCard({
             </span>
           </span>
         )}
-      </CardFooter>
+      </div>
     </Card>
   );
 }

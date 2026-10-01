@@ -3,7 +3,8 @@ import { Link } from "react-router";
 import { ContributorAvatar } from "~/components/contributor-avatar";
 import { SocialIcon } from "~/components/social-icons";
 import { buttonVariants } from "~/components/ui/button";
-import { Card, CardContent } from "~/components/ui/card";
+import { EXAM_TONE, ExamShape } from "~/components/exam-badge";
+import { cn } from "~/lib/utils";
 import { AUTHOR } from "~/lib/author";
 import type { Route } from "./+types/about";
 
@@ -34,27 +35,33 @@ const PROMISES = [
   },
 ];
 
+const PROMISE_TONES = [
+  { tone: EXAM_TONE.final, shape: "final" as const },
+  { tone: EXAM_TONE.midterm, shape: "midterm" as const },
+  { tone: EXAM_TONE.quiz, shape: "quiz" as const },
+];
+
 export default function About() {
   return (
-    <article className="mx-auto max-w-2xl space-y-10 py-4 sm:py-8">
-      <header className="flex items-center gap-4">
+    <article className="mx-auto max-w-4xl space-y-10 py-2 sm:py-6">
+      <header className="flex flex-col gap-6 rounded-[2rem] bg-primary-container p-7 text-primary-container-foreground sm:flex-row sm:items-center sm:p-10">
         <ContributorAvatar
           name={AUTHOR.name}
           image={AUTHOR.avatar}
           size="xl"
-          className="ring-2 ring-border ring-offset-2 ring-offset-background"
+          className="size-28 text-3xl ring-4 ring-primary/30"
         />
-        <div className="space-y-1">
-          <h1 className="text-3xl font-semibold tracking-tight">
+        <div className="space-y-2">
+          <h1 className="font-display-xl text-5xl sm:text-6xl">
             Hi, I’m {AUTHOR.firstName} 👋
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-lg opacity-85">
             I built OurDIU, and I keep it running.
           </p>
         </div>
       </header>
 
-      <div className="space-y-4 leading-7 text-pretty">
+      <div className="mx-auto max-w-2xl space-y-4 text-lg leading-8 text-pretty">
         <p>
           OurDIU started as the question bank, a side project: one place for
           past papers, so nobody has to scroll through five group chats the
@@ -72,41 +79,44 @@ export default function About() {
         </p>
       </div>
 
-      <section aria-labelledby="promise-heading" className="space-y-4">
-        <h2
-          id="promise-heading"
-          className="text-xl font-semibold tracking-tight"
-        >
+      <section aria-labelledby="promise-heading" className="space-y-5">
+        <h2 id="promise-heading" className="font-expressive text-3xl">
           The promise
         </h2>
-        <ul className="grid gap-4 sm:grid-cols-3">
-          {PROMISES.map(({ icon: Icon, title, description }) => (
-            <li key={title} className="grid">
-              <Card className="bg-gradient-to-t from-primary/5 to-card py-5 shadow-xs">
-                <CardContent className="space-y-2 px-5">
-                  <div className="flex size-9 items-center justify-center rounded-lg border bg-background shadow-xs">
-                    <Icon className="size-4" aria-hidden />
-                  </div>
-                  <h3 className="font-semibold">{title}</h3>
-                  <p className="text-sm text-muted-foreground">{description}</p>
-                </CardContent>
-              </Card>
+        <ul className="grid gap-3 sm:grid-cols-3">
+          {PROMISES.map(({ icon: Icon, title, description }, index) => (
+            <li
+              key={title}
+              className={cn(
+                "relative grid content-between gap-8 overflow-hidden rounded-[1.75rem] p-6",
+                PROMISE_TONES[index]!.tone,
+              )}
+            >
+              <ExamShape
+                kind={PROMISE_TONES[index]!.shape}
+                colored={false}
+                className="absolute -right-6 -bottom-8 size-32 opacity-15"
+              />
+              <span className="flex size-11 items-center justify-center rounded-full bg-current/10">
+                <Icon className="size-5" aria-hidden />
+              </span>
+              <div className="relative space-y-1">
+                <h3 className="font-expressive text-xl">{title}</h3>
+                <p className="text-sm opacity-85">{description}</p>
+              </div>
             </li>
           ))}
         </ul>
       </section>
 
-      <section className="space-y-4 rounded-xl border bg-muted/40 p-6 text-center">
-        <p className="text-pretty">
-          If it helped you, the best thanks is adding a paper you have, or just
+      <section className="space-y-5 rounded-[2rem] bg-surface p-7 text-center sm:p-10">
+        <p className="font-expressive text-2xl text-pretty">
+          If it helped you, the best thanks is sharing a paper you have, or just
           saying hi.
         </p>
         <div className="flex flex-wrap justify-center gap-2">
-          <Link
-            to="/questions/contribute"
-            className={buttonVariants({ size: "sm" })}
-          >
-            Contribute a paper
+          <Link to="/questions/contribute" className={buttonVariants()}>
+            Share a paper
             <ArrowRight aria-hidden />
           </Link>
           {AUTHOR.links.map(({ network, label, href }) => (
@@ -115,7 +125,7 @@ export default function About() {
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className={buttonVariants({ variant: "outline", size: "sm" })}
+              className={buttonVariants({ variant: "outline" })}
             >
               <SocialIcon network={network} />
               {label}

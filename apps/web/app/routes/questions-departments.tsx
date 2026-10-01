@@ -1,10 +1,12 @@
-import { SlidersHorizontal } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 import { Link } from "react-router";
+import { CourseSearchTrigger } from "~/components/course-search";
 import { DepartmentTile } from "~/components/qb-tiles";
 import { buttonVariants } from "~/components/ui/button";
 import { rememberedDepartment } from "~/lib/department-preference";
 import { formatNumber } from "~/lib/format";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
+import { cn } from "~/lib/utils";
 import type { Route } from "./+types/questions-departments";
 
 export const meta: Route.MetaFunction = () => [
@@ -51,13 +53,22 @@ export default function Departments({ loaderData }: Route.ComponentProps) {
             Pick yours to see its courses.
           </p>
         </div>
-        <Link
-          to="/questions/browse"
-          className={buttonVariants({ variant: "outline" })}
-        >
-          <SlidersHorizontal aria-hidden />
-          Filter every paper instead
-        </Link>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <CourseSearchTrigger className="flex h-12 items-center gap-3 rounded-full bg-surface pr-5 pl-4 text-muted-foreground transition-colors hover:bg-surface-high focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none sm:w-72">
+            <Search className="size-5 shrink-0" aria-hidden />
+            <span className="truncate">Know the course? Search it</span>
+          </CourseSearchTrigger>
+          <Link
+            to="/questions/browse"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "h-12 text-primary max-sm:self-start",
+            )}
+          >
+            <SlidersHorizontal aria-hidden />
+            Filter every paper
+          </Link>
+        </div>
       </div>
 
       {featured && (

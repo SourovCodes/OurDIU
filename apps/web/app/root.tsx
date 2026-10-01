@@ -33,6 +33,7 @@ import {
   GTAG_SCRIPT,
   usePageViews,
 } from "~/lib/analytics";
+import { androidInvite } from "~/lib/android-app";
 import { AUTHOR } from "~/lib/author";
 import { LEGAL_PAGES } from "~/lib/legal";
 import { PRODUCTS, spaceAt } from "~/lib/products";
@@ -51,7 +52,10 @@ export const links: Route.LinksFunction = () => [
 ];
 
 export async function loader({ request }: Route.LoaderArgs) {
-  return { user: await getUser(request) };
+  return {
+    user: await getUser(request),
+    androidInvite: androidInvite(request),
+  };
 }
 export type RootLoader = typeof loader;
 

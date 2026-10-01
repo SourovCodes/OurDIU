@@ -4,21 +4,24 @@
 
 import 'package:json_annotation/json_annotation.dart';
 
-part 'course.g.dart';
+part 'course_list_item.g.dart';
 
 @JsonSerializable()
-class Course {
-  const Course({
+class CourseListItem {
+  const CourseListItem({
     required this.id,
     required this.name,
     required this.departmentId,
+    required this.publishedCount,
   });
 
-  factory Course.fromJson(Map<String, Object?> json) => _$CourseFromJson(json);
+  factory CourseListItem.fromJson(Map<String, Object?> json) =>
+      _$CourseListItemFromJson(json);
 
   final int id;
   final String name;
   final int departmentId;
+  final int publishedCount;
 
-  Map<String, Object?> toJson() => _$CourseToJson(this);
+  Map<String, Object?> toJson() => _$CourseListItemToJson(this);
 }

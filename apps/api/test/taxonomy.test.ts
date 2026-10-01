@@ -43,7 +43,12 @@ describe("taxonomy routes", () => {
       await api(`/api/v1/courses?departmentId=${cse.id}`)
     ).json<CourseList>();
     expect(filtered.items).toEqual([
-      { id: algorithms.id, name: algorithms.name, departmentId: cse.id },
+      {
+        id: algorithms.id,
+        name: algorithms.name,
+        departmentId: cse.id,
+        publishedCount: 0,
+      },
     ]);
   });
 
@@ -80,10 +85,12 @@ describe("taxonomy routes", () => {
     expect(res.status).toBe(200);
     const body = await res.json<Taxonomy>();
     expect(body.departments).toContainEqual({ ...cse, publishedCount: 1 });
+    // Published papers only, as for departments.
     expect(body.courses).toContainEqual({
       id: algorithms.id,
       name: algorithms.name,
       departmentId: cse.id,
+      publishedCount: 1,
     });
     expect(body.semesters).toContainEqual(sem1);
     expect(body.examTypes).toContainEqual(midterm);

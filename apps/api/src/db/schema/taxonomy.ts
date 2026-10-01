@@ -25,6 +25,11 @@ export const courses = sqliteTable(
     departmentId: integer()
       .notNull()
       .references(() => departments.id),
+    /**
+     * Published papers of the course, kept in sync with questions.published_count
+     * by a trigger (migration 0009); never write it from application code.
+     */
+    publishedCount: integer().notNull().default(0),
   },
   (t) => [
     // Also serves as the index for looking up courses by department.

@@ -166,7 +166,7 @@ List<ComparisonRow> compareWithAnalysis(
               name: values.department!.shortName ?? values.department!.name,
             ),
     ),
-    entry('Course', (
+    entry('CourseListItem', (
       id: c.course.id,
       name: c.course.name,
     ), named(values.course?.id, values.course?.name)),

@@ -90,7 +90,7 @@ class _CourseScreenState extends ConsumerState<CourseScreen> {
   Widget _buildList(
     BuildContext context,
     List<Question> items,
-    Course? course,
+    CourseListItem? course,
     DepartmentListItem? dept,
   ) {
     final scheme = Theme.of(context).colorScheme;
@@ -126,7 +126,7 @@ class _CourseScreenState extends ConsumerState<CourseScreen> {
     }
     final taxonomy = ref.watch(taxonomyProvider).value;
     final others = course == null || taxonomy == null
-        ? const <Course>[]
+        ? const <CourseListItem>[]
         : sameCourses(taxonomy.courses, course);
 
     return ListView(

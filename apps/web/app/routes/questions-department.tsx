@@ -59,6 +59,7 @@ export default function Department({ loaderData }: Route.ComponentProps) {
     [courses, filter],
   );
   const groups = useMemo(() => byInitial(shown), [shown]);
+  const withPapers = courses.filter((c) => c.publishedCount > 0).length;
 
   return (
     <div className="space-y-7">
@@ -95,8 +96,10 @@ export default function Department({ loaderData }: Route.ComponentProps) {
             {department.name}
           </h1>
           <p className="text-muted-foreground">
-            {plural(department.publishedCount, "question")} across{" "}
-            {plural(courses.length, "course")}
+            {plural(department.publishedCount, "paper")} across{" "}
+            {plural(withPapers, "course")}
+            {withPapers < courses.length &&
+              ` (${formatNumber(courses.length - withPapers)} more without papers yet)`}
           </p>
         </div>
         <label className="flex h-11 w-full shrink-0 items-center gap-2.5 rounded-full bg-surface px-4 text-muted-foreground focus-within:ring-[3px] focus-within:ring-ring/50 md:w-80">
@@ -142,13 +145,25 @@ export default function Department({ loaderData }: Route.ComponentProps) {
                     <Link
                       to={courseHref(course.id)}
                       prefetch="intent"
-                      className="flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 py-2 text-[0.9375rem] transition-colors hover:bg-surface-high active:bg-surface-high"
+                      className={cn(
+                        "flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 py-2 text-[0.9375rem] transition-colors hover:bg-surface-high active:bg-surface-high",
+                        course.publishedCount === 0 && "text-muted-foreground",
+                      )}
                     >
-                      {course.name}
-                      <ChevronRight
-                        className="size-4 shrink-0 text-muted-foreground"
-                        aria-hidden
-                      />
+                      <span className="min-w-0">{course.name}</span>
+                      <span className="flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground tabular-nums">
+                        {course.publishedCount > 0 ? (
+                          <>
+                            {formatNumber(course.publishedCount)}
+                            <span className="sr-only">
+                              {course.publishedCount === 1 ? "paper" : "papers"}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-xs">No papers yet</span>
+                        )}
+                        <ChevronRight className="size-4" aria-hidden />
+                      </span>
                     </Link>
                   </li>
                 ))}

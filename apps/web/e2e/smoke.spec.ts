@@ -467,8 +467,6 @@ test("a course points to the same course filed under another department", async 
   page,
 }) => {
   await page.goto("/questions/courses/4");
-  // On phones the Android strip appears once hydrated and moves the page down.
-  await page.waitForLoadState("networkidle");
   const others = page.getByRole("complementary").filter({
     has: page.getByRole("heading", { name: "Same course, other names" }),
   });
@@ -555,8 +553,6 @@ test("contributors index leads to a contributor's submissions", async ({
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Contributors",
   );
-  // On phones the Android strip appears once hydrated and moves the page down.
-  await page.waitForLoadState("networkidle");
   // Most published papers first.
   await expect(
     page
@@ -644,8 +640,6 @@ test("a member can like, dislike and report a paper", async ({
   const questionId = testInfo.project.name === "mobile" ? 8 : 10;
   await logInAs(page, NEW_USER, `/questions/${questionId}`);
   await expect(page.getByText(/\d+ views?/).first()).toBeVisible();
-  // On phones the Android strip appears once hydrated and moves the page down.
-  await page.waitForLoadState("networkidle");
 
   const like = page.getByRole("button", { name: /^Like/ });
   const dislike = page.getByRole("button", { name: /^Dislike/ });
@@ -687,8 +681,6 @@ test("a member can like, dislike and report a paper", async ({
 
 test("visitors are asked to log in before voting", async ({ page }) => {
   await page.goto("/questions/1");
-  // On phones the Android strip appears once hydrated and moves the page down.
-  await page.waitForLoadState("networkidle");
   await page.getByRole("link", { name: /^Log in to like/ }).click();
   await expect(page).toHaveURL(/\/login\?redirectTo=%2Fquestions%2F1/);
 });

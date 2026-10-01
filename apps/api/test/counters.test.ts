@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import {
+  courses,
   departments,
   questions,
   submissionReports,
@@ -16,7 +17,7 @@ import {
   seedUser,
 } from "./helpers";
 
-// The counters kept by the triggers in migration 0006, checked against the same
+// The counters kept by the triggers in migrations 0006 and 0009, checked against the same
 // numbers computed from `submissions`.
 
 /** Rows whose stored counters differ from a recount; always 0 when the triggers work. */
@@ -33,6 +34,10 @@ async function countMismatches() {
         SELECT count(*) FROM submissions s JOIN questions q ON q.id = s.question_id
         WHERE q.department_id = d.id AND s.status = 'published')
       ) AS departments,
+      (SELECT count(*) FROM courses c WHERE c.published_count <> (
+        SELECT count(*) FROM submissions s JOIN questions q ON q.id = s.question_id
+        WHERE q.course_id = c.id AND s.status = 'published')
+      ) AS courses,
       (SELECT count(*) FROM user u WHERE
         u.published_submission_count <> (SELECT count(*) FROM submissions s WHERE s.uploader_id = u.id AND s.status = 'published')
         OR u.published_view_count <> (SELECT coalesce(sum(view_count), 0) FROM submissions s WHERE s.uploader_id = u.id AND s.status = 'published')
@@ -55,6 +60,13 @@ async function questionCounts(id: number) {
 async function departmentCount(id: number) {
   const row = await db().query.departments.findFirst({
     where: eq(departments.id, id),
+  });
+  return row!.publishedCount;
+}
+
+async function courseCount(id: number) {
+  const row = await db().query.courses.findFirst({
+    where: eq(courses.id, id),
   });
   return row!.publishedCount;
 }
@@ -121,6 +133,7 @@ describe("counter triggers", () => {
       latestPublishedAt: paper.createdAt.getTime(),
     });
     expect(await departmentCount(t.cse.id)).toBe(1);
+    expect(await courseCount(t.algorithms.id)).toBe(1);
     expect(await userCounts(uploader.id)).toEqual({ papers: 1, views: 2 });
 
     // Moved to a question in another department.
@@ -133,6 +146,8 @@ describe("counter triggers", () => {
     expect((await questionCounts(inEee.id)).published).toBe(1);
     expect(await departmentCount(t.cse.id)).toBe(0);
     expect(await departmentCount(t.eee.id)).toBe(1);
+    expect(await courseCount(t.algorithms.id)).toBe(0);
+    expect(await courseCount(t.circuits.id)).toBe(1);
 
     // Rejected: its views no longer count for the uploader either.
     await setStatus(paper.id, "rejected");
@@ -161,6 +176,7 @@ describe("counter triggers", () => {
     expect(await countMismatches()).toEqual({
       questions: 0,
       departments: 0,
+      courses: 0,
       users: 0,
     });
   });
@@ -186,6 +202,7 @@ describe("counter triggers", () => {
       latestPublishedAt: newer.createdAt.getTime(),
     });
     expect(await departmentCount(t.cse.id)).toBe(2);
+    expect(await courseCount(t.algorithms.id)).toBe(2);
 
     // The third open report hides the newer paper (trigger in migration 0001).
     for (const reporter of await Promise.all([
@@ -215,9 +232,22 @@ describe("counter triggers", () => {
       .where(eq(submissions.id, newer.id));
     expect(await userCounts(uploader.id)).toEqual({ papers: 1, views: 0 });
 
+    // The question moves to another course of the department (an admin merge).
+    const [graphs] = await db()
+      .insert(courses)
+      .values({ name: `Graphs ${question.id}`, departmentId: t.cse.id })
+      .returning();
+    await db()
+      .update(questions)
+      .set({ courseId: graphs!.id })
+      .where(eq(questions.id, question.id));
+    expect(await courseCount(t.algorithms.id)).toBe(0);
+    expect(await courseCount(graphs!.id)).toBe(1);
+
     expect(await countMismatches()).toEqual({
       questions: 0,
       departments: 0,
+      courses: 0,
       users: 0,
     });
   });

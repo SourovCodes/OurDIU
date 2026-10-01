@@ -15,7 +15,7 @@ export 'clients/profile_images_client.dart';
 // Data classes
 export 'models/taxonomy.dart';
 export 'models/department_list_item.dart';
-export 'models/course.dart';
+export 'models/course_list_item.dart';
 export 'models/semester.dart';
 export 'models/exam_type.dart';
 export 'models/department_list.dart';

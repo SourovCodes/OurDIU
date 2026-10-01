@@ -4,7 +4,7 @@
 
 import 'package:json_annotation/json_annotation.dart';
 
-import 'course.dart';
+import 'course_list_item.dart';
 import 'department_list_item.dart';
 import 'exam_type.dart';
 import 'semester.dart';
@@ -24,7 +24,7 @@ class Taxonomy {
       _$TaxonomyFromJson(json);
 
   final List<DepartmentListItem> departments;
-  final List<Course> courses;
+  final List<CourseListItem> courses;
   final List<Semester> semesters;
   final List<ExamType> examTypes;
 

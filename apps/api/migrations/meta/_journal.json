@@ -57,6 +57,20 @@
       "when": 1790889508068,
       "tag": "0007_saved_questions",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1790892787186,
+      "tag": "0008_course_counter",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1790892787608,
+      "tag": "0009_course_counter_triggers",
+      "breakpoints": true
     }
   ]
 }

@@ -18,6 +18,7 @@ const course = (
   departmentId,
   departmentShortName,
   departmentName: departmentShortName,
+  publishedCount: 1,
 });
 
 const courses = [

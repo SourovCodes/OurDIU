@@ -17,9 +17,15 @@ export function listDepartments(db: Database) {
     .orderBy(asc(departments.name));
 }
 
+/** Courses by name, with their number of published papers. */
 export function listCourses(db: Database, departmentId?: number) {
   return db
-    .select()
+    .select({
+      id: courses.id,
+      name: courses.name,
+      departmentId: courses.departmentId,
+      publishedCount: courses.publishedCount,
+    })
     .from(courses)
     .where(departmentId ? eq(courses.departmentId, departmentId) : undefined)
     .orderBy(asc(courses.name));

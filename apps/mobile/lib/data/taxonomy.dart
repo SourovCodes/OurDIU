@@ -27,7 +27,10 @@ String _sameCourseKey(String name) => name
 /// department, its own department's first. Papers are filed under the name on the
 /// question sheet, so a course's papers can be split across these. As on the
 /// website's course page.
-List<Course> sameCourses(List<Course> courses, Course course) {
+List<CourseListItem> sameCourses(
+  List<CourseListItem> courses,
+  CourseListItem course,
+) {
   final key = _sameCourseKey(course.name);
   return [
     for (final c in courses)

@@ -1,7 +1,8 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { createRoutesStub } from "react-router";
+import { createRoutesStub, Outlet } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { Toaster } from "~/components/ui/sonner";
+import { androidInvite, DISMISSED_COOKIE } from "~/lib/android-app";
 import {
   AndroidBetaBanner,
   AndroidBetaLink,
@@ -14,13 +15,24 @@ const ANDROID =
 const IPHONE =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
 
+/** Renders under a root route that decides like the real one, from the request. */
 function renderOn(
   userAgent: string,
   Component: () => React.ReactNode = AndroidBetaBanner,
   path = "/",
 ) {
-  vi.spyOn(navigator, "userAgent", "get").mockReturnValue(userAgent);
-  const Stub = createRoutesStub([{ path: "*", Component }]);
+  const request = new Request("http://localhost/", {
+    headers: { "user-agent": userAgent, cookie: document.cookie },
+  });
+  const Stub = createRoutesStub([
+    {
+      id: "root",
+      loader: () => ({ androidInvite: androidInvite(request) }),
+      Component: () => <Outlet />,
+      children: [{ path: "*", Component }],
+      HydrateFallback: () => null,
+    },
+  ]);
   render(<Stub initialEntries={[path]} />);
 }
 
@@ -28,7 +40,7 @@ function renderOn(
 const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
 
 beforeEach(() => {
-  localStorage.clear();
+  document.cookie = `${DISMISSED_COOKIE}=; Max-Age=0; Path=/`;
   sessionStorage.clear();
 });
 afterEach(() => {
@@ -50,23 +62,21 @@ it("stays away from other devices", async () => {
 });
 
 it("stays dismissed for 30 days", async () => {
+  const set = vi.spyOn(document, "cookie", "set");
   renderOn(ANDROID);
   (await screen.findByRole("button", { name: "Dismiss" })).click();
   await vi.waitFor(() =>
     expect(screen.queryByText("Try the OurDIU Android app early")).toBeNull(),
   );
+  expect(set).toHaveBeenCalledWith(
+    expect.stringMatching(/^ourdiu_android_invite=dismissed; Max-Age=2592000;/),
+  );
+  set.mockRestore();
 
   cleanup();
   renderOn(ANDROID);
   await settle();
   expect(screen.queryByText("Try the OurDIU Android app early")).toBeNull();
-
-  cleanup();
-  vi.spyOn(Date, "now").mockReturnValue(Date.now() + 31 * 24 * 60 * 60 * 1000);
-  renderOn(ANDROID);
-  expect(
-    await screen.findByText("Try the OurDIU Android app early"),
-  ).toBeTruthy();
 });
 
 it("links signed-in Android visitors from the account page", async () => {

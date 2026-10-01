@@ -1,0 +1,11 @@
+# App icons from assets/brand (drawn by tool/brand/render.mjs). After changing
+# them: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/brand/icon.png
+  remove_alpha_ios: true
+  # Android 8+: the mark on indigo; Android 13+ themed icons use the monochrome one.
+  adaptive_icon_background: "#4F39F6"
+  adaptive_icon_foreground: assets/brand/icon_foreground.png
+  adaptive_icon_monochrome: assets/brand/icon_monochrome.png

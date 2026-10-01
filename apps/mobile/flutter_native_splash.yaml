@@ -1,0 +1,18 @@
+# Launch screens from assets/brand (drawn by tool/brand/render.mjs), on the theme's
+# surface colours (lib/theme/theme.dart). After changing them:
+# dart run flutter_native_splash:create
+flutter_native_splash:
+  color: "#FCF8FF"
+  color_dark: "#13121A"
+  image: assets/brand/splash.png
+  branding: assets/brand/branding.png
+  branding_dark: assets/brand/branding_dark.png
+  branding_bottom_padding: 32
+  # Android 12+ draws its own splash: an icon in a circle, and the branding.
+  android_12:
+    image: assets/brand/splash_android12.png
+    color: "#FCF8FF"
+    color_dark: "#13121A"
+    branding: assets/brand/branding.png
+    branding_dark: assets/brand/branding_dark.png
+  web: false

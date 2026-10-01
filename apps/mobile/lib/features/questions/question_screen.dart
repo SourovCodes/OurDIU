@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api.dart';
@@ -320,6 +321,13 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
                           _PaperMenu(
                             reported: _isReported(selected),
                             own: _isOwn(selected),
+                            onShareLink: () => SharePlus.instance.share(
+                              ShareParams(
+                                uri: Uri.parse(
+                                  '$apiBaseUrl/questions/${widget.id}',
+                                ),
+                              ),
+                            ),
                             onOpenInBrowser: () => openInBrowser(url),
                             onReport: () => _report(
                               selected,
@@ -584,18 +592,20 @@ class _Toolbar extends StatelessWidget {
   }
 }
 
-enum _MenuAction { openInBrowser, report }
+enum _MenuAction { shareLink, openInBrowser, report }
 
 class _PaperMenu extends StatelessWidget {
   const _PaperMenu({
     required this.reported,
     required this.own,
+    required this.onShareLink,
     required this.onOpenInBrowser,
     required this.onReport,
   });
 
   final bool reported;
   final bool own;
+  final VoidCallback onShareLink;
   final VoidCallback onOpenInBrowser;
   final VoidCallback onReport;
 
@@ -606,10 +616,19 @@ class _PaperMenu extends StatelessWidget {
       tooltip: 'More',
       icon: const Icon(Icons.more_vert_rounded),
       onSelected: (action) => switch (action) {
+        _MenuAction.shareLink => onShareLink(),
         _MenuAction.openInBrowser => onOpenInBrowser(),
         _MenuAction.report => onReport(),
       },
       itemBuilder: (context) => [
+        PopupMenuItem(
+          value: _MenuAction.shareLink,
+          child: ListTile(
+            leading: Icon(Icons.link_rounded, color: muted),
+            title: const Text('Share link'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
         PopupMenuItem(
           value: _MenuAction.openInBrowser,
           child: ListTile(
@@ -624,7 +643,9 @@ class _PaperMenu extends StatelessWidget {
           child: ListTile(
             leading: Icon(Icons.flag_outlined, color: muted),
             title: Text(
-              reported ? 'You reported this paper' : 'Report a problem',
+              reported
+                  ? 'You reported this paper'
+                  : 'Report a problem with this paper',
             ),
             enabled: !reported && !own,
             contentPadding: EdgeInsets.zero,
@@ -658,14 +679,16 @@ class _PaperSheet extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       children: [
         Text(
-          '${plural(papers.length, 'paper')} for this exam',
+          papers.length == 1
+              ? '1 copy of this exam'
+              : '${papers.length} copies of this exam',
           style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 2),
         Text(
-          'Ranked by likes, then views.',
+          'Shared by different students, best rated first.',
           style: TextStyle(color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 14),

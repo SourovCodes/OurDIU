@@ -52,7 +52,7 @@ void main() {
 
     await tester.tap(find.text('Paper 1 of 2 · change'));
     await tester.pumpAndSettle();
-    expect(find.text('2 papers for this exam'), findsOneWidget);
+    expect(find.text('2 copies of this exam'), findsOneWidget);
     await tester.tap(find.text('By Jane'));
     await tester.pumpAndSettle();
     expect(find.text('PDF https://files.example/2.pdf'), findsOneWidget);

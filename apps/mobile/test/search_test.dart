@@ -1,3 +1,5 @@
+import 'package:diuqbank/api/generated/export.dart';
+import 'package:diuqbank/data/taxonomy.dart';
 import 'package:diuqbank/features/search/search_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -23,5 +25,24 @@ void main() {
   test('finds nothing for blank or unknown text', () {
     expect(names('  '), isEmpty);
     expect(names('chemistry'), isEmpty);
+  });
+
+  sameCourseTests();
+}
+
+void sameCourseTests() {
+  test('finds the same course filed under another name', () {
+    const ds = Course(id: 1, name: 'Data Structure', departmentId: 5);
+    const courses = [
+      ds,
+      Course(id: 2, name: 'Data Structures', departmentId: 6),
+      Course(id: 3, name: 'Data Structures', departmentId: 5),
+      Course(id: 4, name: 'Database Systems', departmentId: 5),
+      Course(id: 5, name: 'Physics-I', departmentId: 5),
+      Course(id: 6, name: 'Physics I', departmentId: 6),
+    ];
+    expect(sameCourses(courses, ds).map((c) => c.id), [3, 2]);
+    expect(sameCourses(courses, courses[4]).map((c) => c.id), [6]);
+    expect(sameCourses(courses, courses[3]), isEmpty);
   });
 }

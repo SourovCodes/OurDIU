@@ -38,7 +38,7 @@ void main() {
 
     await tester.tap(find.text('Mathematics I'));
     await tester.pumpAndSettle();
-    expect(find.text('CSE · 4 exams, newest semester first'), findsOneWidget);
+    expect(find.textContaining('4 papers from 4 exams'), findsOneWidget);
     final semesters = ['Spring 26', 'Fall 25', 'Spring 25', 'Fall 24'];
     final ys = [for (final s in semesters) tester.getTopLeft(find.text(s)).dy];
     expect(ys, orderedEquals([...ys]..sort()));

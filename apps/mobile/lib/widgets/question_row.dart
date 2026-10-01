@@ -48,13 +48,21 @@ class RowGroup extends StatelessWidget {
 /// A question in a list: its exam badge, course (or semester, within a course)
 /// and how many papers and views it has.
 class QuestionRow extends StatelessWidget {
-  const QuestionRow(this.question, {super.key, this.withinCourse = false});
+  const QuestionRow(
+    this.question, {
+    super.key,
+    this.withinCourse = false,
+    this.withinSemester = false,
+  });
 
   final Question question;
 
   /// On a course's page the course name is known, so the row leads with the
   /// semester.
   final bool withinCourse;
+
+  /// Under a semester's heading on a course's page: just the exam type.
+  final bool withinSemester;
 
   @override
   Widget build(BuildContext context) {
@@ -77,15 +85,22 @@ class QuestionRow extends StatelessWidget {
                   spacing: 2,
                   children: [
                     Text(
-                      withinCourse ? q.semester.name : q.course.name,
+                      withinSemester
+                          ? q.examType.name
+                          : withinCourse
+                          ? q.semester.name
+                          : q.course.name,
                       style: theme.textTheme.titleMedium?.copyWith(
                         height: 1.25,
                       ),
                     ),
-                    Text(
-                      withinCourse ? q.examType.name : questionDetails(q),
-                      style: theme.textTheme.bodyMedium?.copyWith(color: muted),
-                    ),
+                    if (!withinSemester)
+                      Text(
+                        withinCourse ? q.examType.name : questionDetails(q),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: muted,
+                        ),
+                      ),
                   ],
                 ),
               ),

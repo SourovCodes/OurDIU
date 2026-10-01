@@ -2,7 +2,8 @@ import { env } from "cloudflare:workers";
 import type { CreatedSubmission, QuestionDetail } from "@ourdiu/shared";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { questions, semesters, submissions } from "../src/db/schema";
+import { DIU_EMAIL_REQUIRED } from "@ourdiu/shared/constants";
+import { questions, semesters, submissions, user } from "../src/db/schema";
 import {
   api,
   db,
@@ -50,6 +51,53 @@ describe("POST /api/v1/submissions", () => {
       examTypeId: t.midterm.id,
     });
     expect(res.status).toBe(401);
+  });
+
+  it("needs a DIU email, without storing anything", async () => {
+    const t = await seedTaxonomy();
+    const { cookie, id } = await signIn(
+      `outsider-${crypto.randomUUID()}@gmail.com`,
+    );
+
+    const res = await upload(
+      {
+        departmentId: t.cse.id,
+        courseId: t.algorithms.id,
+        semesterId: t.sem1.id,
+        examTypeId: t.midterm.id,
+      },
+      cookie,
+    );
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({
+      error: { code: DIU_EMAIL_REQUIRED },
+    });
+    const rows = await db()
+      .select()
+      .from(submissions)
+      .where(eq(submissions.uploaderId, id));
+    expect(rows).toEqual([]);
+  });
+
+  it("lets admins contribute from any email", async () => {
+    const t = await seedTaxonomy();
+    const { cookie, id } = await signIn(
+      `admin-${crypto.randomUUID()}@gmail.com`,
+    );
+    await db().update(user).set({ role: "admin" }).where(eq(user.id, id));
+
+    const res = await upload(
+      {
+        departmentId: t.cse.id,
+        courseId: t.algorithms.id,
+        semesterId: t.sem1.id,
+        examTypeId: t.midterm.id,
+      },
+      cookie,
+    );
+
+    expect(res.status).toBe(201);
   });
 
   it("files a PDF with existing values under one shared question, pending review", async () => {

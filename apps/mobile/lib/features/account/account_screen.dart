@@ -10,7 +10,6 @@ import '../../auth/token.dart';
 import '../../data/format.dart';
 import '../../data/support.dart';
 import '../../data/settings.dart';
-import '../../theme/exam_shape.dart';
 import '../../theme/theme.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/google_button.dart';
@@ -202,51 +201,6 @@ class _SignInCard extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(signInProvider);
 
-    if (state case SignInRefused(:final email)) {
-      final (background, foreground) = examColors(context, ExamKind.midterm);
-      return Material(
-        color: background,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: 12,
-            children: [
-              Icon(Icons.block_rounded, color: foreground),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: 4,
-                  children: [
-                    Text(
-                      'Use your DIU Google account',
-                      style: TextStyle(
-                        color: foreground,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                      ),
-                    ),
-                    Text(
-                      'New accounts need a @diu.edu.bd address, and $email '
-                      "isn't one. If you already have an OurDIU account "
-                      'with another address, choose that one.',
-                      style: TextStyle(color: foreground, height: 1.4),
-                    ),
-                    const SizedBox(height: 8),
-                    FilledButton(
-                      onPressed: () => runSignIn(context, ref),
-                      child: const Text('Choose another account'),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return Card.filled(
       color: scheme.primaryContainer,
       margin: EdgeInsets.zero,
@@ -307,7 +261,7 @@ class _SignInCard extends ConsumerWidget {
               ),
               GoogleButton(onPressed: () => runSignIn(context, ref)),
               Text(
-                'New accounts need your DIU Google account (@diu.edu.bd).',
+                'Sharing papers needs your DIU Google account (@diu.edu.bd).',
                 style: TextStyle(
                   fontSize: 13,
                   color: scheme.onPrimaryContainer.withValues(alpha: 0.85),

@@ -1,6 +1,5 @@
 import { eq } from "drizzle-orm";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { EMAIL_DOMAIN_NOT_ALLOWED } from "@ourdiu/shared/constants";
 import { account, user } from "../src/db/schema";
 import { api, db, jsonRequest, ORIGIN, seedUser, signIn } from "./helpers";
 
@@ -190,45 +189,17 @@ describe("auth", () => {
     });
   });
 
-  describe("DIU email rule", () => {
-    /** Where a refused sign-in is sent: the login page, with the reason. */
-    const refusal = (res: Response) => {
-      expect(res.status).toBe(302);
-      const location = new URL(res.headers.get("location")!, ORIGIN);
-      return location.searchParams.get("error");
-    };
+  it("creates an account for any Google address", async () => {
+    const email = `reader-${crypto.randomUUID()}@gmail.com`;
 
-    it("refuses a new account on another domain, without creating it", async () => {
-      const email = `outsider-${crypto.randomUUID()}@gmail.com`;
-      const { res } = await completeGoogleSignIn({
-        sub: `google-${email}`,
-        email,
-        name: "Outsider",
-      });
-
-      expect(refusal(res)).toBe(EMAIL_DOMAIN_NOT_ALLOWED);
-      expect(res.headers.getSetCookie().join()).not.toContain("session_token=");
-      const rows = await db().select().from(user).where(eq(user.email, email));
-      expect(rows).toEqual([]);
+    const { res } = await completeGoogleSignIn({
+      sub: `google-${email}`,
+      email,
+      name: "Reader",
     });
 
-    it("lets an existing account on another domain in", async () => {
-      const existing = await seedUser("Old Contributor");
-      const email = `old-${existing.id}@gmail.com`;
-      await db()
-        .update(user)
-        .set({ email, emailVerified: true })
-        .where(eq(user.id, existing.id));
-
-      const { res } = await completeGoogleSignIn({
-        sub: `google-${existing.id}`,
-        email,
-        name: "Old Contributor",
-      });
-
-      expect(res.headers.get("location")).toBe("/questions/contribute");
-      expect(await sessionUser(res)).toMatchObject({ id: existing.id });
-    });
+    expect(res.headers.get("location")).toBe("/questions/contribute");
+    expect(await sessionUser(res)).toMatchObject({ email, role: "user" });
   });
 
   it("lets an ADMIN_EMAILS address sign up, as an admin", async () => {

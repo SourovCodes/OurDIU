@@ -62,19 +62,27 @@ export const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 export const USER_ROLES = ["user", "admin"] as const;
 
 /**
- * Only DIU addresses (staff and students) can create an account; existing accounts on
- * other addresses (imported users, admins) can still sign in.
+ * DIU addresses (staff and students). Any Google account can sign in, but only these
+ * (and admins) can contribute papers.
  */
-export const ALLOWED_EMAIL_DOMAINS = ["diu.edu.bd", "s.diu.edu.bd"] as const;
+export const DIU_EMAIL_DOMAINS = ["diu.edu.bd", "s.diu.edu.bd"] as const;
 
-/** Whether an address is on one of ALLOWED_EMAIL_DOMAINS (exactly, not a subdomain). */
-export function isAllowedEmail(email: string): boolean {
+/** Whether an address is on one of DIU_EMAIL_DOMAINS (exactly, not a subdomain). */
+export function isDiuEmail(email: string): boolean {
   const [local, domain, ...rest] = email.trim().toLowerCase().split("@");
   return (
     !!local &&
     rest.length === 0 &&
-    (ALLOWED_EMAIL_DOMAINS as readonly string[]).includes(domain ?? "")
+    (DIU_EMAIL_DOMAINS as readonly string[]).includes(domain ?? "")
   );
+}
+
+/** Whether a user may contribute papers: a DIU address, or an admin. */
+export function canContribute(user: {
+  email: string;
+  role?: string | null;
+}): boolean {
+  return user.role === "admin" || isDiuEmail(user.email);
 }
 
 /** Usernames, as on the old site: 3–50 of a-z, 0-9, `_`, `.` and `-`. */
@@ -82,8 +90,8 @@ export const USERNAME_PATTERN = /^[a-z0-9_.-]{3,50}$/;
 export const USERNAME_RULES =
   "3–50 lowercase letters, digits, dots, dashes or underscores";
 
-/** The error Better Auth sends a refused sign-up back with (`?error=`). */
-export const EMAIL_DOMAIN_NOT_ALLOWED = "EMAIL_DOMAIN_NOT_ALLOWED";
+/** The error code for a contribution from an account that isn't on a DIU address. */
+export const DIU_EMAIL_REQUIRED = "DIU_EMAIL_REQUIRED";
 
 /** Lifecycle of a submission's AI analysis (compress, then ask Gemini). */
 export const ANALYSIS_STATUSES = [

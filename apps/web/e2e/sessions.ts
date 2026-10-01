@@ -21,7 +21,7 @@ const poolFile = path.join(sessionsDir, "pool.json");
 const claimsDir = path.join(sessionsDir, "claims");
 
 /** Enough for every test in both projects, including CI's two retries. */
-const POOL_SIZE = { user: 60, admin: 40 };
+const POOL_SIZE = { user: 60, reader: 10, admin: 40 };
 
 /** The admin account created by `pnpm db:seed`. */
 const SEED_ADMIN_ID = "seed-user-admin";
@@ -47,18 +47,27 @@ function localDb() {
     webDir,
     ".wrangler/state/v3/d1/miniflare-D1DatabaseObject",
   );
-  const file = readdirSync(dir).find(
+  const files = readdirSync(dir).filter(
     (name) => name.endsWith(".sqlite") && name !== "metadata.sqlite",
   );
-  if (!file) throw new Error("No local D1 database: run `pnpm db:migrate`");
+  if (files.length === 0)
+    throw new Error("No local D1 database: run `pnpm db:migrate`");
+  // A database_id change in wrangler.jsonc leaves the old database's file behind,
+  // and sessions written there wouldn't be seen by the dev server.
+  if (files.length > 1)
+    throw new Error(
+      `${files.length} local D1 databases in ${dir}: delete the folder, then run \`pnpm db:migrate && pnpm db:seed\``,
+    );
+  const file = files[0]!;
   const db = new DatabaseSync(path.join(dir, file));
   db.exec("PRAGMA busy_timeout = 10000");
   return db;
 }
 
 /**
- * Replaces the previous run's pool: fresh users (`@example.com`, which `pnpm db:seed`
- * also cleans up) and sessions for the seed admin.
+ * Replaces the previous run's pool: fresh users (`e2e-pool-…`, which `pnpm db:seed`
+ * also cleans up) and sessions for the seed admin. Members are on a DIU address, so
+ * they can contribute; readers aren't.
  */
 export function createSessionPool() {
   const secret = authSecret();
@@ -70,7 +79,7 @@ export function createSessionPool() {
     );
 
   const db = localDb();
-  const pool: Pool = { user: [], admin: [] };
+  const pool: Pool = { user: [], reader: [], admin: [] };
   try {
     db.exec("BEGIN");
     db.exec(`DELETE FROM "user" WHERE id LIKE 'e2e-pool-%'`);
@@ -81,15 +90,19 @@ export function createSessionPool() {
     const insertSession = db.prepare(
       "INSERT INTO session (id, token, user_id, expires_at) VALUES (?, ?, ?, ?)",
     );
-    for (const kind of ["user", "admin"] as const) {
+    for (const kind of ["user", "reader", "admin"] as const) {
       for (let i = 0; i < POOL_SIZE[kind]; i++) {
         const userId =
           kind === "admin"
             ? SEED_ADMIN_ID
             : `e2e-pool-${randomBytes(6).toString("hex")}`;
         const email =
-          kind === "admin" ? "admin@seed.local" : `${userId}@example.com`;
-        if (kind === "user") insertUser.run(userId, email, userId);
+          kind === "admin"
+            ? "admin@seed.local"
+            : kind === "reader"
+              ? `${userId}@example.com`
+              : `${userId}@s.diu.edu.bd`;
+        if (kind !== "admin") insertUser.run(userId, email, userId);
         const token = randomBytes(24).toString("base64url");
         insertSession.run(`e2e-pool-${kind}-${i}`, token, userId, expiresAt);
         pool[kind].push({ userId, email, cookie: cookieFor(token) });

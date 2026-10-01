@@ -42,16 +42,16 @@ export default function Privacy() {
         </p>
         <p>
           <strong>When you sign in with Google</strong>, the site receives your
-          name, email address, profile photo and Google account ID. New accounts
-          need a DIU email address. Your photo is copied to the site’s own
-          storage. Each sign-in keeps a session with the IP address and browser
-          it came from, and the tokens Google issues for signing in. You also
-          get a username, which you can change.
+          name, email address, profile photo and Google account ID. Your photo
+          is copied to the site’s own storage. Each sign-in keeps a session with
+          the IP address and browser it came from, and the tokens Google issues
+          for signing in. You also get a username, which you can change.
         </p>
         <p>
-          <strong>When you upload a paper</strong>, the site stores the PDF, the
-          details you chose (department, course, semester, exam type and the
-          optional section or batch) and when you uploaded it.
+          <strong>When you upload a paper</strong> (this needs a DIU email
+          address), the site stores the PDF, the details you chose (department,
+          course, semester, exam type and the optional section or batch) and
+          when you uploaded it.
         </p>
         <p>
           <strong>When you like, dislike or report a paper</strong>, the site

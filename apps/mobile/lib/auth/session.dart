@@ -16,9 +16,6 @@ import 'token.dart';
 const googleServerClientId =
     '279664469023-dgh2duvok7122vagev2f5llbl4ugctmg.apps.googleusercontent.com';
 
-/// The API's code for a new account whose email isn't a DIU one.
-const emailDomainNotAllowed = 'EMAIL_DOMAIN_NOT_ALLOWED';
-
 typedef GoogleIdToken = ({String token, String email});
 
 /// Google's account picker on the phone (Credential Manager on Android).
@@ -76,13 +73,7 @@ class SigningIn extends SignInState {
   final String email;
 }
 
-/// A new account with an email that isn't a DIU one.
-class SignInRefused extends SignInState {
-  const SignInRefused(this.email);
-  final String email;
-}
-
-enum SignInOutcome { signedIn, cancelled, refused, failed }
+enum SignInOutcome { signedIn, cancelled, failed }
 
 class SignIn extends Notifier<SignInState> {
   @override
@@ -120,15 +111,6 @@ class SignIn extends Notifier<SignInState> {
     } catch (e) {
       // Let the user pick again, rather than getting the same account back.
       await google.forget().catchError((_) {});
-      if (e case DioException(
-        response: Response(
-          statusCode: 403,
-          data: {'code': emailDomainNotAllowed},
-        ),
-      )) {
-        state = SignInRefused(picked.email);
-        return SignInOutcome.refused;
-      }
       debugPrint('Sign-in failed: $e');
       state = const SignInIdle();
       return SignInOutcome.failed;

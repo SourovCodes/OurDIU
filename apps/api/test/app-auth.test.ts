@@ -1,9 +1,5 @@
 import { env, exports } from "cloudflare:workers";
-import { eq } from "drizzle-orm";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { EMAIL_DOMAIN_NOT_ALLOWED } from "@ourdiu/shared/constants";
-import { user } from "../src/db/schema";
-import { db } from "./helpers";
 
 /**
  * The mobile app's sign-in: an ID token from Google on the phone, swapped for a
@@ -128,20 +124,14 @@ describe("app sign-in", () => {
     expect(mine.status).toBe(200);
   });
 
-  it("refuses a new account on another domain, without creating it", async () => {
+  it("creates an account for any Google address", async () => {
     await mockGoogleKeys();
-    const claims = profile(`outsider-${crypto.randomUUID()}@gmail.com`);
+    const claims = profile(`reader-${crypto.randomUUID()}@gmail.com`);
 
     const res = await signInWithIdToken(await googleIdToken(claims));
 
-    expect(res.status).toBe(403);
-    expect(await res.json()).toMatchObject({ code: EMAIL_DOMAIN_NOT_ALLOWED });
-    expect(res.headers.get("set-auth-token")).toBeNull();
-    const rows = await db()
-      .select()
-      .from(user)
-      .where(eq(user.email, claims.email));
-    expect(rows).toEqual([]);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("set-auth-token")).toBeTruthy();
   });
 
   it("accepts ID tokens for the old question bank client", async () => {

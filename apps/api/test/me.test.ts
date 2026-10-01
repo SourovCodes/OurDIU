@@ -80,9 +80,18 @@ describe("GET /api/v1/me", () => {
       publishedCount: 1,
       viewCount: 12,
       image: null,
+      canContribute: true,
     });
     expect(profile.email).toMatch(/@diu\.edu\.bd$/);
     expect(profile.username).toMatch(/^user_/);
+  });
+
+  it("says an account on another email can't contribute", async () => {
+    const { cookie } = await signIn(`reader-${crypto.randomUUID()}@gmail.com`);
+
+    const res = await api("/api/v1/me", { headers: { cookie } });
+
+    expect(await res.json<Profile>()).toMatchObject({ canContribute: false });
   });
 });
 

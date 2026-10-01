@@ -73,6 +73,8 @@ export const profileSchema = z
     publishedCount: z.number().int(),
     /** Views of all their published papers. */
     viewCount: z.number().int(),
+    /** Whether they can contribute papers: a DIU address, or an admin. */
+    canContribute: z.boolean(),
   })
   .meta({ id: "Profile" });
 export type Profile = z.infer<typeof profileSchema>;

@@ -819,6 +819,9 @@
           },
           "viewCount": {
             "type": "integer"
+          },
+          "canContribute": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -828,7 +831,8 @@
           "username",
           "image",
           "publishedCount",
-          "viewCount"
+          "viewCount",
+          "canContribute"
         ]
       },
       "MySubmissionList": {
@@ -1868,8 +1872,8 @@
         "tags": [
           "Submissions"
         ],
-        "summary": "Contribute a question paper (requires sign-in)",
-        "description": "Department, course and semester can each be an existing id or a new name. Submissions with new names have no question until an admin approves the new values.",
+        "summary": "Contribute a question paper (requires sign-in with a DIU email)",
+        "description": "Only accounts on a DIU address (and admins) can contribute. Department, course and semester can each be an existing id or a new name. Submissions with new names have no question until an admin approves the new values.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1955,6 +1959,16 @@
           },
           "401": {
             "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a DIU email address",
             "content": {
               "application/json": {
                 "schema": {

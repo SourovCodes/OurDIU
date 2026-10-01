@@ -61,25 +61,26 @@ void main() {
     expect(find.text('Signed in as Nusrat Jahan'), findsOneWidget);
   });
 
-  testWidgets('explains why a new non-DIU account is refused', (tester) async {
-    final google = FakeGoogleAccounts(email: 'someone@gmail.com');
+  testWidgets('signs in with any Google account', (tester) async {
     final backend = FakeBackend({
-      'POST /api/auth/sign-in/social': (_) => reply({
-        'code': 'EMAIL_DOMAIN_NOT_ALLOWED',
-        'message': 'Only DIU email addresses can create an account',
-      }, status: 403),
+      'POST /api/auth/sign-in/social': (_) => reply(
+        {'redirect': false},
+        headers: {'set-auth-token': 'session.sig'},
+      ),
+      'GET /api/v1/me': (_) =>
+          reply(profileJson(email: 'someone@gmail.com', canContribute: false)),
     });
-    await pumpApp(tester, backend: backend, google: google);
+    await pumpApp(
+      tester,
+      backend: backend,
+      google: FakeGoogleAccounts(email: 'someone@gmail.com'),
+    );
     await openAccount(tester);
 
     await tester.tap(find.text('Continue with Google'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Use your DIU Google account'), findsOneWidget);
-    expect(find.textContaining('someone@gmail.com'), findsOneWidget);
-    expect(find.text('Choose another account'), findsOneWidget);
-    // So the picker asks again instead of returning the same account.
-    expect(google.forgotten, 1);
+    expect(find.text('Signed in as Nusrat Jahan'), findsOneWidget);
   });
 
   testWidgets('closing the picker changes nothing', (tester) async {

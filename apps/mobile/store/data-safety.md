@@ -50,14 +50,14 @@ aren't "collected" (Play only counts data sent off the device).
 **All or some functionality is restricted.** Instructions for reviewers:
 
 > Browsing, searching, reading, saving and sharing papers work without an
-> account. Signing in (Account tab → Continue with Google) is only needed to
-> share a paper, like one or report one, and new accounts need a Daffodil
-> International University (@diu.edu.bd) Google account.
+> account. Signing in (Account tab → Continue with Google) works with any
+> Google account and is needed to like or report a paper. Sharing a paper also
+> needs a Daffodil International University (@diu.edu.bd) Google account.
 
-Play reviewers won't have a DIU account, so they can't reach the upload flow.
-Play may accept the instructions as they are; if it rejects the review over
-access, the fix is to let one reviewer Google account sign in (an allowlist next
-to the DIU domain check in `apps/api/src/lib/auth.ts`) and give that address here.
+Play reviewers can sign in, but without a DIU account they can't upload. Play
+may accept the instructions as they are; if it rejects the review over access,
+the fix is to let one reviewer address contribute (an allowlist in
+`canContribute`, `packages/shared/src/constants.ts`) and give that address here.
 
 ## Ads
 

@@ -13,7 +13,7 @@ DELETE FROM semesters;
 DELETE FROM exam_types;
 DELETE FROM "user" WHERE id LIKE 'seed-user-%';
 -- Accounts created by e2e tests and local previews (sessions and accounts cascade).
-DELETE FROM "user" WHERE email LIKE '%@example.com';
+DELETE FROM "user" WHERE email LIKE '%@example.com' OR id LIKE 'e2e-pool-%';
 
 -- Sample contributors. Sign-in is Google-only and these addresses aren't Google
 -- accounts, so nobody logs in as them (the e2e tests create sessions directly).

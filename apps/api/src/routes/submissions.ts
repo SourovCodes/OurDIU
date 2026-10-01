@@ -10,6 +10,7 @@ import { objectResponse } from "../lib/files";
 import { errorResponse, jsonResponse } from "../lib/openapi";
 import { rateLimit } from "../middleware/rate-limit";
 import { requireAuth } from "../middleware/require-auth";
+import { requireContributor } from "../middleware/require-contributor";
 import { getPublishedSubmissionFile } from "../services/questions";
 import { createSubmission } from "../services/submissions";
 import type { AppEnv } from "../types";
@@ -20,12 +21,14 @@ const createSubmissionRoute = createRoute({
   method: "post",
   path: "/",
   tags,
-  summary: "Contribute a question paper (requires sign-in)",
+  summary: "Contribute a question paper (requires sign-in with a DIU email)",
   description:
+    "Only accounts on a DIU address (and admins) can contribute. " +
     "Department, course and semester can each be an existing id or a new name. " +
     "Submissions with new names have no question until an admin approves the new values.",
   middleware: [
     requireAuth,
+    requireContributor,
     rateLimit(
       "UPLOAD_LIMITER",
       "You're uploading too fast. Please wait a minute and try again.",
@@ -51,6 +54,7 @@ const createSubmissionRoute = createRoute({
     201: jsonResponse(createdSubmissionSchema, "Submitted for review"),
     400: errorResponse("Invalid file"),
     401: errorResponse("Not signed in"),
+    403: errorResponse("Not a DIU email address"),
     422: errorResponse("Invalid fields"),
     429: errorResponse("Too many uploads"),
   },

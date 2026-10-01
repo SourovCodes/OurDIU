@@ -1,22 +1,11 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
-import {
-  EMAIL_DOMAIN_NOT_ALLOWED,
-  isAllowedEmail,
-} from "@ourdiu/shared/constants";
-import { APIError, betterAuth, type BetterAuthOptions } from "better-auth";
+import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { bearer } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import type { Database } from "../db/client";
 import * as schema from "../db/schema";
 import { user } from "../db/schema";
 import { importGoogleAvatar } from "../services/avatars";
-
-/** A sign-up refused by the DIU email rule; the login page explains it. */
-const notAllowed = () =>
-  new APIError("FORBIDDEN", {
-    code: EMAIL_DOMAIN_NOT_ALLOWED,
-    message: "Only DIU email addresses can create an account",
-  });
 
 /** A new user's username until they pick one, like the old site's: `user_1a2b3c`. */
 function generateUsername(): string {
@@ -63,9 +52,10 @@ export function googleClientIds(env: Env): string[] {
 
 /**
  * Google is the only way to sign in, and one account works across every OurDIU
- * product. New accounts need a DIU address (ALLOWED_EMAIL_DOMAINS) unless they're in
- * ADMIN_EMAILS, which also makes them admins; existing accounts can always sign in. Exported on its own so tests can build an auth
- * instance with the same options plus Better Auth's `testUtils` plugin.
+ * product. Any Google account can sign up; contributing papers needs a DIU address
+ * (`canContribute`, checked by the routes). New accounts in ADMIN_EMAILS are made
+ * admins. Exported on its own so tests can build an auth instance with the same
+ * options plus Better Auth's `testUtils` plugin.
  *
  * The site signs in through Google's redirect and keeps the session in a cookie. The
  * mobile app gets an ID token from Google on the phone, sends it to
@@ -98,12 +88,8 @@ export function authOptions(env: Env, db: Database) {
     databaseHooks: {
       user: {
         create: {
-          // The DIU rule only applies to new accounts: anyone who already has one
-          // can sign in whatever their email. Refused before the account exists, so
-          // no stray users are left behind.
           before: async (created) => {
             const isAdmin = adminEmails(env).has(created.email.toLowerCase());
-            if (!isAdmin && !isAllowedEmail(created.email)) throw notAllowed();
             return {
               data: {
                 ...created,

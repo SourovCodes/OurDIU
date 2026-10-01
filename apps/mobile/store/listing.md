@@ -46,7 +46,7 @@ SHARE A PAPER
 • Watch your paper get checked and published, and see how many students it has helped.
 
 SIGN IN WITH GOOGLE
-Browsing and reading need no account. Sign in with your DIU Google account to share papers, like the useful ones and report problems. One account works across OurDIU.
+Browsing and reading need no account. Sign in with Google to like the useful papers and report problems, and with your DIU account to share papers. One account works across OurDIU.
 
 FREE, WITHOUT ADS
 No ads, no paywalls, no premium papers. OurDIU is built and looked after by a DIU student.

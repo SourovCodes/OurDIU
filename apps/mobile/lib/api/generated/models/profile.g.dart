@@ -14,6 +14,7 @@ Profile _$ProfileFromJson(Map<String, dynamic> json) => Profile(
   image: json['image'] as String?,
   publishedCount: (json['publishedCount'] as num).toInt(),
   viewCount: (json['viewCount'] as num).toInt(),
+  canContribute: json['canContribute'] as bool,
 );
 
 Map<String, dynamic> _$ProfileToJson(Profile instance) => <String, dynamic>{
@@ -24,4 +25,5 @@ Map<String, dynamic> _$ProfileToJson(Profile instance) => <String, dynamic>{
   'image': instance.image,
   'publishedCount': instance.publishedCount,
   'viewCount': instance.viewCount,
+  'canContribute': instance.canContribute,
 };

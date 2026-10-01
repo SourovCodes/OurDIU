@@ -7,10 +7,10 @@ import '../../auth/sign_in_flow.dart';
 import '../../data/format.dart';
 import 'papers.dart';
 
-/// "Share a paper": signs in if needed, then scan or pick a PDF and open the
-/// form with it.
+/// "Share a paper": signs in with a DIU account if needed, then scan or pick a
+/// PDF and open the form with it.
 Future<void> startSharing(BuildContext context, WidgetRef ref) async {
-  if (!await ensureSignedIn(context, ref, to: 'share papers')) return;
+  if (!await ensureContributor(context, ref)) return;
   if (!context.mounted) return;
   final source = await showModalBottomSheet<PaperSource>(
     context: context,

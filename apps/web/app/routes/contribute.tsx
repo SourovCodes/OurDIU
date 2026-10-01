@@ -1,7 +1,10 @@
 import type { ApiError, CreatedSubmission } from "@ourdiu/shared";
-import { ChevronDown, Lightbulb } from "lucide-react";
-import { redirect, useNavigation } from "react-router";
+import { canContribute, DIU_EMAIL_DOMAINS } from "@ourdiu/shared/constants";
+import { ChevronDown, Lightbulb, MailWarning } from "lucide-react";
+import { Form, redirect, useNavigation } from "react-router";
 import { ContributeForm } from "~/components/contribute-form";
+import { EmptyState } from "~/components/empty-state";
+import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { PageHeader } from "~/components/page-header";
 import { apiFetch, readJson } from "~/lib/api.server";
@@ -15,9 +18,16 @@ export const meta: Route.MetaFunction = () => [
   { name: "robots", content: "noindex" },
 ];
 
+/** "@diu.edu.bd or @s.diu.edu.bd" */
+const DOMAINS = DIU_EMAIL_DOMAINS.map((domain) => `@${domain}`).join(" or ");
+
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireUser(request);
-  return loadTaxonomy(request);
+  const user = await requireUser(request);
+  // Anyone can have an account, but only DIU addresses (and admins) can upload.
+  if (!canContribute({ email: user.email, role: user.role })) {
+    return { allowed: false as const, email: user.email };
+  }
+  return { allowed: true as const, ...(await loadTaxonomy(request)) };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -83,6 +93,35 @@ export default function Contribute({
 }: Route.ComponentProps) {
   const submitting = useNavigation().state === "submitting";
   const failed = actionData ?? null;
+
+  if (!loaderData.allowed) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Contribute a paper" />
+        <EmptyState
+          icon={MailWarning}
+          title="Uploading needs a DIU email"
+          description={
+            <>
+              You’re signed in as {loaderData.email}. To keep the papers
+              trustworthy, only DIU accounts ({DOMAINS}) can upload. Sign in
+              with your DIU Google account to contribute.
+            </>
+          }
+          action={
+            <Form method="post" action="/logout">
+              <input
+                type="hidden"
+                name="redirectTo"
+                value="/login?redirectTo=%2Fquestions%2Fcontribute"
+              />
+              <Button type="submit">Switch to your DIU account</Button>
+            </Form>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

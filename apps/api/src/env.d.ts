@@ -10,8 +10,8 @@
 // as "not configured".
 // GOOGLE_EXTRA_CLIENT_IDS: other Google clients whose app sign-ins are accepted
 // (see googleClientIds in lib/auth.ts).
-// ADMIN_EMAILS is optional: a comma-separated list of addresses that may create an
-// account without a DIU address, and are made admins when they do.
+// ADMIN_EMAILS is optional: a comma-separated list of addresses that are made admins
+// when they sign up (admins can contribute without a DIU address).
 interface Env {
   DB: D1Database;
   BUCKET: R2Bucket;

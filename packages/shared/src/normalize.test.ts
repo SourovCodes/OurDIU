@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   catalogKey,
-  isAllowedEmail,
+  isDiuEmail,
   normalizeCatalogName,
   parseSemesterName,
 } from "./constants";
@@ -61,11 +61,11 @@ describe("parseSemesterName", () => {
   });
 });
 
-describe("isAllowedEmail", () => {
+describe("isDiuEmail", () => {
   it.each(["a@diu.edu.bd", "B@S.DIU.EDU.BD", " c@s.diu.edu.bd "])(
     "allows %s",
     (email) => {
-      expect(isAllowedEmail(email)).toBe(true);
+      expect(isDiuEmail(email)).toBe(true);
     },
   );
 
@@ -78,6 +78,6 @@ describe("isAllowedEmail", () => {
     "a@b@diu.edu.bd",
     "",
   ])("refuses %s", (email) => {
-    expect(isAllowedEmail(email)).toBe(false);
+    expect(isDiuEmail(email)).toBe(false);
   });
 });

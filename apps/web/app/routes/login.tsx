@@ -1,7 +1,4 @@
-import {
-  ALLOWED_EMAIL_DOMAINS,
-  EMAIL_DOMAIN_NOT_ALLOWED,
-} from "@ourdiu/shared/constants";
+import { DIU_EMAIL_DOMAINS } from "@ourdiu/shared/constants";
 import { Form, redirect, useNavigation, useSearchParams } from "react-router";
 import { AuthCard } from "~/components/auth-card";
 import { FormMessage } from "~/components/form";
@@ -17,17 +14,12 @@ export const meta: Route.MetaFunction = () => [
 ];
 
 /** "@diu.edu.bd or @s.diu.edu.bd" */
-const DOMAINS = ALLOWED_EMAIL_DOMAINS.map((domain) => `@${domain}`).join(
-  " or ",
-);
+const DOMAINS = DIU_EMAIL_DOMAINS.map((domain) => `@${domain}`).join(" or ");
 
 /** Better Auth sends failed Google sign-ins back here with `?error=<code>`. */
 function signInError(code: string | null) {
   if (!code) return undefined;
   if (code === "access_denied") return "Google sign-in was cancelled.";
-  if (code === EMAIL_DOMAIN_NOT_ALLOWED) {
-    return `New accounts need a DIU email. Choose your ${DOMAINS} Google account.`;
-  }
   return "Could not sign in with Google. Please try again.";
 }
 
@@ -91,7 +83,7 @@ export default function Login({
   return (
     <AuthCard
       title="Log in"
-      description={`Sign in with your DIU Google account (${DOMAINS}) to contribute question papers.`}
+      description={`Sign in with Google. To contribute question papers, use your DIU account (${DOMAINS}).`}
       footer="New here? Your account is created the first time you log in. We only use your name, email and photo."
     >
       <Form method="post" className="grid gap-4">

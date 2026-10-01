@@ -18,9 +18,9 @@ part 'submissions_client.g.dart';
 abstract class SubmissionsClient {
   factory SubmissionsClient(Dio dio, {String? baseUrl}) = _SubmissionsClient;
 
-  /// Contribute a question paper (requires sign-in).
+  /// Contribute a question paper (requires sign-in with a DIU email).
   ///
-  /// Department, course and semester can each be an existing id or a new name. Submissions with new names have no question until an admin approves the new values.
+  /// Only accounts on a DIU address (and admins) can contribute. Department, course and semester can each be an existing id or a new name. Submissions with new names have no question until an admin approves the new values.
   @MultiPart()
   @POST('/api/v1/submissions')
   Future<CreatedSubmission> postApiV1Submissions({

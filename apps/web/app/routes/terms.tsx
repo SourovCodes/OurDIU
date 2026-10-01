@@ -30,7 +30,8 @@ export default function Terms() {
       <LegalSection id="accounts" title="Your account">
         <ul>
           <li>
-            You sign in with Google. New accounts need a DIU email address.
+            You sign in with Google. Any Google account can sign in, but
+            uploading papers needs a DIU email address.
           </li>
           <li>
             Keep your Google account secure: what happens under your account is

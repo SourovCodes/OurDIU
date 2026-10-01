@@ -16,6 +16,7 @@ class Profile {
     required this.image,
     required this.publishedCount,
     required this.viewCount,
+    required this.canContribute,
   });
 
   factory Profile.fromJson(Map<String, Object?> json) =>
@@ -28,6 +29,7 @@ class Profile {
   final String? image;
   final int publishedCount;
   final int viewCount;
+  final bool canContribute;
 
   Map<String, Object?> toJson() => _$ProfileToJson(this);
 }

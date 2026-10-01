@@ -126,8 +126,12 @@ export async function logOut(page: Page) {
   await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
 }
 
-/** Who `logInAs` signs in: a fresh member, or the admin created by `pnpm db:seed`. */
+/**
+ * Who `logInAs` signs in: a fresh member (on a DIU address), a fresh reader (on
+ * another address, so they can't contribute), or the admin created by `pnpm db:seed`.
+ */
 export const NEW_USER = "user";
+export const NEW_READER = "reader";
 export const SEED_ADMIN = "admin";
 
 /**

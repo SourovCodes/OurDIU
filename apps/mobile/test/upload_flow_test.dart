@@ -211,6 +211,39 @@ void main() {
     expect(find.text('Sign in to share papers'), findsOneWidget);
   });
 
+  testWidgets('an account without a DIU email is asked to switch', (
+    tester,
+  ) async {
+    final backend = FakeBackend({
+      ...signedIn(),
+      'GET /api/v1/me': (_) =>
+          reply(profileJson(email: 'someone@gmail.com', canContribute: false)),
+      'POST /api/auth/sign-out': (_) => reply({'success': true}),
+    });
+    await pumpApp(
+      tester,
+      backend: backend,
+      tokens: MemoryTokenStore('session.sig'),
+      sources: FakePaperSources(pickedPdf()),
+      google: FakeGoogleAccounts()..email = null,
+    );
+    await openAccount(tester);
+
+    await scrollTo(tester, find.widgetWithText(FilledButton, 'Share a paper'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Share a paper'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sharing needs a DIU email'), findsOneWidget);
+    expect(find.textContaining('someone@gmail.com'), findsOneWidget);
+    expect(find.text('Choose a PDF'), findsNothing);
+
+    // Switching signs out, then opens Google's picker (closed here).
+    await tester.tap(find.text('Switch to your DIU account'));
+    await tester.pumpAndSettle();
+    expect(backend.sent('POST /api/auth/sign-out'), hasLength(1));
+    expect(find.text('Choose a PDF'), findsNothing);
+  });
+
   testWidgets('says when a PDF is over the limit', (tester) async {
     await pumpApp(
       tester,

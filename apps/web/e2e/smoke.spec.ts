@@ -4,6 +4,7 @@ import {
   closeQuestionFilters,
   failOnConsoleErrors,
   logInAs,
+  NEW_READER,
   NEW_USER,
   logOut,
   openCombobox,
@@ -343,15 +344,20 @@ test("a failed Google sign-in explains what happened", async ({ page }) => {
   await expect(page.getByText("Google sign-in was cancelled.")).toBeVisible();
 });
 
-test("a sign-up with a non-DIU account asks for a DIU one", async ({
+test("an account without a DIU email is asked to switch before contributing", async ({
   page,
 }) => {
-  await page.goto("/login?error=EMAIL_DOMAIN_NOT_ALLOWED");
-  await expect(
-    page.getByText(
-      "New accounts need a DIU email. Choose your @diu.edu.bd or @s.diu.edu.bd Google account.",
-    ),
-  ).toBeVisible();
+  const { email } = await logInAs(page, NEW_READER, "/questions/contribute");
+  await expect(page.getByText("Uploading needs a DIU email")).toBeVisible();
+  await expect(page.getByRole("main")).toContainText(email);
+
+  await page
+    .getByRole("button", { name: "Switch to your DIU account" })
+    .click();
+  await expect(page).toHaveURL(
+    /\/login\?redirectTo=%2Fquestions%2Fcontribute$/,
+  );
+  await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
 });
 
 test("contributors index leads to a contributor's submissions", async ({

@@ -4,6 +4,7 @@ import type {
   Profile,
   SubmissionFields,
 } from "@ourdiu/shared";
+import { canContribute } from "@ourdiu/shared/constants";
 import { and, desc, eq, ne } from "drizzle-orm";
 import type { Database } from "../db/client";
 import { submissions, user } from "../db/schema";
@@ -28,6 +29,7 @@ export async function getProfile(
       id: user.id,
       name: user.name,
       email: user.email,
+      role: user.role,
       username: user.username,
       image: user.image,
       publishedCount: user.publishedSubmissionCount,
@@ -36,8 +38,13 @@ export async function getProfile(
     .from(user)
     .where(eq(user.id, userId));
   if (!row) throw new AppError(404, "NOT_FOUND", "User not found");
-  // Every user gets one at sign-up; the column is only nullable for SQLite's sake.
-  return { ...row, username: row.username ?? "" };
+  const { role, ...profile } = row;
+  return {
+    ...profile,
+    // Every user gets one at sign-up; the column is only nullable for SQLite's sake.
+    username: row.username ?? "",
+    canContribute: canContribute({ email: row.email, role }),
+  };
 }
 
 /** The user's own submissions in every status: published first, then newest first. */

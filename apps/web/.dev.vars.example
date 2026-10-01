@@ -11,5 +11,5 @@ GOOGLE_CLIENT_SECRET=
 # them both fail as "not configured").
 GEMINI_API_KEY=
 COMPRESSOR_API_KEY=
-# Comma-separated addresses that may sign up without a DIU email, as admins.
+# Comma-separated addresses that are made admins when they sign up.
 ADMIN_EMAILS=

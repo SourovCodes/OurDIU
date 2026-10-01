@@ -52,7 +52,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       );
       return;
     }
-    if (!await ensureSignedIn(context, ref, to: 'share papers')) return;
+    if (!await ensureContributor(context, ref)) return;
     if (mounted) openUploadForm(context, pdf);
   }
 

@@ -119,16 +119,19 @@ QuestionList page(List<Question> items) =>
 Map<String, Object?> profileJson({
   String id = 'me',
   String name = 'Nusrat Jahan',
+  String email = 'nusrat@diu.edu.bd',
   int published = 12,
   int views = 4180,
+  bool canContribute = true,
 }) => {
   'id': id,
   'name': name,
-  'email': 'nusrat@diu.edu.bd',
+  'email': email,
   'username': 'nusrat',
   'image': null,
   'publishedCount': published,
   'viewCount': views,
+  'canContribute': canContribute,
 };
 
 /// One of your papers as the API sends it: Data Structures, CSE Final Fall 25.

@@ -383,8 +383,8 @@ test("course search leads to a course, its exams and a paper", async ({
   const semesters = page.getByRole("main").getByRole("heading", { level: 2 });
   await expect(semesters.first()).toHaveText("Summer 24");
   await expect(
-    page.getByRole("main").getByRole("link", { name: /^Final/ }),
-  ).toHaveCount(0);
+    page.getByRole("region", { name: "Summer 24" }).getByRole("link"),
+  ).toHaveCount(1);
 
   await page
     .getByRole("region", { name: "Spring 24" })
@@ -432,6 +432,8 @@ test("a course points to the same course filed under another department", async 
   page,
 }) => {
   await page.goto("/questions/courses/4");
+  // On phones the Android strip appears once hydrated and moves the page down.
+  await page.waitForLoadState("networkidle");
   const others = page.getByRole("complementary").filter({
     has: page.getByRole("heading", { name: "Same course, other names" }),
   });
@@ -512,6 +514,8 @@ test("contributors index leads to a contributor's submissions", async ({
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Contributors",
   );
+  // On phones the Android strip appears once hydrated and moves the page down.
+  await page.waitForLoadState("networkidle");
   // Most published papers first.
   await expect(
     page
@@ -599,6 +603,8 @@ test("a member can like, dislike and report a paper", async ({
   const questionId = testInfo.project.name === "mobile" ? 8 : 10;
   await logInAs(page, NEW_USER, `/questions/${questionId}`);
   await expect(page.getByText(/\d+ views?/).first()).toBeVisible();
+  // On phones the Android strip appears once hydrated and moves the page down.
+  await page.waitForLoadState("networkidle");
 
   const like = page.getByRole("button", { name: /^Like/ });
   const dislike = page.getByRole("button", { name: /^Dislike/ });
@@ -640,6 +646,8 @@ test("a member can like, dislike and report a paper", async ({
 
 test("visitors are asked to log in before voting", async ({ page }) => {
   await page.goto("/questions/1");
+  // On phones the Android strip appears once hydrated and moves the page down.
+  await page.waitForLoadState("networkidle");
   await page.getByRole("link", { name: /^Log in to like/ }).click();
   await expect(page).toHaveURL(/\/login\?redirectTo=%2Fquestions%2F1/);
 });
@@ -811,16 +819,36 @@ test("the theme follows the OS until one is picked", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await expect(html).not.toHaveClass(/\bdark\b/);
 
-  // A picked theme sticks across reloads and ignores the OS.
+  // A picked theme sticks across reloads and ignores the OS. On phones the
+  // theme is picked in the menu.
+  const phone = test.info().project.name === "mobile";
+  const menu = page.getByRole("dialog", { name: "Menu" });
+  const openMenu = async () => {
+    await page.getByRole("button", { name: "Open menu" }).click();
+    await expect(menu).toBeVisible({ timeout: 1_000 });
+  };
   await expect(async () => {
-    await page.getByRole("button", { name: "Switch to dark theme" }).click();
+    if (phone) {
+      await openMenu();
+      await menu.getByRole("button", { name: "Dark" }).click();
+    } else {
+      await page.getByRole("button", { name: "Switch to dark theme" }).click();
+    }
     await expect(html).toHaveClass(/\bdark\b/, { timeout: 1_000 });
   }).toPass();
   await page.reload();
   await expect(html).toHaveClass(/\bdark\b/);
-  await expect(
-    page.getByRole("button", { name: "Switch to light theme" }),
-  ).toBeVisible();
+  if (phone) {
+    await expect(openMenu).toPass();
+    await expect(menu.getByRole("button", { name: "Dark" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  } else {
+    await expect(
+      page.getByRole("button", { name: "Switch to light theme" }),
+    ).toBeVisible();
+  }
 });
 
 test("the switcher moves between products", async ({ page }) => {

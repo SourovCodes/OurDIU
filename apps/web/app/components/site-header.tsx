@@ -1,6 +1,7 @@
 import {
   FileText,
   GraduationCap,
+  LogIn,
   LogOut,
   Menu,
   Moon,
@@ -424,18 +425,18 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
             <ThemeToggle />
           </div>
           {user ? (
-            <div className="hidden md:block">
-              <UserMenu user={user} product={product} />
-            </div>
+            <UserMenu user={user} product={product} />
           ) : (
+            // An icon on phones, where the header is narrow.
             <Link
               to="/login"
               className={cn(
                 buttonVariants({ variant: "ghost", size: "sm" }),
-                "hidden h-10 rounded-full md:inline-flex",
+                "size-9 rounded-full p-0 md:h-10 md:w-auto md:px-3",
               )}
             >
-              Log in
+              <LogIn className="md:hidden" aria-hidden />
+              <span className="max-md:sr-only">Log in</span>
             </Link>
           )}
           <MobileMenu user={user} product={product} />

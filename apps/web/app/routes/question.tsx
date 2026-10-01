@@ -3,6 +3,7 @@ import type {
   CreatedReport,
   QuestionDetail,
   QuestionInteractions,
+  Question,
   QuestionList,
   Submission,
 } from "@ourdiu/shared";
@@ -15,7 +16,7 @@ import {
 } from "react-router";
 import { useDownloadInvite } from "~/components/android-beta";
 import { EmptyState } from "~/components/empty-state";
-import { OtherSemesters } from "~/components/other-semesters";
+import { OtherExams } from "~/components/other-exams";
 import { courseHref } from "~/components/course-search";
 import { ExamBadge } from "~/components/exam-badge";
 import { Breadcrumbs } from "~/components/page-header";
@@ -61,23 +62,27 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   return {
     question,
     interactions,
-    otherSemesters: await loadOtherSemesters(request, question),
+    otherExams: await loadOtherExams(request, question),
   };
 }
 
-/** The same course and exam type in other semesters (newest first); optional. */
-async function loadOtherSemesters(request: Request, question: QuestionDetail) {
+/**
+ * The course's other exams (optional): the same exam type's other semesters first,
+ * then the other exam types, each newest semester first.
+ */
+async function loadOtherExams(request: Request, question: QuestionDetail) {
   const query = new URLSearchParams({
     courseId: String(question.course.id),
-    examTypeId: String(question.examType.id),
     pageSize: "100",
-    // Newest semester first.
+    // By exam type, newest semester first.
     sort: "az",
   });
   const res = await apiFetch(request, `/api/v1/questions?${query}`);
   if (!res.ok) return [];
   const list = await readJson<QuestionList>(res);
-  return list.items.filter((other) => other.id !== question.id);
+  const others = list.items.filter((other) => other.id !== question.id);
+  const sameType = (q: Question) => q.examType.id === question.examType.id;
+  return [...others.filter(sameType), ...others.filter((q) => !sameType(q))];
 }
 
 const jsonInit = (method: string, body: unknown): RequestInit => ({
@@ -202,7 +207,7 @@ function viewerFor(
 }
 
 export default function QuestionPage({ loaderData }: Route.ComponentProps) {
-  const { question, interactions, otherSemesters } = loaderData;
+  const { question, interactions, otherExams } = loaderData;
   const [searchParams] = useSearchParams();
   const selected = pickSubmission(
     question.submissions,
@@ -230,17 +235,16 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex min-w-0 items-center gap-4">
-          <ExamBadge
-            examType={question.examType.name}
-            size={64}
-            className="max-sm:hidden"
-          />
-          <div className="min-w-0 space-y-2">
+      <header className="flex items-center gap-4">
+        <ExamBadge
+          examType={question.examType.name}
+          size={64}
+          className="max-sm:size-10!"
+        />
+        <div className="min-w-0 flex-1 space-y-1.5 sm:space-y-2">
+          <div className="max-sm:hidden">
             <Breadcrumbs
               crumbs={[
-                { label: "Questions", to: "/questions" },
                 {
                   label: question.department.shortName,
                   to: `/questions/departments/${question.department.id}`,
@@ -254,46 +258,46 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
                 },
               ]}
             />
-            <h1 className="font-expressive text-3xl text-balance sm:text-4xl">
-              {question.course.name}
-            </h1>
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <ExamBadge
-                examType={question.examType.name}
-                size={22}
-                className="sm:hidden"
-              />
-              <span>
-                <span title={question.department.name}>
-                  {question.department.shortName}
-                </span>
-                {" · "}
-                {question.examType.name}
-                {" · "}
-                {question.semester.name}
-              </span>
-            </p>
           </div>
+          <h1 className="font-expressive text-2xl text-balance sm:text-4xl">
+            {question.course.name}
+          </h1>
+          <p className="text-sm text-muted-foreground sm:hidden">
+            <Link
+              to={courseHref(question.course.id)}
+              className="underline-offset-4 hover:underline"
+            >
+              {question.department.shortName}
+            </Link>
+            {" · "}
+            {question.examType.name}
+            {" · "}
+            {question.semester.name}
+          </p>
         </div>
         {fileUrl && (
-          <div className="flex shrink-0 flex-wrap gap-2">
-            <Button variant="outline" className="rounded-full" asChild>
+          <div className="flex shrink-0 gap-2">
+            <Button
+              variant="outline"
+              className="rounded-full max-lg:hidden"
+              asChild
+            >
               <a href={fileUrl} target="_blank" rel="noopener">
                 <ExternalLink aria-hidden />
-                Open in new tab
+                Full screen
               </a>
             </Button>
-            <Button className="rounded-full" asChild>
+            <Button className="rounded-full max-lg:size-10 max-lg:p-0" asChild>
               <a href={fileUrl} download onClick={inviteToApp}>
                 <Download aria-hidden />
-                Download
+                <span className="max-lg:sr-only">Download</span>
               </a>
             </Button>
           </div>
         )}
       </header>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         {/* The paper comes first on small screens too; the lists follow it. */}
         <section aria-label="Question paper" className="min-w-0 space-y-3">
           <PaperSwitcher
@@ -304,13 +308,24 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
           {selected && fileUrl ? (
             // One keyed wrapper (sibling keys must be unique): switching papers remounts
             // the toolbar and reloads the embedded document.
-            <div key={selected.id} className="space-y-3">
+            // The bar tops the viewer from `lg`; on phones it comes last and sticks
+            // to the bottom of the screen while the paper is in view.
+            <div
+              key={selected.id}
+              className="flex flex-col overflow-clip rounded-3xl bg-muted"
+            >
               <PaperToolbar
                 submission={selected}
                 label={paperLabel}
                 viewer={viewerFor(selected, interactions)}
+                position={{
+                  index: Math.max(0, published.indexOf(selected)),
+                  total: published.length,
+                }}
+                fileUrl={fileUrl}
+                className="z-10 max-lg:sticky max-lg:bottom-0 max-lg:order-last"
               />
-              <PdfViewer src={fileUrl} title={title} />
+              <PdfViewer src={fileUrl} title={title} className="rounded-none" />
             </div>
           ) : (
             <EmptyState
@@ -331,22 +346,15 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
           )}
         </section>
 
-        {/* On phones the papers list follows the paper; from `lg` it is a sticky
-            column beside both the paper and the other semesters. */}
-        <aside className="lg:row-span-2">
-          <div className="lg:sticky lg:top-20">
-            <SubmissionList
-              submissions={question.submissions}
-              selectedId={selected?.id ?? null}
-            />
-          </div>
+        {/* On phones the lists follow the paper; from `lg` they are a column
+            beside it. */}
+        <aside className="space-y-4">
+          <SubmissionList
+            submissions={question.submissions}
+            selectedId={selected?.id ?? null}
+          />
+          <OtherExams course={question.course} questions={otherExams} />
         </aside>
-
-        <OtherSemesters
-          course={question.course}
-          examType={question.examType.name}
-          questions={otherSemesters}
-        />
       </div>
     </div>
   );

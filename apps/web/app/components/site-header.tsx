@@ -50,9 +50,9 @@ type NavItem = {
 const NAV_ITEMS: Record<Product["id"], NavItem[]> = {
   questions: [
     {
-      to: "/questions/browse",
+      to: "/questions/departments",
       label: "Browse",
-      section: ["/questions/departments/", "/questions/courses/"],
+      section: ["/questions/browse", "/questions/courses/"],
     },
     { to: "/questions/contributors", label: "Contributors" },
   ],

@@ -264,16 +264,23 @@ test("course filter follows the selected department", async ({ page }) => {
   await expect(page).toHaveURL(/\/questions\/browse\?departmentId=1$/);
 });
 
-/** A paper in the list (or, on phones, the switcher) by its title. */
-const paperLink = (page: Page, title: string) =>
+/** A paper in the list (or, on phones, the switcher), by its uploader or details. */
+const paperLink = (page: Page, text: string) =>
   page
-    .getByRole("link", { name: new RegExp(`^${title}`) })
+    .getByRole("list", { name: "Papers" })
+    .getByRole("link", { name: new RegExp(text) })
     .filter({ visible: true })
     .first();
 
-// Papers are titled by section and batch, otherwise by uploader.
+/** The uploader's link in the viewer's bar. */
+const uploaderLink = (page: Page, name: string) =>
+  page
+    .getByRole("region", { name: "Question paper" })
+    .getByRole("link", { name: new RegExp(`^${name}`) });
+
+// Papers are told apart by section and batch, otherwise by uploader.
 const SEED_01 = "Section A · Batch 61";
-const SEED_02 = "By Tanvir Hasan";
+const SEED_02 = "Tanvir Hasan";
 
 test("question page embeds the PDF, shows its uploader and switches submissions", async ({
   page,
@@ -298,9 +305,7 @@ test("question page embeds the PDF, shows its uploader and switches submissions"
     page.getByTestId("pdf-viewer-fallback").locator("a[download]"),
   ).toHaveAttribute("href", "/api/v1/submissions/1/file");
   // The uploader card links to their profile.
-  await expect(
-    page.getByRole("link", { name: /^Ayesha Rahman/ }),
-  ).toBeVisible();
+  await expect(uploaderLink(page, "Ayesha Rahman")).toBeVisible();
   // The optional section and batch tell papers apart.
 
   await paperLink(page, SEED_02).click();
@@ -310,7 +315,7 @@ test("question page embeds the PDF, shows its uploader and switches submissions"
     "true",
   );
   await expect(viewer).toHaveAttribute("data", /\/submissions\/2\/file/);
-  await expect(page.getByRole("link", { name: /^Tanvir Hasan/ })).toBeVisible();
+  await expect(uploaderLink(page, "Tanvir Hasan")).toBeVisible();
 
   // Switching back and forth keeps exactly one toolbar and viewer on the page.
   await paperLink(page, SEED_01).click();
@@ -347,7 +352,9 @@ test("a question links to the same exam from other semesters", async ({
 }) => {
   // Questions 1 and 11: the Data Structures midterm, 2nd and 1st semester.
   await page.goto("/questions/1");
-  const others = page.getByRole("heading", { name: "Other semesters" });
+  const others = page.getByRole("heading", {
+    name: "Other Data Structures exams",
+  });
   await others.scrollIntoViewIfNeeded();
   await clickUntilUrl(page, "Spring 24", /\/questions\/11$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
@@ -404,7 +411,26 @@ test("course search leads to a course, its exams and a paper", async ({
 test("a department lists its courses A to Z, filtered as you type", async ({
   page,
 }) => {
-  await page.goto("/questions/departments/1");
+  // "Browse" opens on the department with the most papers; on phones it's in
+  // the menu.
+  await page.goto("/questions");
+  const menu = page.getByRole("dialog", { name: "Menu" });
+  await expect(async () => {
+    if (test.info().project.name === "mobile") {
+      await page.getByRole("button", { name: "Open menu" }).click();
+      await menu
+        .getByRole("link", { name: "Browse" })
+        .click({ timeout: 1_000 });
+    } else {
+      await page
+        .getByRole("banner")
+        .getByRole("link", { name: "Browse" })
+        .click();
+    }
+    await expect(page).toHaveURL(/\/questions\/departments\/1$/, {
+      timeout: 2_000,
+    });
+  }).toPass();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Computer Science and Engineering",
   );

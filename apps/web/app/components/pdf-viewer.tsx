@@ -2,8 +2,10 @@ import { Download, ExternalLink, FileText, Loader2 } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { useDownloadInvite } from "~/components/android-beta";
 import { buttonVariants } from "~/components/ui/button";
+import { cn } from "~/lib/utils";
 
 type PdfViewerProps = {
+  className?: string;
   /** URL of the PDF (this site or the public files domain), shown by the browser's viewer. */
   src: string;
   title: string;
@@ -32,7 +34,7 @@ const FRAME_CLASS =
  * paper instead; it fetches the file from our public URL. The object's children, links
  * to open or download the file, remain the last resort.
  */
-export function PdfViewer({ src, title }: PdfViewerProps) {
+export function PdfViewer({ src, title, className }: PdfViewerProps) {
   // Read on the client only: the server can't know the browser, so it renders the
   // native viewer, which is what desktop browsers keep after hydration.
   const noNativeViewer = useSyncExternalStore(
@@ -44,7 +46,9 @@ export function PdfViewer({ src, title }: PdfViewerProps) {
   const inviteToApp = useDownloadInvite();
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-muted">
+    <div
+      className={cn("relative overflow-hidden rounded-3xl bg-muted", className)}
+    >
       {/* Behind the frame, so it shows until the paper paints over it. */}
       <div
         aria-hidden

@@ -1,23 +1,11 @@
 import type { Submission } from "@ourdiu/shared";
-import {
-  Check,
-  ChevronDown,
-  Eye,
-  FileText,
-  ThumbsDown,
-  ThumbsUp,
-} from "lucide-react";
+import { ChevronDown, Eye, FileText, ThumbsDown, ThumbsUp } from "lucide-react";
 import { Link } from "react-router";
 import { StatusBadge } from "~/components/status-badge";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
+import { ContributorAvatar } from "~/components/contributor-avatar";
 import { formatDate } from "~/lib/dates";
 import { formatCount } from "~/lib/format";
-import { paperDetails, paperTitles, plural } from "~/lib/submissions";
+import { paperDetails, paperTitles } from "~/lib/submissions";
 import { cn } from "~/lib/utils";
 
 type SubmissionListProps = {
@@ -55,22 +43,30 @@ export function SubmissionList({
   ).length;
 
   return (
-    <Card className="gap-4 pb-2">
-      <CardHeader>
-        <CardTitle>
-          <h2>Papers for this exam</h2>
-        </CardTitle>
-        <CardDescription>
-          {plural(published.length, "published paper")}
-          {published.length > 1 && ", best rated first"}
-          {pendingCount > 0 && ` · ${pendingCount} pending review`}
-        </CardDescription>
-      </CardHeader>
+    <section
+      aria-labelledby="papers-heading"
+      className="rounded-3xl border bg-card px-2 pt-4 pb-2"
+    >
+      <div className="space-y-0.5 px-3 pb-3">
+        <h2 id="papers-heading" className="font-semibold">
+          {published.length === 1
+            ? "1 paper for this exam"
+            : `${formatCount(published.length)} papers for this exam`}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {published.length > 1
+            ? "Same exam, shared by different students. Best rated first."
+            : "Shared by a student."}
+          {pendingCount > 0 && ` ${pendingCount} more waiting for review.`}
+        </p>
+      </div>
 
-      <ul className="grid grid-cols-1 gap-1 px-2">
+      <ul aria-label="Papers" className="grid grid-cols-1 gap-0.5">
         {submissions.map((submission) => {
           if (submission.status === "published") {
             const active = submission.id === selectedId;
+            const { uploader } = submission;
+            const details = paperDetails(submission);
             return (
               <li key={submission.id}>
                 {/* Links (not buttons) so switching works without JS and is shareable. */}
@@ -80,32 +76,37 @@ export function SubmissionList({
                   preventScrollReset
                   aria-current={active ? "true" : undefined}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none",
+                    "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none",
                     active &&
                       "bg-primary-container text-primary-container-foreground hover:bg-primary-container focus-visible:bg-primary-container",
                   )}
                 >
-                  <FileText
-                    className="size-4 shrink-0 text-muted-foreground"
-                    aria-hidden
+                  <ContributorAvatar
+                    name={uploader?.name ?? titles.get(submission.id)!}
+                    image={uploader?.image}
+                    size="sm"
+                    className={cn(
+                      "shrink-0",
+                      active &&
+                        "*:data-[slot=avatar-fallback]:bg-primary *:data-[slot=avatar-fallback]:text-primary-foreground",
+                    )}
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">
-                      {titles.get(submission.id)}
+                    <span className="block truncate font-semibold">
+                      {uploader?.name ?? titles.get(submission.id)}
                     </span>
-                    <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-                      {/* Titled by section or batch: say whose it is too, unless the
-                          title already does. */}
-                      {paperDetails(submission) &&
-                        submission.uploader &&
-                        !titles
-                          .get(submission.id)!
-                          .includes(submission.uploader.name) && (
-                          <span className="max-w-full truncate">
-                            by {submission.uploader.name}
-                          </span>
-                        )}
-                      <span>{formatDate(submission.createdAt)}</span>
+                    <span
+                      className={cn(
+                        "flex flex-wrap items-center gap-x-1.5 text-xs",
+                        !active && "text-muted-foreground",
+                      )}
+                    >
+                      {uploader && details && (
+                        <>
+                          <span>{details}</span>
+                          <span aria-hidden>·</span>
+                        </>
+                      )}
                       <Stat
                         icon={Eye}
                         value={submission.viewCount}
@@ -126,9 +127,10 @@ export function SubmissionList({
                           label="dislikes"
                         />
                       )}
+                      <span aria-hidden>·</span>
+                      <span>{formatDate(submission.createdAt)}</span>
                     </span>
                   </span>
-                  {active && <Check className="size-4" aria-hidden />}
                 </Link>
               </li>
             );
@@ -139,10 +141,12 @@ export function SubmissionList({
               key={submission.id}
               className="flex items-center gap-3 px-3 py-2 text-sm"
             >
-              <FileText
-                className="size-4 shrink-0 text-muted-foreground/50"
-                aria-hidden
-              />
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                <FileText
+                  className="size-4 text-muted-foreground"
+                  aria-hidden
+                />
+              </span>
               <span className="min-w-0 flex-1 text-xs text-muted-foreground">
                 Submitted {formatDate(submission.createdAt)}
               </span>
@@ -153,11 +157,11 @@ export function SubmissionList({
       </ul>
 
       {pendingCount > 0 && (
-        <p className="border-t px-6 pt-3 pb-2 text-xs text-muted-foreground">
+        <p className="mt-2 border-t px-3 pt-3 pb-1 text-xs text-muted-foreground">
           Papers under review become viewable once an admin approves them.
         </p>
       )}
-    </Card>
+    </section>
   );
 }
 
@@ -204,8 +208,8 @@ export function PaperSwitcher({
           />
         </span>
       </summary>
-      <nav aria-label="Papers" className="px-2 pb-2">
-        <ul className="grid gap-0.5">
+      <nav aria-label="Switch paper" className="px-2 pb-2">
+        <ul aria-label="Papers" className="grid gap-0.5">
           {published.map((submission, i) => {
             const active = submission.id === selectedId;
             return (

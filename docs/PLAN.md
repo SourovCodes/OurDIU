@@ -37,9 +37,9 @@ Design mockups (website, Material app, and the rejected iOS style): <https://cla
 - [x] Hub page, `/routine` and `/market` "coming soon" pages, account page, admin panel (users, departments), privacy and terms.
 - [x] Deployed: Worker `ourdiu` on `ourdiu.com` (+ `www` → apex), D1 `ourdiu`, R2 `ourdiu-files`, CI deploys `main` after checks and e2e pass.
 
-### Phase 1 – Question bank moves in (code done, cutover pending)
+### Phase 1 – Question bank moves in (done, 1 October 2026)
 
-Code, on the branch `question-bank`. Not merged to `main` yet: a push to `main` deploys, and this code needs a database with the question bank's schema and data, so merging it is part of the cutover below. Until the cutover, **diuqbank.com keeps running as it is** on its own Worker, database and bucket, and ourdiu.com keeps the placeholder hub. Locally, `apps/web/.dev.vars` uses the question bank's secrets (same Google client, Gemini and compressor keys).
+Done: the question bank runs on ourdiu.com, and diuqbank.com redirects there (its `/api/*` still serves installed apps). Locally, `apps/web/.dev.vars` uses the question bank's secrets (Gemini and compressor keys).
 
 - [x] The question bank's API, schema, migrations (its `0000`–`0006` replace this repo's old `0000_init`), shared schemas, tests and web pages, renamed `@qb/*` → `@ourdiu/*`. `ADMIN_EMAILS` kept. The platform's separate `departments` admin page went away: the question bank's catalog manages departments.
 - [x] Pages under the product path: `/questions` (the space's home), `/questions/browse`, `/questions/:id`, `/questions/contributors[/:username]`, `/questions/contribute`, `/questions/my-submissions[/:id]`. `/account` is the shared profile. Admin: `/admin` (dashboard, question bank numbers for now), `/admin/questions/{submissions,reports,catalog}`, `/admin/users`; the sidebar has a group per product plus "Platform".
@@ -49,7 +49,7 @@ Code, on the branch `question-bank`. Not merged to `main` yet: a push to `main` 
 - [x] `pnpm check` green (202 API, 124 web, 53 shared tests), 60 e2e tests green, OpenAPI regenerated.
 - [ ] Not done yet: the one-time "Class Routine is new" banner in the question bank space (mockup), and per-space colours on the web (everything is indigo).
 
-Cutover (production, done by hand with the owner, never by CI on its own; not scheduled yet). The data is **copied** from diuqbank.com into OurDIU's own resources, then the domain is redirected. `apps/web/wrangler.jsonc` names OurDIU's resources: D1 `ourdiu`, R2 `ourdiu-files`, queues `questions-analysis` / `questions-watermark`, rate-limit namespaces 2001–2004 (1001–1004 are diuqbank's).
+Cutover (done 1 October 2026, by hand with the owner). The data is **copied** from diuqbank.com into OurDIU's own resources, then the domain is redirected. `apps/web/wrangler.jsonc` names OurDIU's resources: D1 `ourdiu`, R2 `ourdiu-files`, queues `questions-analysis` / `questions-watermark`, rate-limit namespaces 2001–2004 (1001–1004 are diuqbank's).
 
 Decided 1 October 2026: the app's Google sign-in moves to the `ourdiu` Google Cloud project at the same time, and the DIUQBank repository (already public; history checked for secrets, only placeholders found) is archived afterwards.
 
@@ -58,10 +58,10 @@ Preparation (nothing visible to users):
 1. [x] Database `ourdiu-db` (`6fa31581-db1e-4c60-9e8d-202818bc3030`) created and named in `wrangler.jsonc`; the first `ourdiu` database (placeholder site only) is retired later. Queues `questions-analysis` and `questions-watermark` created.
 2. [x] Server accepts Google ID tokens from the `ourdiu` client (`GOOGLE_CLIENT_ID`) and the old `diuquestionbank` one (`GOOGLE_EXTRA_CLIENT_IDS` in `wrangler.jsonc`), also on diuqbank.com (tests in `app-auth.test.ts`). The app's `apiBaseUrl` is `https://ourdiu.com` and its links use the new paths.
 3. [ ] Owner, Google Cloud (`ourdiu`): Android OAuth clients for `com.ourdiu.app`, one per signing certificate SHA-1: the local debug key (`CA:EB:5D:97:4C:64:31:A8:B6:21:9C:40:E3:B5:15:6C:D9:E6:8E:61`), the upload key, and Play's app signing key (Play Console → App integrity). Then the app's `googleServerClientId` becomes the `ourdiu` web client ID.
-4. [ ] Owner, Cloudflare: custom domain `files.ourdiu.com` on R2 `ourdiu-files`; GitHub variable `FILES_URL=https://files.ourdiu.com`.
-5. [ ] Owner: secrets on the `ourdiu` Worker with the question bank's values (`BETTER_AUTH_SECRET`, `GEMINI_API_KEY`, `COMPRESSOR_API_KEY`); `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` stay the `ourdiu` client's.
+4. [x] Owner, Cloudflare: custom domain `files.ourdiu.com` on R2 `ourdiu-files`; GitHub variable `FILES_URL=https://files.ourdiu.com`.
+5. [x] Owner: secrets on the `ourdiu` Worker with the question bank's values (`BETTER_AUTH_SECRET`, `GEMINI_API_KEY`, `COMPRESSOR_API_KEY`); `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` stay the `ourdiu` client's.
 
-The switch (at a quiet time: anything uploaded, voted or signed up on diuqbank.com between steps 7 and 10 is lost):
+The switch (done; only 2 page views on diuqbank.com fell between the export and the domain move. Notes: the export had to be reordered to tables, then indexes, then rows parent-first, then triggers, because D1 applies a big file in several transactions and the composite foreign key on `questions` needs its unique index first. Original instructions, at a quiet time: anything uploaded, voted or signed up on diuqbank.com between steps 7 and 10 is lost):
 
 6. Copy the files: a temporary Worker (`ourdiu-r2-copy`, bindings to both buckets, guarded by a random token) copies every object of `questionbank-papers` into `ourdiu-files`, skipping ones already copied. Run it once ahead, again after step 7.
 7. Copy the database: `wrangler d1 export questionbank --remote --output questionbank.sql`, then `wrangler d1 execute ourdiu-db --remote --file questionbank.sql`. The export carries the schema, triggers and `d1_migrations`, so the migrations are then already applied.
@@ -71,7 +71,8 @@ The switch (at a quiet time: anything uploaded, voted or signed up on diuqbank.c
 11. Merge `question-bank` into `main` (CI deploys the same code; nothing to migrate).
 12. Check: sign-in on the site and in the old and new app, an upload (AI check, watermark), a download, a diuqbank.com link. Delete the copy Worker.
 13. Archive DIUQBank on GitHub. In Play Console, point the privacy policy and delete-account URLs at ourdiu.com; release the app (`mobile-v1.6.0`).
-14. Later: retire the `questionbank` Worker, D1, R2 (and `r2.diuqbank.com`) and `qb-*` queues, and the `ourdiu` placeholder database, once nothing needs them.
+14. Status: steps 6–12 done (copy Worker deleted); DIUQBank archived. Left: Play Console URLs and the app release (step 13, after step 3), and `www.diuqbank.com` on the `ourdiu` Worker.
+15. Later: retire the `questionbank` Worker, D1, R2 (and `r2.diuqbank.com`) and `qb-*` queues, and the `ourdiu` placeholder database, once nothing needs them.
 
 ### Phase 2 – One app
 

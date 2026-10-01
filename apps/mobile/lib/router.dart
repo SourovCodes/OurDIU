@@ -16,6 +16,9 @@ import 'features/upload/paper_screen.dart';
 import 'features/upload/papers.dart';
 import 'features/upload/upload_screen.dart';
 import 'shell/app_shell.dart';
+import 'spaces/choose_screen.dart';
+import 'spaces/coming_soon_screen.dart';
+import 'spaces/space.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
 
@@ -33,10 +36,23 @@ List<RouteBase> _catalogRoutes() => [
   ),
 ];
 
-GoRouter buildRouter() => GoRouter(
+/// [initialLocation] is where the app opens: see `startLocation`.
+GoRouter buildRouter({String initialLocation = '/home'}) => GoRouter(
   navigatorKey: _rootKey,
-  initialLocation: '/home',
+  initialLocation: initialLocation,
   routes: [
+    // First launch: which product to open.
+    GoRoute(path: '/choose', builder: (context, state) => const ChooseScreen()),
+    // Products that aren't out yet.
+    GoRoute(
+      path: '/routine',
+      builder: (context, state) => const ComingSoonScreen(Space.routine),
+    ),
+    GoRoute(
+      path: '/market',
+      builder: (context, state) => const ComingSoonScreen(Space.market),
+    ),
+    // The Question Bank's space: its four tabs, and the screens covering them.
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => AppShell(shell: shell),
       branches: [

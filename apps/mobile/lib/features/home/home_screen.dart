@@ -15,6 +15,8 @@ import '../../widgets/section_header.dart';
 import '../../widgets/skeleton.dart';
 import '../../widgets/state_message.dart';
 import '../upload/share_card.dart';
+import '../../spaces/space.dart';
+import '../../spaces/switcher.dart';
 import 'search_pill.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -135,21 +137,11 @@ class _Masthead extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
     final profile = ref.watch(profileProvider).value;
     return Row(
       children: [
-        Expanded(
-          child: Text(
-            'QuestionBank',
-            style: expressive(
-              18,
-              width: 125,
-              weight: 800,
-              color: scheme.primary,
-            ),
-          ),
-        ),
+        // The product's name; tapping it switches to another OurDIU product.
+        const Expanded(child: SpaceTitle(Space.questions)),
         IconButton.filledTonal(
           tooltip: 'Account',
           onPressed: () => context.go('/account'),

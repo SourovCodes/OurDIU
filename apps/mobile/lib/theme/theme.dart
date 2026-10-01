@@ -3,7 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 // Material 3 Expressive on the site's indigo (#4f39f6). The values match the
-// approved prototype, so the app and diuqbank.com read as one product.
+// approved prototype, so the app and the site read as one product. This is the
+// Question Bank's colour; other products recolour their space (`spaces/space.dart`).
 
 const _font = 'RobotoFlex';
 

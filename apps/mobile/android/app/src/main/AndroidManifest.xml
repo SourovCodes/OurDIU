@@ -26,7 +26,7 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- "Share → QuestionBank" for a PDF opens the upload form with it. -->
+            <!-- "Share → OurDIU" for a PDF opens the upload form with it. -->
             <intent-filter android:label="Share a paper">
                 <action android:name="android.intent.action.SEND"/>
                 <category android:name="android.intent.category.DEFAULT"/>

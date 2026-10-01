@@ -84,7 +84,7 @@ class AccountScreen extends ConsumerWidget {
                 if (android)
                   _LinkTile(
                     icon: Icons.star_outline_rounded,
-                    title: 'Rate QuestionBank',
+                    title: 'Rate OurDIU',
                     subtitle: 'On Google Play',
                     bottom: false,
                     onTap: openStoreListing,
@@ -103,7 +103,7 @@ class AccountScreen extends ConsumerWidget {
               spacing: 2,
               children: [
                 for (final (i, (icon, label, path)) in const [
-                  (Icons.info_outline_rounded, 'About QuestionBank', '/about'),
+                  (Icons.info_outline_rounded, 'About OurDIU', '/about'),
                   (Icons.mail_outline_rounded, 'Contact us', '/contact'),
                   (Icons.policy_outlined, 'Privacy policy', '/privacy'),
                   (Icons.gavel_rounded, 'Terms of use', '/terms'),
@@ -229,7 +229,7 @@ class _SignInCard extends ConsumerWidget {
                     ),
                     Text(
                       'New accounts need a @diu.edu.bd address, and $email '
-                      "isn't one. If you already have a QuestionBank account "
+                      "isn't one. If you already have an OurDIU account "
                       'with another address, choose that one.',
                       style: TextStyle(color: foreground, height: 1.4),
                     ),

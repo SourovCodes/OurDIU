@@ -15,6 +15,7 @@ import 'package:diuqbank/features/upload/shared_pdfs.dart';
 import 'package:diuqbank/features/upload/upload_screen.dart';
 import 'package:diuqbank/main.dart';
 import 'package:diuqbank/router.dart';
+import 'package:diuqbank/spaces/space.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -138,13 +139,18 @@ Future<FakeViewCounter> pumpApp(
   TokenStore? tokens,
   PaperSources? sources,
   SharedPdfs? shared,
+  // A returning user in the Question Bank; `{}` is a first launch.
+  Map<String, String> prefs = const {'space': 'questions'},
 }) async {
   tester.view
     ..physicalSize = const Size(1080, 2340)
     ..devicePixelRatio = 2.625;
   addTearDown(tester.view.reset);
   SharedPreferences.setMockInitialValues({});
-  final prefs = await SharedPreferences.getInstance();
+  final preferences = await SharedPreferences.getInstance();
+  for (final MapEntry(:key, :value) in prefs.entries) {
+    await preferences.setString(key, value);
+  }
   final counter = FakeViewCounter();
   final store = tokens ?? MemoryTokenStore();
   final token = await store.read();
@@ -152,7 +158,7 @@ Future<FakeViewCounter> pumpApp(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        prefsProvider.overrideWithValue(prefs),
+        prefsProvider.overrideWithValue(preferences),
         taxonomyProvider.overrideWith((ref) async => taxonomy),
         questionPageProvider.overrideWith(
           (ref, key) => (lists ?? defaultLists)(key.$1),
@@ -178,7 +184,9 @@ Future<FakeViewCounter> pumpApp(
           ),
         ),
       ],
-      child: QbApp(router: buildRouter()),
+      child: QbApp(
+        router: buildRouter(initialLocation: startLocation(preferences)),
+      ),
     ),
   );
   await tester.pumpAndSettle();

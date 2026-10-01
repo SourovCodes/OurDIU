@@ -70,7 +70,8 @@ The switch (at a quiet time: anything uploaded, voted or signed up on diuqbank.c
 
 - [x] Moved `../QuestionBank/apps/mobile` into `apps/mobile` here, with its release workflow and CI jobs (analyze, test, Android and iOS builds, generated-client check). Unchanged otherwise: it still says QuestionBank and calls diuqbank.com. App work happens here from now on; `../QuestionBank/apps/mobile` is frozen.
 - [ ] Releasing from this repository (owner, one-time): the GitHub environment `play` here with `ANDROID_UPLOAD_KEYSTORE_BASE64` / `ANDROID_UPLOAD_KEYSTORE_PASSWORD`, the variables `GCP_WORKLOAD_IDENTITY_PROVIDER` / `GCP_SERVICE_ACCOUNT`, and the Google Cloud workload identity provider and IAM binding allowing this repository's ID (`1398723748`) instead of QuestionBank's (`817495452`). Tags continue above `mobile-v1.5.0`.
-- [ ] Add the spaces: first-launch chooser, switcher (bottom sheet) on the product name, the question bank space with today's tabs (Home, Browse, Saved, Account), routine and market spaces showing "coming soon". One-time hint about the routine.
+- [x] Spaces (`apps/mobile/lib/spaces/`): first-launch chooser ("What do you need?"), then the app reopens in the space used last (`space` in shared preferences); "Question Bank ▾" on Home opens the switcher (bottom sheet); Class Routine (teal) and Marketplace (rose) are "coming soon" screens without the question bank's tabs. Visible names say OurDIU (app title, iOS display name, Account links, feedback subject).
+- [ ] The one-time "your class routine is here too" hint, once the routine is live.
 - [ ] `apiBaseUrl` → `https://ourdiu.com`; links to `ourdiu.com/questions/…`.
 
 ### Phase 3 – Class Routine (from scratch)

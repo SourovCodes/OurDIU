@@ -117,6 +117,9 @@ void main() {
           )
           .first,
     );
+    // Clear of the tab bar, which can cover the bottom of the list.
+    await tester.ensureVisible(find.text('Sign out'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Sign out'));
     await tester.pumpAndSettle();
     expect(find.text('Sign out?'), findsOneWidget);

@@ -16,7 +16,7 @@ void main() {
     );
     expect(uri.scheme, 'mailto');
     expect(uri.path, supportEmail);
-    expect(uri.toString(), contains('subject=QuestionBank%20app%20feedback'));
+    expect(uri.toString(), contains('subject=OurDIU%20app%20feedback'));
     expect(uri.toString(), isNot(contains('+')));
     expect(
       Uri.decodeComponent(uri.toString().split('body=').last),
@@ -41,7 +41,7 @@ void main() {
     );
     await openAccount(tester);
 
-    for (final label in ['Rate QuestionBank', 'Send feedback']) {
+    for (final label in ['Rate OurDIU', 'Send feedback']) {
       await scrollTo(tester, find.text(label));
       expect(find.text(label), findsOneWidget);
     }

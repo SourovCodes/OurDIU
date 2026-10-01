@@ -10,6 +10,7 @@ import 'auth/token.dart';
 import 'data/prefs.dart';
 import 'data/settings.dart';
 import 'router.dart';
+import 'spaces/space.dart';
 import 'theme/theme.dart';
 
 Future<void> main() async {
@@ -31,7 +32,7 @@ Future<void> main() async {
         tokenStoreProvider.overrideWithValue(tokens),
         savedSessionTokenProvider.overrideWithValue(token),
       ],
-      child: QbApp(router: buildRouter()),
+      child: QbApp(router: buildRouter(initialLocation: startLocation(prefs))),
     ),
   );
 }
@@ -44,7 +45,7 @@ class QbApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
-      title: 'QuestionBank',
+      title: 'OurDIU',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),

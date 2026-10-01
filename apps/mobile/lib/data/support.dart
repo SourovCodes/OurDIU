@@ -57,7 +57,7 @@ Uri feedbackEmail(AppDetails? details) {
   // Not Uri(queryParameters:): mail apps show its + for spaces literally.
   return Uri.parse(
     'mailto:$supportEmail'
-    '?subject=${Uri.encodeComponent('QuestionBank app feedback')}'
+    '?subject=${Uri.encodeComponent('OurDIU app feedback')}'
     '&body=${Uri.encodeComponent(body)}',
   );
 }

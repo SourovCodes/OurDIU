@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'papers.dart';
 
-/// PDFs shared to the app from others ("Share → QuestionBank", Android).
+/// PDFs shared to the app from others ("Share → OurDIU", Android).
 abstract interface class SharedPdfs {
   /// The PDF the app was opened with, once.
   Future<PickedPdf?> initial();

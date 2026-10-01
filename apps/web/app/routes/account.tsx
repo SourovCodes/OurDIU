@@ -1,4 +1,5 @@
 import { Outlet } from "react-router";
+import { AndroidBetaLink } from "~/components/android-beta";
 import { PageHeader } from "~/components/page-header";
 import { Separator } from "~/components/ui/separator";
 import { requireUser } from "~/lib/session.server";
@@ -19,6 +20,7 @@ export default function AccountLayout({ loaderData }: Route.ComponentProps) {
     <div className="mx-auto max-w-3xl space-y-6">
       {/* The site header's avatar already says who is signed in. */}
       <PageHeader title="Account" description={`Signed in as ${user.email}`} />
+      <AndroidBetaLink />
       <Separator />
       <Outlet />
     </div>

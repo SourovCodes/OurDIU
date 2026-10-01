@@ -1,5 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router";
+import { AndroidBetaBanner } from "~/components/android-beta";
 import { Badge } from "~/components/ui/badge";
 import {
   Card,
@@ -52,6 +53,9 @@ function ProductCard({ product }: { product: Product }) {
 export default function Home() {
   return (
     <div className="space-y-12 py-4 sm:py-10">
+      <div className="mx-auto max-w-2xl empty:hidden">
+        <AndroidBetaBanner />
+      </div>
       <section className="mx-auto max-w-2xl space-y-4 text-center">
         <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
           What do you need today?

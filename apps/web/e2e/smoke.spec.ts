@@ -17,6 +17,45 @@ import {
 
 failOnConsoleErrors();
 
+test("Android visitors are invited to test the app", async ({ page }) => {
+  await page.goto("/");
+  const banner = page.getByRole("complementary", { name: "Android app" });
+  // The mobile project is a Pixel; desktop visitors never see the banner.
+  if (test.info().project.name !== "mobile") {
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(banner).toHaveCount(0);
+    return;
+  }
+
+  await banner.getByRole("link", { name: "Become a tester" }).click();
+  await expect(page).toHaveURL(/\/app$/);
+  await expect(
+    page.getByRole("link", { name: "Join the group" }),
+  ).toHaveAttribute("href", "https://groups.google.com/g/ourdiu");
+  await expect(
+    page.getByRole("link", { name: "Open the testing page" }),
+  ).toHaveAttribute(
+    "href",
+    "https://play.google.com/apps/testing/com.ourdiu.app",
+  );
+  await expect(
+    page.getByRole("link", { name: "Get it on Google Play" }),
+  ).toHaveAttribute(
+    "href",
+    "https://play.google.com/store/apps/details?id=com.ourdiu.app",
+  );
+
+  // Dismissed, it stays away.
+  await page.goto("/");
+  await expect(async () => {
+    await banner.getByRole("button", { name: "Dismiss" }).click();
+    await expect(banner).toHaveCount(0, { timeout: 1_000 });
+  }).toPass();
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(banner).toHaveCount(0);
+});
+
 test("the hub leads to the question bank and its questions", async ({
   page,
 }) => {
@@ -351,12 +390,16 @@ test("an account without a DIU email is asked to switch before contributing", as
   await expect(page.getByText("Uploading needs a DIU email")).toBeVisible();
   await expect(page.getByRole("main")).toContainText(email);
 
-  await page
-    .getByRole("button", { name: "Switch to your DIU account" })
-    .click();
-  await expect(page).toHaveURL(
-    /\/login\?redirectTo=%2Fquestions%2Fcontribute$/,
-  );
+  // A click during hydration can be lost; once it lands, the button is gone.
+  const toLogin = /\/login\?redirectTo=%2Fquestions%2Fcontribute$/;
+  await expect(async () => {
+    if (!toLogin.test(page.url())) {
+      await page
+        .getByRole("button", { name: "Switch to your DIU account" })
+        .click({ timeout: 1_000 });
+    }
+    await expect(page).toHaveURL(toLogin, { timeout: 2_000 });
+  }).toPass();
   await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
 });
 

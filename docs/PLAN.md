@@ -84,7 +84,9 @@ The switch (done; only 2 page views on diuqbank.com fell between the export and 
 - [x] Play listing material says OurDIU: `store/listing.md` (text to paste), `store/icon-512.png`, `store/feature-graphic.png`, and screenshots (new Home, plus `08-products.png`, the chooser).
 - [ ] Owner: paste the listing into Play Console and upload the icon, feature graphic and screenshots.
 - [ ] The one-time "your class routine is here too" hint, once the routine is live.
-- [ ] `apiBaseUrl` → `https://ourdiu.com`; links to `ourdiu.com/questions/…`.
+- [x] `apiBaseUrl` → `https://ourdiu.com`; links to `ourdiu.com/questions/…` (released in `mobile-v1.6.0`).
+- [x] Sign-in on Play builds: the `ourdiu` project's Android OAuth client has Play's app signing SHA-1 (`6F:83:97:5F:55:BC:FD:A0:EE:2C:6D:87:0B:87:E3:EA:5F:CE:10:3C`), added by the owner on 1 October 2026. `mobile-v1.6.1`: any Google account signs in, sharing papers needs a DIU email.
+- [ ] Closed testing ("alpha"), then production. Play needs 12 testers opted in for 14 days in a row before a production release. Testers are the Google Group `ourdiu@googlegroups.com` (set to "Anyone on the web can join", posting by owners only). The site recruits them: `/app` (join the group, opt in at `play.google.com/apps/testing/com.ourdiu.app`, install), a dismissible banner for Android visitors on the hub and the Question Bank home, and a line on the account page. When the app is public, set `ANDROID_BETA` to false in `apps/web/app/lib/android-app.ts`: the banner and the link go, and `/app` becomes a "Get it on Google Play" page.
 
 ### Phase 3 – Class Routine (from scratch)
 

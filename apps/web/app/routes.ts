@@ -20,6 +20,7 @@ export default [
   route("market", "routes/market.tsx"),
 
   // Platform.
+  route("app", "routes/app.tsx"),
   route("about", "routes/about.tsx"),
   route("contact", "routes/contact.tsx"),
   route("privacy", "routes/privacy.tsx"),

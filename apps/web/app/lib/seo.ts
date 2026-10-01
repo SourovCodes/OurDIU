@@ -7,6 +7,7 @@ const STATIC_PATHS = [
   "/questions",
   "/questions/browse",
   "/questions/contributors",
+  "/app",
   "/about",
   "/contact",
   "/delete-account",

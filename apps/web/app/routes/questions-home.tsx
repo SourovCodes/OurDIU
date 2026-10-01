@@ -1,4 +1,5 @@
 import type { ContributorList, QuestionList } from "@ourdiu/shared";
+import { AndroidBetaBanner } from "~/components/android-beta";
 import {
   ArrowRight,
   ChevronRight,
@@ -145,6 +146,9 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="space-y-16 py-4 sm:py-12">
+      <div className="mx-auto max-w-3xl empty:hidden">
+        <AndroidBetaBanner />
+      </div>
       <section className="mx-auto flex max-w-3xl flex-col items-center gap-6 text-center">
         <Badge variant="secondary" className="rounded-full px-3 py-1">
           <Sparkles />

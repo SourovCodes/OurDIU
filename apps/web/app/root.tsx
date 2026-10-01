@@ -117,6 +117,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       {name}
                     </Link>
                   ))}
+                  <Link to="/app" className="hover:text-foreground">
+                    Android app
+                  </Link>
                   <Link to="/about" className="hover:text-foreground">
                     About
                   </Link>

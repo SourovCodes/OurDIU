@@ -491,7 +491,13 @@ test("the phone menu has the visitor's own pages", async ({ page }) => {
 
 test("logging in sends visitors to Google", async ({ page }) => {
   await page.goto("/login?redirectTo=%2Fquestions%2Fcontribute");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Log in");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Log in to share a paper",
+  );
+  // It stays in the Question Bank, the space it goes back to.
+  await expect(
+    page.getByRole("banner").getByText("Question Bank", { exact: true }),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Continue with Google" }),
   ).toBeVisible();

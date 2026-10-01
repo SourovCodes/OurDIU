@@ -3,6 +3,7 @@ import { Link, useFetcher, useLocation } from "react-router";
 import { buttonVariants } from "~/components/ui/button";
 import type { PaperActionResult } from "~/lib/engagement";
 import { cn } from "~/lib/utils";
+import { loginHref } from "~/lib/redirect";
 
 /**
  * Saves a question to the visitor's account, the same list as the app's Saved
@@ -36,12 +37,23 @@ export function SaveButton({
     !on && "text-foreground",
     className,
   );
-  const icon = <Bookmark className={cn(on && "fill-current")} aria-hidden />;
+  // Pops when saved here, not when the page loads already saved.
+  const touched = Boolean(fetcher.formData ?? fetcher.data);
+  const icon = (
+    <Bookmark
+      key={String(on)}
+      className={cn(
+        on && "fill-current",
+        on && touched && "motion-safe:animate-pop",
+      )}
+      aria-hidden
+    />
+  );
 
   if (!signedIn) {
     return (
       <Link
-        to={`/login?redirectTo=${encodeURIComponent(location.pathname + location.search)}`}
+        to={loginHref(location)}
         aria-label={label ? undefined : "Log in to save"}
         className={classes}
       >
@@ -59,7 +71,8 @@ export function SaveButton({
         name="saved"
         value={on ? "false" : "true"}
         aria-pressed={on}
-        aria-label={label ? undefined : on ? "Saved" : "Save"}
+        // A toggle: "pressed" already says whether it's saved.
+        aria-label={label ? undefined : "Save paper"}
         title={on ? "Remove from saved" : "Save for later"}
         className={classes}
       >

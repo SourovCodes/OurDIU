@@ -14,6 +14,24 @@ export function safeRedirect(
   return to;
 }
 
+/** The login page, coming back to the page the visitor is on (none from the hub). */
+export function loginHref({
+  pathname,
+  search,
+}: {
+  pathname: string;
+  search: string;
+}): string {
+  if (pathname === "/login") return `/login${search}`;
+  if (pathname === "/") return "/login";
+  return `/login?redirectTo=${encodeURIComponent(pathname + search)}`;
+}
+
+/** Where the login page sends the visitor back to, from its `?redirectTo=`. */
+export function loginReturnPath(search: string): string {
+  return safeRedirect(new URLSearchParams(search).get("redirectTo"));
+}
+
 /**
  * The question bank's old site. Its pages now live under /questions here, and its
  * API is still served there unchanged: installed copies of the app call it.

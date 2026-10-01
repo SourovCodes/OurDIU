@@ -1,7 +1,8 @@
 name: Release Android
 
 # Pushing a tag like mobile-v1.2.3 (on a commit that's on main) builds a signed App
-# Bundle and uploads it to Google Play. Setup and the release steps: "Releasing the
+# Bundle and releases it to the closed testing track on Google Play, so testers get
+# the update from the Play Store. Setup and the release steps: "Releasing the
 # Android app" in the README.
 on:
   push:
@@ -87,6 +88,22 @@ jobs:
           name: app-release-${{ steps.version.outputs.name }}
           path: apps/mobile/build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
+      # What testers see under "What's new": the tag's message (git tag -a), or else
+      # the subjects of the app's commits since the last release. Play allows 500
+      # characters.
+      - name: Write the release notes
+        run: |
+          mkdir -p "$RUNNER_TEMP/whatsnew"
+          # Checkout can leave an annotated tag lightweight; fetch the tag itself.
+          git fetch --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+          notes=$(git tag -l --format='%(contents:subject)%0a%(contents:body)' "$GITHUB_REF_NAME" | sed '/^-----BEGIN PGP/,$d')
+          if [ "$(git cat-file -t "$GITHUB_REF_NAME")" != tag ] || [ -z "${notes//[$'\n ']/}" ]; then
+            previous=$(git describe --tags --abbrev=0 --match 'mobile-v*' "$GITHUB_REF_NAME^" 2>/dev/null || true)
+            notes=$(git log --no-merges --format='• %s' ${previous:+"$previous.."}"$GITHUB_SHA" -- . | head -n 8)
+          fi
+          [ -n "$notes" ] || notes="Fixes and improvements."
+          printf '%s' "$notes" | head -c 500 > "$RUNNER_TEMP/whatsnew/whatsnew-en-US"
+          cat "$RUNNER_TEMP/whatsnew/whatsnew-en-US"
       - id: auth
         uses: google-github-actions/auth@v3
         with:
@@ -99,7 +116,10 @@ jobs:
           packageName: com.ourdiu.app
           releaseFiles: apps/mobile/build/app/outputs/bundle/release/app-release.aab
           releaseName: ${{ steps.version.outputs.name }}
-          # internal until the app has production access; draft until Google has
-          # reviewed the app once (Play only accepts draft releases before that).
-          tracks: ${{ vars.PLAY_TRACK || 'internal' }}
-          status: ${{ vars.PLAY_RELEASE_STATUS || 'draft' }}
+          whatsNewDirectory: ${{ runner.temp }}/whatsnew
+          # Closed testing ("alpha"), rolled out to its testers as soon as Google has
+          # reviewed it, until the app has production access. The PLAY_TRACK and
+          # PLAY_RELEASE_STATUS repository variables override these (e.g. internal and
+          # draft).
+          tracks: ${{ vars.PLAY_TRACK || 'alpha' }}
+          status: ${{ vars.PLAY_RELEASE_STATUS || 'completed' }}

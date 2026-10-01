@@ -66,7 +66,12 @@ export function UrlTabs({
           className="hidden **:data-[slot=badge]:h-5 **:data-[slot=badge]:min-w-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1.5 @3xl/main:flex"
         >
           {tabs.map((tab) => (
-            <TabsTrigger key={tab.value} value={tab.value}>
+            // The list below isn't a tab panel of its own, so nothing to point to.
+            <TabsTrigger
+              key={tab.value}
+              value={tab.value}
+              aria-controls={undefined}
+            >
               {tab.label}
               {tab.count ? (
                 <Badge variant="secondary">{formatCount(tab.count)}</Badge>

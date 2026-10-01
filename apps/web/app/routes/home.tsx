@@ -44,7 +44,7 @@ function ProductTile({ product }: { product: Product }) {
         )}
       </div>
       <div className="space-y-2">
-        <p className="text-sm font-semibold opacity-80">{product.name}</p>
+        <p className="text-sm font-semibold opacity-90">{product.name}</p>
         <h2 className="font-expressive text-3xl sm:text-4xl">
           {product.title}
         </h2>

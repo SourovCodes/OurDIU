@@ -35,7 +35,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "~/components/ui/sheet";
-import { PRODUCTS, productAt, type Product } from "~/lib/products";
+import { PRODUCTS, spaceAt, type Product } from "~/lib/products";
+import { loginHref } from "~/lib/redirect";
 import { setTheme, useIsDark } from "~/lib/theme";
 import type { SessionUser } from "~/lib/types";
 import { cn } from "~/lib/utils";
@@ -212,7 +213,8 @@ function MobileMenu({
   user: SessionUser | null;
   product: Product | null;
 }) {
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
   const links: NavItem[] = [
     ...(product ? [{ to: product.href, label: "Home" }] : []),
     ...(product ? NAV_ITEMS[product.id] : []),
@@ -270,7 +272,7 @@ function MobileMenu({
               </p>
               <SheetClose asChild>
                 <Link
-                  to="/login"
+                  to={loginHref(location)}
                   className={cn(buttonVariants(), "h-11 rounded-full")}
                 >
                   Log in with Google
@@ -361,8 +363,9 @@ function MobileMenu({
  * own menu. Products don't link to each other; the switcher is the way between them.
  */
 export function SiteHeader({ user }: { user: SessionUser | null }) {
-  const { pathname } = useLocation();
-  const product = productAt(pathname);
+  const location = useLocation();
+  const { pathname } = location;
+  const product = spaceAt(location);
   const items = product ? NAV_ITEMS[product.id] : [];
   const questions = product?.id === "questions";
 
@@ -450,7 +453,8 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
           ) : (
             // An icon on phones, where the header is narrow.
             <Link
-              to="/login"
+              to={loginHref(location)}
+              aria-current={pathname === "/login" ? "page" : undefined}
               className={cn(
                 buttonVariants({ variant: "outline" }),
                 "max-sm:size-10 max-sm:border-0 max-sm:p-0 max-sm:text-foreground",

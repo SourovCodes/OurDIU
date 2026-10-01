@@ -209,7 +209,13 @@ git tag mobile-v1.6.0 origin/main && git push origin mobile-v1.6.0
 
 The app was released from the QuestionBank repository up to `mobile-v1.5.0`; tags here must continue above it, or Play rejects the version code.
 
-Builds go to the `internal` track as `draft` releases by default. Promote them to closed testing or production in Play Console, or change the defaults with the repository variables `PLAY_TRACK` and `PLAY_RELEASE_STATUS`. Each run also keeps the `.aab` as a workflow artifact for 30 days.
+Builds go to the closed testing track (`alpha`) as `completed` releases, so once Google has reviewed one (usually within hours) the testers get it as an update from the Play Store. Their "What's new" text is the tag's message, so prefer an annotated tag; a lightweight tag uses the subjects of the app's commits since the last release instead:
+
+```bash
+git tag -a mobile-v1.7.0 origin/main -m "Saved papers sync with ourdiu.com" -m "• Contributors and their profiles" && git push origin mobile-v1.7.0
+```
+
+To release somewhere else, set the repository variables `PLAY_TRACK` (`internal`, `alpha`, `beta`, `production`) and `PLAY_RELEASE_STATUS` (`completed`, `draft`, `inProgress`). Each run also keeps the `.aab` as a workflow artifact for 30 days.
 
 The Play Console account is a personal one, so production needs a closed test first: at least 12 testers opted in for 14 days in a row, who actually use the app, before you can apply for production access. Until then, release to the internal and closed tracks.
 

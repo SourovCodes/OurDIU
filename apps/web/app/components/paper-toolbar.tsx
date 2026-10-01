@@ -38,6 +38,7 @@ import {
 import { formatCount } from "~/lib/format";
 import { contributorUrl, paperDetails } from "~/lib/submissions";
 import { cn } from "~/lib/utils";
+import { loginHref } from "~/lib/redirect";
 
 /** Who is looking at the paper, which decides what they can do with it. */
 export type PaperViewer =
@@ -68,10 +69,6 @@ const PILL = "h-10 min-w-10 rounded-full bg-card px-3.5 tabular-nums";
 /** Report, as a round icon button; the name stays for screen readers. */
 const ROUND = "size-10 rounded-full p-0 text-muted-foreground";
 
-function loginHrefFor(location: { pathname: string; search: string }) {
-  return `/login?redirectTo=${encodeURIComponent(location.pathname + location.search)}`;
-}
-
 /**
  * Like and dislike. Visitors are asked to log in; the uploader can't vote on their
  * own paper. The new vote shows straight away; the counts catch up after revalidation.
@@ -97,7 +94,7 @@ function VoteButtons({ submission, viewer }: Omit<PaperProps, "label">) {
           {VOTES.map(({ value, label: voteLabel, icon: Icon }) => (
             <Link
               key={value}
-              to={loginHrefFor(location)}
+              to={loginHref(location)}
               aria-label={`Log in to ${voteLabel.toLowerCase()} (${countFor(value)})`}
               className={cn(ghost, PILL)}
             >
@@ -131,7 +128,15 @@ function VoteButtons({ submission, viewer }: Omit<PaperProps, "label">) {
                 }
                 className={cn(PILL, active && activeVoteClass[value])}
               >
-                <Icon aria-hidden />
+                <Icon
+                  key={String(active)}
+                  className={cn(
+                    active &&
+                      (fetcher.formData ?? fetcher.data) &&
+                      "motion-safe:animate-pop",
+                  )}
+                  aria-hidden
+                />
                 {/* No "0": an empty count reads as a plain button. */}
                 {countFor(value) > 0 && formatCount(countFor(value))}
               </Button>
@@ -163,7 +168,7 @@ function ReportControl({
     : cn(buttonVariants({ variant: "ghost", size: "sm" }), ROUND);
   if (viewer.kind === "anonymous") {
     return (
-      <Link to={loginHrefFor(location)} className={className}>
+      <Link to={loginHref(location)} className={className}>
         <Flag className="size-4" aria-hidden />
         <span className={cn(!text && "sr-only")}>{name}</span>
       </Link>

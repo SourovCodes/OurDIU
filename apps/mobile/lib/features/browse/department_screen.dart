@@ -65,13 +65,15 @@ class _DepartmentScreenState extends ConsumerState<DepartmentScreen> {
         letter = l;
         children.add(
           Padding(
-            padding: const EdgeInsets.fromLTRB(4, 14, 4, 4),
+            padding: const EdgeInsets.fromLTRB(4, 18, 4, 6),
+            // Large, as the website's letter headings.
             child: Text(
               l,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
+              style: expressive(
+                28,
+                width: 125,
+                weight: 820,
                 color: scheme.primary,
-                letterSpacing: 1,
               ),
             ),
           ),

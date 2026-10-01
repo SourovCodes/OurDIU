@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { claimSession, type SessionKind } from "./sessions";
 
 // Shared by the e2e specs. They rely on the local seed data: `pnpm db:migrate && pnpm db:seed`.
@@ -40,6 +40,22 @@ export async function openCombobox(page: Page, name: string) {
   await expect(async () => {
     await combobox.click();
     await expect(combobox).toHaveAttribute("aria-expanded", "true", {
+      timeout: 1_000,
+    });
+  }).toPass();
+}
+
+/**
+ * Opens a dropdown menu from its trigger, retrying a click that landed before
+ * hydration. Each try waits briefly for the menu, so a missed click is retried
+ * instead of hanging on a menu item that never appears.
+ */
+export async function openMenu(trigger: Locator) {
+  await expect(async () => {
+    if ((await trigger.getAttribute("aria-expanded")) !== "true") {
+      await trigger.click();
+    }
+    await expect(trigger).toHaveAttribute("aria-expanded", "true", {
       timeout: 1_000,
     });
   }).toPass();

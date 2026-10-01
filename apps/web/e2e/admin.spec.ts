@@ -4,6 +4,7 @@ import {
   logInAs,
   NEW_USER,
   logOut,
+  openMenu,
   SEED_ADMIN,
   uploadPaperWithNewCourse,
 } from "./helpers";
@@ -262,11 +263,9 @@ test("an admin changes a user's username", async ({ page, browser }) => {
   );
   const row = page.getByRole("row").filter({ hasText: member.email });
   const dialog = page.getByRole("dialog");
-  await expect(async () => {
-    await row.getByRole("button", { name: /^Actions for/ }).click();
-    await page.getByRole("menuitem", { name: "Edit username" }).click();
-    await expect(dialog).toBeVisible({ timeout: 1_000 });
-  }).toPass();
+  await openMenu(row.getByRole("button", { name: /^Actions for/ }));
+  await page.getByRole("menuitem", { name: "Edit username" }).click();
+  await expect(dialog).toBeVisible();
 
   const username = `renamed.${unique()}`;
   await dialog.getByLabel("Username").fill(username.toUpperCase());

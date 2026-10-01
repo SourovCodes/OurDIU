@@ -8,6 +8,9 @@ export default [
   // Question Bank.
   route("questions", "routes/questions-home.tsx"),
   route("questions/browse", "routes/questions.tsx"),
+  route("questions/search-index", "routes/questions-search-index.ts"),
+  route("questions/departments/:id", "routes/questions-department.tsx"),
+  route("questions/courses/:id", "routes/questions-course.tsx"),
   route("questions/:id", "routes/question.tsx"),
   route("questions/contributors", "routes/contributors.tsx"),
   route("questions/contributors/:username", "routes/contributor.tsx"),

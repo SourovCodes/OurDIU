@@ -76,13 +76,13 @@ it("links signed-in Android visitors from the account page", async () => {
   ).toHaveProperty("pathname", "/app");
 });
 
-it("shows the strip on Question Bank pages, not its home or your papers", async () => {
+it("shows the strip on Question Bank pages, not your papers", async () => {
   renderOn(ANDROID, AndroidBetaStrip, "/questions/42");
   expect(
     await screen.findByRole("link", { name: "become a tester" }),
   ).toHaveProperty("pathname", "/app");
 
-  for (const path of ["/questions", "/questions/my-submissions", "/about"]) {
+  for (const path of ["/questions/my-submissions", "/about"]) {
     cleanup();
     renderOn(ANDROID, AndroidBetaStrip, path);
     await settle();

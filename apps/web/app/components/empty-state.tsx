@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { ExamShape, type ExamKind } from "~/components/exam-badge";
 import {
   Empty,
   EmptyContent,
@@ -14,26 +15,40 @@ type EmptyStateProps = {
   title: string;
   description?: React.ReactNode;
   action?: React.ReactNode;
+  /** The exam shape behind the icon, as in the app's state messages. */
+  shape?: ExamKind;
   className?: string;
 };
 
-/** shadcn's Empty, in a dashed frame so it reads as a placeholder for a list. */
+/**
+ * shadcn's Empty, in a dashed frame so it reads as a placeholder for a list; the
+ * icon sits on an exam shape, like the app's state messages.
+ */
 export function EmptyState({
   icon: Icon,
   title,
   description,
   action,
+  shape = "final",
   className,
 }: EmptyStateProps) {
   return (
     <Empty className={cn("border border-dashed", className)}>
       <EmptyHeader>
         {Icon && (
-          <EmptyMedia variant="icon">
-            <Icon />
+          <EmptyMedia className="relative size-20">
+            <ExamShape
+              kind={shape}
+              colored={false}
+              className="absolute inset-0 size-full text-primary-container"
+            />
+            <Icon
+              className="relative size-8 text-primary-container-foreground"
+              aria-hidden
+            />
           </EmptyMedia>
         )}
-        <EmptyTitle>{title}</EmptyTitle>
+        <EmptyTitle className="font-expressive text-xl">{title}</EmptyTitle>
         {description && <EmptyDescription>{description}</EmptyDescription>}
       </EmptyHeader>
       {action && <EmptyContent>{action}</EmptyContent>}

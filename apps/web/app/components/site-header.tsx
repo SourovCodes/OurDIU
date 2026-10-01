@@ -3,12 +3,16 @@ import {
   GraduationCap,
   LogOut,
   Menu,
+  Moon,
+  Search,
   Settings,
   ShieldCheck,
+  Sun,
   Upload,
 } from "lucide-react";
-import { Link, NavLink, useLocation, useSubmit } from "react-router";
+import { Form, Link, useLocation, useSubmit } from "react-router";
 import { ContributorAvatar } from "~/components/contributor-avatar";
+import { CourseSearch, CourseSearchTrigger } from "~/components/course-search";
 import { ProductSwitcher } from "~/components/product-switcher";
 import { ThemeToggle } from "~/components/theme-toggle";
 import { Button, buttonVariants } from "~/components/ui/button";
@@ -29,21 +33,39 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "~/components/ui/sheet";
-import { productAt, type Product } from "~/lib/products";
+import { PRODUCTS, productAt, type Product } from "~/lib/products";
+import { setTheme, useIsDark } from "~/lib/theme";
 import type { SessionUser } from "~/lib/types";
 import { cn } from "~/lib/utils";
 
-type NavItem = { to: string; label: string };
+type NavItem = {
+  to: string;
+  label: string;
+  /** Other paths that count as this item's section, e.g. course pages for Browse. */
+  section?: string[];
+};
 
 /** Each product's own menu; platform pages (hub, account, legal) have none. */
 const NAV_ITEMS: Record<Product["id"], NavItem[]> = {
   questions: [
-    { to: "/questions/browse", label: "Browse" },
+    {
+      to: "/questions/browse",
+      label: "Browse",
+      section: ["/questions/departments/", "/questions/courses/"],
+    },
     { to: "/questions/contributors", label: "Contributors" },
   ],
   routine: [],
   market: [],
 };
+
+function inSection(item: NavItem, pathname: string) {
+  return (
+    pathname === item.to ||
+    pathname.startsWith(`${item.to}/`) ||
+    (item.section ?? []).some((prefix) => pathname.startsWith(prefix))
+  );
+}
 
 /** The current space's name and home: OurDIU itself, or a product. */
 function Brand({ product }: { product: Product | null }) {
@@ -137,7 +159,47 @@ function UserMenu({
   );
 }
 
-/** Below `md` the page links live in a slide-over menu. */
+const MENU_LINK =
+  "flex min-h-11 items-center rounded-full px-3 text-[0.9375rem] font-medium transition-colors hover:bg-accent";
+
+/** Light or dark, as two segments; the header's toggle is hidden on phones. */
+function ThemeSegments() {
+  const dark = useIsDark();
+  return (
+    <div
+      role="group"
+      aria-label="Theme"
+      className="grid grid-cols-2 overflow-hidden rounded-full border"
+    >
+      {(["light", "dark"] as const).map((theme) => {
+        const on = dark === (theme === "dark");
+        const Icon = theme === "dark" ? Moon : Sun;
+        return (
+          <button
+            key={theme}
+            type="button"
+            aria-pressed={on}
+            onClick={() => setTheme(theme)}
+            className={cn(
+              "flex h-10 items-center justify-center gap-2 text-sm font-semibold transition-colors",
+              on
+                ? "bg-primary-container text-primary-container-foreground"
+                : "hover:bg-accent",
+            )}
+          >
+            <Icon className="size-4" aria-hidden />
+            {theme === "dark" ? "Dark" : "Light"}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Below `md` everything lives in a slide-over menu: logging in, the space's pages,
+ * the visitor's own pages, the other spaces and the theme.
+ */
 function MobileMenu({
   user,
   product,
@@ -145,13 +207,22 @@ function MobileMenu({
   user: SessionUser | null;
   product: Product | null;
 }) {
-  const links = [
+  const { pathname } = useLocation();
+  const links: NavItem[] = [
+    ...(product ? [{ to: product.href, label: "Home" }] : []),
     ...(product ? NAV_ITEMS[product.id] : []),
     ...(product?.id === "questions"
-      ? [{ to: "/questions/contribute", label: "Contribute" }]
+      ? [
+          { to: "/questions/contribute", label: "Contribute a paper" },
+          ...(user
+            ? [{ to: "/questions/my-submissions", label: "My submissions" }]
+            : []),
+        ]
       : []),
+    ...(user ? [{ to: "/account", label: "Account settings" }] : []),
     ...(user?.role === "admin" ? [{ to: "/admin", label: "Admin panel" }] : []),
   ];
+  const others = PRODUCTS.filter((p) => p.id !== product?.id);
 
   return (
     <Sheet>
@@ -165,41 +236,115 @@ function MobileMenu({
           <Menu aria-hidden />
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-72">
+      <SheetContent
+        side="right"
+        className="w-80 gap-0 overflow-y-auto rounded-l-3xl"
+      >
         <SheetHeader>
           <SheetTitle>Menu</SheetTitle>
           <SheetDescription className="sr-only">
             Site navigation
           </SheetDescription>
         </SheetHeader>
-        <nav aria-label="Mobile" className="grid gap-1 px-4">
-          {links.map(({ to, label }) => (
-            <SheetClose key={to} asChild>
-              <NavLink
-                to={to}
-                className={({ isActive }) =>
-                  cn(
-                    "rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-foreground",
-                    isActive
-                      ? "bg-accent text-foreground"
-                      : "text-muted-foreground",
-                  )
-                }
-              >
-                {label}
-              </NavLink>
-            </SheetClose>
-          ))}
-        </nav>
-        {!user && (
-          <div className="mt-auto grid border-t p-4">
-            <SheetClose asChild>
-              <Link to="/login" className={buttonVariants()}>
-                Log in
-              </Link>
-            </SheetClose>
+        <div className="flex flex-1 flex-col gap-5 px-3 pb-4">
+          {user ? (
+            <div className="flex items-center gap-3 rounded-2xl bg-muted p-3">
+              <ContributorAvatar name={user.name} image={user.image} />
+              <div className="grid min-w-0 leading-tight">
+                <span className="truncate font-medium">{user.name}</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {user.email}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-3 rounded-2xl bg-muted p-4">
+              <p className="text-sm">
+                Log in to share papers, vote and follow your submissions.
+              </p>
+              <SheetClose asChild>
+                <Link
+                  to="/login"
+                  className={cn(buttonVariants(), "h-11 rounded-full")}
+                >
+                  Log in with Google
+                </Link>
+              </SheetClose>
+            </div>
+          )}
+
+          {links.length > 0 && (
+            <nav aria-label="Mobile" className="grid gap-0.5">
+              {product && (
+                <p className="px-3 pb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  {product.name}
+                </p>
+              )}
+              {links.map((item) => {
+                const active =
+                  item.to === product?.href
+                    ? pathname === item.to
+                    : inSection(item, pathname);
+                return (
+                  <SheetClose key={item.to} asChild>
+                    <Link
+                      to={item.to}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        MENU_LINK,
+                        active &&
+                          "bg-primary-container text-primary-container-foreground hover:bg-primary-container",
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  </SheetClose>
+                );
+              })}
+            </nav>
+          )}
+
+          <nav aria-label="OurDIU" className="grid gap-0.5">
+            <p className="px-3 pb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              OurDIU
+            </p>
+            {others.map((p) => (
+              <SheetClose key={p.id} asChild>
+                <Link to={p.href} className={cn(MENU_LINK, "justify-between")}>
+                  {p.name}
+                  {p.status === "soon" && (
+                    <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+                      Soon
+                    </span>
+                  )}
+                </Link>
+              </SheetClose>
+            ))}
+            {product && (
+              <SheetClose asChild>
+                <Link to="/" className={MENU_LINK}>
+                  All of OurDIU
+                </Link>
+              </SheetClose>
+            )}
+          </nav>
+
+          <div className="mt-auto grid gap-3">
+            <ThemeSegments />
+            {user && (
+              <Form method="post" action="/logout">
+                <Button
+                  type="submit"
+                  variant="ghost"
+                  className="h-11 w-full rounded-full"
+                >
+                  <LogOut aria-hidden />
+                  Log out
+                </Button>
+              </Form>
+            )}
           </div>
-        )}
+        </div>
       </SheetContent>
     </Sheet>
   );
@@ -210,53 +355,85 @@ function MobileMenu({
  * own menu. Products don't link to each other; the switcher is the way between them.
  */
 export function SiteHeader({ user }: { user: SessionUser | null }) {
-  const product = productAt(useLocation().pathname);
+  const { pathname } = useLocation();
+  const product = productAt(pathname);
   const items = product ? NAV_ITEMS[product.id] : [];
+  const questions = product?.id === "questions";
 
   return (
     <header className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur">
-      <div className="container flex h-14 items-center gap-6">
+      <div className="container flex h-14 items-center gap-6 md:h-16">
         <div className="flex min-w-0 items-center gap-1">
           <ProductSwitcher current={product} />
           <Brand product={product} />
         </div>
         <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
-          {items.map(({ to, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                cn(
-                  "px-3 py-1.5 text-sm font-medium transition-colors hover:text-foreground",
-                  isActive ? "text-foreground" : "text-muted-foreground",
-                )
-              }
-            >
-              {label}
-            </NavLink>
-          ))}
+          {items.map((item) => {
+            const active = inSection(item, pathname);
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex h-9 items-center rounded-full px-3.5 text-sm font-medium transition-colors",
+                  active
+                    ? "bg-primary-container font-semibold text-primary-container-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2">
-          {product?.id === "questions" && (
-            <Link
-              to="/questions/contribute"
-              className={cn(
-                buttonVariants({ size: "sm" }),
-                "hidden sm:inline-flex",
-              )}
-            >
-              <Upload aria-hidden />
-              Contribute
-            </Link>
+        <div className="ml-auto flex items-center gap-1 sm:gap-2">
+          {questions && (
+            <>
+              <CourseSearchTrigger className="hidden h-10 w-56 items-center gap-2.5 rounded-full bg-muted pr-2 pl-3.5 text-sm text-muted-foreground transition-colors hover:bg-accent md:flex lg:w-64">
+                <Search className="size-4" aria-hidden />
+                <span className="flex-1">Search courses</span>
+                <kbd className="rounded-md border border-input px-1.5 py-0.5 font-sans text-xs">
+                  /
+                </kbd>
+              </CourseSearchTrigger>
+              <CourseSearchTrigger
+                aria-label="Search courses"
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "icon" }),
+                  "md:hidden",
+                )}
+              >
+                <Search aria-hidden />
+              </CourseSearchTrigger>
+              <Link
+                to="/questions/contribute"
+                className={cn(
+                  buttonVariants({ size: "sm" }),
+                  "hidden h-10 rounded-full px-4 md:inline-flex",
+                )}
+              >
+                <Upload aria-hidden />
+                Contribute
+              </Link>
+              <CourseSearch />
+            </>
           )}
-          <ThemeToggle />
+          <div className="hidden md:block">
+            <ThemeToggle />
+          </div>
           {user ? (
-            <UserMenu user={user} product={product} />
+            <div className="hidden md:block">
+              <UserMenu user={user} product={product} />
+            </div>
           ) : (
             <Link
               to="/login"
-              className={buttonVariants({ variant: "ghost", size: "sm" })}
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "sm" }),
+                "hidden h-10 rounded-full md:inline-flex",
+              )}
             >
               Log in
             </Link>

@@ -2,6 +2,7 @@ import type { Sitemap } from "@ourdiu/shared";
 import { waitUntil } from "cloudflare:workers";
 import { apiGetJson } from "~/lib/api.server";
 import { sitemapXml } from "~/lib/seo";
+import { loadTaxonomy } from "~/lib/taxonomy.server";
 import type { Route } from "./+types/sitemap";
 
 /** Crawlers fetch the sitemap often; it only needs to catch up within the hour. */
@@ -16,8 +17,14 @@ export async function loader({ request }: Route.LoaderArgs) {
   const hit = await cache.match(key);
   if (hit) return hit;
 
-  const sitemap = await apiGetJson<Sitemap>(request, "/api/v1/sitemap");
-  const response = new Response(sitemapXml(origin, sitemap), {
+  const [sitemap, taxonomy] = await Promise.all([
+    apiGetJson<Sitemap>(request, "/api/v1/sitemap"),
+    loadTaxonomy(request),
+  ]);
+  const departmentIds = taxonomy.departments
+    .filter((d) => d.publishedCount > 0)
+    .map((d) => d.id);
+  const response = new Response(sitemapXml(origin, sitemap, departmentIds), {
     headers: {
       "content-type": "application/xml; charset=utf-8",
       "cache-control": `public, max-age=${MAX_AGE_S}`,

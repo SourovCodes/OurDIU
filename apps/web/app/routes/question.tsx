@@ -16,7 +16,9 @@ import {
 import { useDownloadInvite } from "~/components/android-beta";
 import { EmptyState } from "~/components/empty-state";
 import { OtherSemesters } from "~/components/other-semesters";
-import { PageHeader } from "~/components/page-header";
+import { courseHref } from "~/components/course-search";
+import { ExamBadge } from "~/components/exam-badge";
+import { Breadcrumbs } from "~/components/page-header";
 import {
   PaperToolbar,
   ReportNotice,
@@ -24,7 +26,6 @@ import {
 } from "~/components/paper-toolbar";
 import { PdfViewer } from "~/components/pdf-viewer";
 import { PaperSwitcher, SubmissionList } from "~/components/submission-list";
-import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { apiFetch, readJson } from "~/lib/api.server";
 import {
@@ -229,38 +230,68 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Questions", to: "/questions/browse" },
-          { label: question.course.name },
-        ]}
-        title={question.course.name}
-        description={question.department.name}
-        actions={
-          fileUrl && (
-            <>
-              <Button variant="outline" size="sm" asChild>
-                <a href={fileUrl} target="_blank" rel="noopener">
-                  <ExternalLink aria-hidden />
-                  Open in new tab
-                </a>
-              </Button>
-              <Button size="sm" asChild>
-                <a href={fileUrl} download onClick={inviteToApp}>
-                  <Download aria-hidden />
-                  Download
-                </a>
-              </Button>
-            </>
-          )
-        }
-      >
-        <div className="flex flex-wrap gap-2 pt-1">
-          <Badge variant="outline">{question.department.shortName}</Badge>
-          <Badge variant="outline">{question.semester.name}</Badge>
-          <Badge variant="outline">{question.examType.name}</Badge>
+      <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex min-w-0 items-center gap-4">
+          <ExamBadge
+            examType={question.examType.name}
+            size={64}
+            className="max-sm:hidden"
+          />
+          <div className="min-w-0 space-y-2">
+            <Breadcrumbs
+              crumbs={[
+                { label: "Questions", to: "/questions" },
+                {
+                  label: question.department.shortName,
+                  to: `/questions/departments/${question.department.id}`,
+                },
+                {
+                  label: question.course.name,
+                  to: courseHref(question.course.id),
+                },
+                {
+                  label: `${question.examType.name}, ${question.semester.name}`,
+                },
+              ]}
+            />
+            <h1 className="font-expressive text-3xl text-balance sm:text-4xl">
+              {question.course.name}
+            </h1>
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <ExamBadge
+                examType={question.examType.name}
+                size={22}
+                className="sm:hidden"
+              />
+              <span>
+                <span title={question.department.name}>
+                  {question.department.shortName}
+                </span>
+                {" · "}
+                {question.examType.name}
+                {" · "}
+                {question.semester.name}
+              </span>
+            </p>
+          </div>
         </div>
-      </PageHeader>
+        {fileUrl && (
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Button variant="outline" className="rounded-full" asChild>
+              <a href={fileUrl} target="_blank" rel="noopener">
+                <ExternalLink aria-hidden />
+                Open in new tab
+              </a>
+            </Button>
+            <Button className="rounded-full" asChild>
+              <a href={fileUrl} download onClick={inviteToApp}>
+                <Download aria-hidden />
+                Download
+              </a>
+            </Button>
+          </div>
+        )}
+      </header>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         {/* The paper comes first on small screens too; the lists follow it. */}
@@ -312,7 +343,7 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
         </aside>
 
         <OtherSemesters
-          course={question.course.name}
+          course={question.course}
           examType={question.examType.name}
           questions={otherSemesters}
         />

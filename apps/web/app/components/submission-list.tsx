@@ -1,5 +1,12 @@
 import type { Submission } from "@ourdiu/shared";
-import { Check, Eye, FileText, ThumbsDown, ThumbsUp } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Eye,
+  FileText,
+  ThumbsDown,
+  ThumbsUp,
+} from "lucide-react";
 import { Link } from "react-router";
 import { StatusBadge } from "~/components/status-badge";
 import {
@@ -51,7 +58,7 @@ export function SubmissionList({
     <Card className="gap-4 pb-2">
       <CardHeader>
         <CardTitle>
-          <h2>Submissions</h2>
+          <h2>Papers for this exam</h2>
         </CardTitle>
         <CardDescription>
           {plural(published.length, "published paper")}
@@ -73,8 +80,9 @@ export function SubmissionList({
                   preventScrollReset
                   aria-current={active ? "true" : undefined}
                   className={cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none",
-                    active && "bg-accent",
+                    "flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none",
+                    active &&
+                      "bg-primary-container text-primary-container-foreground hover:bg-primary-container focus-visible:bg-primary-container",
                   )}
                 >
                   <FileText
@@ -154,8 +162,9 @@ export function SubmissionList({
 }
 
 /**
- * The published papers as a row of chips, for small screens where the full list sits
- * below the viewer. Links, like the list, so switching works without JS.
+ * On small screens, where the full list sits below the viewer: "Paper 1 of 3",
+ * whose it is, and a disclosure listing the others. A native <details> of links,
+ * so switching works without JS.
  */
 export function PaperSwitcher({
   submissions,
@@ -164,33 +173,72 @@ export function PaperSwitcher({
   const published = submissions.filter((s) => s.status === "published");
   if (published.length < 2) return null;
   const titles = paperTitles(published);
+  const index = Math.max(
+    0,
+    published.findIndex((s) => s.id === selectedId),
+  );
+  const selected = published[index]!;
 
   return (
-    <nav aria-label="Papers" className="-mx-4 overflow-x-auto px-4 lg:hidden">
-      <ul className="flex w-max gap-2 pb-1">
-        {published.map((submission) => {
-          const active = submission.id === selectedId;
-          return (
-            <li key={submission.id}>
-              <Link
-                to={`?submission=${encodeURIComponent(submission.id)}`}
-                replace
-                preventScrollReset
-                aria-current={active ? "true" : undefined}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm whitespace-nowrap transition-colors hover:bg-accent",
-                  active &&
-                    "border-primary bg-primary text-primary-foreground hover:bg-primary",
-                )}
-              >
-                <span className="max-w-48 truncate font-medium">
-                  {titles.get(submission.id)}
-                </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
+    <details className="group rounded-3xl bg-muted lg:hidden">
+      <summary className="flex min-h-13 cursor-pointer list-none items-center gap-3 rounded-3xl py-2 pr-4 pl-2 [&::-webkit-details-marker]:hidden">
+        <span
+          aria-hidden
+          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
+        >
+          {index + 1}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">
+            Paper {index + 1} of {published.length}
+          </span>
+          <span className="block truncate text-xs text-muted-foreground">
+            {titles.get(selected.id)}
+          </span>
+        </span>
+        <span className="flex items-center gap-1 text-sm font-semibold text-primary">
+          Switch
+          <ChevronDown
+            className="size-4 transition-transform group-open:rotate-180"
+            aria-hidden
+          />
+        </span>
+      </summary>
+      <nav aria-label="Papers" className="px-2 pb-2">
+        <ul className="grid gap-0.5">
+          {published.map((submission, i) => {
+            const active = submission.id === selectedId;
+            return (
+              <li key={submission.id}>
+                <Link
+                  to={`?submission=${encodeURIComponent(submission.id)}`}
+                  replace
+                  preventScrollReset
+                  aria-current={active ? "true" : undefined}
+                  onClick={(event) =>
+                    event.currentTarget
+                      .closest("details")
+                      ?.removeAttribute("open")
+                  }
+                  className={cn(
+                    "flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm transition-colors hover:bg-accent",
+                    active &&
+                      "bg-primary-container text-primary-container-foreground hover:bg-primary-container",
+                  )}
+                >
+                  <span className="w-5 text-center text-xs font-semibold text-muted-foreground tabular-nums">
+                    {i + 1}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate font-medium">
+                    {titles.get(submission.id)}
+                  </span>
+                  <Stat icon={Eye} value={submission.viewCount} label="views" />
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </details>
   );
 }

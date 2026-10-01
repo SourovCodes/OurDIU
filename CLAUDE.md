@@ -8,7 +8,7 @@ Products: the Question Bank (`/questions`, moved in from diuqbank.com), the Clas
 
 - `pnpm check` – run before considering work done (lint, format, typecheck, tests).
 - `pnpm --filter @ourdiu/api test` / `pnpm --filter @ourdiu/web test` – package tests.
-- `pnpm test:e2e` – Playwright; needs `pnpm db:migrate && pnpm db:seed` first (tests rely on `apps/api/seeds/dev.sql`).
+- `pnpm test:e2e` – Playwright; needs `pnpm db:migrate && pnpm db:seed` first (tests rely on `apps/api/seeds/dev.sql`). It starts its own dev server (stop `pnpm dev` first) with `.dev.vars.e2e`, a copy of `.dev.vars` without the Gemini and compressor keys, so tests never call the paid AI services.
 - After editing `apps/api/src/db/schema/*`: `pnpm db:generate`, review the SQL, then `pnpm db:migrate`. Never edit a migration that has been applied anywhere: the migrations continue the question bank's production history (`0000`–`0006` are applied there). For SQLite table rebuilds, drizzle-kit may copy newly added columns from the old table (`SELECT "new_col" …` silently yields the string literal) — trim the INSERT to existing columns.
 - Triggers (and other SQL drizzle-kit can't model) go in a custom migration: `pnpm --filter @ourdiu/api exec drizzle-kit generate --custom --name=<name>`, separated with `--> statement-breakpoint` as in `0001_triggers.sql`.
 - After changing an API route or a schema in `packages/shared`: `pnpm openapi` and commit `apps/api/openapi.json` (a test checks it's current). New object schemas that public endpoints return get a `.meta({ id: "Name" })`; make named schemas nullable with `nullableRef`, never `.nullable()`.

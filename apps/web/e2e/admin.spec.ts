@@ -41,7 +41,9 @@ test("an admin approves a proposed course and publishes the paper", async ({
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Dashboard");
 
   // The admin panel has its own shell, without the site header.
-  await expect(page.getByRole("link", { name: "Contribute" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Share a paper" })).toHaveCount(
+    0,
+  );
   await page.getByRole("link", { name: "Review submissions" }).click();
   await expect(page).toHaveURL(/\/admin\/questions\/submissions$/);
   // A click that lands before hydration is dropped, so retry until it navigates.

@@ -11,7 +11,7 @@ import {
 } from "drizzle-orm/sqlite-core";
 import { user } from "./auth";
 import { timestamps } from "./columns";
-import { submissions } from "./questions";
+import { questions, submissions } from "./questions";
 
 /**
  * One like (1) or dislike (-1) per user per submission. Triggers keep
@@ -66,6 +66,28 @@ export const submissionReports = sqliteTable(
       t.status,
     ),
     index("submission_reports_reporter_id_idx").on(t.reporterId),
+  ],
+);
+
+/**
+ * Questions a user saved (bookmarked) to come back to, on the website or in the app.
+ * Removed with the user or the question.
+ */
+export const savedQuestions = sqliteTable(
+  "saved_questions",
+  {
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    questionId: integer()
+      .notNull()
+      .references(() => questions.id, { onDelete: "cascade" }),
+    createdAt: timestamps.createdAt,
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.questionId] }),
+    index("saved_questions_user_id_created_at_idx").on(t.userId, t.createdAt),
+    index("saved_questions_question_id_idx").on(t.questionId),
   ],
 );
 

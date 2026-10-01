@@ -11,6 +11,7 @@ import 'clients/submissions_client.dart';
 import 'clients/contributors_client.dart';
 import 'clients/account_client.dart';
 import 'clients/engagement_client.dart';
+import 'clients/saved_client.dart';
 import 'clients/profile_images_client.dart';
 
 /// OurDIU API `v1.0.0`
@@ -29,6 +30,7 @@ class QbApi {
   ContributorsClient? _contributors;
   AccountClient? _account;
   EngagementClient? _engagement;
+  SavedClient? _saved;
   ProfileImagesClient? _profileImages;
 
   SystemClient get system => _system ??= SystemClient(_dio, baseUrl: _baseUrl);
@@ -50,6 +52,8 @@ class QbApi {
 
   EngagementClient get engagement =>
       _engagement ??= EngagementClient(_dio, baseUrl: _baseUrl);
+
+  SavedClient get saved => _saved ??= SavedClient(_dio, baseUrl: _baseUrl);
 
   ProfileImagesClient get profileImages =>
       _profileImages ??= ProfileImagesClient(_dio, baseUrl: _baseUrl);

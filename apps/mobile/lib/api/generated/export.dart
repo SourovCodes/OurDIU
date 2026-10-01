@@ -10,6 +10,7 @@ export 'clients/submissions_client.dart';
 export 'clients/contributors_client.dart';
 export 'clients/account_client.dart';
 export 'clients/engagement_client.dart';
+export 'clients/saved_client.dart';
 export 'clients/profile_images_client.dart';
 // Data classes
 export 'models/taxonomy.dart';
@@ -62,6 +63,9 @@ export 'models/created_report.dart';
 export 'models/create_report_input.dart';
 export 'models/question_interactions.dart';
 export 'models/question_vote.dart';
+export 'models/saved_question_list.dart';
+export 'models/saved_question.dart';
+export 'models/save_questions_input.dart';
 export 'models/avatar.dart';
 export 'models/get_api_v1_health_response.dart';
 export 'models/api_v1_me_submissions_id_classification_request_body.dart';

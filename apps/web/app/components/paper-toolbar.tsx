@@ -45,16 +45,11 @@ export type PaperViewer =
   | { kind: "uploader" }
   | { kind: "member"; vote: VoteValue | null; reported: boolean };
 
-type PaperToolbarProps = {
+type PaperProps = {
   submission: Submission;
   /** e.g. "Section A · Batch 61" or "By Ayesha Rahman"; shown when there's no uploader. */
   label: string;
   viewer: PaperViewer;
-  /** Which of the question's papers this is, e.g. 1 of 3. */
-  position: { index: number; total: number };
-  /** The paper's file, for the "Full screen" button that phones get here. */
-  fileUrl: string;
-  className?: string;
 };
 
 const VOTES = [
@@ -67,165 +62,239 @@ const activeVoteClass: Record<VoteValue, string> = {
   [-1]: "bg-destructive/15 text-destructive hover:bg-destructive/20 hover:text-destructive",
 };
 
-/** A vote, as a pill on the viewer's bar. */
-const PILL =
-  "h-9 min-w-9 rounded-full bg-card px-3 tabular-nums max-lg:bg-muted";
+/** A vote, as a pill. */
+const PILL = "h-10 min-w-10 rounded-full bg-card px-3.5 tabular-nums";
 
 /** Report, as a round icon button; the name stays for screen readers. */
-const ROUND = "size-9 rounded-full p-0 text-muted-foreground";
+const ROUND = "size-10 rounded-full p-0 text-muted-foreground";
 
-/** Views, likes, dislikes and reporting for the paper shown in the viewer. */
+function loginHrefFor(location: { pathname: string; search: string }) {
+  return `/login?redirectTo=${encodeURIComponent(location.pathname + location.search)}`;
+}
+
 /**
- * The bar of the paper in the viewer: which paper, whose, and voting and reporting.
- * From `lg` it tops the viewer; on phones it sits at the bottom of the screen.
+ * Like and dislike. Visitors are asked to log in; the uploader can't vote on their
+ * own paper. The new vote shows straight away; the counts catch up after revalidation.
  */
-export function PaperToolbar({
-  submission,
-  label,
-  viewer,
-  position,
-  fileUrl,
-  className,
-}: PaperToolbarProps) {
+function VoteButtons({ submission, viewer }: Omit<PaperProps, "label">) {
   const location = useLocation();
   const fetcher = useFetcher<PaperActionResult>({
     key: `vote-${submission.id}`,
   });
-
-  // Show the new vote immediately; the loader's counts catch up after revalidation.
   const current = viewer.kind === "member" ? viewer.vote : null;
   const pending = parseVoteValue(fetcher.formData?.get("value"));
   const myVote = pending === undefined ? current : pending;
   const counts = withVote(submission, current, myVote);
   const countFor = (value: VoteValue) =>
     value === 1 ? counts.likeCount : counts.dislikeCount;
-
-  const { uploader } = submission;
-  const details = paperDetails(submission);
-  const loginHref = `/login?redirectTo=${encodeURIComponent(location.pathname + location.search)}`;
   const ghost = buttonVariants({ variant: "ghost", size: "sm" });
   const voteError = fetcher.data?.ok === false ? fetcher.data.error : null;
 
   return (
-    <div
-      className={cn(
-        "flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5 lg:border-b lg:pl-5",
-        "max-lg:border-t max-lg:bg-background/95 max-lg:backdrop-blur",
-        className,
-      )}
-    >
-      {/* Which paper, then whose and how to tell it apart, in one line. */}
-      <p className="flex min-w-0 flex-1 items-baseline gap-x-2 text-sm">
-        <span className="shrink-0 font-semibold max-lg:hidden">
-          Paper {position.index + 1} of {position.total}
-        </span>
-        <span className="min-w-0 truncate text-muted-foreground">
-          {uploader ? (
-            <>
-              <span className="max-lg:hidden">by </span>
-              {/* Just the avatar on phones, where the bar is narrow. */}
-              <Link
-                to={contributorUrl(uploader.username)}
-                className="inline-flex items-center align-middle font-medium text-foreground hover:underline"
-              >
-                <ContributorAvatar
-                  name={uploader.name}
-                  image={uploader.image}
-                  size="sm"
-                  className="lg:hidden"
-                />
-                <span className="max-lg:sr-only">{uploader.name}</span>
-              </Link>
-              {details && <span className="max-lg:hidden"> · {details}</span>}
-            </>
-          ) : (
-            <span title={label} className="max-lg:sr-only">
-              {label}
-            </span>
-          )}
-        </span>
-      </p>
-
-      <div className="flex items-center gap-1.5">
-        {viewer.kind === "anonymous" ? (
-          <>
-            {VOTES.map(({ value, label: voteLabel, icon: Icon }) => (
-              <Link
+    <>
+      {viewer.kind === "anonymous" ? (
+        <div className="flex items-center gap-1.5">
+          {VOTES.map(({ value, label: voteLabel, icon: Icon }) => (
+            <Link
+              key={value}
+              to={loginHrefFor(location)}
+              aria-label={`Log in to ${voteLabel.toLowerCase()} (${countFor(value)})`}
+              className={cn(ghost, PILL)}
+            >
+              <Icon aria-hidden />
+              {countFor(value) > 0 && formatCount(countFor(value))}
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <fetcher.Form method="post" className="flex items-center gap-1.5">
+          <input type="hidden" name="intent" value="vote" />
+          <input type="hidden" name="submissionId" value={submission.id} />
+          {VOTES.map(({ value, label: voteLabel, icon: Icon }) => {
+            const active = myVote === value;
+            return (
+              <Button
                 key={value}
-                to={loginHref}
-                aria-label={`Log in to ${voteLabel.toLowerCase()} (${countFor(value)})`}
-                className={cn(ghost, PILL)}
+                type="submit"
+                name="value"
+                // Pressing the active vote again clears it.
+                value={active ? "none" : String(value)}
+                variant="ghost"
+                size="sm"
+                aria-pressed={active}
+                aria-label={`${voteLabel} (${countFor(value)})`}
+                disabled={viewer.kind === "uploader"}
+                title={
+                  viewer.kind === "uploader"
+                    ? "You can’t vote on your own paper"
+                    : undefined
+                }
+                className={cn(PILL, active && activeVoteClass[value])}
               >
                 <Icon aria-hidden />
+                {/* No "0": an empty count reads as a plain button. */}
                 {countFor(value) > 0 && formatCount(countFor(value))}
-              </Link>
-            ))}
-            <Link to={loginHref} className={cn(ghost, ROUND)}>
-              <Flag aria-hidden />
-              <span className="sr-only">Report</span>
-            </Link>
-          </>
-        ) : (
-          <>
-            <fetcher.Form method="post" className="flex items-center gap-1">
-              <input type="hidden" name="intent" value="vote" />
-              <input type="hidden" name="submissionId" value={submission.id} />
-              {VOTES.map(({ value, label: voteLabel, icon: Icon }) => {
-                const active = myVote === value;
-                return (
-                  <Button
-                    key={value}
-                    type="submit"
-                    name="value"
-                    // Pressing the active vote again clears it.
-                    value={active ? "none" : String(value)}
-                    variant="ghost"
-                    size="sm"
-                    aria-pressed={active}
-                    aria-label={`${voteLabel} (${countFor(value)})`}
-                    disabled={viewer.kind === "uploader"}
-                    title={
-                      viewer.kind === "uploader"
-                        ? "You can’t vote on your own paper"
-                        : undefined
-                    }
-                    className={cn(PILL, active && activeVoteClass[value])}
-                  >
-                    <Icon aria-hidden />
-                    {/* No "0": an empty count reads as a plain button. */}
-                    {countFor(value) > 0 && formatCount(countFor(value))}
-                  </Button>
-                );
-              })}
-            </fetcher.Form>
-            {viewer.kind === "member" && (
-              <ReportDialog
-                submissionId={submission.id}
-                label={label}
-                reported={viewer.reported}
-              />
-            )}
-          </>
-        )}
-        <a
-          href={fileUrl}
-          target="_blank"
-          rel="noopener"
-          className={cn(
-            buttonVariants({ size: "sm" }),
-            "ml-1 h-9 rounded-full lg:hidden",
-          )}
-        >
-          <ExternalLink aria-hidden />
-          Full screen
-        </a>
-      </div>
-
+              </Button>
+            );
+          })}
+        </fetcher.Form>
+      )}
       {voteError && (
-        <p role="alert" className="w-full px-1 text-xs text-destructive">
+        <p role="alert" className="w-full text-xs text-destructive">
           {voteError}
         </p>
       )}
+    </>
+  );
+}
+
+/** Reporting: a round icon on the phone bar, a line of text beside the paper. */
+function ReportControl({
+  submission,
+  label,
+  viewer,
+  text = false,
+}: PaperProps & { text?: boolean }) {
+  const location = useLocation();
+  if (viewer.kind === "uploader") return null;
+  const name = text ? "Report a problem with this paper" : "Report";
+  const className = text
+    ? "inline-flex items-center gap-2 rounded-full px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground"
+    : cn(buttonVariants({ variant: "ghost", size: "sm" }), ROUND);
+  if (viewer.kind === "anonymous") {
+    return (
+      <Link to={loginHrefFor(location)} className={className}>
+        <Flag className="size-4" aria-hidden />
+        <span className={cn(!text && "sr-only")}>{name}</span>
+      </Link>
+    );
+  }
+  return (
+    <ReportDialog
+      submissionId={submission.id}
+      label={label}
+      reported={viewer.reported}
+      name={name}
+      text={text}
+      className={className}
+    />
+  );
+}
+
+/**
+ * Above the paper from `lg`: whose it is and how to tell it apart, and which of
+ * the question's papers it is.
+ */
+export function PaperInfo({
+  submission,
+  label,
+  position,
+  className,
+}: {
+  submission: Submission;
+  label: string;
+  position: { index: number; total: number };
+  className?: string;
+}) {
+  const { uploader } = submission;
+  const details = paperDetails(submission);
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-between gap-3 px-5 pt-4 pb-3 text-sm",
+        className,
+      )}
+    >
+      <p className="min-w-0 truncate text-muted-foreground">
+        {uploader ? (
+          <>
+            {details && `${details} · `}shared by{" "}
+            <Link
+              to={contributorUrl(uploader.username)}
+              className="font-medium text-foreground hover:underline"
+            >
+              {uploader.name}
+            </Link>
+          </>
+        ) : (
+          label
+        )}
+      </p>
+      {position.total > 1 && (
+        <span className="shrink-0 rounded-full bg-card px-3 py-1 text-xs font-medium">
+          Paper {position.index + 1} of {position.total}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** Beside the paper from `lg`: "Was this paper useful?" and reporting. */
+export function PaperFeedback({ submission, label, viewer }: PaperProps) {
+  return (
+    <div className="space-y-3">
+      <section
+        aria-label="Feedback"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-surface py-3 pr-3 pl-5"
+      >
+        <h2 className="text-sm font-semibold">Was this paper useful?</h2>
+        <VoteButtons submission={submission} viewer={viewer} />
+      </section>
+      <ReportControl
+        submission={submission}
+        label={label}
+        viewer={viewer}
+        text
+      />
+    </div>
+  );
+}
+
+/**
+ * On phones, a bar at the bottom of the screen while the paper is in view: whose it
+ * is (their avatar), voting, reporting and full screen.
+ */
+export function PaperToolbar({
+  submission,
+  label,
+  viewer,
+  fileUrl,
+  className,
+}: PaperProps & { fileUrl: string; className?: string }) {
+  const { uploader } = submission;
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t bg-background/95 px-3 py-2.5 backdrop-blur [&_[data-slot=button]]:bg-surface",
+        className,
+      )}
+    >
+      {uploader && (
+        <Link
+          to={contributorUrl(uploader.username)}
+          className="mr-auto inline-flex items-center"
+        >
+          <ContributorAvatar
+            name={uploader.name}
+            image={uploader.image}
+            size="sm"
+          />
+          <span className="sr-only">{uploader.name}</span>
+        </Link>
+      )}
+      <div className={cn("flex items-center gap-1.5", !uploader && "mr-auto")}>
+        <VoteButtons submission={submission} viewer={viewer} />
+      </div>
+      <ReportControl submission={submission} label={label} viewer={viewer} />
+      <a
+        href={fileUrl}
+        target="_blank"
+        rel="noopener"
+        className={cn(buttonVariants(), "ml-1")}
+      >
+        <ExternalLink aria-hidden />
+        Full screen
+      </a>
     </div>
   );
 }
@@ -234,10 +303,16 @@ function ReportDialog({
   submissionId,
   label,
   reported,
+  name,
+  text,
+  className,
 }: {
   submissionId: number;
   label: string;
   reported: boolean;
+  name: string;
+  text: boolean;
+  className: string;
 }) {
   const fetcher = useFetcher<PaperActionResult>({ key: REPORT_FETCHER_KEY });
   const [open, setOpen] = useState(false);
@@ -249,20 +324,22 @@ function ReportDialog({
 
   if (reported || sending) {
     return (
-      <Button variant="ghost" size="sm" className={ROUND} disabled>
-        <Flag aria-hidden />
-        <span className="sr-only">{sending ? "Reporting…" : "Reported"}</span>
-      </Button>
+      <button type="button" className={cn(className, "opacity-60")} disabled>
+        <Flag className="size-4" aria-hidden />
+        <span className={cn(!text && "sr-only")}>
+          {sending ? "Reporting…" : "Reported"}
+        </span>
+      </button>
     );
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className={ROUND}>
-          <Flag aria-hidden />
-          <span className="sr-only">Report</span>
-        </Button>
+        <button type="button" className={className}>
+          <Flag className="size-4" aria-hidden />
+          <span className={cn(!text && "sr-only")}>{name}</span>
+        </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

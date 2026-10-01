@@ -1471,12 +1471,16 @@
             "items": {
               "type": "integer"
             }
+          },
+          "saved": {
+            "type": "boolean"
           }
         },
         "required": [
           "userId",
           "votes",
-          "reportedSubmissionIds"
+          "reportedSubmissionIds",
+          "saved"
         ]
       },
       "QuestionVote": {
@@ -1492,6 +1496,78 @@
         "required": [
           "submissionId",
           "value"
+        ]
+      },
+      "SavedQuestionList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SavedQuestion"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "SavedQuestion": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "department": {
+            "$ref": "#/components/schemas/Department"
+          },
+          "course": {
+            "$ref": "#/components/schemas/QuestionCourse"
+          },
+          "semester": {
+            "$ref": "#/components/schemas/Semester"
+          },
+          "examType": {
+            "$ref": "#/components/schemas/ExamType"
+          },
+          "submissionCounts": {
+            "$ref": "#/components/schemas/SubmissionCounts"
+          },
+          "viewCount": {
+            "type": "integer"
+          },
+          "savedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "department",
+          "course",
+          "semester",
+          "examType",
+          "submissionCounts",
+          "viewCount",
+          "savedAt"
+        ]
+      },
+      "SaveQuestionsInput": {
+        "type": "object",
+        "properties": {
+          "questionIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "minItems": 1,
+            "maxItems": 500
+          }
+        },
+        "required": [
+          "questionIds"
         ]
       },
       "Avatar": {
@@ -6765,6 +6841,204 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/saved": {
+      "get": {
+        "tags": [
+          "Saved"
+        ],
+        "summary": "Your saved questions",
+        "description": "Questions you saved (bookmarked), most recently saved first. The same list on the website and in the app.",
+        "responses": {
+          "200": {
+            "description": "Your saved questions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedQuestionList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Saved"
+        ],
+        "summary": "Save several questions",
+        "description": "For the app's saved list when the user signs in. Questions already saved stay; unknown ids are ignored.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveQuestionsInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Your saved questions now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedQuestionList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Too many saved questions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/saved/{id}": {
+      "put": {
+        "tags": [
+          "Saved"
+        ],
+        "summary": "Save a question",
+        "description": "Saving one that is already saved changes nothing.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Saved"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Question not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Too many saved questions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Saved"
+        ],
+        "summary": "Remove a saved question",
+        "description": "Removing one that isn't saved changes nothing.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
           },
           "401": {
             "description": "Not signed in",

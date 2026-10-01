@@ -1,4 +1,5 @@
 import {
+  Bookmark,
   FileText,
   GraduationCap,
   LogIn,
@@ -9,7 +10,7 @@ import {
   Settings,
   ShieldCheck,
   Sun,
-  Upload,
+  Plus,
 } from "lucide-react";
 import { Form, Link, useLocation, useSubmit } from "react-router";
 import { ContributorAvatar } from "~/components/contributor-avatar";
@@ -52,8 +53,9 @@ const NAV_ITEMS: Record<Product["id"], NavItem[]> = {
     {
       to: "/questions/departments",
       label: "Browse",
-      section: ["/questions/browse", "/questions/courses/"],
+      section: ["/questions/courses/"],
     },
+    { to: "/questions/browse", label: "All papers" },
     { to: "/questions/contributors", label: "Contributors" },
   ],
   routine: [],
@@ -74,12 +76,14 @@ function Brand({ product }: { product: Product | null }) {
   return (
     <Link
       to={product?.href ?? "/"}
-      className="flex min-w-0 items-center gap-2 font-semibold tracking-tight"
+      className="flex min-w-0 shrink-0 items-center gap-2.5 text-primary"
     >
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <Icon className="size-4" aria-hidden />
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+        <Icon className="size-5" aria-hidden />
       </span>
-      <span className="truncate">{product?.name ?? "OurDIU"}</span>
+      <span className="font-expressive text-xl tracking-tight whitespace-nowrap">
+        {product?.name ?? "OurDIU"}
+      </span>
     </Link>
   );
 }
@@ -214,7 +218,8 @@ function MobileMenu({
     ...(product ? NAV_ITEMS[product.id] : []),
     ...(product?.id === "questions"
       ? [
-          { to: "/questions/contribute", label: "Contribute a paper" },
+          { to: "/questions/saved", label: "Saved" },
+          { to: "/questions/contribute", label: "Share a paper" },
           ...(user
             ? [{ to: "/questions/my-submissions", label: "My submissions" }]
             : []),
@@ -231,7 +236,7 @@ function MobileMenu({
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden"
+          className="lg:hidden"
           aria-label="Open menu"
         >
           <Menu aria-hidden />
@@ -362,13 +367,13 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
   const questions = product?.id === "questions";
 
   return (
-    <header className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur">
-      <div className="container flex h-14 items-center gap-6 md:h-16">
+    <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur">
+      <div className="container flex h-16 items-center gap-6">
         <div className="flex min-w-0 items-center gap-1">
           <ProductSwitcher current={product} />
           <Brand product={product} />
         </div>
-        <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+        <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
           {items.map((item) => {
             const active = inSection(item, pathname);
             return (
@@ -377,10 +382,10 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
                 to={item.to}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-9 items-center rounded-full px-3.5 text-sm font-medium transition-colors",
+                  "flex h-10 items-center rounded-full px-4 text-[0.9375rem] font-medium whitespace-nowrap transition-colors",
                   active
                     ? "bg-primary-container font-semibold text-primary-container-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                    : "hover:bg-accent",
                 )}
               >
                 {item.label}
@@ -392,7 +397,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
           {questions && (
             <>
-              <CourseSearchTrigger className="hidden h-10 w-56 items-center gap-2.5 rounded-full bg-muted pr-2 pl-3.5 text-sm text-muted-foreground transition-colors hover:bg-accent md:flex lg:w-64">
+              <CourseSearchTrigger className="hidden h-10 w-60 items-center gap-2.5 rounded-full bg-surface pr-2 pl-4 text-sm text-muted-foreground transition-colors hover:bg-surface-high xl:flex">
                 <Search className="size-4" aria-hidden />
                 <span className="flex-1">Search courses</span>
                 <kbd className="rounded-md border border-input px-1.5 py-0.5 font-sans text-xs">
@@ -403,27 +408,40 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
                 aria-label="Search courses"
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "icon" }),
-                  "md:hidden",
+                  "xl:hidden",
                 )}
               >
                 <Search aria-hidden />
               </CourseSearchTrigger>
+              <CourseSearch />
               <Link
-                to="/questions/contribute"
+                to="/questions/saved"
+                aria-label="Saved papers"
+                title="Saved papers"
+                aria-current={
+                  pathname === "/questions/saved" ? "page" : undefined
+                }
                 className={cn(
-                  buttonVariants({ size: "sm" }),
-                  "hidden h-10 rounded-full px-4 md:inline-flex",
+                  buttonVariants({ variant: "ghost", size: "icon" }),
+                  "aria-[current=page]:bg-primary-container aria-[current=page]:text-primary-container-foreground max-sm:hidden",
                 )}
               >
-                <Upload aria-hidden />
-                Contribute
+                <Bookmark aria-hidden />
               </Link>
-              <CourseSearch />
             </>
           )}
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             <ThemeToggle />
           </div>
+          {questions && (
+            <Link
+              to="/questions/contribute"
+              className={cn(buttonVariants(), "hidden sm:inline-flex")}
+            >
+              <Plus aria-hidden />
+              Share a paper
+            </Link>
+          )}
           {user ? (
             <UserMenu user={user} product={product} />
           ) : (
@@ -431,12 +449,12 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
             <Link
               to="/login"
               className={cn(
-                buttonVariants({ variant: "ghost", size: "sm" }),
-                "size-9 rounded-full p-0 md:h-10 md:w-auto md:px-3",
+                buttonVariants({ variant: "outline" }),
+                "max-sm:size-10 max-sm:border-0 max-sm:p-0 max-sm:text-foreground",
               )}
             >
-              <LogIn className="md:hidden" aria-hidden />
-              <span className="max-md:sr-only">Log in</span>
+              <LogIn className="sm:hidden" aria-hidden />
+              <span className="max-sm:sr-only">Log in</span>
             </Link>
           )}
           <MobileMenu user={user} product={product} />

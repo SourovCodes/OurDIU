@@ -1,9 +1,7 @@
-import "@fontsource-variable/inter";
-// Headings (`font-expressive`): the weight and width axes; browsers fetch it only
-// on pages that use it.
+// Roboto Flex, as in the app: the weight and width axes (headings are wide).
 import "@fontsource-variable/roboto-flex/standard.css";
 // The one subset every page needs; the CSS alone would find it only after it loads.
-import interLatin from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
+import robotoFlexLatin from "@fontsource-variable/roboto-flex/files/roboto-flex-latin-standard-normal.woff2?url";
 import { FileQuestion, GraduationCap, TriangleAlert } from "lucide-react";
 import {
   isRouteErrorResponse,
@@ -44,7 +42,7 @@ export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
   {
     rel: "preload",
-    href: interLatin,
+    href: robotoFlexLatin,
     as: "font",
     type: "font/woff2",
     crossOrigin: "anonymous",
@@ -54,6 +52,7 @@ export const links: Route.LinksFunction = () => [
 export async function loader({ request }: Route.LoaderArgs) {
   return { user: await getUser(request) };
 }
+export type RootLoader = typeof loader;
 
 // The session only changes through form actions (log in, sign up, log out), so
 // plain navigations don't need to re-fetch it.
@@ -113,32 +112,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <main className="@container/main container flex-1 py-8">
               {children}
             </main>
-            <footer className="border-t">
-              <div className="container grid gap-4 py-6 text-sm text-muted-foreground sm:grid-cols-[1fr_auto] sm:items-center">
-                <p className="flex items-center gap-2">
-                  <span className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                    <GraduationCap className="size-3.5" aria-hidden />
-                  </span>
-                  OurDIU · Free forever, no ads
-                </p>
-                <nav aria-label="Footer" className="flex flex-wrap gap-4">
-                  {PRODUCTS.map(({ id, href, name }) => (
-                    <Link key={id} to={href} className="hover:text-foreground">
-                      {name}
-                    </Link>
-                  ))}
-                  <Link to="/app" className="hover:text-foreground">
-                    Android app
+            <footer className="mt-12 bg-surface-low">
+              <div className="container grid gap-10 py-12 md:grid-cols-[1fr_auto]">
+                <div className="max-w-sm space-y-3">
+                  <Link
+                    to="/"
+                    className="inline-flex items-center gap-2 font-expressive text-xl text-primary"
+                  >
+                    <GraduationCap className="size-6" aria-hidden />
+                    OurDIU
                   </Link>
-                  <Link to="/about" className="hover:text-foreground">
-                    About
-                  </Link>
-                  <Link to="/contact" className="hover:text-foreground">
-                    Contact
-                  </Link>
-                </nav>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:col-span-2 sm:justify-between">
-                  <div className="flex items-center gap-2">
+                  <p className="text-sm text-muted-foreground">
+                    Free forever, no ads. Built by a DIU student; not an
+                    official university service.
+                  </p>
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <span>
                       Made with ☕ by{" "}
                       <Link
@@ -155,23 +143,36 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label={`${AUTHOR.firstName} on ${label}`}
-                        className="rounded-sm p-1 transition-colors hover:text-foreground"
+                        className="flex size-9 items-center justify-center rounded-full transition-colors hover:bg-accent hover:text-foreground"
                       >
-                        <SocialIcon network={network} className="size-3.5" />
+                        <SocialIcon network={network} className="size-4" />
                       </a>
                     ))}
                   </div>
-                  <nav aria-label="Legal" className="flex flex-wrap gap-4">
-                    {LEGAL_PAGES.map(({ path, label }) => (
-                      <Link
-                        key={path}
-                        to={path}
-                        className="hover:text-foreground"
-                      >
-                        {label}
-                      </Link>
-                    ))}
-                  </nav>
+                </div>
+                <div className="grid grid-cols-2 gap-8 text-sm sm:grid-cols-3 sm:gap-14">
+                  <FooterColumn
+                    title="Products"
+                    links={PRODUCTS.map(({ href, name }) => ({
+                      to: href,
+                      label: name,
+                    }))}
+                  />
+                  <FooterColumn
+                    title="About"
+                    links={[
+                      { to: "/about", label: "About" },
+                      { to: "/contact", label: "Contact" },
+                      { to: "/app", label: "Get the app" },
+                    ]}
+                  />
+                  <FooterColumn
+                    title="Legal"
+                    links={LEGAL_PAGES.map(({ path, label }) => ({
+                      to: path,
+                      label,
+                    }))}
+                  />
                 </div>
               </div>
             </footer>
@@ -182,6 +183,32 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Scripts />
       </body>
     </html>
+  );
+}
+
+function FooterColumn({
+  title,
+  links,
+}: {
+  title: string;
+  links: { to: string; label: string }[];
+}) {
+  return (
+    <nav aria-label={title} className="space-y-3">
+      <h2 className="font-semibold">{title}</h2>
+      <ul className="space-y-2.5">
+        {links.map(({ to, label }) => (
+          <li key={to}>
+            <Link
+              to={to}
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
 

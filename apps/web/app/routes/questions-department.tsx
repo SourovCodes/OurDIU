@@ -65,7 +65,7 @@ export default function Department({ loaderData }: Route.ComponentProps) {
       <Breadcrumbs
         crumbs={[
           { label: "Questions", to: "/questions" },
-          { label: "Departments" },
+          { label: "Browse", to: "/questions/departments" },
           { label: department.shortName },
         ]}
       />
@@ -91,7 +91,7 @@ export default function Department({ loaderData }: Route.ComponentProps) {
 
       <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
         <div className="space-y-3">
-          <h1 className="font-expressive text-4xl text-balance sm:text-5xl">
+          <h1 className="font-display-xl text-4xl text-balance sm:text-6xl">
             {department.name}
           </h1>
           <p className="text-muted-foreground">
@@ -99,7 +99,7 @@ export default function Department({ loaderData }: Route.ComponentProps) {
             {plural(courses.length, "course")}
           </p>
         </div>
-        <label className="flex h-11 w-full shrink-0 items-center gap-2.5 rounded-full bg-muted px-4 text-muted-foreground focus-within:ring-[3px] focus-within:ring-ring/50 md:w-80">
+        <label className="flex h-11 w-full shrink-0 items-center gap-2.5 rounded-full bg-surface px-4 text-muted-foreground focus-within:ring-[3px] focus-within:ring-ring/50 md:w-80">
           <ListFilter className="size-4 shrink-0" aria-hidden />
           <span className="sr-only">Filter courses</span>
           <input
@@ -128,7 +128,7 @@ export default function Department({ loaderData }: Route.ComponentProps) {
             <section
               key={letter}
               aria-labelledby={`letter-${letter}`}
-              className="mb-5 break-inside-avoid rounded-3xl border bg-card px-2 pt-4 pb-2"
+              className="mb-5 break-inside-avoid rounded-3xl bg-surface px-2 pt-4 pb-2"
             >
               <h2
                 id={`letter-${letter}`}
@@ -142,7 +142,7 @@ export default function Department({ loaderData }: Route.ComponentProps) {
                     <Link
                       to={courseHref(course.id)}
                       prefetch="intent"
-                      className="flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 py-2 text-[0.9375rem] transition-colors hover:bg-accent active:bg-accent"
+                      className="flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 py-2 text-[0.9375rem] transition-colors hover:bg-surface-high active:bg-surface-high"
                     >
                       {course.name}
                       <ChevronRight

@@ -16,10 +16,9 @@
     }
   }
 
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-display:
-    "Roboto Flex Variable", "Inter Variable", ui-sans-serif, system-ui,
-    sans-serif;
+  /* Roboto Flex for everything, as in the app; headings use its width axis. */
+  --font-sans: "Roboto Flex Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Roboto Flex Variable", ui-sans-serif, system-ui, sans-serif;
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -58,6 +57,10 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-surface-low: var(--surface-low);
+  --color-surface: var(--surface);
+  --color-surface-high: var(--surface-high);
+  --color-surface-highest: var(--surface-highest);
   --color-primary-container: var(--primary-container);
   --color-primary-container-foreground: var(--primary-container-foreground);
   --color-exam-final: var(--exam-final);
@@ -79,12 +82,17 @@
   --foreground: #1c1b23;
   --card: #ffffff;
   --card-foreground: #1c1b23;
-  --popover: #ffffff;
+  --popover: #f6f2fd;
   --popover-foreground: #1c1b23;
   --primary: #4f39f6;
   --primary-foreground: #ffffff;
   --primary-container: #e3dfff;
   --primary-container-foreground: #1a0a73;
+  /* Material's surface containers: cards, rows and fields sit on these. */
+  --surface-low: #f6f2fd;
+  --surface: #f0ecf8;
+  --surface-high: #eae6f3;
+  --surface-highest: #e4e0ee;
   --secondary: #f0ecf8;
   --secondary-foreground: #1c1b23;
   --muted: #f0ecf8;
@@ -125,12 +133,16 @@
   --foreground: #e5e1ee;
   --card: #1b1a22;
   --card-foreground: #e5e1ee;
-  --popover: #1f1e27;
+  --popover: #2a2832;
   --popover-foreground: #e5e1ee;
   --primary: #c5bfff;
   --primary-foreground: #1f1290;
   --primary-container: #2e2470;
   --primary-container-foreground: #e3dfff;
+  --surface-low: #1b1a22;
+  --surface: #1f1e27;
+  --surface-high: #2a2832;
+  --surface-highest: #35333d;
   --secondary: #2a2832;
   --secondary-foreground: #e5e1ee;
   --muted: #24222c;
@@ -225,6 +237,16 @@ html body[data-scroll-locked] {
   font-family: var(--font-display);
   font-stretch: 130%;
   font-weight: 820;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+}
+
+/* The largest titles ("Find your paper."): wider and heavier still. */
+@utility font-display-xl {
+  font-family: var(--font-display);
+  font-stretch: 135%;
+  font-weight: 860;
+  font-variation-settings: "opsz" 144;
+  line-height: 0.92;
+  letter-spacing: -0.03em;
 }

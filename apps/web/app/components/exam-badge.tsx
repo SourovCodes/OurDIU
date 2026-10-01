@@ -63,6 +63,14 @@ const INK: Record<ExamKind, string> = {
   lab: "text-exam-lab-foreground",
 };
 
+/** The exam's container colour as a background, with its content colour as text. */
+export const EXAM_TONE: Record<ExamKind, string> = {
+  final: "bg-exam-final text-exam-final-foreground",
+  midterm: "bg-exam-midterm text-exam-midterm-foreground",
+  quiz: "bg-exam-quiz text-exam-quiz-foreground",
+  lab: "bg-exam-lab text-exam-lab-foreground",
+};
+
 /** Just the shape, in the exam's colour (or `currentColor` with `colored={false}`). */
 export function ExamShape({
   kind,

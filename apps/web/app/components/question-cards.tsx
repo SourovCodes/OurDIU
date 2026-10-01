@@ -17,18 +17,23 @@ export const CARD_LIST_ON_PHONES =
   "max-sm:gap-0.5 max-sm:[&>li:first-child>*]:rounded-t-2xl max-sm:[&>li:last-child>*]:rounded-b-2xl";
 
 /** The matching card style: a borderless, tinted row of that list on phones. */
-export const CARD_ROW_ON_PHONES =
-  "max-sm:rounded-sm max-sm:border-0 max-sm:bg-muted max-sm:shadow-none max-sm:hover:shadow-none";
+export const CARD_ROW_ON_PHONES = "max-sm:rounded-sm";
 
 /** Hover, press and focus styles for a card that is one big link. */
 export const LINK_CARD =
-  "relative gap-4 transition-[border-color,box-shadow,scale] hover:border-primary/40 hover:shadow-md active:scale-[0.99] has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring/50";
+  "relative gap-4 transition-[background-color,scale] hover:bg-surface-high active:scale-[0.99] has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring/50";
 
 /** Makes a card's title link cover the whole card. */
 export const STRETCHED_LINK =
   "after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none";
 
-function QuestionCard({ question }: { question: Question }) {
+function QuestionCard({
+  question,
+  action,
+}: {
+  question: Question;
+  action?: React.ReactNode;
+}) {
   const { published, pendingReview } = question.submissionCounts;
 
   return (
@@ -85,18 +90,27 @@ function QuestionCard({ question }: { question: Question }) {
             <span className="sr-only"> views</span>
           </span>
         </div>
+        {/* Above the stretched link, so it stays clickable. */}
+        {action && <div className="relative z-10 shrink-0">{action}</div>}
       </div>
     </Card>
   );
 }
 
 /** Questions as a grid of cards; each card opens the question. */
-export function QuestionCards({ questions }: { questions: Question[] }) {
+export function QuestionCards<Q extends Question>({
+  questions,
+  action,
+}: {
+  questions: Q[];
+  /** Something to do with each question, e.g. remove it from saved. */
+  action?: (question: Q) => React.ReactNode;
+}) {
   return (
     <ul aria-label="Questions" className={cn(CARD_GRID, CARD_LIST_ON_PHONES)}>
       {questions.map((question) => (
         <li key={question.id} className="grid">
-          <QuestionCard question={question} />
+          <QuestionCard question={question} action={action?.(question)} />
         </li>
       ))}
     </ul>

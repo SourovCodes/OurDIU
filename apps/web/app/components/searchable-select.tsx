@@ -93,7 +93,7 @@ export function SearchableSelect({
             role="combobox"
             aria-expanded={open}
             aria-invalid={invalid || undefined}
-            className="w-full min-w-0 justify-between font-normal"
+            className="h-11 w-full min-w-0 justify-between rounded-xl bg-card px-4 font-normal text-foreground hover:bg-card"
           >
             <span
               className={cn(

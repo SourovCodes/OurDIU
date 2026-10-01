@@ -45,10 +45,18 @@ export const departmentListItemSchema = departmentSchema
   .meta({ id: "DepartmentListItem" });
 export type DepartmentListItem = z.infer<typeof departmentListItemSchema>;
 
+/** A course as listed publicly, with how many papers can be read. */
+export const courseListItemSchema = courseSchema
+  .extend({
+    publishedCount: z.number().int(),
+  })
+  .meta({ id: "CourseListItem" });
+export type CourseListItem = z.infer<typeof courseListItemSchema>;
+
 export const departmentListSchema = listSchema(departmentListItemSchema).meta({
   id: "DepartmentList",
 });
-export const courseListSchema = listSchema(courseSchema).meta({
+export const courseListSchema = listSchema(courseListItemSchema).meta({
   id: "CourseList",
 });
 export const semesterListSchema = listSchema(semesterSchema).meta({
@@ -66,7 +74,7 @@ export type ExamTypeList = z.infer<typeof examTypeListSchema>;
 export const taxonomySchema = z
   .object({
     departments: z.array(departmentListItemSchema),
-    courses: z.array(courseSchema),
+    courses: z.array(courseListItemSchema),
     semesters: z.array(semesterSchema),
     examTypes: z.array(examTypeSchema),
   })

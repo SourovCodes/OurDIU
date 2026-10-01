@@ -18,7 +18,7 @@
           "courses": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Course"
+              "$ref": "#/components/schemas/CourseListItem"
             }
           },
           "semesters": {
@@ -65,7 +65,7 @@
           "publishedCount"
         ]
       },
-      "Course": {
+      "CourseListItem": {
         "type": "object",
         "properties": {
           "id": {
@@ -78,12 +78,16 @@
           "departmentId": {
             "type": "integer",
             "exclusiveMinimum": 0
+          },
+          "publishedCount": {
+            "type": "integer"
           }
         },
         "required": [
           "id",
           "name",
-          "departmentId"
+          "departmentId",
+          "publishedCount"
         ]
       },
       "Semester": {
@@ -138,7 +142,7 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Course"
+              "$ref": "#/components/schemas/CourseListItem"
             }
           }
         },

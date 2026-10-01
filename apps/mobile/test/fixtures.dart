@@ -68,10 +68,30 @@ const swe = DepartmentListItem(
 const taxonomy = Taxonomy(
   departments: [swe, cse],
   courses: [
-    Course(id: 198, name: 'Mathematics I', departmentId: 5),
-    Course(id: 199, name: 'Mathematics II', departmentId: 5),
-    Course(id: 200, name: 'Data Structures', departmentId: 5),
-    Course(id: 300, name: 'Structured Programming', departmentId: 13),
+    CourseListItem(
+      id: 198,
+      name: 'Mathematics I',
+      departmentId: 5,
+      publishedCount: 1,
+    ),
+    CourseListItem(
+      id: 199,
+      name: 'Mathematics II',
+      departmentId: 5,
+      publishedCount: 1,
+    ),
+    CourseListItem(
+      id: 200,
+      name: 'Data Structures',
+      departmentId: 5,
+      publishedCount: 1,
+    ),
+    CourseListItem(
+      id: 300,
+      name: 'Structured Programming',
+      departmentId: 13,
+      publishedCount: 1,
+    ),
   ],
   semesters: [
     Semester(id: 1, name: 'Fall 25'),

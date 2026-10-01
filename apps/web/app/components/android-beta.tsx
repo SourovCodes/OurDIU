@@ -1,33 +1,39 @@
 import { ArrowRight, Smartphone, X } from "lucide-react";
 import { useCallback, useState, useSyncExternalStore } from "react";
-import { Link, useLocation, useNavigate } from "react-router";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useRouteLoaderData,
+} from "react-router";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import {
   ANDROID_BETA,
-  bannerDismissed,
   dismissBanner,
-  isAndroid,
+  inviteDismissed,
   takeDownloadInvite,
 } from "~/lib/android-app";
+import type { RootLoader } from "~/root";
 
-// Nothing to subscribe to: the device and the dismissal only change on reload,
-// apart from the visitor dismissing it here, which local state covers.
+// Nothing to subscribe to: closing the invitation here is covered by local
+// state; other invitations read the cookie when they render.
 const subscribe = () => () => {};
 
 /**
  * Whether to invite this visitor to test the app: Android, while the app is in
- * closed testing. False on the server, which can't know the device, so the
- * banner appears just after hydration.
+ * closed testing. The server decides from the request (root loader), so the
+ * invitation is in the HTML and nothing moves after hydration.
  */
 function useAndroidBeta({ dismissible }: { dismissible: boolean }) {
-  return useSyncExternalStore(
+  const invite = useRouteLoaderData<RootLoader>("root")?.androidInvite;
+  const dismissed = useSyncExternalStore(
     subscribe,
-    () =>
-      ANDROID_BETA &&
-      isAndroid(navigator.userAgent) &&
-      !(dismissible && bannerDismissed()),
-    () => false,
+    () => inviteDismissed(document.cookie),
+    () => invite?.dismissed ?? false,
+  );
+  return Boolean(
+    ANDROID_BETA && invite?.android && !(dismissible && dismissed),
   );
 }
 
@@ -40,15 +46,15 @@ export function AndroidBetaBanner() {
   return (
     <aside
       aria-label="Android app"
-      className="flex items-start gap-3 rounded-xl border border-primary/25 bg-primary/5 p-3 text-left sm:p-4"
+      className="flex items-start gap-3 rounded-3xl bg-primary-container p-4 text-left text-primary-container-foreground sm:p-5"
     >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <Smartphone className="size-4.5" aria-hidden />
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+        <Smartphone className="size-5" aria-hidden />
       </span>
       <div className="min-w-0 flex-1 space-y-2">
         <div>
-          <p className="font-medium">Try the OurDIU Android app early</p>
-          <p className="text-sm text-pretty text-muted-foreground">
+          <p className="font-semibold">Try the OurDIU Android app early</p>
+          <p className="text-sm text-pretty opacity-85">
             Help us get it on the Play Store. We need 12 testers.
           </p>
         </div>
@@ -62,7 +68,7 @@ export function AndroidBetaBanner() {
       <Button
         variant="ghost"
         size="icon"
-        className="-mt-1 -mr-1 size-8 text-muted-foreground"
+        className="-mt-1 -mr-1 size-9 text-current hover:bg-current/10 hover:text-current"
         aria-label="Dismiss"
         onClick={() => {
           dismissBanner();
@@ -98,15 +104,15 @@ export function AndroidBetaStrip() {
   return (
     <aside
       aria-label="Android app"
-      className="border-b border-primary/20 bg-primary/5 text-sm"
+      className="bg-primary-container text-sm text-primary-container-foreground"
     >
       <div className="container flex items-center gap-2 py-1.5">
-        <Smartphone className="size-4 shrink-0 text-primary" aria-hidden />
+        <Smartphone className="size-4 shrink-0" aria-hidden />
         <p className="min-w-0 flex-1">
           OurDIU app for Android:{" "}
           <Link
             to="/app"
-            className="font-medium text-primary underline underline-offset-4"
+            className="font-semibold underline underline-offset-4"
           >
             become a tester
           </Link>
@@ -114,7 +120,7 @@ export function AndroidBetaStrip() {
         <Button
           variant="ghost"
           size="icon"
-          className="-mr-2 size-7 text-muted-foreground"
+          className="-mr-2 size-8 text-current hover:bg-current/10 hover:text-current"
           aria-label="Dismiss"
           onClick={() => {
             dismissBanner();

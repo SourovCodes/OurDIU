@@ -19,25 +19,31 @@ export function isAndroid(userAgent: string) {
   return /\bAndroid\b/i.test(userAgent);
 }
 
-const DISMISSED_KEY = "ourdiu.androidBetaDismissedAt";
-const DISMISS_FOR_MS = 30 * 24 * 60 * 60 * 1000;
+/**
+ * Set when the visitor closes the invitation. A cookie rather than browser
+ * storage, so the server knows too and the page never shifts when it hides.
+ */
+export const DISMISSED_COOKIE = "ourdiu_android_invite";
+const DISMISS_FOR_SECONDS = 30 * 24 * 60 * 60;
 
-/** Whether the visitor closed the beta banner in the last 30 days. */
-export function bannerDismissed(now = Date.now()) {
-  try {
-    const at = Number(localStorage.getItem(DISMISSED_KEY));
-    return at > 0 && now - at < DISMISS_FOR_MS;
-  } catch {
-    return false;
-  }
+/** Whether a Cookie header (or `document.cookie`) says the invitation was closed. */
+export function inviteDismissed(cookie: string | null | undefined) {
+  return new RegExp(`(?:^|;\\s*)${DISMISSED_COOKIE}=`).test(cookie ?? "");
 }
 
-export function dismissBanner(now = Date.now()) {
-  try {
-    localStorage.setItem(DISMISSED_KEY, String(now));
-  } catch {
-    // Private mode or blocked storage: it just shows again next visit.
-  }
+/** Hides the invitation for 30 days. */
+export function dismissBanner() {
+  document.cookie = `${DISMISSED_COOKIE}=dismissed; Max-Age=${DISMISS_FOR_SECONDS}; Path=/; SameSite=Lax`;
+}
+
+/** What the server tells the page about the invitation, before it renders. */
+export type AndroidInvite = { android: boolean; dismissed: boolean };
+
+export function androidInvite(request: Request): AndroidInvite {
+  return {
+    android: isAndroid(request.headers.get("user-agent") ?? ""),
+    dismissed: inviteDismissed(request.headers.get("cookie")),
+  };
 }
 
 const DOWNLOAD_INVITE_KEY = "ourdiu.androidBetaDownloadInvite";

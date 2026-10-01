@@ -12,7 +12,7 @@ import '../home/search_pill.dart';
 /// Courses whose name contains every word typed, in any order, ignoring case
 /// ("math 1" finds "Mathematics I" only if both words match). Best matches
 /// (name starts with the query) first.
-List<Course> searchCourses(List<Course> courses, String query) {
+List<CourseListItem> searchCourses(List<CourseListItem> courses, String query) {
   final words = query
       .toLowerCase()
       .split(RegExp(r'\s+'))
@@ -48,7 +48,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     super.dispose();
   }
 
-  void _open(Course course) {
+  void _open(CourseListItem course) {
     ref.read(recentCoursesProvider.notifier).add(course.id);
     context.push('/home/courses/${course.id}');
   }
@@ -81,7 +81,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 if (hits.isNotEmpty) _open(hits.first);
               },
               decoration: InputDecoration(
-                hintText: 'Course name',
+                hintText: 'CourseListItem name',
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 20,
@@ -159,8 +159,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 class _Recent extends StatelessWidget {
   const _Recent({required this.courses, required this.onOpen});
 
-  final List<Course> courses;
-  final ValueChanged<Course> onOpen;
+  final List<CourseListItem> courses;
+  final ValueChanged<CourseListItem> onOpen;
 
   @override
   Widget build(BuildContext context) {

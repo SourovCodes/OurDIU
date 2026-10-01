@@ -8,6 +8,8 @@ export type CourseEntry = {
   departmentId: number;
   departmentShortName: string;
   departmentName: string;
+  /** Published papers of the course. */
+  publishedCount: number;
 };
 
 /** Every course of the taxonomy with its department's names. */
@@ -26,6 +28,7 @@ export function courseEntries({
             departmentId: department.id,
             departmentShortName: department.shortName,
             departmentName: department.name,
+            publishedCount: c.publishedCount,
           },
         ]
       : [];

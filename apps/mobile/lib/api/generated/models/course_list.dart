@@ -4,7 +4,7 @@
 
 import 'package:json_annotation/json_annotation.dart';
 
-import 'course.dart';
+import 'course_list_item.dart';
 
 part 'course_list.g.dart';
 
@@ -15,7 +15,7 @@ class CourseList {
   factory CourseList.fromJson(Map<String, Object?> json) =>
       _$CourseListFromJson(json);
 
-  final List<Course> items;
+  final List<CourseListItem> items;
 
   Map<String, Object?> toJson() => _$CourseListToJson(this);
 }

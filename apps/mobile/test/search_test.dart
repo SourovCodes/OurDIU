@@ -32,14 +32,44 @@ void main() {
 
 void sameCourseTests() {
   test('finds the same course filed under another name', () {
-    const ds = Course(id: 1, name: 'Data Structure', departmentId: 5);
+    const ds = CourseListItem(
+      id: 1,
+      name: 'Data Structure',
+      departmentId: 5,
+      publishedCount: 1,
+    );
     const courses = [
       ds,
-      Course(id: 2, name: 'Data Structures', departmentId: 6),
-      Course(id: 3, name: 'Data Structures', departmentId: 5),
-      Course(id: 4, name: 'Database Systems', departmentId: 5),
-      Course(id: 5, name: 'Physics-I', departmentId: 5),
-      Course(id: 6, name: 'Physics I', departmentId: 6),
+      CourseListItem(
+        id: 2,
+        name: 'Data Structures',
+        departmentId: 6,
+        publishedCount: 1,
+      ),
+      CourseListItem(
+        id: 3,
+        name: 'Data Structures',
+        departmentId: 5,
+        publishedCount: 1,
+      ),
+      CourseListItem(
+        id: 4,
+        name: 'Database Systems',
+        departmentId: 5,
+        publishedCount: 1,
+      ),
+      CourseListItem(
+        id: 5,
+        name: 'Physics-I',
+        departmentId: 5,
+        publishedCount: 1,
+      ),
+      CourseListItem(
+        id: 6,
+        name: 'Physics I',
+        departmentId: 6,
+        publishedCount: 1,
+      ),
     ];
     expect(sameCourses(courses, ds).map((c) => c.id), [3, 2]);
     expect(sameCourses(courses, courses[4]).map((c) => c.id), [6]);

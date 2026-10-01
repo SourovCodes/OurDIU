@@ -134,7 +134,7 @@ class _DepartmentScreenState extends ConsumerState<DepartmentScreen> {
 class _CourseTile extends StatelessWidget {
   const _CourseTile({required this.course});
 
-  final Course course;
+  final CourseListItem course;
 
   @override
   Widget build(BuildContext context) {
@@ -146,10 +146,30 @@ class _CourseTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         clipBehavior: Clip.antiAlias,
         child: ListTile(
-          title: Text(course.name),
-          trailing: Icon(
-            Icons.chevron_right_rounded,
-            color: scheme.onSurfaceVariant,
+          title: Text(
+            course.name,
+            style: course.publishedCount == 0
+                ? TextStyle(color: scheme.onSurfaceVariant)
+                : null,
+          ),
+          // How many papers, so empty courses aren't a dead end.
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            spacing: 4,
+            children: [
+              Text(
+                course.publishedCount == 0
+                    ? 'No papers yet'
+                    : '${course.publishedCount}',
+                semanticsLabel: plural(course.publishedCount, 'paper'),
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: course.publishedCount == 0 ? 12 : 14,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+            ],
           ),
           onTap: () => context.push('${tabRoot(context)}/courses/${course.id}'),
         ),

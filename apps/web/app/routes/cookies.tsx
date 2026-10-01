@@ -26,7 +26,7 @@ type CookieRow = {
 };
 
 // Keep in step with the code that sets them: Better Auth (apps/api/src/lib/auth.ts),
-// lib/theme.ts, lib/department-preference.ts, the API's lib/view-cookie.ts and
+// lib/theme.ts, lib/department-preference.ts, lib/android-app.ts, the API's lib/view-cookie.ts and
 // lib/analytics.ts.
 const NEEDED: CookieRow[] = [
   {
@@ -54,6 +54,12 @@ const PREFERENCES: CookieRow[] = [
     purpose:
       "Remembers the department you last filtered questions by, so the list opens on it.",
     lasts: "1 year",
+  },
+  {
+    names: ["ourdiu_android_invite"],
+    purpose:
+      "Set if you close the invitation to test the Android app, so it stays closed.",
+    lasts: "30 days",
   },
   {
     names: ["qb_views_q", "qb_views_s"],
@@ -149,8 +155,8 @@ export default function Cookies() {
         <CookieTable label="Preference cookies" rows={PREFERENCES} />
         <p>
           Your browser’s own storage (not a cookie) also keeps the courses you
-          opened recently, for the course search’s Recent list, and whether you
-          closed the Android app invitation. It never leaves your browser.
+          opened recently, for the course search’s Recent list. It never leaves
+          your browser.
         </p>
       </LegalSection>
 

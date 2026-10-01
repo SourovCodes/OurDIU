@@ -87,10 +87,15 @@ export function DepartmentTile({
           {department.name}
         </span>
         <span className="block font-semibold">
-          {formatNumber(department.publishedCount)}{" "}
-          {department.publishedCount === 1 ? "paper" : "papers"}
-          {courseCount !== undefined &&
-            ` · ${formatNumber(courseCount)} ${courseCount === 1 ? "course" : "courses"}`}
+          <span className="whitespace-nowrap">
+            {formatNumber(department.publishedCount)}{" "}
+            {department.publishedCount === 1 ? "paper" : "papers"}
+          </span>
+          {courseCount !== undefined && (
+            <span className="whitespace-nowrap">
+              {` · ${formatNumber(courseCount)} ${courseCount === 1 ? "course" : "courses"}`}
+            </span>
+          )}
         </span>
       </span>
     </Link>

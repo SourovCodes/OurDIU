@@ -11,7 +11,7 @@ Taxonomy _$TaxonomyFromJson(Map<String, dynamic> json) => Taxonomy(
       .map((e) => DepartmentListItem.fromJson(e as Map<String, dynamic>))
       .toList(),
   courses: (json['courses'] as List<dynamic>)
-      .map((e) => Course.fromJson(e as Map<String, dynamic>))
+      .map((e) => CourseListItem.fromJson(e as Map<String, dynamic>))
       .toList(),
   semesters: (json['semesters'] as List<dynamic>)
       .map((e) => Semester.fromJson(e as Map<String, dynamic>))

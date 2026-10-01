@@ -1,4 +1,4 @@
-import type { QuestionList } from "@ourdiu/shared";
+import type { QuestionList, SavedQuestionList } from "@ourdiu/shared";
 import { Check, Search } from "lucide-react";
 import { Link } from "react-router";
 import { CourseSearchTrigger } from "~/components/course-search";
@@ -9,6 +9,8 @@ import { buttonVariants } from "~/components/ui/button";
 import { apiGetJson } from "~/lib/api.server";
 import { ANDROID_BETA } from "~/lib/android-app";
 import { formatNumber } from "~/lib/format";
+import { rememberedDepartment } from "~/lib/department-preference";
+import { getUser } from "~/lib/session.server";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/questions-home";
@@ -30,7 +32,8 @@ function onePerCourse(questions: QuestionList["items"], limit: number) {
  * the API is down, so a failed request just leaves its part out.
  */
 export async function loader({ request }: Route.LoaderArgs) {
-  const [newest, popular, taxonomy] = await Promise.allSettled([
+  const user = await getUser(request);
+  const [newest, popular, taxonomy, saved] = await Promise.allSettled([
     apiGetJson<QuestionList>(
       request,
       "/api/v1/questions?sort=newest&pageSize=24",
@@ -40,15 +43,24 @@ export async function loader({ request }: Route.LoaderArgs) {
       "/api/v1/questions?sort=popular&pageSize=24",
     ),
     loadTaxonomy(request),
+    user
+      ? apiGetJson<SavedQuestionList>(request, "/api/v1/me/saved")
+      : Promise.resolve(null),
   ]);
   const value = <T,>(result: PromiseSettledResult<T>) =>
     result.status === "fulfilled" ? result.value : null;
 
   const tax = value(taxonomy);
-  // Departments without papers have nothing to browse yet; most papers first.
+  // Departments without papers have nothing to browse yet; the visitor's own
+  // first, then most papers first.
+  const mine = Number(rememberedDepartment(request.headers.get("cookie")));
   const departments = (tax?.departments ?? [])
     .filter((d) => d.publishedCount > 0)
-    .sort((a, b) => b.publishedCount - a.publishedCount);
+    .sort(
+      (a, b) =>
+        Number(b.id === mine) - Number(a.id === mine) ||
+        b.publishedCount - a.publishedCount,
+    );
   const courseCounts = new Map<number, number>();
   for (const course of tax?.courses ?? []) {
     courseCounts.set(
@@ -62,7 +74,9 @@ export async function loader({ request }: Route.LoaderArgs) {
     newest: onePerCourse(value(newest)?.items ?? [], 6),
     popular: onePerCourse(value(popular)?.items ?? [], 4),
     departments,
+    myDepartmentId: departments[0]?.id === mine ? mine : null,
     courseCounts: Object.fromEntries(courseCounts),
+    saved: value(saved)?.items ?? [],
   };
 }
 
@@ -128,8 +142,16 @@ function ShapeCluster() {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const { papers, courseTotal, newest, popular, departments, courseCounts } =
-    loaderData;
+  const {
+    papers,
+    courseTotal,
+    newest,
+    popular,
+    departments,
+    myDepartmentId,
+    courseCounts,
+    saved,
+  } = loaderData;
   const [featured, ...others] = departments;
 
   return (
@@ -179,7 +201,12 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                   key={department.id}
                   to={`/questions/departments/${department.id}`}
                   title={department.name}
-                  className="flex h-10 shrink-0 items-center gap-2 rounded-full border border-input pr-3.5 pl-1.5 text-sm transition-colors hover:bg-accent"
+                  className={cn(
+                    "flex h-10 shrink-0 items-center gap-2 rounded-full border pr-3.5 pl-1.5 text-sm transition-colors",
+                    department.id === myDepartmentId
+                      ? "border-primary-container bg-primary-container text-primary-container-foreground"
+                      : "border-input hover:bg-accent",
+                  )}
                 >
                   <span className="rounded-full bg-primary-container px-2 py-0.5 text-xs font-bold text-primary-container-foreground">
                     {department.shortName}
@@ -194,6 +221,29 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         </div>
         <ShapeCluster />
       </section>
+
+      {saved.length > 0 && (
+        <section aria-labelledby="saved-heading" className="space-y-5">
+          <SectionHeading
+            id="saved-heading"
+            title="Your saved papers"
+            link={{
+              to: "/questions/saved",
+              label: saved.length > 4 ? `All ${saved.length}` : "See all",
+            }}
+          />
+          <ul className="-mx-4 flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4">
+            {saved.slice(0, 4).map((question) => (
+              <li
+                key={question.id}
+                className="grid w-[72%] shrink-0 snap-start sm:w-auto"
+              >
+                <ExamTile question={question} className="min-h-44" />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {popular.length > 0 && (
         <section aria-labelledby="popular-heading" className="space-y-5">

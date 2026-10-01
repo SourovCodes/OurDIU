@@ -1,0 +1,1 @@
+ALTER TABLE `courses` ADD `published_count` integer DEFAULT 0 NOT NULL;

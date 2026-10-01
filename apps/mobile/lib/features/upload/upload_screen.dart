@@ -129,7 +129,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     ]..sort((a, b) => a.name.compareTo(b.name));
     final recent = ref.read(recentCoursesProvider);
     final choice = await _choose(
-      title: 'Course',
+      title: 'CourseListItem',
       options: [for (final c in courses) _Option(c.id, c.name)],
       recent: [
         for (final id in recent)
@@ -341,7 +341,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
               ),
               const SizedBox(height: 8),
               _Field(
-                label: 'Course',
+                label: 'CourseListItem',
                 value: course?.name ?? d.newCourse,
                 isNew: d.newCourse != null,
                 onTap: _sending || !d.hasDepartment

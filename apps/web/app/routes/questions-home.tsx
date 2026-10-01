@@ -1,20 +1,20 @@
-import type { ContributorList, QuestionList } from "@ourdiu/shared";
-import { ArrowRight, Search, Smartphone, Upload, Users } from "lucide-react";
+import type { QuestionList } from "@ourdiu/shared";
+import { Check, Search } from "lucide-react";
 import { Link } from "react-router";
-import { ContributorAvatar } from "~/components/contributor-avatar";
 import { CourseSearchTrigger } from "~/components/course-search";
-import { ExamBadge } from "~/components/exam-badge";
+import { ExamBadge, ExamShape } from "~/components/exam-badge";
+import { DepartmentTile, ExamTile } from "~/components/qb-tiles";
 import { QuestionCards } from "~/components/question-cards";
 import { buttonVariants } from "~/components/ui/button";
 import { apiGetJson } from "~/lib/api.server";
-import { AUTHOR } from "~/lib/author";
-import { formatCount, formatNumber } from "~/lib/format";
+import { ANDROID_BETA } from "~/lib/android-app";
+import { formatNumber } from "~/lib/format";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/questions-home";
 
 /** The first question of each course, so one course doesn't fill a section. */
-function onePerCourse(questions: QuestionList["items"], limit = 6) {
+function onePerCourse(questions: QuestionList["items"], limit: number) {
   const seen = new Set<number>();
   return questions
     .filter((question) => {
@@ -30,7 +30,7 @@ function onePerCourse(questions: QuestionList["items"], limit = 6) {
  * the API is down, so a failed request just leaves its part out.
  */
 export async function loader({ request }: Route.LoaderArgs) {
-  const [newest, popular, contributors, taxonomy] = await Promise.allSettled([
+  const [newest, popular, taxonomy] = await Promise.allSettled([
     apiGetJson<QuestionList>(
       request,
       "/api/v1/questions?sort=newest&pageSize=24",
@@ -39,27 +39,30 @@ export async function loader({ request }: Route.LoaderArgs) {
       request,
       "/api/v1/questions?sort=popular&pageSize=24",
     ),
-    apiGetJson<ContributorList>(request, "/api/v1/contributors?pageSize=1"),
     loadTaxonomy(request),
   ]);
   const value = <T,>(result: PromiseSettledResult<T>) =>
     result.status === "fulfilled" ? result.value : null;
 
-  const stats = [
-    { label: "questions", count: value(newest)?.total },
-    { label: "courses", count: value(taxonomy)?.courses.length },
-    { label: "contributors", count: value(contributors)?.total },
-  ].filter((stat): stat is { label: string; count: number } =>
-    Boolean(stat.count),
-  );
+  const tax = value(taxonomy);
+  // Departments without papers have nothing to browse yet; most papers first.
+  const departments = (tax?.departments ?? [])
+    .filter((d) => d.publishedCount > 0)
+    .sort((a, b) => b.publishedCount - a.publishedCount);
+  const courseCounts = new Map<number, number>();
+  for (const course of tax?.courses ?? []) {
+    courseCounts.set(
+      course.departmentId,
+      (courseCounts.get(course.departmentId) ?? 0) + 1,
+    );
+  }
   return {
-    stats,
-    newest: onePerCourse(value(newest)?.items ?? []),
-    popular: onePerCourse(value(popular)?.items ?? []),
-    // Departments without papers have nothing to browse yet; most papers first.
-    departments: (value(taxonomy)?.departments ?? [])
-      .filter((d) => d.publishedCount > 0)
-      .sort((a, b) => b.publishedCount - a.publishedCount),
+    papers: departments.reduce((sum, d) => sum + d.publishedCount, 0),
+    courseTotal: tax?.courses.length ?? 0,
+    newest: onePerCourse(value(newest)?.items ?? [], 6),
+    popular: onePerCourse(value(popular)?.items ?? [], 4),
+    departments,
+    courseCounts: Object.fromEntries(courseCounts),
   };
 }
 
@@ -72,135 +75,120 @@ export const meta: Route.MetaFunction = () => [
   },
 ];
 
-/** Below the lists: why it exists and what else there is, like the app's Account tab. */
-const NOTES = [
-  {
-    icon: Users,
-    title: "Built by students",
-    description:
-      "Papers are contributed by the community and reviewed before they are published.",
-  },
-  {
-    icon: Smartphone,
-    title: "Also on Android",
-    description:
-      "Save papers on your phone, read them full screen, and share one straight from your files.",
-    link: { to: "/app", label: "Get the app" },
-  },
-];
-
-function QuestionSection({
+function SectionHeading({
   id,
   title,
-  href,
-  questions,
+  link,
 }: {
   id: string;
   title: string;
-  href: string;
-  questions: QuestionList["items"];
+  link: { to: string; label: string };
 }) {
   return (
-    <section aria-labelledby={id} className="space-y-4">
-      <div className="flex items-baseline justify-between gap-4">
-        <h2 id={id} className="font-expressive text-2xl sm:text-3xl">
-          {title}
-        </h2>
-        <Link
-          to={href}
-          className="inline-flex items-center gap-1 text-sm font-semibold text-primary underline-offset-4 hover:underline"
-        >
-          See all
-          <ArrowRight className="size-4" aria-hidden />
-        </Link>
-      </div>
-      <QuestionCards questions={questions} />
-    </section>
+    <div className="flex items-baseline justify-between gap-4">
+      <h2 id={id} className="font-expressive text-3xl sm:text-4xl">
+        {title}
+      </h2>
+      <Link
+        to={link.to}
+        className="shrink-0 text-sm font-semibold text-primary underline-offset-4 hover:underline"
+      >
+        {link.label}
+      </Link>
+    </div>
   );
 }
 
-/** The four exam shapes, large, beside the heading on wide screens. */
+/** The four exam shapes, large, beside the title on wide screens. */
 function ShapeCluster() {
   return (
-    <div aria-hidden className="relative hidden h-80 lg:block">
+    <div aria-hidden className="relative hidden h-96 lg:block">
       <ExamBadge
         examType="Final"
-        size={200}
-        className="absolute top-2 left-8"
+        size={240}
+        className="absolute top-0 left-10"
       />
       <ExamBadge
         examType="Midterm"
-        size={152}
-        className="absolute top-32 left-56"
+        size={170}
+        className="absolute top-8 right-0"
       />
       <ExamBadge
         examType="Quiz"
-        size={108}
-        className="absolute top-52 left-0"
+        size={130}
+        className="absolute bottom-6 left-0"
       />
       <ExamBadge
         examType="Lab Final"
-        size={100}
-        className="absolute top-0 left-64"
+        size={130}
+        className="absolute right-16 bottom-0 rotate-[-8deg]"
       />
     </div>
   );
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const { stats, newest, popular, departments } = loaderData;
-  const statLine = stats
-    .map(({ label, count }) => `${formatNumber(count)} ${label}`)
-    .join(" · ");
+  const { papers, courseTotal, newest, popular, departments, courseCounts } =
+    loaderData;
+  const [featured, ...others] = departments;
 
   return (
-    <div className="space-y-14 py-2 sm:space-y-16 sm:py-8">
-      <section className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-        <div className="space-y-6">
-          <div className="space-y-4">
-            {statLine && (
-              <p className="text-sm font-medium text-muted-foreground">
-                {statLine}
+    <div className="space-y-16 pt-2 sm:pt-6">
+      <section className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+        <div className="space-y-7">
+          <p className="inline-flex items-center gap-2 rounded-full bg-primary-container py-1.5 pr-4 pl-1.5 text-sm font-medium text-primary-container-foreground">
+            <span className="flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <Check className="size-3.5" aria-hidden />
+            </span>
+            Free, no ads, shared by DIU students
+          </p>
+          <div className="space-y-5">
+            <h1 className="font-display-xl text-6xl sm:text-8xl xl:text-[6.5rem]">
+              Find your paper.
+            </h1>
+            {papers > 0 && (
+              <p className="max-w-xl text-lg text-pretty text-muted-foreground">
+                {formatNumber(papers)} past exam papers across{" "}
+                {departments.length} departments. Search a course, pick the
+                semester, and read it right here.
               </p>
             )}
-            <h1 className="font-expressive text-5xl sm:text-7xl">
-              Find your paper
-            </h1>
           </div>
-          <CourseSearchTrigger className="flex h-14 max-w-xl items-center gap-3.5 rounded-full bg-muted pr-3 pl-5 text-muted-foreground transition-colors hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none sm:h-15 sm:text-lg">
+          <CourseSearchTrigger className="flex h-16 max-w-xl items-center gap-3 rounded-full bg-surface pr-2 pl-6 text-muted-foreground transition-colors hover:bg-surface-high focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
             <Search className="size-5 shrink-0" aria-hidden />
-            <span className="flex-1 truncate">
-              Search a course, like Data Structure
+            <span className="flex-1 truncate text-base">
+              Search {courseTotal > 0 ? `${formatNumber(courseTotal)} ` : ""}
+              courses, e.g. Data Structure
             </span>
-            <kbd className="hidden rounded-lg border border-input px-2 py-0.5 font-sans text-sm sm:inline">
-              /
-            </kbd>
+            <span
+              className={cn(
+                buttonVariants(),
+                "pointer-events-none h-12 px-6 max-sm:hidden",
+              )}
+            >
+              Search
+            </span>
           </CourseSearchTrigger>
           {departments.length > 0 && (
             <nav
               aria-label="Departments"
-              className="-mx-4 flex max-w-2xl [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0"
+              className="-mx-4 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0"
             >
-              {departments.map((department) => (
+              {departments.slice(0, 6).map((department) => (
                 <Link
                   key={department.id}
                   to={`/questions/departments/${department.id}`}
                   title={department.name}
-                  className="flex h-9 shrink-0 items-center gap-2 rounded-xl border border-input px-3.5 text-sm font-semibold transition-colors hover:bg-accent"
+                  className="flex h-10 shrink-0 items-center gap-2 rounded-full border border-input pr-3.5 pl-1.5 text-sm transition-colors hover:bg-accent"
                 >
-                  {department.shortName}
-                  <span className="text-xs font-medium text-muted-foreground tabular-nums">
-                    {formatCount(department.publishedCount)}
+                  <span className="rounded-full bg-primary-container px-2 py-0.5 text-xs font-bold text-primary-container-foreground">
+                    {department.shortName}
+                  </span>
+                  <span className="text-muted-foreground tabular-nums">
+                    {formatNumber(department.publishedCount)}
                   </span>
                 </Link>
               ))}
-              <Link
-                to="/questions/browse"
-                className="flex h-9 shrink-0 items-center gap-1 px-2 text-sm font-semibold text-primary"
-              >
-                Browse all questions
-                <ArrowRight className="size-4" aria-hidden />
-              </Link>
             </nav>
           )}
         </div>
@@ -208,96 +196,107 @@ export default function Home({ loaderData }: Route.ComponentProps) {
       </section>
 
       {popular.length > 0 && (
-        <QuestionSection
-          id="popular-heading"
-          title="Most viewed"
-          href="/questions/browse?sort=popular"
-          questions={popular}
-        />
-      )}
-      {newest.length > 0 && (
-        <QuestionSection
-          id="newest-heading"
-          title="Recently added"
-          href="/questions/browse"
-          questions={newest}
-        />
-      )}
-
-      <section
-        aria-labelledby="share-heading"
-        className="flex flex-col gap-6 rounded-[1.75rem] bg-primary-container p-6 text-primary-container-foreground sm:p-10 md:flex-row md:items-center md:justify-between"
-      >
-        <div className="max-w-2xl space-y-3">
-          <h2
-            id="share-heading"
-            className="font-expressive text-3xl sm:text-4xl"
-          >
-            Got last semester’s paper?
-          </h2>
-          <p className="text-pretty sm:text-lg">
-            Share it in a minute. It’s checked, watermarked with your name, and
-            the next batch gets to study from it.
-          </p>
-        </div>
-        <Link
-          to="/questions/contribute"
-          className={cn(
-            buttonVariants({ size: "lg" }),
-            "h-12 shrink-0 self-start rounded-full px-6 md:self-auto",
-          )}
-        >
-          <Upload aria-hidden />
-          Contribute a paper
-        </Link>
-      </section>
-
-      <section
-        aria-label="About the Question Bank"
-        className="grid gap-8 sm:grid-cols-3"
-      >
-        <div className="flex gap-4 sm:col-span-1">
-          <ContributorAvatar
-            name={AUTHOR.name}
-            image={AUTHOR.avatar}
-            size="lg"
-            className="shrink-0"
+        <section aria-labelledby="popular-heading" className="space-y-5">
+          <SectionHeading
+            id="popular-heading"
+            title="Most viewed"
+            link={{ to: "/questions/browse?sort=popular", label: "See all" }}
           />
-          <div className="space-y-1">
-            <h2 className="font-semibold">Why is this free?</h2>
-            <p className="text-sm text-pretty text-muted-foreground">
-              Building this site helped me land a job, so now it gets to stay
-              free forever. No ads, ever.{" "}
-              <Link
-                to="/about"
-                className="font-medium whitespace-nowrap text-foreground underline-offset-4 hover:underline"
+          <ul className="-mx-4 flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4">
+            {popular.map((question) => (
+              <li
+                key={question.id}
+                className="grid w-[72%] shrink-0 snap-start sm:w-auto"
               >
-                Read the story
-              </Link>
-            </p>
-          </div>
+                <ExamTile question={question} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {featured && (
+        <section aria-labelledby="departments-heading" className="space-y-5">
+          <SectionHeading
+            id="departments-heading"
+            title="Browse by department"
+            link={{
+              to: "/questions/departments",
+              label: `All ${departments.length} departments`,
+            }}
+          />
+          <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <li className="col-span-2 grid lg:row-span-2">
+              <DepartmentTile
+                department={featured}
+                courseCount={courseCounts[featured.id]}
+                featured
+              />
+            </li>
+            {others.slice(0, 4).map((department) => (
+              <li key={department.id} className="grid">
+                <DepartmentTile department={department} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {newest.length > 0 && (
+        <section aria-labelledby="newest-heading" className="space-y-5">
+          <SectionHeading
+            id="newest-heading"
+            title="Recently added"
+            link={{ to: "/questions/browse", label: "See all" }}
+          />
+          <QuestionCards questions={newest} />
+        </section>
+      )}
+
+      <section className="grid gap-3 md:grid-cols-2">
+        <div className="relative flex flex-col items-start gap-4 overflow-hidden rounded-[1.75rem] bg-surface p-7 sm:p-9">
+          <ExamShape
+            kind="midterm"
+            className="absolute -top-4 -right-4 size-24 rotate-12"
+          />
+          <ExamShape kind="quiz" className="absolute top-16 right-20 size-8" />
+          <h2 className="pr-24 font-expressive text-3xl sm:text-4xl">
+            Just sat an exam?
+          </h2>
+          <p className="max-w-sm pr-10 text-pretty text-muted-foreground">
+            Share the question paper. It takes a minute, the AI fills in the
+            details, and it helps the next batch.
+          </p>
+          <Link
+            to="/questions/contribute"
+            className={buttonVariants({ size: "lg" })}
+          >
+            Share a paper
+          </Link>
         </div>
-        {NOTES.map(({ icon: Icon, title, description, link }) => (
-          <div key={title} className="flex gap-4">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted">
-              <Icon className="size-5" aria-hidden />
-            </span>
-            <div className="space-y-1">
-              <h2 className="font-semibold">{title}</h2>
-              <p className="text-sm text-pretty text-muted-foreground">
-                {description}{" "}
-                {link && (
-                  <Link
-                    to={link.to}
-                    className="font-medium whitespace-nowrap text-foreground underline-offset-4 hover:underline"
-                  >
-                    {link.label}
-                  </Link>
-                )}
-              </p>
-            </div>
-          </div>
-        ))}
+        <div className="relative flex flex-col items-start gap-4 overflow-hidden rounded-[1.75rem] bg-primary p-7 text-primary-foreground sm:p-9">
+          <ExamShape
+            kind="final"
+            colored={false}
+            className="absolute -right-10 -bottom-12 size-56 text-primary-foreground/15"
+          />
+          <h2 className="relative font-expressive text-3xl sm:text-4xl">
+            Papers in your pocket.
+          </h2>
+          <p className="relative max-w-sm text-pretty opacity-90">
+            OurDIU for Android: save papers for exam week, and share a paper
+            straight from your camera.
+          </p>
+          <Link
+            to="/app"
+            className={cn(
+              buttonVariants({ size: "lg" }),
+              "relative bg-primary-foreground text-primary hover:bg-primary-foreground/90",
+            )}
+          >
+            {ANDROID_BETA ? "Try the app early" : "Get it on Google Play"}
+          </Link>
+        </div>
       </section>
     </div>
   );

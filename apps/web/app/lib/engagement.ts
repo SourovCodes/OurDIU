@@ -6,7 +6,7 @@ export const REPORT_FETCHER_KEY = "report-submission";
 
 /** What the question page action returns for votes and reports. */
 export type PaperActionResult = {
-  intent: "vote" | "report";
+  intent: "vote" | "report" | "save";
   questionId: number;
   ok: boolean;
   error?: string;

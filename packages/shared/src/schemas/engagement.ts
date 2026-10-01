@@ -70,6 +70,8 @@ export const questionInteractionsSchema = z
         .meta({ id: "QuestionVote" }),
     ),
     reportedSubmissionIds: z.array(z.number().int()),
+    /** Whether the user saved (bookmarked) the question. */
+    saved: z.boolean(),
   })
   .meta({ id: "QuestionInteractions" });
 export type QuestionInteractions = z.infer<typeof questionInteractionsSchema>;

@@ -9,3 +9,4 @@ export * from "./schemas/question";
 export * from "./schemas/sitemap";
 export * from "./schemas/submission";
 export * from "./schemas/taxonomy";
+export * from "./schemas/saved";

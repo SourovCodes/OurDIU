@@ -77,12 +77,21 @@ test("the hub leads to the question bank and its questions", async ({
     await expect(page).toHaveURL(/\/questions$/, { timeout: 2_000 });
   }).toPass();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Find your paper",
+    "Find your paper.",
   );
 
-  await clickUntilUrl(page, "Browse all questions", /\/questions\/browse$/);
+  // A department leads to its courses.
+  await expect(async () => {
+    await page
+      .getByRole("navigation", { name: "Departments" })
+      .getByRole("link", { name: /^CSE/ })
+      .click();
+    await expect(page).toHaveURL(/\/questions\/departments\/1$/, {
+      timeout: 2_000,
+    });
+  }).toPass();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Browse questions",
+    "Computer Science and Engineering",
   );
 });
 
@@ -891,7 +900,9 @@ test("the switcher moves between products", async ({ page }) => {
   );
   await expect(page.getByText("Class Routine is coming soon")).toBeVisible();
   // The routine's space has no question bank menu.
-  await expect(page.getByRole("link", { name: "Contribute" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Share a paper" })).toHaveCount(
+    0,
+  );
 });
 
 test("the old question bank's addresses lead to their new pages", async ({

@@ -1,5 +1,5 @@
 import type { QuestionList, QuestionSort } from "@ourdiu/shared";
-import { SearchX, SlidersHorizontal, X } from "lucide-react";
+import { LayoutGrid, SearchX, SlidersHorizontal, X } from "lucide-react";
 import {
   data,
   Link,
@@ -8,12 +8,11 @@ import {
   useSearchParams,
 } from "react-router";
 import { EmptyState } from "~/components/empty-state";
-import { PageHeader } from "~/components/page-header";
 import { QuestionCards } from "~/components/question-cards";
 import { SearchableSelect } from "~/components/searchable-select";
 import { TablePagination } from "~/components/table-pagination";
 import { Badge } from "~/components/ui/badge";
-import { Button } from "~/components/ui/button";
+import { Button, buttonVariants } from "~/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -51,7 +50,7 @@ import { cn } from "~/lib/utils";
 import type { Route } from "./+types/questions";
 
 export const meta: Route.MetaFunction = () => [
-  { title: "Browse questions — OurDIU Question Bank" },
+  { title: "All papers — OurDIU Question Bank" },
   {
     name: "description",
     content:
@@ -237,7 +236,8 @@ export default function Questions({ loaderData }: Route.ComponentProps) {
         aria-label="Sort questions"
         className={cn(size === "default" && "flex-1")}
       >
-        <SelectValue />
+        {/* The label itself: Radix only knows it once the list has opened. */}
+        <SelectValue>{SORT_LABELS[sort]}</SelectValue>
       </SelectTrigger>
       <SelectContent align="end">
         {(Object.keys(SORT_LABELS) as QuestionSort[]).map((value) => (
@@ -257,17 +257,29 @@ export default function Questions({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Browse questions"
-        description="Pick a department, course, semester or exam type, in any combination."
-      />
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-3">
+          <h1 className="font-display-xl text-5xl sm:text-7xl">All papers</h1>
+          <p className="text-muted-foreground">
+            Pick a department, course, semester or exam type, in any
+            combination.
+          </p>
+        </div>
+        <Link
+          to="/questions/departments"
+          className={buttonVariants({ variant: "outline" })}
+        >
+          <LayoutGrid aria-hidden />
+          Browse by department
+        </Link>
+      </div>
 
       {/* From `sm` up the four pickers sit in one toolbar; on phones they'd push the
           results below the fold, so they live in a sheet behind one button. */}
       <div
         role="search"
         aria-label="Filter questions"
-        className="hidden gap-4 rounded-xl border bg-muted/30 p-4 sm:grid sm:grid-cols-2 lg:grid-cols-4"
+        className="hidden gap-4 rounded-3xl bg-surface p-5 sm:grid sm:grid-cols-2 lg:grid-cols-4"
       >
         {filterFields}
       </div>
@@ -286,7 +298,7 @@ export default function Questions({ loaderData }: Route.ComponentProps) {
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="bottom" className="max-h-[85svh] rounded-t-xl">
+            <SheetContent side="bottom" className="max-h-[85svh]">
               <SheetHeader>
                 <SheetTitle>Filter questions</SheetTitle>
                 <SheetDescription>

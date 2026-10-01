@@ -1,5 +1,5 @@
 import type { Question, QuestionList } from "@ourdiu/shared";
-import { ChevronRight, FileX, Upload } from "lucide-react";
+import { ChevronRight, FileX, Plus } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import {
   data,
@@ -139,7 +139,7 @@ export default function Course({ loaderData }: Route.ComponentProps) {
       <div className="min-w-0 space-y-7">
         <Breadcrumbs
           crumbs={[
-            { label: "Questions", to: "/questions" },
+            { label: "Browse", to: "/questions/departments" },
             {
               label: course.departmentShortName,
               to: `/questions/departments/${course.departmentId}`,
@@ -148,7 +148,7 @@ export default function Course({ loaderData }: Route.ComponentProps) {
           ]}
         />
         <div className="space-y-3">
-          <h1 className="font-expressive text-4xl text-balance sm:text-6xl">
+          <h1 className="font-display-xl text-5xl text-balance sm:text-7xl">
             {course.name}
           </h1>
           <p className="text-muted-foreground">
@@ -214,8 +214,8 @@ export default function Course({ loaderData }: Route.ComponentProps) {
                 to="/questions/contribute"
                 className={buttonVariants({ size: "sm" })}
               >
-                <Upload aria-hidden />
-                Contribute a paper
+                <Plus aria-hidden />
+                Share a paper
               </Link>
             }
           />
@@ -239,7 +239,7 @@ export default function Course({ loaderData }: Route.ComponentProps) {
                       to={`/questions/${question.id}`}
                       prefetch="intent"
                       className={cn(
-                        "flex items-center gap-4 bg-muted px-4 py-3.5 transition-[background-color,scale] hover:bg-accent active:scale-[0.995]",
+                        "flex items-center gap-4 bg-surface px-4 py-3.5 transition-[background-color,scale] hover:bg-surface-high active:scale-[0.995]",
                         rowRadius(i, group.questions.length),
                       )}
                     >
@@ -269,7 +269,7 @@ export default function Course({ loaderData }: Route.ComponentProps) {
 
       <aside className="space-y-4 lg:pt-10">
         {alsoFiledAs.length > 0 && (
-          <section className="rounded-3xl border bg-card p-5">
+          <section className="rounded-3xl bg-surface p-5">
             <h2 className="font-semibold">Same course, other names</h2>
             <p className="mt-1 mb-3 text-sm text-muted-foreground">
               Papers are filed under the name on the question sheet, so check
@@ -277,7 +277,7 @@ export default function Course({ loaderData }: Route.ComponentProps) {
             </p>
             <ul>
               {alsoFiledAs.map((other) => (
-                <li key={other.id} className="border-t">
+                <li key={other.id} className="border-t border-surface-highest">
                   <Link
                     to={courseHref(other.id)}
                     className="flex min-h-11 items-center justify-between gap-3 py-2 text-sm hover:text-primary"
@@ -305,8 +305,7 @@ export default function Course({ loaderData }: Route.ComponentProps) {
               to="/questions/contribute"
               className={cn(buttonVariants({ size: "sm" }), "rounded-full")}
             >
-              <Upload aria-hidden />
-              Contribute a paper
+              Share a paper
             </Link>
           </section>
         )}

@@ -7,10 +7,11 @@ import type {
   QuestionList,
   Submission,
 } from "@ourdiu/shared";
-import { Clock, Download, ExternalLink, FileX } from "lucide-react";
+import { Clock, Download, FileX } from "lucide-react";
 import {
   data,
   Link,
+  useRouteLoaderData,
   useSearchParams,
   type ShouldRevalidateFunctionArgs,
 } from "react-router";
@@ -21,11 +22,15 @@ import { courseHref } from "~/components/course-search";
 import { ExamBadge } from "~/components/exam-badge";
 import { Breadcrumbs } from "~/components/page-header";
 import {
+  PaperFeedback,
+  PaperInfo,
   PaperToolbar,
   ReportNotice,
   type PaperViewer,
 } from "~/components/paper-toolbar";
 import { PdfViewer } from "~/components/pdf-viewer";
+import { SaveButton } from "~/components/save-button";
+import { ShareButton } from "~/components/share-button";
 import { PaperSwitcher, SubmissionList } from "~/components/submission-list";
 import { Button } from "~/components/ui/button";
 import { apiFetch, readJson } from "~/lib/api.server";
@@ -36,6 +41,8 @@ import {
 } from "~/lib/engagement";
 import { hasSessionCookie, requireUser } from "~/lib/session.server";
 import { paperTitles, plural, pickSubmission } from "~/lib/submissions";
+import { formatViews } from "~/lib/format";
+import type { RootLoader } from "~/root";
 import type { Route } from "./+types/question";
 
 /** The signed-in visitor's votes and reports. Skipped for anonymous visitors. */
@@ -151,6 +158,13 @@ export async function action({ request, params }: Route.ActionArgs) {
       );
       return actionResult(res, "report", questionId);
     }
+    case "save": {
+      const path = `/api/v1/me/saved/${questionId}`;
+      const res = await apiFetch(request, path, {
+        method: form.get("saved") === "true" ? "PUT" : "DELETE",
+      });
+      return actionResult(res, "save", questionId);
+    }
     default:
       throw data("Unknown action", { status: 400 });
   }
@@ -232,16 +246,29 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
   );
 
   const inviteToApp = useDownloadInvite();
+  const signedIn = Boolean(useRouteLoaderData<RootLoader>("root")?.user);
+  const viewer = selected ? viewerFor(selected, interactions) : null;
+  const position = {
+    index: Math.max(0, selected ? published.indexOf(selected) : 0),
+    total: published.length,
+  };
+  const save = (
+    <SaveButton
+      questionId={question.id}
+      saved={interactions?.saved ?? false}
+      signedIn={signedIn}
+    />
+  );
 
   return (
     <div className="space-y-6">
-      <header className="flex items-center gap-4">
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-4">
         <ExamBadge
           examType={question.examType.name}
           size={64}
-          className="max-sm:size-10!"
+          className="max-sm:size-11!"
         />
-        <div className="min-w-0 flex-1 space-y-1.5 sm:space-y-2">
+        <div className="min-w-0 flex-1 space-y-1">
           <div className="max-sm:hidden">
             <Breadcrumbs
               crumbs={[
@@ -253,51 +280,38 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
                   label: question.course.name,
                   to: courseHref(question.course.id),
                 },
-                {
-                  label: `${question.examType.name}, ${question.semester.name}`,
-                },
               ]}
             />
           </div>
           <h1 className="font-expressive text-2xl text-balance sm:text-4xl">
             {question.course.name}
           </h1>
-          <p className="text-sm text-muted-foreground sm:hidden">
+          <p className="text-sm text-muted-foreground">
             <Link
-              to={courseHref(question.course.id)}
-              className="underline-offset-4 hover:underline"
+              to={`/questions/departments/${question.department.id}`}
+              className="underline-offset-4 hover:underline sm:hidden"
             >
-              {question.department.shortName}
+              {question.department.shortName} ·{" "}
             </Link>
-            {" · "}
-            {question.examType.name}
-            {" · "}
-            {question.semester.name}
+            {question.examType.name} · {question.semester.name} ·{" "}
+            {formatViews(question.viewCount)}
           </p>
         </div>
-        {fileUrl && (
-          <div className="flex shrink-0 gap-2">
-            <Button
-              variant="outline"
-              className="rounded-full max-lg:hidden"
-              asChild
-            >
-              <a href={fileUrl} target="_blank" rel="noopener">
-                <ExternalLink aria-hidden />
-                Full screen
-              </a>
-            </Button>
-            <Button className="rounded-full max-lg:size-10 max-lg:p-0" asChild>
+        <div className="flex shrink-0 items-center gap-2 max-sm:w-full">
+          {save}
+          <ShareButton title={title} />
+          {fileUrl && (
+            <Button className="max-sm:ml-auto" asChild>
               <a href={fileUrl} download onClick={inviteToApp}>
                 <Download aria-hidden />
-                <span className="max-lg:sr-only">Download</span>
+                Download PDF
               </a>
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
         {/* The paper comes first on small screens too; the lists follow it. */}
         <section aria-label="Question paper" className="min-w-0 space-y-3">
           <PaperSwitcher
@@ -305,27 +319,32 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
             selectedId={selected?.id ?? null}
           />
           <ReportNotice questionId={question.id} />
-          {selected && fileUrl ? (
+          {selected && fileUrl && viewer ? (
             // One keyed wrapper (sibling keys must be unique): switching papers remounts
-            // the toolbar and reloads the embedded document.
-            // The bar tops the viewer from `lg`; on phones it comes last and sticks
-            // to the bottom of the screen while the paper is in view.
+            // the bars and reloads the embedded document. On phones the bar comes
+            // last and sticks to the bottom of the screen while the paper is in view.
             <div
               key={selected.id}
-              className="flex flex-col overflow-clip rounded-3xl bg-muted"
+              className="flex flex-col overflow-clip rounded-3xl bg-surface"
             >
+              <PaperInfo
+                submission={selected}
+                label={paperLabel}
+                position={position}
+                className="max-lg:hidden"
+              />
+              <PdfViewer
+                src={fileUrl}
+                title={title}
+                className="rounded-none lg:mx-5 lg:mb-5 lg:rounded-2xl"
+              />
               <PaperToolbar
                 submission={selected}
                 label={paperLabel}
-                viewer={viewerFor(selected, interactions)}
-                position={{
-                  index: Math.max(0, published.indexOf(selected)),
-                  total: published.length,
-                }}
+                viewer={viewer}
                 fileUrl={fileUrl}
-                className="z-10 max-lg:sticky max-lg:bottom-0 max-lg:order-last"
+                className="sticky bottom-0 z-10 lg:hidden"
               />
-              <PdfViewer src={fileUrl} title={title} className="rounded-none" />
             </div>
           ) : (
             <EmptyState
@@ -339,7 +358,7 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
               }
               action={
                 <Button variant="outline" size="sm" asChild>
-                  <Link to="/questions/contribute">Contribute a paper</Link>
+                  <Link to="/questions/contribute">Share a paper</Link>
                 </Button>
               }
             />
@@ -353,6 +372,15 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
             submissions={question.submissions}
             selectedId={selected?.id ?? null}
           />
+          {selected && viewer && (
+            <div className="max-lg:hidden">
+              <PaperFeedback
+                submission={selected}
+                label={paperLabel}
+                viewer={viewer}
+              />
+            </div>
+          )}
           <OtherExams course={question.course} questions={otherExams} />
         </aside>
       </div>

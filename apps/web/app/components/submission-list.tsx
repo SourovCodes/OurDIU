@@ -2,10 +2,9 @@ import type { Submission } from "@ourdiu/shared";
 import { ChevronDown, Eye, FileText, ThumbsDown, ThumbsUp } from "lucide-react";
 import { Link } from "react-router";
 import { StatusBadge } from "~/components/status-badge";
-import { ContributorAvatar } from "~/components/contributor-avatar";
 import { formatDate } from "~/lib/dates";
 import { formatCount } from "~/lib/format";
-import { paperDetails, paperTitles } from "~/lib/submissions";
+import { paperTitles } from "~/lib/submissions";
 import { cn } from "~/lib/utils";
 
 type SubmissionListProps = {
@@ -45,28 +44,30 @@ export function SubmissionList({
   return (
     <section
       aria-labelledby="papers-heading"
-      className="rounded-3xl border bg-card px-2 pt-4 pb-2"
+      className="rounded-3xl bg-surface p-2"
     >
-      <div className="space-y-0.5 px-3 pb-3">
-        <h2 id="papers-heading" className="font-semibold">
+      <div className="px-3 pt-3 pb-2">
+        <h2 id="papers-heading" className="font-expressive text-lg">
           {published.length === 1
-            ? "1 paper for this exam"
-            : `${formatCount(published.length)} papers for this exam`}
+            ? "1 copy of this exam"
+            : `${formatCount(published.length)} copies of this exam`}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          {published.length > 1
-            ? "Same exam, shared by different students. Best rated first."
-            : "Shared by a student."}
-          {pendingCount > 0 && ` ${pendingCount} more waiting for review.`}
-        </p>
+        {published.length > 1 && (
+          <p className="text-xs text-muted-foreground">
+            Shared by different students, best rated first.
+          </p>
+        )}
       </div>
 
       <ul aria-label="Papers" className="grid grid-cols-1 gap-0.5">
         {submissions.map((submission) => {
           if (submission.status === "published") {
             const active = submission.id === selectedId;
+            const title = titles.get(submission.id)!;
             const { uploader } = submission;
-            const details = paperDetails(submission);
+            // The title names the uploader when there's no section or batch.
+            const byLine =
+              uploader && !title.includes(uploader.name) ? uploader.name : null;
             return (
               <li key={submission.id}>
                 {/* Links (not buttons) so switching works without JS and is shareable. */}
@@ -76,34 +77,29 @@ export function SubmissionList({
                   preventScrollReset
                   aria-current={active ? "true" : undefined}
                   className={cn(
-                    "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none",
-                    active &&
-                      "bg-primary-container text-primary-container-foreground hover:bg-primary-container focus-visible:bg-primary-container",
+                    "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-colors hover:bg-surface-high focus-visible:bg-surface-high focus-visible:outline-none",
+                    active && "bg-card shadow-xs hover:bg-card",
                   )}
                 >
-                  <ContributorAvatar
-                    name={uploader?.name ?? titles.get(submission.id)!}
-                    image={uploader?.image}
-                    size="sm"
+                  <span
+                    aria-hidden
                     className={cn(
-                      "shrink-0",
-                      active &&
-                        "*:data-[slot=avatar-fallback]:bg-primary *:data-[slot=avatar-fallback]:text-primary-foreground",
+                      "flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                      active
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-primary-container text-primary-container-foreground",
                     )}
-                  />
+                  >
+                    {published.indexOf(submission) + 1}
+                  </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-semibold">
-                      {uploader?.name ?? titles.get(submission.id)}
+                      {title}
                     </span>
-                    <span
-                      className={cn(
-                        "flex flex-wrap items-center gap-x-1.5 text-xs",
-                        !active && "text-muted-foreground",
-                      )}
-                    >
-                      {uploader && details && (
+                    <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+                      {byLine && (
                         <>
-                          <span>{details}</span>
+                          <span className="max-w-full truncate">{byLine}</span>
                           <span aria-hidden>·</span>
                         </>
                       )}
@@ -141,7 +137,7 @@ export function SubmissionList({
               key={submission.id}
               className="flex items-center gap-3 px-3 py-2 text-sm"
             >
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-high">
                 <FileText
                   className="size-4 text-muted-foreground"
                   aria-hidden
@@ -157,7 +153,10 @@ export function SubmissionList({
       </ul>
 
       {pendingCount > 0 && (
-        <p className="mt-2 border-t px-3 pt-3 pb-1 text-xs text-muted-foreground">
+        <p className="px-3 pt-2 pb-2 text-xs text-muted-foreground">
+          {pendingCount === 1
+            ? "1 more is waiting for review."
+            : `${pendingCount} more are waiting for review.`}{" "}
           Papers under review become viewable once an admin approves them.
         </p>
       )}

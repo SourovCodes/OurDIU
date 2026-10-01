@@ -512,6 +512,7 @@ describe("GET /api/v1/me/questions/{id}/interactions", () => {
       userId: me.id,
       votes: [{ submissionId: submission.id, value: -1 }],
       reportedSubmissionIds: [other.id],
+      saved: false,
     });
     expect((await api(path)).status).toBe(401);
   });

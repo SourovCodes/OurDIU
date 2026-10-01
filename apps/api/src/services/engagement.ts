@@ -8,6 +8,7 @@ import type {
 import { and, eq, sql } from "drizzle-orm";
 import type { Database } from "../db/client";
 import { submissionReports, submissions, submissionVotes } from "../db/schema";
+import { isSaved } from "./saved";
 import { AppError } from "../lib/errors";
 
 // View counters are bumped with plain SQL: an ORM update would also touch `updated_at`,
@@ -174,13 +175,13 @@ export async function reportSubmission(
   return { ...report, submissionHidden: after?.status !== "published" };
 }
 
-/** The user's votes and open reports on the submissions of one question. */
+/** The user's votes and open reports on a question's papers, and whether they saved it. */
 export async function getQuestionInteractions(
   db: Database,
   questionId: number,
   userId: string,
 ): Promise<QuestionInteractions> {
-  const [votes, reports] = await Promise.all([
+  const [votes, reports, saved] = await Promise.all([
     db
       .select({
         submissionId: submissionVotes.submissionId,
@@ -208,6 +209,7 @@ export async function getQuestionInteractions(
           eq(submissionReports.status, "pending"),
         ),
       ),
+    isSaved(db, userId, questionId),
   ]);
 
   return {
@@ -217,5 +219,6 @@ export async function getQuestionInteractions(
       value: vote.value as VoteValue,
     })),
     reportedSubmissionIds: reports.map((report) => report.submissionId),
+    saved,
   };
 }

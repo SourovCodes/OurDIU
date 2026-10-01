@@ -14,6 +14,7 @@ class QuestionInteractions {
     required this.userId,
     required this.votes,
     required this.reportedSubmissionIds,
+    required this.saved,
   });
 
   factory QuestionInteractions.fromJson(Map<String, Object?> json) =>
@@ -22,6 +23,7 @@ class QuestionInteractions {
   final String userId;
   final List<QuestionVote> votes;
   final List<int> reportedSubmissionIds;
+  final bool saved;
 
   Map<String, Object?> toJson() => _$QuestionInteractionsToJson(this);
 }

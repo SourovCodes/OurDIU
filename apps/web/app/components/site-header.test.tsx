@@ -19,14 +19,14 @@ it("shows the question bank's own menu in its space", async () => {
     await screen.findByRole("link", { name: "Question Bank" }),
   ).toBeTruthy();
   expect(screen.getByRole("link", { name: "Browse" })).toBeTruthy();
-  expect(screen.getByRole("link", { name: /Contribute/ })).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Share a paper/ })).toBeTruthy();
 });
 
 it("shows OurDIU, without a product's menu, on platform pages", async () => {
   renderHeader(null, "/");
   expect(await screen.findByRole("link", { name: "OurDIU" })).toBeTruthy();
   expect(screen.queryByRole("link", { name: "Browse" })).toBeNull();
-  expect(screen.queryByRole("link", { name: /Contribute/ })).toBeNull();
+  expect(screen.queryByRole("link", { name: /Share a paper/ })).toBeNull();
 });
 
 it("switches between products", async () => {
@@ -78,7 +78,7 @@ it("shows the account menu instead when signed in", async () => {
   const menu = await screen.findByRole("button", { name: "Account menu" });
   expect(menu.textContent).toBe("AR");
   expect(screen.queryByRole("link", { name: "Log in" })).toBeNull();
-  expect(screen.getByRole("link", { name: /Contribute/ })).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Share a paper/ })).toBeTruthy();
 });
 
 it("links admins to the admin panel from the account menu", async () => {
@@ -107,7 +107,8 @@ it("puts the visitor's own pages, the other spaces and the theme in the phone me
   const menu = await screen.findByRole("dialog", { name: "Menu" });
   const link = (name: string | RegExp) =>
     within(menu).getByRole("link", { name });
-  expect(link("Browse").getAttribute("aria-current")).toBe("page");
+  expect(link("All papers").getAttribute("aria-current")).toBe("page");
+  expect(link("Saved").getAttribute("href")).toBe("/questions/saved");
   expect(link("My submissions").getAttribute("href")).toBe(
     "/questions/my-submissions",
   );

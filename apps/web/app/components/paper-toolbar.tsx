@@ -6,7 +6,7 @@ import {
 import {
   CircleAlert,
   CircleCheck,
-  Eye,
+  ExternalLink,
   Flag,
   ThumbsDown,
   ThumbsUp,
@@ -35,7 +35,7 @@ import {
   withVote,
   type PaperActionResult,
 } from "~/lib/engagement";
-import { formatCount, formatViews } from "~/lib/format";
+import { formatCount } from "~/lib/format";
 import { contributorUrl, paperDetails } from "~/lib/submissions";
 import { cn } from "~/lib/utils";
 
@@ -50,6 +50,11 @@ type PaperToolbarProps = {
   /** e.g. "Section A · Batch 61" or "By Ayesha Rahman"; shown when there's no uploader. */
   label: string;
   viewer: PaperViewer;
+  /** Which of the question's papers this is, e.g. 1 of 3. */
+  position: { index: number; total: number };
+  /** The paper's file, for the "Full screen" button that phones get here. */
+  fileUrl: string;
+  className?: string;
 };
 
 const VOTES = [
@@ -58,12 +63,30 @@ const VOTES = [
 ] as const;
 
 const activeVoteClass: Record<VoteValue, string> = {
-  1: "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
-  [-1]: "bg-destructive/10 text-destructive hover:bg-destructive/15 hover:text-destructive",
+  1: "bg-primary-container text-primary-container-foreground hover:bg-primary-container hover:text-primary-container-foreground",
+  [-1]: "bg-destructive/15 text-destructive hover:bg-destructive/20 hover:text-destructive",
 };
 
+/** A vote, as a pill on the viewer's bar. */
+const PILL =
+  "h-9 min-w-9 rounded-full bg-card px-3 tabular-nums max-lg:bg-muted";
+
+/** Report, as a round icon button; the name stays for screen readers. */
+const ROUND = "size-9 rounded-full p-0 text-muted-foreground";
+
 /** Views, likes, dislikes and reporting for the paper shown in the viewer. */
-export function PaperToolbar({ submission, label, viewer }: PaperToolbarProps) {
+/**
+ * The bar of the paper in the viewer: which paper, whose, and voting and reporting.
+ * From `lg` it tops the viewer; on phones it sits at the bottom of the screen.
+ */
+export function PaperToolbar({
+  submission,
+  label,
+  viewer,
+  position,
+  fileUrl,
+  className,
+}: PaperToolbarProps) {
   const location = useLocation();
   const fetcher = useFetcher<PaperActionResult>({
     key: `vote-${submission.id}`,
@@ -84,39 +107,46 @@ export function PaperToolbar({ submission, label, viewer }: PaperToolbarProps) {
   const voteError = fetcher.data?.ok === false ? fetcher.data.error : null;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg border bg-card px-2 py-1.5 shadow-xs sm:px-3">
-      {/* Who uploaded it, then how to tell it apart: the uploader card's job, in
-          one line. */}
-      <p className="flex min-w-0 items-center gap-x-3 gap-y-1 px-1 text-sm">
-        {uploader ? (
-          <Link
-            to={contributorUrl(uploader.username)}
-            className="flex min-w-0 items-center gap-2 font-medium hover:underline"
-          >
-            <ContributorAvatar
-              name={uploader.name}
-              image={uploader.image}
-              size="xs"
-            />
-            <span className="truncate">{uploader.name}</span>
-          </Link>
-        ) : (
-          <span className="truncate font-medium" title={label}>
-            {label}
-          </span>
-        )}
-        {uploader && details && (
-          <span className="truncate text-muted-foreground max-sm:hidden">
-            {details}
-          </span>
-        )}
-        <span className="inline-flex shrink-0 items-center gap-1 text-muted-foreground">
-          <Eye className="size-4" aria-hidden />
-          {formatViews(submission.viewCount)}
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5 lg:border-b lg:pl-5",
+        "max-lg:border-t max-lg:bg-background/95 max-lg:backdrop-blur",
+        className,
+      )}
+    >
+      {/* Which paper, then whose and how to tell it apart, in one line. */}
+      <p className="flex min-w-0 flex-1 items-baseline gap-x-2 text-sm">
+        <span className="shrink-0 font-semibold max-lg:hidden">
+          Paper {position.index + 1} of {position.total}
+        </span>
+        <span className="min-w-0 truncate text-muted-foreground">
+          {uploader ? (
+            <>
+              <span className="max-lg:hidden">by </span>
+              {/* Just the avatar on phones, where the bar is narrow. */}
+              <Link
+                to={contributorUrl(uploader.username)}
+                className="inline-flex items-center align-middle font-medium text-foreground hover:underline"
+              >
+                <ContributorAvatar
+                  name={uploader.name}
+                  image={uploader.image}
+                  size="sm"
+                  className="lg:hidden"
+                />
+                <span className="max-lg:sr-only">{uploader.name}</span>
+              </Link>
+              {details && <span className="max-lg:hidden"> · {details}</span>}
+            </>
+          ) : (
+            <span title={label} className="max-lg:sr-only">
+              {label}
+            </span>
+          )}
         </span>
       </p>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         {viewer.kind === "anonymous" ? (
           <>
             {VOTES.map(({ value, label: voteLabel, icon: Icon }) => (
@@ -124,15 +154,15 @@ export function PaperToolbar({ submission, label, viewer }: PaperToolbarProps) {
                 key={value}
                 to={loginHref}
                 aria-label={`Log in to ${voteLabel.toLowerCase()} (${countFor(value)})`}
-                className={cn(ghost, "tabular-nums")}
+                className={cn(ghost, PILL)}
               >
                 <Icon aria-hidden />
                 {countFor(value) > 0 && formatCount(countFor(value))}
               </Link>
             ))}
-            <Link to={loginHref} className={ghost}>
+            <Link to={loginHref} className={cn(ghost, ROUND)}>
               <Flag aria-hidden />
-              Report
+              <span className="sr-only">Report</span>
             </Link>
           </>
         ) : (
@@ -159,10 +189,7 @@ export function PaperToolbar({ submission, label, viewer }: PaperToolbarProps) {
                         ? "You can’t vote on your own paper"
                         : undefined
                     }
-                    className={cn(
-                      "tabular-nums",
-                      active && activeVoteClass[value],
-                    )}
+                    className={cn(PILL, active && activeVoteClass[value])}
                   >
                     <Icon aria-hidden />
                     {/* No "0": an empty count reads as a plain button. */}
@@ -180,6 +207,18 @@ export function PaperToolbar({ submission, label, viewer }: PaperToolbarProps) {
             )}
           </>
         )}
+        <a
+          href={fileUrl}
+          target="_blank"
+          rel="noopener"
+          className={cn(
+            buttonVariants({ size: "sm" }),
+            "ml-1 h-9 rounded-full lg:hidden",
+          )}
+        >
+          <ExternalLink aria-hidden />
+          Full screen
+        </a>
       </div>
 
       {voteError && (
@@ -210,9 +249,9 @@ function ReportDialog({
 
   if (reported || sending) {
     return (
-      <Button variant="ghost" size="sm" disabled>
+      <Button variant="ghost" size="sm" className={ROUND} disabled>
         <Flag aria-hidden />
-        {sending ? "Reporting…" : "Reported"}
+        <span className="sr-only">{sending ? "Reporting…" : "Reported"}</span>
       </Button>
     );
   }
@@ -220,9 +259,9 @@ function ReportDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" className={ROUND}>
           <Flag aria-hidden />
-          Report
+          <span className="sr-only">Report</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">

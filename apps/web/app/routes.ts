@@ -9,6 +9,7 @@ export default [
   route("questions", "routes/questions-home.tsx"),
   route("questions/browse", "routes/questions.tsx"),
   route("questions/search-index", "routes/questions-search-index.ts"),
+  route("questions/departments", "routes/questions-departments.ts"),
   route("questions/departments/:id", "routes/questions-department.tsx"),
   route("questions/courses/:id", "routes/questions-course.tsx"),
   route("questions/:id", "routes/question.tsx"),

@@ -243,7 +243,7 @@ One-time setup:
      --role roles/iam.workloadIdentityUser \
      --member "principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository_id/817495452"
    ```
-   `817495452` was the QuestionBank repository's ID. This repository's is `1398723748` (`gh api repos/SourovCodes/OurDIU --jq .id`): releasing from here needs the provider's condition and the IAM binding changed to it (or a second provider and binding for it).
+   Releases from this repository use the Google Cloud project `ourdiu` (number `279664469023`), with the provider named `ourdiu` instead of `diuqbank` and this repository's ID, `1398723748` (`gh api repos/SourovCodes/OurDIU --jq .id`), instead of `817495452` (the QuestionBank repository, which used the `diuquestionbank` project).
 4. **GitHub variables** (Settings → Secrets and variables → Actions → Variables): `GCP_WORKLOAD_IDENTITY_PROVIDER` = `projects/<PROJECT_NUMBER>/locations/global/workloadIdentityPools/github/providers/diuqbank` and `GCP_SERVICE_ACCOUNT` = `play-publisher@<PROJECT_ID>.iam.gserviceaccount.com`.
 5. **Play Console access for the service account.** Users and permissions → Invite new users → the service account's email. Give it access to the app with "Release apps to testing tracks" (add "Release to production…" once the app has production access).
 6. **Release.** Push a `mobile-v*` tag above the last one (`mobile-v1.5.0`, from the QuestionBank repository). Releases arrive as drafts on the internal track: roll them out in Play Console (Testing → Internal testing). Once Google has reviewed the app, set `PLAY_RELEASE_STATUS` to `completed` so internal releases go out without that step.

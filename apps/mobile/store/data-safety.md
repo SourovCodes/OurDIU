@@ -13,7 +13,7 @@ something new.
 **Which of the following methods of account creation does your app support?**
 OAuth (Sign in with Google).
 
-**Delete account URL:** https://diuqbank.com/delete-account
+**Delete account URL:** https://diuqbank.com/delete-account (https://ourdiu.com/delete-account after the cutover in docs/PLAN.md)
 
 **Do you provide a way for users to request that some or all of their data is
 deleted, without requiring them to delete their account?** Yes: withdrawing an

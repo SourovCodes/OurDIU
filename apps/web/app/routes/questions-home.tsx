@@ -14,6 +14,7 @@ import { getUser } from "~/lib/session.server";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/questions-home";
+import { pageMeta, QB_NAME } from "~/lib/seo";
 
 /** The first question of each course, so one course doesn't fill a section. */
 function onePerCourse(questions: QuestionList["items"], limit: number) {
@@ -80,14 +81,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   };
 }
 
-export const meta: Route.MetaFunction = () => [
-  { title: "OurDIU Question Bank — Past exam question papers" },
-  {
-    name: "description",
-    content:
-      "Find previous exam question papers by department, course, semester and exam type. Free and community-contributed.",
-  },
-];
+export const meta: Route.MetaFunction = () =>
+  pageMeta({
+    title: `${QB_NAME} — DIU past exam question papers | OurDIU`,
+    description:
+      "The DIU Question Bank, formerly DIU QBank (diuqbank.com): previous final, midterm and quiz questions of Daffodil International University by department, course and semester. Free, no ads.",
+  });
 
 function SectionHeading({
   id,
@@ -162,7 +161,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             <span className="flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
               <Check className="size-3.5" aria-hidden />
             </span>
-            Free, no ads, shared by DIU students
+            The DIU Question Bank · free, no ads
           </p>
           <div className="space-y-5">
             <h1 className="font-display-xl text-6xl sm:text-8xl xl:text-[6.5rem]">
@@ -170,9 +169,16 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             </h1>
             {papers > 0 && (
               <p className="max-w-xl text-lg text-pretty text-muted-foreground">
-                {formatNumber(papers)} past exam papers across{" "}
-                {departments.length} departments. Search a course, pick the
-                semester, and read it right here.
+                {formatNumber(papers)} past exam papers of Daffodil
+                International University across {departments.length}{" "}
+                departments, shared by students (formerly DIU QBank at{" "}
+                <Link
+                  to="/diuqbank"
+                  className="underline underline-offset-4 hover:text-foreground"
+                >
+                  diuqbank.com
+                </Link>
+                ). Search a course, pick the semester, and read it right here.
               </p>
             )}
           </div>

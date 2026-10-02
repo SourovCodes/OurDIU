@@ -127,6 +127,35 @@ test("the footer leads to the about page and its promise", async ({ page }) => {
   await expect(linkedin).toHaveAttribute("target", "_blank");
 });
 
+test("the question bank home explains the move from diuqbank.com", async ({
+  page,
+}) => {
+  await page.goto("/questions");
+  await clickUntilUrl(page, "diuqbank.com", /\/diuqbank$/);
+  await expect(page).toHaveTitle(
+    "DIU QBank (diuqbank.com) is now the DIU Question Bank on OurDIU",
+  );
+  await expect(
+    page.getByRole("heading", {
+      level: 1,
+      name: "DIU QBank is now the DIU Question Bank on OurDIU",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Do I need a new account?" }),
+  ).toBeVisible();
+  // It belongs to the question bank's space.
+  await expect(
+    page.getByRole("banner").getByRole("link", { name: "Question Bank" }),
+  ).toBeVisible();
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: "Open the DIU Question Bank" })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/questions$/);
+});
+
 test("the footer leads to the contact and legal pages", async ({ page }) => {
   await page.goto("/");
   await clickUntilUrl(page, "Contact", /\/contact$/);

@@ -44,6 +44,7 @@ import { paperTitles, plural, pickSubmission } from "~/lib/submissions";
 import { formatViews } from "~/lib/format";
 import type { RootLoader } from "~/root";
 import type { Route } from "./+types/question";
+import { breadcrumbJsonLd, originOf, pageMeta, QB_NAME } from "~/lib/seo";
 
 /** The signed-in visitor's votes and reports. Skipped for anonymous visitors. */
 async function loadInteractions(request: Request, questionId: string) {
@@ -188,18 +189,26 @@ export function shouldRevalidate({
   return withoutSubmission(currentUrl) !== withoutSubmission(nextUrl);
 }
 
-export const meta: Route.MetaFunction = ({ loaderData }) => {
-  if (!loaderData)
-    return [{ title: "Question not found — OurDIU Question Bank" }];
-  const { course, department, semester, examType } = loaderData.question;
+export const meta: Route.MetaFunction = ({ loaderData, matches }) => {
+  if (!loaderData) return [{ title: `Question not found — ${QB_NAME}` }];
+  const { id, course, department, semester, examType } = loaderData.question;
   return [
-    {
-      title: `${course.name} (${department.shortName}) ${examType.name}, ${semester.name} — OurDIU Question Bank`,
-    },
-    {
-      name: "description",
-      content: `${examType.name} question papers for ${course.name}, ${semester.name}, ${department.name}.`,
-    },
+    ...pageMeta({
+      title: `${course.name} ${examType.name} Question, ${semester.name} (DIU ${department.shortName}) — ${QB_NAME}`,
+      description: `${course.name} ${examType.name.toLowerCase()} exam question paper of ${semester.name}, ${department.name}, Daffodil International University (DIU). Read it free or download the PDF.`,
+    }),
+    breadcrumbJsonLd(originOf(matches), [
+      { name: QB_NAME, path: "/questions" },
+      {
+        name: department.shortName,
+        path: `/questions/departments/${department.id}`,
+      },
+      { name: course.name, path: courseHref(course.id) },
+      {
+        name: `${examType.name}, ${semester.name}`,
+        path: `/questions/${id}`,
+      },
+    ]),
   ];
 };
 

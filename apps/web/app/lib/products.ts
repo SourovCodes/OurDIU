@@ -95,11 +95,23 @@ export function product(id: Product["id"]): Product {
   return PRODUCTS.find((p) => p.id === id)!;
 }
 
+/**
+ * Product pages outside their product's path: /diuqbank tells the question bank's
+ * story, but sits at the root because the app opens /questions/* links.
+ */
+const PRODUCT_PAGES: Record<string, Product["id"]> = {
+  "/diuqbank": "questions",
+};
+
 /** The product whose space a path is in, or null for platform pages (hub, account, legal). */
 export function productAt(pathname: string): Product | null {
+  const own = PRODUCT_PAGES[pathname];
   return (
     PRODUCTS.find(
-      (p) => pathname === p.href || pathname.startsWith(`${p.href}/`),
+      (p) =>
+        p.id === own ||
+        pathname === p.href ||
+        pathname.startsWith(`${p.href}/`),
     ) ?? null
   );
 }

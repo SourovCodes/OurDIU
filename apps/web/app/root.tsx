@@ -12,6 +12,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLocation,
   useMatches,
   useRouteError,
   useRouteLoaderData,
@@ -37,6 +38,7 @@ import { androidInvite } from "~/lib/android-app";
 import { AUTHOR } from "~/lib/author";
 import { LEGAL_PAGES } from "~/lib/legal";
 import { PRODUCTS, rememberedSpace } from "~/lib/products";
+import { canonicalUrl, OG_IMAGE, SITE_NAME } from "~/lib/seo";
 import { useRememberSpace, useSpace } from "~/lib/use-space";
 import { apiFetch, readJson } from "~/lib/api.server";
 import { getUser, hasSessionCookie } from "~/lib/session.server";
@@ -71,6 +73,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     needsAttention,
     androidInvite: androidInvite(request),
     space: rememberedSpace(request.headers.get("cookie"))?.id ?? null,
+    // The site's own origin: canonicalHostRedirect sends every other host here.
+    origin: new URL(request.url).origin,
   };
 }
 export type RootLoader = typeof loader;
@@ -93,6 +97,28 @@ export function shouldRevalidate({
 
 /** Set `handle = { ownShell: true }` on a route that brings its own shell (the admin panel). */
 export type RouteHandle = { ownShell?: boolean };
+
+/**
+ * The head tags every page shares: its canonical URL (so diuqbank.com's links,
+ * `www.` and filtered views all count for one page) and the rest of its link
+ * preview. Titles and descriptions come from each route (`pageMeta`).
+ */
+function SeoLinks({ origin }: { origin: string }) {
+  const { pathname, search } = useLocation();
+  const url = canonicalUrl(origin, pathname, search);
+  return (
+    <>
+      <link rel="canonical" href={url} />
+      <meta property="og:url" content={url} />
+      <meta property="og:type" content="website" />
+      <meta property="og:site_name" content={SITE_NAME} />
+      <meta property="og:image" content={origin + OG_IMAGE} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta name="twitter:card" content="summary_large_image" />
+    </>
+  );
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const data = useRouteLoaderData<typeof loader>("root");
@@ -124,6 +150,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </>
         )}
         <Meta />
+        {data && <SeoLinks origin={data.origin} />}
         <Links />
       </head>
       <body

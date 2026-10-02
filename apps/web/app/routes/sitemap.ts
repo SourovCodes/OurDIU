@@ -24,12 +24,18 @@ export async function loader({ request }: Route.LoaderArgs) {
   const departmentIds = taxonomy.departments
     .filter((d) => d.publishedCount > 0)
     .map((d) => d.id);
-  const response = new Response(sitemapXml(origin, sitemap, departmentIds), {
-    headers: {
-      "content-type": "application/xml; charset=utf-8",
-      "cache-control": `public, max-age=${MAX_AGE_S}`,
+  const courseIds = taxonomy.courses
+    .filter((c) => c.publishedCount > 0)
+    .map((c) => c.id);
+  const response = new Response(
+    sitemapXml(origin, sitemap, { departmentIds, courseIds }),
+    {
+      headers: {
+        "content-type": "application/xml; charset=utf-8",
+        "cache-control": `public, max-age=${MAX_AGE_S}`,
+      },
     },
-  });
+  );
   waitUntil(cache.put(key, response.clone()));
   return response;
 }

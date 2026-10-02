@@ -8,15 +8,14 @@ import { formatNumber } from "~/lib/format";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/questions-departments";
+import { pageMeta, QB_NAME } from "~/lib/seo";
 
-export const meta: Route.MetaFunction = () => [
-  { title: "Browse departments — OurDIU Question Bank" },
-  {
-    name: "description",
-    content:
-      "Past exam question papers from every DIU department. Pick yours to see its courses.",
-  },
-];
+export const meta: Route.MetaFunction = () =>
+  pageMeta({
+    title: `Departments — ${QB_NAME} (CSE, SWE, EEE and more)`,
+    description:
+      "Past exam question papers from every department of Daffodil International University (DIU). Pick yours to see its courses.",
+  });
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { departments, courses } = await loadTaxonomy(request);

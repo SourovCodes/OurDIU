@@ -48,15 +48,14 @@ import { plural } from "~/lib/submissions";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/questions";
+import { pageMeta, QB_NAME } from "~/lib/seo";
 
-export const meta: Route.MetaFunction = () => [
-  { title: "All papers — OurDIU Question Bank" },
-  {
-    name: "description",
-    content:
-      "Browse past exam question papers by department, course, semester and exam type.",
-  },
-];
+export const meta: Route.MetaFunction = () =>
+  pageMeta({
+    title: `All DIU past papers — ${QB_NAME}`,
+    description:
+      "Browse every past exam question paper of Daffodil International University (DIU): finals, midterms and quizzes by department, course and semester.",
+  });
 
 /** Fills a grid of one, two or three columns without a gap on the last row. */
 const PAGE_SIZE = 24;

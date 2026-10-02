@@ -20,6 +20,8 @@ export default [
   route("questions/contribute", "routes/contribute.tsx"),
   route("questions/my-submissions", "routes/account-submissions.tsx"),
   route("questions/my-submissions/:id", "routes/account-submission.tsx"),
+  // What became of diuqbank.com. At the root: /questions/* links open the app.
+  route("diuqbank", "routes/diuqbank.tsx"),
 
   // Coming soon.
   route("routine", "routes/routine.tsx"),
@@ -47,6 +49,7 @@ export default [
   route("logout", "routes/logout.tsx"),
   route("sitemap.xml", "routes/sitemap.ts"),
   route("robots.txt", "routes/robots.ts"),
+  route("llms.txt", "routes/llms.ts"),
   route(".well-known/assetlinks.json", "routes/assetlinks.ts"),
   route("*", "routes/not-found.tsx"),
 ] satisfies RouteConfig;

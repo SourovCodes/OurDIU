@@ -66,7 +66,12 @@ export default function About() {
         <p>
           OurDIU started as the question bank, a side project: one place for
           past papers, so nobody has to scroll through five group chats the
-          night before an exam.
+          night before an exam. It ran as DIU QBank at diuqbank.com from 2024
+          until it{" "}
+          <Link to="/diuqbank" className="underline underline-offset-4">
+            moved here
+          </Link>{" "}
+          in October 2026.
         </p>
         <p>
           It turned out to be the best teacher I’ve had. Building and

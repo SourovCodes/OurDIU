@@ -4,6 +4,9 @@ import 'package:pdfrx/pdfrx.dart';
 
 import '../../api/api.dart';
 import '../../api/generated/export.dart';
+import '../../data/format.dart';
+import '../../theme/exam_shape.dart';
+import '../../widgets/state_message.dart';
 
 /// A question with its papers, ranked the way the API sends them.
 final questionProvider = FutureProvider.autoDispose.family<QuestionDetail, int>(
@@ -72,11 +75,15 @@ class PaperView extends StatefulWidget {
 class _PaperViewState extends State<PaperView> {
   var _pageCount = 0;
 
+  /// Bumped by "Try again", so the viewer loads the file afresh.
+  var _attempt = 0;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return PdfViewer.uri(
       widget.url,
+      key: ValueKey((widget.url, _attempt)),
       params: PdfViewerParams(
         backgroundColor: scheme.surfaceContainer,
         margin: 10,
@@ -99,6 +106,31 @@ class _PaperViewState extends State<PaperView> {
             value: total == null || total == 0 ? null : downloaded / total,
           ),
         ),
+        // A failed download or a broken file says so, instead of spinning.
+        errorBannerBuilder: (context, error, stackTrace, documentRef) =>
+            ColoredBox(
+              color: scheme.surfaceContainer,
+              child: StateMessage(
+                icon: isOffline(error)
+                    ? Icons.cloud_off_rounded
+                    : Icons.broken_image_outlined,
+                shape: ExamKind.midterm,
+                title: isOffline(error)
+                    ? "You're offline"
+                    : "Couldn't open this paper",
+                body: isOffline(error)
+                    ? 'Connect to the internet to read it.'
+                    : 'The file didn’t load. Try again, or report the paper '
+                          'if it keeps happening.',
+                actions: [
+                  FilledButton.icon(
+                    onPressed: () => setState(() => _attempt++),
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Try again'),
+                  ),
+                ],
+              ),
+            ),
       ),
     );
   }

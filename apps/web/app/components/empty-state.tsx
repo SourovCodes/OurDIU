@@ -21,8 +21,8 @@ type EmptyStateProps = {
 };
 
 /**
- * shadcn's Empty, in a dashed frame so it reads as a placeholder for a list; the
- * icon sits on an exam shape, like the app's state messages.
+ * shadcn's Empty on a tonal surface, where the list would be; the icon sits on
+ * an exam shape, like the app's state messages.
  */
 export function EmptyState({
   icon: Icon,
@@ -33,7 +33,7 @@ export function EmptyState({
   className,
 }: EmptyStateProps) {
   return (
-    <Empty className={cn("border border-dashed", className)}>
+    <Empty className={cn("rounded-[1.75rem] bg-surface-low", className)}>
       <EmptyHeader>
         {Icon && (
           <EmptyMedia className="relative size-20">

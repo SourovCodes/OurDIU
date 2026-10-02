@@ -644,8 +644,17 @@ test("a member can like, dislike and report a paper", async ({
   await logInAs(page, NEW_USER, `/questions/${questionId}`);
   await expect(page.getByText(/\d+ views?/).first()).toBeVisible();
 
-  const like = page.getByRole("button", { name: /^Like/ });
-  const dislike = page.getByRole("button", { name: /^Dislike/ });
+  // The page has both vote areas, one hidden by CSS: the bar under the paper on
+  // phones, the column beside it from `lg`. Look only in this project's one, so
+  // the test doesn't depend on the stylesheet having applied.
+  const votes =
+    testInfo.project.name === "mobile"
+      ? page.getByRole("region", { name: "Question paper" })
+      : page.getByRole("complementary").filter({
+          has: page.getByRole("region", { name: "Feedback" }),
+        });
+  const like = votes.getByRole("button", { name: /^Like/ });
+  const dislike = votes.getByRole("button", { name: /^Dislike/ });
   await expect(like).toHaveAttribute("aria-pressed", "false");
   const likes = await voteCount(like);
   const dislikes = await voteCount(dislike);
@@ -672,14 +681,14 @@ test("a member can like, dislike and report a paper", async ({
 
   const dialog = page.getByRole("dialog");
   await expect(async () => {
-    await page.getByRole("button", { name: "Report" }).click();
+    await votes.getByRole("button", { name: "Report" }).click();
     await expect(dialog).toBeVisible({ timeout: 1_000 });
   }).toPass();
   await dialog.getByLabel("Unreadable or broken file").check();
   await dialog.getByLabel(/^Details/).fill("E2E: the second page is blurry");
   await dialog.getByRole("button", { name: "Send report" }).click();
   await expect(page.getByText("Thanks for the report")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Reported" })).toBeDisabled();
+  await expect(votes.getByRole("button", { name: "Reported" })).toBeDisabled();
 });
 
 test("visitors are asked to log in before voting", async ({ page }) => {

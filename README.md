@@ -219,7 +219,7 @@ To release somewhere else, set the repository variables `PLAY_TRACK` (`internal`
 
 The Play Console account is a personal one, so production needs a closed test first: at least 12 testers opted in for 14 days in a row, who actually use the app, before you can apply for production access. Until then, release to the internal and closed tracks.
 
-Question Bank links on `ourdiu.com` open in the app (Android App Links): the manifest claims `https://ourdiu.com/questions…` with `autoVerify`, `lib/router.dart` (`webLinkLocation`) maps the site's paths to the app's screens, and the site serves `/.well-known/assetlinks.json` with the SHA-256 of Google's **app signing key** (`ANDROID_SIGNING_SHA256` in `apps/web/app/lib/android-app.ts`, from Play Console → App integrity → App signing). Play Console's Deep links page shows whether verification passed.
+Question Bank links on `ourdiu.com` open in the app (Android App Links): the manifest claims `https://ourdiu.com/questions…` with `autoVerify`, `lib/router.dart` (`webLinkLocation`) maps the site's paths to the app's screens, and the site serves `/.well-known/assetlinks.json` with the SHA-256 fingerprints Play Console lists for the app, Google's **app signing key** first (`ANDROID_SIGNING_SHA256` in `apps/web/app/lib/android-app.ts`, from Play Console → Grow users → Deep links → Add domain). Play Console's Deep links page shows whether verification passed.
 
 Locally, `flutter build appbundle` signs with the upload key if `android/key.properties` exists (git-ignored; same keys as the workflow writes), and with the debug key otherwise. Debug-signed builds can't be uploaded to Play.
 

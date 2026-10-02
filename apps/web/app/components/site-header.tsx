@@ -35,7 +35,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "~/components/ui/sheet";
-import { PRODUCTS, spaceAt, type Product } from "~/lib/products";
+import { PRODUCTS, type Product } from "~/lib/products";
+import { useLogoutTarget, useSpace } from "~/lib/use-space";
 import { loginHref } from "~/lib/redirect";
 import { setTheme, useIsDark } from "~/lib/theme";
 import type { SessionUser } from "~/lib/types";
@@ -97,6 +98,7 @@ function UserMenu({
   product: Product | null;
 }) {
   const submit = useSubmit();
+  const logoutTarget = useLogoutTarget();
 
   return (
     <DropdownMenu>
@@ -155,7 +157,12 @@ function UserMenu({
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onSelect={() => submit(null, { method: "post", action: "/logout" })}
+          onSelect={() =>
+            submit(
+              { redirectTo: logoutTarget },
+              { method: "post", action: "/logout" },
+            )
+          }
         >
           <LogOut aria-hidden />
           Log out
@@ -214,6 +221,7 @@ function MobileMenu({
   product: Product | null;
 }) {
   const location = useLocation();
+  const logoutTarget = useLogoutTarget();
   const { pathname } = location;
   const links: NavItem[] = [
     ...(product ? [{ to: product.href, label: "Home" }] : []),
@@ -341,6 +349,7 @@ function MobileMenu({
             <ThemeSegments />
             {user && (
               <Form method="post" action="/logout">
+                <input type="hidden" name="redirectTo" value={logoutTarget} />
                 <Button
                   type="submit"
                   variant="ghost"
@@ -365,7 +374,7 @@ function MobileMenu({
 export function SiteHeader({ user }: { user: SessionUser | null }) {
   const location = useLocation();
   const { pathname } = location;
-  const product = spaceAt(location);
+  const product = useSpace();
   const items = product ? NAV_ITEMS[product.id] : [];
   const questions = product?.id === "questions";
 

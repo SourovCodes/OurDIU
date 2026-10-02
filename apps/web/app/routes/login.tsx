@@ -25,6 +25,7 @@ import { safeRedirect } from "~/lib/redirect";
 import { cn } from "~/lib/utils";
 import { getUser } from "~/lib/session.server";
 import type { Route } from "./+types/login";
+import { NARROW_PAGE } from "~/components/page-header";
 
 export const meta: Route.MetaFunction = () => [
   { title: "Log in — OurDIU" },
@@ -167,7 +168,12 @@ export default function Login({
   const reason = reasonFor(back);
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-8 py-2 sm:py-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-12">
+    <div
+      className={cn(
+        NARROW_PAGE,
+        "grid gap-8 py-2 sm:py-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-10",
+      )}
+    >
       <section className="space-y-6">
         <div className="space-y-3">
           <h1 className="font-display-xl text-4xl text-balance sm:text-6xl">

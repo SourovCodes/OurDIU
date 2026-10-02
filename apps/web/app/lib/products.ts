@@ -105,19 +105,52 @@ export function productAt(pathname: string): Product | null {
 }
 
 /**
- * The space a page shows in: its product, except that the login page keeps the
- * space of the page it returns to, so logging in from the Question Bank doesn't
- * leave it.
+ * Remembers the space the visitor was last in, so platform pages (account,
+ * legal, about, the 404 page) keep its header and lead back to it. A cookie, so
+ * the server renders the same header the browser will.
  */
-export function spaceAt({
-  pathname,
-  search,
-}: {
-  pathname: string;
-  search: string;
-}): Product | null {
+export const SPACE_COOKIE = "ourdiu_space";
+
+/** The space a Cookie header (or `document.cookie`) remembers, if any. */
+export function rememberedSpace(
+  cookie: string | null | undefined,
+): Product | null {
+  const id = cookie?.match(
+    new RegExp(`(?:^|;\\s*)${SPACE_COOKIE}=(\\w+)`),
+  )?.[1];
+  return PRODUCTS.find((p) => p.id === id) ?? null;
+}
+
+/** Remembers a space in the browser for a year. */
+export function rememberSpace(product: Product) {
+  document.cookie = `${SPACE_COOKIE}=${product.id}; Path=/; Max-Age=31536000; SameSite=Lax`;
+}
+
+/** Pages of the platform itself, which take the remembered space. Not the hub. */
+function isPlatformPage(pathname: string) {
+  return (
+    pathname !== "/" && !productAt(pathname) && !pathname.startsWith("/admin")
+  );
+}
+
+/**
+ * The space a page shows in: its product's; the login page takes the space of the
+ * page it returns to; other platform pages (account, legal, about, a missing
+ * page) the space the visitor was last in. The hub belongs to none.
+ */
+export function spaceAt(
+  {
+    pathname,
+    search,
+  }: {
+    pathname: string;
+    search: string;
+  },
+  last: Product | null = null,
+): Product | null {
   if (pathname === "/login") {
-    return productAt(loginReturnPath(search).split(/[?#]/)[0]!);
+    const back = loginReturnPath(search).split(/[?#]/)[0]!;
+    return productAt(back) ?? (back === "/" ? null : last);
   }
-  return productAt(pathname);
+  return productAt(pathname) ?? (isPlatformPage(pathname) ? last : null);
 }

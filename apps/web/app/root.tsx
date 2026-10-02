@@ -11,7 +11,6 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
-  useLocation,
   useMatches,
   useRouteError,
   useRouteLoaderData,
@@ -36,7 +35,8 @@ import {
 import { androidInvite } from "~/lib/android-app";
 import { AUTHOR } from "~/lib/author";
 import { LEGAL_PAGES } from "~/lib/legal";
-import { PRODUCTS, spaceAt } from "~/lib/products";
+import { PRODUCTS, rememberedSpace } from "~/lib/products";
+import { useRememberSpace, useSpace } from "~/lib/use-space";
 import { getUser } from "~/lib/session.server";
 import { THEME_SCRIPT } from "~/lib/theme";
 
@@ -55,6 +55,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   return {
     user: await getUser(request),
     androidInvite: androidInvite(request),
+    space: rememberedSpace(request.headers.get("cookie"))?.id ?? null,
   };
 }
 export type RootLoader = typeof loader;
@@ -77,7 +78,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // chrome, even on a route that normally has its own shell.
   const error = useRouteError();
   const matches = useMatches();
-  const space = spaceAt(useLocation())?.id;
+  const space = useSpace()?.id;
   const ownShell =
     !error &&
     matches.some(
@@ -220,10 +221,12 @@ function FooterColumn({
 
 export default function App() {
   usePageViews();
+  useRememberSpace();
   return <Outlet />;
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  const space = useSpace();
   let title = "Something went wrong";
   let details = "An unexpected error occurred. Please try again.";
   let stack: string | undefined;
@@ -246,11 +249,8 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         title={title}
         description={details}
         action={
-          <Link
-            to="/"
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            Back to home
+          <Link to={space?.href ?? "/"} className={buttonVariants()}>
+            {space ? `Back to ${space.name}` : "Back to home"}
           </Link>
         }
       />

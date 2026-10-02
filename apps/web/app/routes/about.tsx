@@ -7,6 +7,7 @@ import { EXAM_TONE, ExamShape } from "~/components/exam-badge";
 import { cn } from "~/lib/utils";
 import { AUTHOR } from "~/lib/author";
 import type { Route } from "./+types/about";
+import { NARROW_PAGE } from "~/components/page-header";
 
 export const meta: Route.MetaFunction = () => [
   { title: "About — OurDIU" },
@@ -43,7 +44,7 @@ const PROMISE_TONES = [
 
 export default function About() {
   return (
-    <article className="mx-auto max-w-4xl space-y-10 py-2 sm:py-6">
+    <article className={cn(NARROW_PAGE, "space-y-10 py-2 sm:py-6")}>
       <header className="flex flex-col gap-6 rounded-[2rem] bg-primary-container p-7 text-primary-container-foreground sm:flex-row sm:items-center sm:p-10">
         <ContributorAvatar
           name={AUTHOR.name}

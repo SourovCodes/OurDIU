@@ -13,6 +13,8 @@ import {
   TESTER_GROUP_URL,
 } from "~/lib/android-app";
 import type { Route } from "./+types/app";
+import { NARROW_PAGE } from "~/components/page-header";
+import { cn } from "~/lib/utils";
 
 export const meta: Route.MetaFunction = () => [
   {
@@ -83,7 +85,7 @@ const STEPS = [
 export default function AndroidApp() {
   if (!ANDROID_BETA) {
     return (
-      <article className="mx-auto max-w-xl space-y-4 py-4 sm:py-10">
+      <article className={cn(NARROW_PAGE, "space-y-4 py-4 sm:py-10")}>
         <h1 className="font-display-xl text-5xl text-balance">
           The OurDIU app for Android
         </h1>

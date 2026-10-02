@@ -166,6 +166,9 @@ Map<String, Object?> myPaperJson(
   int? questionId = 7,
   int views = 0,
   int? courseId = 200,
+  String? changesRequested,
+  int unread = 0,
+  List<Map<String, Object?>> messages = const [],
 }) => {
   'id': id,
   'status': status,
@@ -192,9 +195,9 @@ Map<String, Object?> myPaperJson(
   },
   'autoPublished': autoPublished,
   'rejectionReason': null,
-  'changesRequested': null,
-  'unread': 0,
-  'messages': <Object?>[],
+  'changesRequested': changesRequested,
+  'unread': unread,
+  'messages': messages,
   'analysis': analysis == null
       ? null
       : {'status': analysis, 'flag': flag, 'matches': matches},
@@ -227,4 +230,23 @@ Map<String, Object?> myPaperJson(
                 }
               : null,
         },
+};
+
+/// An entry of a paper's review conversation, as the API sends it to you.
+Map<String, Object?> reviewMessageJson(
+  int id, {
+  String kind = 'comment',
+  String? body,
+  String role = 'admin',
+  String createdAt = '2026-09-21T10:00:00.000Z',
+}) => {
+  'id': id,
+  'kind': kind,
+  'body': body,
+  'author': {
+    'role': role,
+    'name': role == 'admin' ? null : 'Nusrat Jahan',
+    'image': null,
+  },
+  'createdAt': createdAt,
 };

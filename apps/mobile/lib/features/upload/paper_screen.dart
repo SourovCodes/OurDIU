@@ -17,6 +17,7 @@ import '../../widgets/state_message.dart';
 import 'paper_widgets.dart';
 import 'papers.dart';
 import 'review.dart';
+import 'review_thread.dart';
 import 'share_flow.dart';
 
 /// One of your papers: where it stands, what the AI read, and what you can do.
@@ -60,6 +61,12 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
         ref
           ..invalidate(myPapersProvider)
           ..invalidate(profileProvider);
+      }
+      // Loading it marked the reviewer's messages read: the badges change.
+      if (now.unread > 0) {
+        ref
+          ..invalidate(myPapersProvider)
+          ..invalidate(reviewActivityProvider);
       }
     }, fireImmediately: true);
   }
@@ -111,12 +118,29 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
       ..invalidate(myPapersProvider)
       ..invalidate(profileProvider);
     if (!mounted) return;
-    _snack(
-      updated.status == SubmissionStatus.published
-          ? "Details updated. They match the AI's reading, so it's published."
-          : 'Details updated. An admin will take a look.',
-    );
+    _snack(switch (updated.status) {
+      SubmissionStatus.published =>
+        "Details updated. They match the AI's reading, so it's published.",
+      SubmissionStatus.changesRequested =>
+        'Details updated. Resubmit when you’re ready.',
+      _ => 'Details updated. An admin will take a look.',
+    });
   }
+
+  Future<void> _replaceFile(MySubmissionDetail paper) async {
+    setState(() => _busy = true);
+    await replaceFile(context, ref, paper);
+    if (mounted) setState(() => _busy = false);
+  }
+
+  Future<void> _resubmit(MySubmissionDetail paper) async {
+    setState(() => _busy = true);
+    await resubmit(context, ref, paper);
+    if (mounted) setState(() => _busy = false);
+  }
+
+  void _openMessages(MySubmissionDetail paper) =>
+      context.push('/account/papers/${paper.id}/messages');
 
   Future<void> _withdraw(MySubmissionDetail paper) async {
     final confirmed = await showModalBottomSheet<bool>(
@@ -234,7 +258,28 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
                 rejectionReason: paper.rejectionReason,
               ),
               onUploadAnother: () => startSharing(context, ref),
+              onReplaceFile: _busy ? null : () => _replaceFile(paper),
+              onEditDetails: _busy ? null : () => _editDetails(paper),
             ),
+            if (stage == PaperStage.needsChanges) ...[
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: _busy ? null : () => _resubmit(paper),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                ),
+                icon: const Icon(Icons.send_rounded),
+                label: const Text('Resubmit for review'),
+              ),
+            ],
+            if (paper.messages.isNotEmpty ||
+                paper.status != SubmissionStatus.published) ...[
+              const SizedBox(height: 20),
+              _MessagesPreview(
+                paper: paper,
+                onOpen: () => _openMessages(paper),
+              ),
+            ],
             if (stage == PaperStage.published) ...[
               const SizedBox(height: 12),
               Row(
@@ -334,12 +379,16 @@ class _StatusHero extends StatelessWidget {
     required this.stage,
     required this.description,
     required this.onUploadAnother,
+    required this.onReplaceFile,
+    required this.onEditDetails,
   });
 
   final MySubmissionDetail paper;
   final PaperStage stage;
   final String description;
   final VoidCallback onUploadAnother;
+  final VoidCallback? onReplaceFile;
+  final VoidCallback? onEditDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -347,6 +396,7 @@ class _StatusHero extends StatelessWidget {
     final kind = examKind(paper.classification.examType.name);
     final questionId = paper.questionId;
     final title = switch (stage) {
+      PaperStage.needsChanges => 'Needs your changes',
       PaperStage.checking => 'Checking your paper',
       PaperStage.published => 'It’s live',
       PaperStage.checkDetails => 'Check your details',
@@ -382,6 +432,7 @@ class _StatusHero extends StatelessWidget {
                       switch (stage) {
                         PaperStage.published => Icons.check_circle_rounded,
                         PaperStage.rejected => Icons.block_rounded,
+                        PaperStage.needsChanges => Icons.edit_note_rounded,
                         _ => Icons.schedule_rounded,
                       },
                       color: foreground,
@@ -397,10 +448,34 @@ class _StatusHero extends StatelessWidget {
                       color: foreground,
                     ).copyWith(height: 1.02),
                   ),
-                  Text(
-                    description,
-                    style: TextStyle(color: foreground, height: 1.4),
-                  ),
+                  if (stage == PaperStage.needsChanges &&
+                      paper.changesRequested != null)
+                    _Request(paper: paper)
+                  else
+                    Text(
+                      description,
+                      style: TextStyle(color: foreground, height: 1.4),
+                    ),
+                  if (stage == PaperStage.needsChanges)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          FilledButton.tonalIcon(
+                            onPressed: onReplaceFile,
+                            icon: const Icon(Icons.upload_file_rounded),
+                            label: const Text('Replace file'),
+                          ),
+                          FilledButton.tonalIcon(
+                            onPressed: onEditDetails,
+                            icon: const Icon(Icons.edit_outlined),
+                            label: const Text('Edit details'),
+                          ),
+                        ],
+                      ),
+                    ),
                   if (stage == PaperStage.published && questionId != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
@@ -449,6 +524,121 @@ class _StatusHero extends StatelessWidget {
 }
 
 /// The exam shape turning and breathing while the AI reads the paper.
+/// What the reviewer asked to change, quoted in the hero.
+class _Request extends StatelessWidget {
+  const _Request({required this.paper});
+
+  final MySubmissionDetail paper;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final asked = paper.messages.lastWhere(
+      (m) => m.kind == ReviewMessageKind.changesRequested,
+      orElse: () => paper.messages.last,
+    );
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 2,
+        children: [
+          Text(
+            'Reviewer · ${timeAgo(asked.createdAt)}',
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: scheme.onSurfaceVariant),
+          ),
+          Text(
+            paper.changesRequested!,
+            style: TextStyle(color: scheme.onSurface, height: 1.4),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The newest messages, with a way to the whole conversation.
+class _MessagesPreview extends StatelessWidget {
+  const _MessagesPreview({required this.paper, required this.onOpen});
+
+  final MySubmissionDetail paper;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final messages = paper.messages;
+    final shown = messages.length > 2
+        ? messages.sublist(messages.length - 2)
+        : messages;
+    final canWrite = paper.status != SubmissionStatus.published;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 8,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Messages',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            if (messages.isNotEmpty)
+              TextButton(
+                onPressed: onOpen,
+                child: Text(
+                  messages.length > shown.length
+                      ? 'See all ${messages.length}'
+                      : canWrite
+                      ? 'Reply'
+                      : 'Open',
+                ),
+              ),
+          ],
+        ),
+        if (messages.isEmpty)
+          FilledButton.tonalIcon(
+            onPressed: onOpen,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+            ),
+            icon: const Icon(Icons.forum_outlined),
+            label: const Text('Write to the reviewer'),
+          )
+        else
+          Material(
+            color: theme.colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(24),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onOpen,
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: 12,
+                  children: threadEntries(
+                    shown,
+                    paper.unread.clamp(0, shown.length),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _Working extends StatefulWidget {
   const _Working({required this.color});
 
@@ -581,6 +771,7 @@ class _Timeline extends StatelessWidget {
                 ? 'Published automatically'
                 : 'Published by an admin',
           PaperStage.rejected => 'Not published by an admin',
+          PaperStage.needsChanges => 'Needs your changes, then resubmit',
           PaperStage.checking => 'After the check',
           _ => 'Waiting for an admin',
         },

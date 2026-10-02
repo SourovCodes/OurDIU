@@ -12,18 +12,36 @@ import 'papers.dart';
 Future<void> startSharing(BuildContext context, WidgetRef ref) async {
   if (!await ensureContributor(context, ref)) return;
   if (!context.mounted) return;
+  final pdf = await choosePdf(context, ref);
+  if (pdf == null || !context.mounted) return;
+  openUploadForm(context, pdf);
+}
+
+/// Asks whether to scan or pick a PDF, then gets it. Null when the user backs
+/// out, or (after saying why) when it couldn't be read or is too big.
+Future<PickedPdf?> choosePdf(
+  BuildContext context,
+  WidgetRef ref, {
+  String title = 'Share a paper',
+}) async {
   final source = await showModalBottomSheet<PaperSource>(
     context: context,
     useRootNavigator: true,
     showDragHandle: true,
-    builder: (context) => const _SourceSheet(),
+    builder: (context) => _SourceSheet(title: title),
   );
-  if (source == null || !context.mounted) return;
-  await pickAndOpen(context, ref, source);
+  if (source == null || !context.mounted) return null;
+  final pdf = await _pick(context, ref, source);
+  if (pdf == null || !context.mounted) return null;
+  if (pdf.bytes > maxPaperBytes) {
+    _tooBig(context, pdf);
+    return null;
+  }
+  return pdf;
 }
 
-/// Gets a PDF from [source] and opens the upload form with it.
-Future<void> pickAndOpen(
+/// Gets a PDF from [source]; says so when that fails.
+Future<PickedPdf?> _pick(
   BuildContext context,
   WidgetRef ref,
   PaperSource source,
@@ -46,15 +64,12 @@ Future<void> pickAndOpen(
         ),
       ),
     );
-    return;
+    return null;
   }
-  if (pdf == null || !context.mounted) return;
-  if (!openUploadForm(context, pdf)) return;
+  return pdf;
 }
 
-/// Opens the form for [pdf], or says why it can't be uploaded.
-bool openUploadForm(BuildContext context, PickedPdf pdf) {
-  if (pdf.bytes > maxPaperBytes) {
+void _tooBig(BuildContext context, PickedPdf pdf) =>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -63,6 +78,11 @@ bool openUploadForm(BuildContext context, PickedPdf pdf) {
         ),
       ),
     );
+
+/// Opens the form for [pdf], or says why it can't be uploaded.
+bool openUploadForm(BuildContext context, PickedPdf pdf) {
+  if (pdf.bytes > maxPaperBytes) {
+    _tooBig(context, pdf);
     return false;
   }
   context.push('/upload', extra: pdf);
@@ -70,7 +90,9 @@ bool openUploadForm(BuildContext context, PickedPdf pdf) {
 }
 
 class _SourceSheet extends StatelessWidget {
-  const _SourceSheet();
+  const _SourceSheet({required this.title});
+
+  final String title;
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +112,7 @@ class _SourceSheet extends StatelessWidget {
                 spacing: 2,
                 children: [
                   Text(
-                    'Share a paper',
+                    title,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),

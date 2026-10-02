@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../api/generated/export.dart';
 import '../../data/format.dart';
 import '../../theme/exam_shape.dart';
+import '../../theme/theme.dart';
 import '../../widgets/question_row.dart';
 import '../../widgets/state_message.dart';
 import 'paper_widgets.dart';
@@ -79,6 +80,13 @@ class _MyPapersScreenState extends ConsumerState<MyPapersScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
         children: [
+          if (counts[PaperStage.needsChanges] case final waiting?) ...[
+            _ChangesBanner(
+              count: waiting,
+              onShow: () => setState(() => _filter = PaperStage.needsChanges),
+            ),
+            const SizedBox(height: 12),
+          ],
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             clipBehavior: Clip.none,
@@ -139,4 +147,56 @@ class _FilterChip extends StatelessWidget {
     showCheckmark: false,
     onSelected: (_) => onTap(),
   );
+}
+
+/// Papers a reviewer sent back, at the top of the list.
+class _ChangesBanner extends StatelessWidget {
+  const _ChangesBanner({required this.count, required this.onShow});
+
+  final int count;
+  final VoidCallback onShow;
+
+  @override
+  Widget build(BuildContext context) {
+    final (background, foreground) = ExamColors.of(context).changes;
+    return Material(
+      color: background,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onShow,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 12,
+            children: [
+              Icon(Icons.edit_note_rounded, color: foreground),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 2,
+                  children: [
+                    Text(
+                      count == 1
+                          ? 'A reviewer asked you to change a paper'
+                          : 'Reviewers asked you to change $count papers',
+                      style: TextStyle(
+                        color: foreground,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      'Open it to see what to fix, then resubmit it.',
+                      style: TextStyle(color: foreground, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

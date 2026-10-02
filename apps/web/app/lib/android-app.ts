@@ -18,13 +18,17 @@ export const PLAY_STORE_URL =
 export const ANDROID_PACKAGE = "com.ourdiu.app";
 
 /**
- * SHA-256 of the key Google Play signs the app with (Play App Signing: Play
- * Console → App integrity → App signing, "App signing key certificate"; not
- * the upload key). Android checks it against `/.well-known/assetlinks.json`
+ * SHA-256 fingerprints of the keys Google Play signs the app with, as Play
+ * Console lists them (Grow users → Deep links → Add domain): the app signing
+ * key (Play App Signing; not our upload key) first, then two more keys Google
+ * holds for the app. Android checks them against `/.well-known/assetlinks.json`
  * before letting the app open ourdiu.com links.
  */
-export const ANDROID_SIGNING_SHA256 =
-  "86:51:83:0A:15:06:D3:72:70:63:2D:BE:A3:19:46:0C:58:C0:F2:CD:33:4C:61:C6:09:13:1D:79:86:26:45:C4";
+export const ANDROID_SIGNING_SHA256 = [
+  "86:51:83:0A:15:06:D3:72:70:63:2D:BE:A3:19:46:0C:58:C0:F2:CD:33:4C:61:C6:09:13:1D:79:86:26:45:C4",
+  "00:CC:95:DE:2F:4F:65:70:0F:97:1C:F6:2A:8B:2F:CF:01:54:8A:DE:2B:98:79:FB:CC:70:0F:F6:CB:1A:B5:69",
+  "C4:44:42:E3:A6:55:08:78:F0:B1:8F:36:F6:97:6A:59:3E:34:D2:10:F8:56:7C:F4:7C:67:DD:EF:A5:E3:C6:48",
+];
 
 /** Digital Asset Links: the app may open this site's links (Android App Links). */
 export function assetLinks() {
@@ -34,7 +38,7 @@ export function assetLinks() {
       target: {
         namespace: "android_app",
         package_name: ANDROID_PACKAGE,
-        sha256_cert_fingerprints: [ANDROID_SIGNING_SHA256],
+        sha256_cert_fingerprints: ANDROID_SIGNING_SHA256,
       },
     },
   ];

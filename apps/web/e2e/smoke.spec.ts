@@ -606,7 +606,10 @@ test("a contributor can upload a paper with a new course", async ({ page }) => {
   // The status page says where the paper stands and what happened so far.
   await expect(page.getByRole("heading", { name: courseName })).toBeVisible();
   await expect(page.getByText("Pending review").first()).toBeVisible();
-  await expect(page.getByText("Activity", { exact: true })).toBeVisible();
+  // The review timeline: uploaded, then the AI check, then a decision.
+  await expect(page.getByRole("region", { name: "Review" })).toContainText(
+    "Uploaded",
+  );
 
   await page.getByRole("link", { name: "My submissions" }).first().click();
   const card = page

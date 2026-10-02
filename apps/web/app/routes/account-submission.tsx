@@ -1,4 +1,5 @@
 import type { MySubmissionDetail, UploaderAnalysis } from "@ourdiu/shared";
+import { MAX_REVIEW_MESSAGE_LENGTH } from "@ourdiu/shared/constants";
 import {
   Bot,
   Check,
@@ -6,9 +7,13 @@ import {
   CircleCheck,
   CircleHelp,
   ExternalLink,
+  FilePen,
+  FileUp,
   Globe,
+  MessagesSquare,
   LoaderCircle,
   Pencil,
+  Send,
   Trash2,
   TriangleAlert,
   Upload,
@@ -25,12 +30,16 @@ import {
 import { ExamShape } from "~/components/exam-badge";
 import { PageHeader } from "~/components/page-header";
 import { PaperDetailsFields } from "~/components/paper-details-fields";
+import { PdfFileInput } from "~/components/pdf-file-input";
 import { PdfViewer } from "~/components/pdf-viewer";
 import { RelativeTime } from "~/components/relative-time";
 import { ToneIcon } from "~/components/review-stage";
+import { ReviewThread } from "~/components/review-thread";
 import { StatusBadge } from "~/components/status-badge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { Label } from "~/components/ui/label";
+import { Textarea } from "~/components/ui/textarea";
 import {
   Card,
   CardContent,
@@ -48,7 +57,12 @@ import {
 import { apiFetch, apiRequest, readJson } from "~/lib/api.server";
 import { formatBytes } from "~/lib/format";
 import { formObject } from "~/lib/form";
-import { isChecking, reviewStage, type ReviewStage } from "~/lib/review";
+import {
+  canEdit,
+  isChecking,
+  reviewStage,
+  type ReviewStage,
+} from "~/lib/review";
 import { requireUser } from "~/lib/session.server";
 import {
   classificationLine,
@@ -78,8 +92,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   if (!res.ok) throw data("Could not load the submission", { status: 502 });
   const submission = await readJson<MySubmissionDetail>(res);
   // The pickers are only needed while the details can still be changed.
-  const taxonomy =
-    submission.status === "pending_review" ? await loadTaxonomy(request) : null;
+  const taxonomy = canEdit(submission) ? await loadTaxonomy(request) : null;
   return { submission, taxonomy };
 }
 
@@ -101,6 +114,23 @@ export async function action({ request, params }: Route.ActionArgs) {
       `${path}/classification`,
       formObject(form, "intent"),
     );
+  }
+  if (intent === "file") {
+    const file = new FormData();
+    const picked = form.get("file");
+    if (picked instanceof File && picked.size > 0) file.set("file", picked);
+    return apiRequest(request, intent, "PUT", `${path}/file`, file);
+  }
+  if (intent === "resubmit") {
+    const note = String(form.get("note") ?? "").trim();
+    return apiRequest(request, intent, "POST", `${path}/resubmit`, {
+      note: note || undefined,
+    });
+  }
+  if (intent === "message") {
+    return apiRequest(request, intent, "POST", `${path}/messages`, {
+      body: form.get("body"),
+    });
   }
   throw new Response("Unknown intent", { status: 400 });
 }
@@ -170,7 +200,11 @@ function EditDetailsDialog({
     <ActionDialog
       trigger={trigger}
       title="Edit details"
-      description="Correct what the paper is filed under. If your details then match what the AI read, it’s published right away."
+      description={
+        submission.status === "changes_requested"
+          ? "Correct what the paper is filed under. The reviewer sees your changes once you resubmit the paper."
+          : "Correct what the paper is filed under. If your details then match what the AI read, it’s published right away."
+      }
       submitLabel="Save"
       pendingLabel="Saving…"
       successMessage="Details saved"
@@ -332,9 +366,7 @@ function DetailsCheck({
   }
 
   const applied = classificationFromAnalysis(submission.classification, values);
-  const canApply =
-    submission.status === "pending_review" &&
-    differing.some((row) => row.applies);
+  const canApply = canEdit(submission) && differing.some((row) => row.applies);
 
   return (
     <Card>
@@ -412,13 +444,170 @@ function DetailsCheck({
   );
 }
 
+/** Picks a new PDF for the paper; the AI checks it again. */
+function ReplaceFileDialog({ trigger }: { trigger: React.ReactElement }) {
+  return (
+    <ActionDialog
+      trigger={trigger}
+      title="Replace the file"
+      description="Upload the corrected PDF. It replaces the one you uploaded, and the AI checks it again."
+      submitLabel="Replace"
+      pendingLabel="Uploading…"
+      successMessage="File replaced"
+      fields={{ intent: "file" }}
+      encType="multipart/form-data"
+      className="sm:max-w-lg"
+    >
+      {(fieldErrors) => (
+        <PdfFileInput name="file" label="PDF file" error={fieldErrors.file} />
+      )}
+    </ActionDialog>
+  );
+}
+
+/**
+ * Sends the paper back to the reviewer, with an optional note on what changed.
+ * Owned by the page: the card it opens from is gone once the paper is resubmitted,
+ * and would take the dialog's toast with it.
+ */
+function ResubmitDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
+    <ActionDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Resubmit for review?"
+      description="The reviewer looks at your paper again. You can’t make more changes until they’ve decided, unless they ask again."
+      submitLabel="Resubmit"
+      pendingLabel="Resubmitting…"
+      successMessage="Sent back for review"
+      fields={{ intent: "resubmit" }}
+      className="sm:max-w-lg"
+    >
+      {(fieldErrors) => (
+        <div className="grid gap-1.5">
+          <Label htmlFor="resubmit-note">
+            What did you change?{" "}
+            <span className="font-normal text-muted-foreground">
+              (optional)
+            </span>
+          </Label>
+          <Textarea
+            id="resubmit-note"
+            name="note"
+            rows={3}
+            maxLength={MAX_REVIEW_MESSAGE_LENGTH}
+            placeholder="e.g. Uploaded a clearer scan and fixed the semester"
+            aria-invalid={fieldErrors.note ? true : undefined}
+          />
+          {fieldErrors.note && (
+            <p className="text-sm text-destructive">{fieldErrors.note}</p>
+          )}
+        </div>
+      )}
+    </ActionDialog>
+  );
+}
+
+/** What the reviewer asked for, and the three ways to answer it. */
+function ChangesCard({
+  submission,
+  taxonomy,
+  onResubmit,
+}: {
+  submission: MySubmissionDetail;
+  taxonomy: Taxonomy | null;
+  onResubmit: () => void;
+}) {
+  return (
+    <Card className="bg-sky-50 dark:bg-sky-950/40">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FilePen className="size-4" aria-hidden />
+          The reviewer asked for changes
+        </CardTitle>
+        <CardDescription>
+          Fix what they asked, or reply below if something’s unclear. Then
+          resubmit the paper.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        {submission.changesRequested && (
+          <p className="rounded-2xl bg-surface px-4 py-3 text-sm whitespace-pre-line">
+            {submission.changesRequested}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2">
+          {taxonomy && (
+            <EditDetailsDialog
+              submission={submission}
+              taxonomy={taxonomy}
+              trigger={
+                <Button variant="outline" size="sm">
+                  <Pencil />
+                  Edit details
+                </Button>
+              }
+            />
+          )}
+          <ReplaceFileDialog
+            trigger={
+              <Button variant="outline" size="sm">
+                <FileUp />
+                Replace file
+              </Button>
+            }
+          />
+          <Button size="sm" onClick={onResubmit}>
+            <Send />
+            Resubmit
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/** The conversation with the reviewers, and a box to write to them. */
+function Conversation({ submission }: { submission: MySubmissionDetail }) {
+  return (
+    <section
+      id="conversation"
+      aria-labelledby="conversation-heading"
+      className="grid gap-4 rounded-[1.75rem] bg-surface p-6"
+    >
+      <h2
+        id="conversation-heading"
+        className="flex items-center gap-2 font-expressive text-xl"
+      >
+        <MessagesSquare className="size-5" aria-hidden />
+        Messages
+      </h2>
+      <ReviewThread
+        messages={submission.messages}
+        viewer="uploader"
+        unread={submission.unread}
+        canReply={submission.status !== "published"}
+        placeholder="Ask the reviewer something, or explain your paper"
+        emptyText="Questions about your paper? Write to the reviewers here."
+      />
+    </section>
+  );
+}
+
 type StepState = "done" | "active" | "waiting";
 
 /** Uploaded → AI check → decision, as in the app's paper status. */
 function Timeline({ submission }: { submission: MySubmissionDetail }) {
   const analysis = submission.analysisDetail;
   const checking = isChecking(submission);
-  const decided = submission.status !== "pending_review";
+  const waitingForYou = submission.status === "changes_requested";
+  const decided = submission.status !== "pending_review" && !waitingForYou;
   const steps: { title: string; detail: React.ReactNode; state: StepState }[] =
     [
       {
@@ -448,14 +637,18 @@ function Timeline({ submission }: { submission: MySubmissionDetail }) {
             ? "Published"
             : submission.status === "rejected"
               ? "Not published"
-              : "Decision",
-        detail: decided
-          ? submission.status === "published"
-            ? "Students can read it now."
-            : "See the reason above."
-          : checking
-            ? "Next, once the check is done."
-            : "Waiting for an admin, or for your edit.",
+              : waitingForYou
+                ? "Needs your changes"
+                : "Decision",
+        detail: waitingForYou
+          ? "See the reviewer’s message, then resubmit."
+          : decided
+            ? submission.status === "published"
+              ? "Students can read it now."
+              : "See the reason above."
+            : checking
+              ? "Next, once the check is done."
+              : "Waiting for an admin, or for your edit.",
         state: decided ? "done" : checking ? "waiting" : "active",
       },
     ];
@@ -569,6 +762,8 @@ export default function AccountSubmission({
 }: Route.ComponentProps) {
   const { submission, taxonomy } = loaderData;
   const [withdrawing, setWithdrawing] = useState(false);
+  // Keyed per opening, so each one starts from a fresh dialog.
+  const [resubmitting, setResubmitting] = useState<number>();
   useRefreshWhile(isChecking(submission));
   useUploadedToast();
 
@@ -644,20 +839,40 @@ export default function AccountSubmission({
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="grid gap-4 lg:order-2">
+          {submission.status === "changes_requested" && (
+            <ChangesCard
+              submission={submission}
+              taxonomy={taxonomy}
+              onResubmit={() => setResubmitting(Date.now())}
+            />
+          )}
           <CheckPanel
             submission={submission}
             onWithdraw={() => setWithdrawing(true)}
           />
           <Timeline submission={submission} />
         </div>
-        <div className="min-w-0 lg:order-1">
+        <div className="grid min-w-0 gap-6 lg:order-1">
           <PdfViewer
+            // A replaced file has the same URL: remount to load the new one.
+            key={submission.fileSize}
             src={ownSubmissionFileUrl(submission.id)}
             title={`${classification.course.name} — your upload`}
           />
+          {(submission.messages.length > 0 ||
+            submission.status !== "published") && (
+            <Conversation submission={submission} />
+          )}
         </div>
       </div>
 
+      {resubmitting !== undefined && (
+        <ResubmitDialog
+          key={resubmitting}
+          open
+          onOpenChange={(open) => !open && setResubmitting(undefined)}
+        />
+      )}
       <ConfirmAction
         open={withdrawing}
         onOpenChange={setWithdrawing}

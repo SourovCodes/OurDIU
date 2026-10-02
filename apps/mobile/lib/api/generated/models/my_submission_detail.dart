@@ -5,6 +5,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
 import 'analysis_summary.dart';
+import 'review_message.dart';
 import 'submission_classification.dart';
 import 'submission_status.dart';
 import 'uploader_analysis.dart';
@@ -27,8 +28,11 @@ class MySubmissionDetail {
     required this.classification,
     required this.autoPublished,
     required this.rejectionReason,
+    required this.changesRequested,
+    required this.unread,
     required this.analysis,
     required this.analysisDetail,
+    required this.messages,
   });
 
   factory MySubmissionDetail.fromJson(Map<String, Object?> json) =>
@@ -47,8 +51,11 @@ class MySubmissionDetail {
   final SubmissionClassification classification;
   final bool autoPublished;
   final String? rejectionReason;
+  final String? changesRequested;
+  final int unread;
   final AnalysisSummary? analysis;
   final UploaderAnalysis? analysisDetail;
+  final List<ReviewMessage> messages;
 
   Map<String, Object?> toJson() => _$MySubmissionDetailToJson(this);
 }

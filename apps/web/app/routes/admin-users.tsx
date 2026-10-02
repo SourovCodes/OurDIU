@@ -94,8 +94,14 @@ export async function action({ request }: Route.ActionArgs) {
 
 export { AdminRouteError as ErrorBoundary };
 
+const paperTotal = (counts: AdminUser["submissionCounts"]) =>
+  counts.published +
+  counts.pendingReview +
+  counts.changesRequested +
+  counts.rejected;
+
 function PaperCounts({ counts }: { counts: AdminUser["submissionCounts"] }) {
-  const total = counts.published + counts.pendingReview + counts.rejected;
+  const total = paperTotal(counts);
   if (total === 0) return <span className="text-muted-foreground">—</span>;
   const parts = [
     { label: "published", value: counts.published, dot: "bg-emerald-500" },
@@ -103,6 +109,11 @@ function PaperCounts({ counts }: { counts: AdminUser["submissionCounts"] }) {
       label: "pending review",
       value: counts.pendingReview,
       dot: "bg-amber-500",
+    },
+    {
+      label: "needs changes",
+      value: counts.changesRequested,
+      dot: "bg-sky-500",
     },
     { label: "rejected", value: counts.rejected, dot: "bg-red-500" },
   ];
@@ -123,11 +134,7 @@ function RowActions({ user }: { user: AdminUser }) {
   const [confirming, setConfirming] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const makeAdmin = user.role !== "admin";
-  const hasPapers =
-    user.submissionCounts.published +
-      user.submissionCounts.pendingReview +
-      user.submissionCounts.rejected >
-    0;
+  const hasPapers = paperTotal(user.submissionCounts) > 0;
 
   return (
     <>

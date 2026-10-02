@@ -448,7 +448,8 @@
         "enum": [
           "pending_review",
           "published",
-          "rejected"
+          "rejected",
+          "changes_requested"
         ]
       },
       "Uploader": {
@@ -908,6 +909,15 @@
               "null"
             ]
           },
+          "changesRequested": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unread": {
+            "type": "integer"
+          },
           "analysis": {
             "anyOf": [
               {
@@ -933,6 +943,8 @@
           "classification",
           "autoPublished",
           "rejectionReason",
+          "changesRequested",
+          "unread",
           "analysis"
         ]
       },
@@ -979,6 +991,17 @@
         "enum": [
           "not_a_paper",
           "multiple_papers"
+        ]
+      },
+      "ReviewActivity": {
+        "type": "object",
+        "properties": {
+          "needsAttention": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "needsAttention"
         ]
       },
       "MySubmissionDetail": {
@@ -1036,6 +1059,15 @@
               "null"
             ]
           },
+          "changesRequested": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unread": {
+            "type": "integer"
+          },
           "analysis": {
             "anyOf": [
               {
@@ -1055,6 +1087,12 @@
                 "type": "null"
               }
             ]
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewMessage"
+            }
           }
         },
         "required": [
@@ -1071,8 +1109,11 @@
           "classification",
           "autoPublished",
           "rejectionReason",
+          "changesRequested",
+          "unread",
           "analysis",
-          "analysisDetail"
+          "analysisDetail",
+          "messages"
         ]
       },
       "UploaderAnalysis": {
@@ -1248,6 +1289,104 @@
         "required": [
           "id",
           "name"
+        ]
+      },
+      "ReviewMessage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ReviewMessageKind"
+          },
+          "body": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "author": {
+            "$ref": "#/components/schemas/ReviewAuthor"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "body",
+          "author",
+          "createdAt"
+        ]
+      },
+      "ReviewMessageKind": {
+        "type": "string",
+        "enum": [
+          "comment",
+          "changes_requested",
+          "rejected",
+          "published",
+          "returned_to_review",
+          "details_edited",
+          "file_replaced",
+          "resubmitted"
+        ]
+      },
+      "ReviewAuthor": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/ReviewAuthorRole"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "image": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "role",
+          "name",
+          "image"
+        ]
+      },
+      "ReviewAuthorRole": {
+        "type": "string",
+        "enum": [
+          "admin",
+          "uploader"
+        ]
+      },
+      "ResubmitInput": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
+      },
+      "PostReviewMessageInput": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "body"
         ]
       },
       "UpdateUsernameInput": {
@@ -2317,12 +2456,43 @@
         }
       }
     },
+    "/api/v1/me/review-activity": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Count your papers that need you: changes asked for, or unread messages",
+        "responses": {
+          "200": {
+            "description": "Your review activity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewActivity"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/submissions/{id}": {
       "get": {
         "tags": [
           "Account"
         ],
-        "summary": "Get one of your submissions with its review status and AI check",
+        "summary": "Get one of your submissions with its review status, AI check and review conversation",
+        "description": "Marks the conversation read.",
         "parameters": [
           {
             "schema": {
@@ -2425,8 +2595,8 @@
         "tags": [
           "Account"
         ],
-        "summary": "Correct the details of one of your papers waiting for review",
-        "description": "Same fields as uploading. The new details are compared with the AI check's reading, and the paper is published right away if they match.",
+        "summary": "Correct the details of one of your papers waiting for review or for your changes",
+        "description": "Same fields as uploading. The new details are compared with the AI check's reading, and the paper is published right away if they match, unless a reviewer asked for changes to it: then it waits for them.",
         "parameters": [
           {
             "schema": {
@@ -2527,7 +2697,7 @@
             }
           },
           "409": {
-            "description": "The paper isn't waiting for review",
+            "description": "The paper can no longer be changed",
             "content": {
               "application/json": {
                 "schema": {
@@ -2550,6 +2720,105 @@
       }
     },
     "/api/v1/me/submissions/{id}/file": {
+      "put": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Replace the PDF of one of your papers waiting for review or for your changes",
+        "description": "The AI check runs again on the new file, but a reviewer decides whether it's published.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated submission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MySubmissionDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The paper can no longer be changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many uploads",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
       "get": {
         "tags": [
           "Account"
@@ -2590,6 +2859,188 @@
           },
           "404": {
             "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/submissions/{id}/resubmit": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Send a paper a reviewer asked you to change back for review",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResubmitInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Waiting for review again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MySubmissionDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No changes were asked for",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid note",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/submissions/{id}/messages": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Write to the reviewers of one of your papers that isn't published",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostReviewMessageInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Your submission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MySubmissionDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The paper is published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many messages",
             "content": {
               "application/json": {
                 "schema": {
@@ -2688,6 +3139,9 @@
                         "rejected": {
                           "type": "integer"
                         },
+                        "changesRequested": {
+                          "type": "integer"
+                        },
                         "awaitingClassification": {
                           "type": "integer"
                         }
@@ -2696,6 +3150,7 @@
                         "published",
                         "pendingReview",
                         "rejected",
+                        "changesRequested",
                         "awaitingClassification"
                       ]
                     },
@@ -2958,6 +3413,9 @@
                               "null"
                             ]
                           },
+                          "adminUnread": {
+                            "type": "integer"
+                          },
                           "watermark": {
                             "type": [
                               "object",
@@ -3010,6 +3468,7 @@
                           "analysis",
                           "autoPublished",
                           "rejectionReason",
+                          "adminUnread",
                           "watermark"
                         ]
                       }
@@ -3024,7 +3483,27 @@
                       "type": "integer"
                     },
                     "counts": {
-                      "$ref": "#/components/schemas/SubmissionCounts"
+                      "type": "object",
+                      "properties": {
+                        "published": {
+                          "type": "integer"
+                        },
+                        "pendingReview": {
+                          "type": "integer"
+                        },
+                        "rejected": {
+                          "type": "integer"
+                        },
+                        "changesRequested": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "published",
+                        "pendingReview",
+                        "rejected",
+                        "changesRequested"
+                      ]
                     }
                   },
                   "required": [
@@ -3198,6 +3677,9 @@
                         "null"
                       ]
                     },
+                    "adminUnread": {
+                      "type": "integer"
+                    },
                     "watermark": {
                       "type": [
                         "object",
@@ -3305,6 +3787,12 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "messages": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReviewMessage"
+                      }
                     }
                   },
                   "required": [
@@ -3325,9 +3813,11 @@
                     "analysis",
                     "autoPublished",
                     "rejectionReason",
+                    "adminUnread",
                     "watermark",
                     "reports",
-                    "analysisDetail"
+                    "analysisDetail",
+                    "messages"
                   ]
                 }
               }
@@ -3369,8 +3859,8 @@
         "tags": [
           "Admin: submissions"
         ],
-        "summary": "Publish, reject or re-queue a submission",
-        "description": "A submission that proposes new catalog entries has to be classified before it can be published.",
+        "summary": "Publish, reject, ask for changes to or re-queue a submission",
+        "description": "A submission that proposes new catalog entries has to be classified before it can be published. Asking for changes sends the paper back to its uploader, who can edit it and resubmit. Every decision is added to the submission's review conversation, with its reason.",
         "parameters": [
           {
             "schema": {
@@ -3394,7 +3884,7 @@
                   },
                   "reason": {
                     "type": "string",
-                    "maxLength": 1000
+                    "maxLength": 2000
                   }
                 },
                 "required": [
@@ -3514,6 +4004,9 @@
                         "null"
                       ]
                     },
+                    "adminUnread": {
+                      "type": "integer"
+                    },
                     "watermark": {
                       "type": [
                         "object",
@@ -3566,6 +4059,7 @@
                     "analysis",
                     "autoPublished",
                     "rejectionReason",
+                    "adminUnread",
                     "watermark"
                   ]
                 }
@@ -3728,6 +4222,332 @@
           },
           "404": {
             "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/submissions/{id}/messages": {
+      "post": {
+        "tags": [
+          "Admin: submissions"
+        ],
+        "summary": "Write to the uploader in a submission's review conversation",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostReviewMessageInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The submission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "likeCount": {
+                      "type": "integer"
+                    },
+                    "dislikeCount": {
+                      "type": "integer"
+                    },
+                    "viewCount": {
+                      "type": "integer"
+                    },
+                    "id": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "$ref": "#/components/schemas/SubmissionStatus"
+                    },
+                    "fileSize": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "section": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "batch": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "questionId": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "classification": {
+                      "$ref": "#/components/schemas/SubmissionClassification"
+                    },
+                    "uploader": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "image": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "username",
+                        "name",
+                        "email",
+                        "image"
+                      ]
+                    },
+                    "pendingReportCount": {
+                      "type": "integer"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "analysis": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/AnalysisSummary"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "autoPublished": {
+                      "type": "boolean"
+                    },
+                    "rejectionReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "adminUnread": {
+                      "type": "integer"
+                    },
+                    "watermark": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "queued",
+                            "done",
+                            "failed"
+                          ]
+                        },
+                        "error": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "fileSize": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "error",
+                        "fileSize"
+                      ]
+                    },
+                    "reports": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "reason": {
+                            "$ref": "#/components/schemas/ReportReason"
+                          },
+                          "details": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "$ref": "#/components/schemas/ReportStatus"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "reporter": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "username": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "email": {
+                                "type": "string"
+                              },
+                              "image": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "username",
+                              "name",
+                              "email",
+                              "image"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "reason",
+                          "details",
+                          "status",
+                          "createdAt",
+                          "reporter"
+                        ]
+                      }
+                    },
+                    "analysisDetail": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/SubmissionAnalysis"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "messages": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReviewMessage"
+                      }
+                    }
+                  },
+                  "required": [
+                    "likeCount",
+                    "dislikeCount",
+                    "viewCount",
+                    "id",
+                    "status",
+                    "fileSize",
+                    "createdAt",
+                    "section",
+                    "batch",
+                    "questionId",
+                    "classification",
+                    "uploader",
+                    "pendingReportCount",
+                    "updatedAt",
+                    "analysis",
+                    "autoPublished",
+                    "rejectionReason",
+                    "adminUnread",
+                    "watermark",
+                    "reports",
+                    "analysisDetail",
+                    "messages"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid message",
             "content": {
               "application/json": {
                 "schema": {
@@ -3924,6 +4744,9 @@
                         "null"
                       ]
                     },
+                    "adminUnread": {
+                      "type": "integer"
+                    },
                     "watermark": {
                       "type": [
                         "object",
@@ -3976,6 +4799,7 @@
                     "analysis",
                     "autoPublished",
                     "rejectionReason",
+                    "adminUnread",
                     "watermark"
                   ]
                 }
@@ -6198,7 +7022,27 @@
                             "format": "date-time"
                           },
                           "submissionCounts": {
-                            "$ref": "#/components/schemas/SubmissionCounts"
+                            "type": "object",
+                            "properties": {
+                              "published": {
+                                "type": "integer"
+                              },
+                              "pendingReview": {
+                                "type": "integer"
+                              },
+                              "rejected": {
+                                "type": "integer"
+                              },
+                              "changesRequested": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "published",
+                              "pendingReview",
+                              "rejected",
+                              "changesRequested"
+                            ]
                           }
                         },
                         "required": [
@@ -6343,7 +7187,27 @@
                       "format": "date-time"
                     },
                     "submissionCounts": {
-                      "$ref": "#/components/schemas/SubmissionCounts"
+                      "type": "object",
+                      "properties": {
+                        "published": {
+                          "type": "integer"
+                        },
+                        "pendingReview": {
+                          "type": "integer"
+                        },
+                        "rejected": {
+                          "type": "integer"
+                        },
+                        "changesRequested": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "published",
+                        "pendingReview",
+                        "rejected",
+                        "changesRequested"
+                      ]
                     }
                   },
                   "required": [

@@ -181,6 +181,7 @@ describe("queueing on publish", () => {
     const result = await updateSubmissionStatus(
       db(),
       queue,
+      null,
       paper.id,
       "published",
     );
@@ -199,14 +200,21 @@ describe("queueing on publish", () => {
       watermarkedFileKey: `watermarked/${crypto.randomUUID()}.pdf`,
     });
     const { queue, sent } = fakeQueue();
-    await updateSubmissionStatus(db(), queue, paper.id, "published");
+    await updateSubmissionStatus(db(), queue, null, paper.id, "published");
     expect(sent).toEqual([]);
   });
 
   it("doesn't queue rejections", async () => {
     const paper = await seedPaper({ status: "pending_review" });
     const { queue, sent } = fakeQueue();
-    await updateSubmissionStatus(db(), queue, paper.id, "rejected", "No.");
+    await updateSubmissionStatus(
+      db(),
+      queue,
+      null,
+      paper.id,
+      "rejected",
+      "No.",
+    );
     expect(sent).toEqual([]);
     expect((await readRow(paper.id)).watermarkStatus).toBeNull();
   });
@@ -242,6 +250,7 @@ describe("queueing on publish", () => {
     const result = await updateSubmissionStatus(
       db(),
       queue,
+      null,
       paper.id,
       "published",
     );

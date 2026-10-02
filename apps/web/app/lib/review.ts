@@ -11,7 +11,8 @@ export type ReviewStage = {
 
 /** Where an uploader's paper is in the review, in plain words. */
 export function reviewStage(submission: MySubmission): ReviewStage {
-  const { status, analysis, autoPublished, rejectionReason } = submission;
+  const { status, analysis, autoPublished, rejectionReason, changesRequested } =
+    submission;
 
   if (status === "published") {
     return autoPublished
@@ -34,6 +35,16 @@ export function reviewStage(submission: MySubmission): ReviewStage {
         ? `An admin didn’t publish your paper: ${rejectionReason} You can withdraw it and upload a corrected one.`
         : "An admin reviewed your paper and didn’t publish it. You can withdraw it and upload a corrected one.",
       tone: "neutral",
+    };
+  }
+
+  if (status === "changes_requested") {
+    return {
+      label: "Needs your changes",
+      description: changesRequested
+        ? `A reviewer asked you to change something: ${changesRequested} Fix it below, then resubmit the paper.`
+        : "A reviewer asked you to change something. Fix it below, then resubmit the paper.",
+      tone: "attention",
     };
   }
 
@@ -90,3 +101,8 @@ export const isChecking = (submission: MySubmission) =>
   submission.status === "pending_review" &&
   (submission.analysis?.status === "queued" ||
     submission.analysis?.status === "processing");
+
+/** Whether the uploader can still change the paper's details and file. */
+export const canEdit = (submission: MySubmission) =>
+  submission.status === "pending_review" ||
+  submission.status === "changes_requested";

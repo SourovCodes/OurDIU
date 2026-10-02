@@ -25,6 +25,8 @@ const base: MySubmission = {
   },
   autoPublished: false,
   rejectionReason: null,
+  changesRequested: null,
+  unread: 0,
   analysis: { status: "completed", flag: null, matches: true },
 };
 
@@ -44,6 +46,19 @@ describe("reviewStage", () => {
         rejectionReason: "This file is not a valid exam question paper.",
       }).description,
     ).toContain("This file is not a valid exam question paper.");
+  });
+
+  it("asks the uploader for the reviewer's changes", () => {
+    const stage = reviewStage({
+      ...base,
+      status: "changes_requested",
+      changesRequested: "Please add the section.",
+    });
+    expect(stage).toMatchObject({
+      label: "Needs your changes",
+      tone: "attention",
+    });
+    expect(stage.description).toContain("Please add the section.");
   });
 
   it("explains why a paper waits for an admin", () => {

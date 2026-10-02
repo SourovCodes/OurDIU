@@ -10,6 +10,7 @@ export const STATUS_LABELS: Record<SubmissionStatus, string> = {
   published: "Published",
   pending_review: "Pending review",
   rejected: "Rejected",
+  changes_requested: "Needs changes",
 };
 
 /** The signed-in uploader's copy of their own PDF, available in any status. */

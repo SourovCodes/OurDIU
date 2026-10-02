@@ -12,6 +12,8 @@ enum SubmissionStatus {
   published('published'),
   @JsonValue('rejected')
   rejected('rejected'),
+  @JsonValue('changes_requested')
+  changesRequested('changes_requested'),
 
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);

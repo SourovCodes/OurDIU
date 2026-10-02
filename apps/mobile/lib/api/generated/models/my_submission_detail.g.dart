@@ -23,6 +23,8 @@ MySubmissionDetail _$MySubmissionDetailFromJson(Map<String, dynamic> json) =>
       ),
       autoPublished: json['autoPublished'] as bool,
       rejectionReason: json['rejectionReason'] as String?,
+      changesRequested: json['changesRequested'] as String?,
+      unread: (json['unread'] as num).toInt(),
       analysis: json['analysis'] == null
           ? null
           : AnalysisSummary.fromJson(json['analysis'] as Map<String, dynamic>),
@@ -31,6 +33,9 @@ MySubmissionDetail _$MySubmissionDetailFromJson(Map<String, dynamic> json) =>
           : UploaderAnalysis.fromJson(
               json['analysisDetail'] as Map<String, dynamic>,
             ),
+      messages: (json['messages'] as List<dynamic>)
+          .map((e) => ReviewMessage.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
 Map<String, dynamic> _$MySubmissionDetailToJson(MySubmissionDetail instance) =>
@@ -48,13 +53,17 @@ Map<String, dynamic> _$MySubmissionDetailToJson(MySubmissionDetail instance) =>
       'classification': instance.classification,
       'autoPublished': instance.autoPublished,
       'rejectionReason': instance.rejectionReason,
+      'changesRequested': instance.changesRequested,
+      'unread': instance.unread,
       'analysis': instance.analysis,
       'analysisDetail': instance.analysisDetail,
+      'messages': instance.messages,
     };
 
 const _$SubmissionStatusEnumMap = {
   SubmissionStatus.pendingReview: 'pending_review',
   SubmissionStatus.published: 'published',
   SubmissionStatus.rejected: 'rejected',
+  SubmissionStatus.changesRequested: 'changes_requested',
   SubmissionStatus.$unknown: r'$unknown',
 };

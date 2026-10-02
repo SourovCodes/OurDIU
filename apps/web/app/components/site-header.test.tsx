@@ -6,9 +6,18 @@ import { SiteHeader } from "./site-header";
 
 afterEach(cleanup);
 
-function renderHeader(user: SessionUser | null, path = "/questions") {
+function renderHeader(
+  user: SessionUser | null,
+  path = "/questions",
+  needsAttention = 0,
+) {
   const Stub = createRoutesStub([
-    { path: "*", Component: () => <SiteHeader user={user} /> },
+    {
+      path: "*",
+      Component: () => (
+        <SiteHeader user={user} needsAttention={needsAttention} />
+      ),
+    },
   ]);
   render(<Stub initialEntries={[path]} />);
 }
@@ -79,6 +88,19 @@ it("shows the account menu instead when signed in", async () => {
   expect(menu.textContent).toBe("AR");
   expect(screen.queryByRole("link", { name: "Log in" })).toBeNull();
   expect(screen.getByRole("link", { name: /Share a paper/ })).toBeTruthy();
+});
+
+it("flags the papers that need the user on the account menu", async () => {
+  renderHeader(
+    { id: "u1", name: "Ayesha Rahman", email: "ayesha@example.com" },
+    "/questions",
+    2,
+  );
+  expect(
+    await screen.findByRole("button", {
+      name: "Account menu, 2 papers need you",
+    }),
+  ).toBeTruthy();
 });
 
 it("links admins to the admin panel from the account menu", async () => {

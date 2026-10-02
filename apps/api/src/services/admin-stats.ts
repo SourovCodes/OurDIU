@@ -49,6 +49,7 @@ export async function getAdminStats(
         published: sql<number>`coalesce(${countWhereStatus("published")}, 0)`,
         pendingReview: sql<number>`coalesce(${countWhereStatus("pending_review")}, 0)`,
         rejected: sql<number>`coalesce(${countWhereStatus("rejected")}, 0)`,
+        changesRequested: sql<number>`coalesce(${countWhereStatus("changes_requested")}, 0)`,
       })
       .from(submissions),
     total(

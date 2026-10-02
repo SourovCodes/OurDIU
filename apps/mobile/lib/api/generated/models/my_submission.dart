@@ -26,6 +26,8 @@ class MySubmission {
     required this.classification,
     required this.autoPublished,
     required this.rejectionReason,
+    required this.changesRequested,
+    required this.unread,
     required this.analysis,
   });
 
@@ -45,6 +47,8 @@ class MySubmission {
   final SubmissionClassification classification;
   final bool autoPublished;
   final String? rejectionReason;
+  final String? changesRequested;
+  final int unread;
   final AnalysisSummary? analysis;
 
   Map<String, Object?> toJson() => _$MySubmissionToJson(this);

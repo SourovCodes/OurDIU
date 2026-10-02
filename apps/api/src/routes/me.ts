@@ -2,22 +2,30 @@ import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import {
   createSubmissionInputSchema,
   idQuerySchema,
+  postReviewMessageInputSchema,
+  resubmitInputSchema,
   updateUsernameInputSchema,
   USERNAME_RULES,
   mySubmissionDetailSchema,
   mySubmissionListSchema,
   profileSchema,
+  reviewActivitySchema,
 } from "@ourdiu/shared";
 import { AppError, validationHook } from "../lib/errors";
 import { objectResponse } from "../lib/files";
 import { errorResponse, jsonResponse } from "../lib/openapi";
+import { rateLimit } from "../middleware/rate-limit";
 import { requireAuth } from "../middleware/require-auth";
 import {
   getProfile,
   getOwnSubmission,
   getOwnSubmissionFile,
+  getReviewActivity,
   listOwnSubmissions,
+  postOwnReviewMessage,
   reclassifyOwnSubmission,
+  replaceOwnSubmissionFile,
+  resubmitOwnSubmission,
   updateUsername,
   withdrawSubmission,
 } from "../services/account";
@@ -50,11 +58,26 @@ const listMySubmissionsRoute = createRoute({
   },
 });
 
+const getReviewActivityRoute = createRoute({
+  method: "get",
+  path: "/review-activity",
+  tags,
+  summary:
+    "Count your papers that need you: changes asked for, or unread messages",
+  middleware: [requireAuth] as const,
+  responses: {
+    200: jsonResponse(reviewActivitySchema, "Your review activity"),
+    401: errorResponse("Not signed in"),
+  },
+});
+
 const getMySubmissionRoute = createRoute({
   method: "get",
   path: "/submissions/{id}",
   tags,
-  summary: "Get one of your submissions with its review status and AI check",
+  summary:
+    "Get one of your submissions with its review status, AI check and review conversation",
+  description: "Marks the conversation read.",
   middleware: [requireAuth] as const,
   request: { params: idParams },
   responses: {
@@ -68,10 +91,12 @@ const reclassifyMySubmissionRoute = createRoute({
   method: "put",
   path: "/submissions/{id}/classification",
   tags,
-  summary: "Correct the details of one of your papers waiting for review",
+  summary:
+    "Correct the details of one of your papers waiting for review or for your changes",
   description:
     "Same fields as uploading. The new details are compared with the AI check's " +
-    "reading, and the paper is published right away if they match.",
+    "reading, and the paper is published right away if they match, unless a " +
+    "reviewer asked for changes to it: then it waits for them.",
   middleware: [requireAuth] as const,
   request: {
     params: idParams,
@@ -84,8 +109,99 @@ const reclassifyMySubmissionRoute = createRoute({
     200: jsonResponse(mySubmissionDetailSchema, "Updated submission"),
     401: errorResponse("Not signed in"),
     404: errorResponse("Submission not found"),
-    409: errorResponse("The paper isn't waiting for review"),
+    409: errorResponse("The paper can no longer be changed"),
     422: errorResponse("Invalid details"),
+  },
+});
+
+const messageLimit = rateLimit(
+  "MESSAGE_LIMITER",
+  "You're sending messages too fast. Please wait a minute and try again.",
+);
+
+const replaceMySubmissionFileRoute = createRoute({
+  method: "put",
+  path: "/submissions/{id}/file",
+  tags,
+  summary:
+    "Replace the PDF of one of your papers waiting for review or for your changes",
+  description:
+    "The AI check runs again on the new file, but a reviewer decides whether it's published.",
+  middleware: [
+    requireAuth,
+    rateLimit(
+      "UPLOAD_LIMITER",
+      "You're uploading too fast. Please wait a minute and try again.",
+    ),
+  ] as const,
+  request: {
+    params: idParams,
+    body: {
+      required: true,
+      content: {
+        "multipart/form-data": {
+          schema: z.object({
+            file: z
+              .instanceof(File, { error: "Choose a PDF file" })
+              .openapi({ type: "string", format: "binary" }),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: jsonResponse(mySubmissionDetailSchema, "Updated submission"),
+    400: errorResponse("Invalid file"),
+    401: errorResponse("Not signed in"),
+    404: errorResponse("Submission not found"),
+    409: errorResponse("The paper can no longer be changed"),
+    429: errorResponse("Too many uploads"),
+  },
+});
+
+const resubmitMySubmissionRoute = createRoute({
+  method: "post",
+  path: "/submissions/{id}/resubmit",
+  tags,
+  summary: "Send a paper a reviewer asked you to change back for review",
+  middleware: [requireAuth, messageLimit] as const,
+  request: {
+    params: idParams,
+    body: {
+      required: true,
+      content: { "application/json": { schema: resubmitInputSchema } },
+    },
+  },
+  responses: {
+    200: jsonResponse(mySubmissionDetailSchema, "Waiting for review again"),
+    401: errorResponse("Not signed in"),
+    404: errorResponse("Submission not found"),
+    409: errorResponse("No changes were asked for"),
+    422: errorResponse("Invalid note"),
+    429: errorResponse("Too many messages"),
+  },
+});
+
+const postMySubmissionMessageRoute = createRoute({
+  method: "post",
+  path: "/submissions/{id}/messages",
+  tags,
+  summary: "Write to the reviewers of one of your papers that isn't published",
+  middleware: [requireAuth, messageLimit] as const,
+  request: {
+    params: idParams,
+    body: {
+      required: true,
+      content: { "application/json": { schema: postReviewMessageInputSchema } },
+    },
+  },
+  responses: {
+    201: jsonResponse(mySubmissionDetailSchema, "Your submission"),
+    401: errorResponse("Not signed in"),
+    404: errorResponse("Submission not found"),
+    409: errorResponse("The paper is published"),
+    422: errorResponse("Invalid message"),
+    429: errorResponse("Too many messages"),
   },
 });
 
@@ -160,6 +276,9 @@ export const meRoutes = new OpenAPIHono<AppEnv>({
       200,
     ),
   )
+  .openapi(getReviewActivityRoute, async (c) =>
+    c.json(await getReviewActivity(c.var.db, c.var.session!.user.id), 200),
+  )
   .openapi(getMySubmissionRoute, async (c) => {
     const submission = await getOwnSubmission(
       c.var.db,
@@ -181,6 +300,41 @@ export const meRoutes = new OpenAPIHono<AppEnv>({
         c.req.valid("json"),
       ),
       200,
+    ),
+  )
+  .openapi(replaceMySubmissionFileRoute, async (c) =>
+    c.json(
+      await replaceOwnSubmissionFile(
+        c.var.db,
+        c.env.BUCKET,
+        c.env.ANALYSIS_QUEUE,
+        c.var.session!.user.id,
+        c.req.valid("param").id,
+        c.req.valid("form").file,
+      ),
+      200,
+    ),
+  )
+  .openapi(resubmitMySubmissionRoute, async (c) =>
+    c.json(
+      await resubmitOwnSubmission(
+        c.var.db,
+        c.var.session!.user.id,
+        c.req.valid("param").id,
+        c.req.valid("json").note,
+      ),
+      200,
+    ),
+  )
+  .openapi(postMySubmissionMessageRoute, async (c) =>
+    c.json(
+      await postOwnReviewMessage(
+        c.var.db,
+        c.var.session!.user.id,
+        c.req.valid("param").id,
+        c.req.valid("json").body,
+      ),
+      201,
     ),
   )
   .openapi(getMySubmissionFileRoute, async (c) => {

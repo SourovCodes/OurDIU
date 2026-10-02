@@ -7,6 +7,7 @@ import type {
 import {
   EllipsisVertical,
   ExternalLink,
+  FilePen,
   FileUp,
   Globe,
   ListChecks,
@@ -22,6 +23,7 @@ import {
 } from "react-router";
 import { ConfirmAction, useFormAction } from "~/components/actions";
 import { EmptyState } from "~/components/empty-state";
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import {
   MySubmissionCards,
   mySubmissionUrl,
@@ -100,6 +102,7 @@ export function shouldRevalidate({
 }
 
 const FILTER_STATUSES: SubmissionStatus[] = [
+  "changes_requested",
   "published",
   "pending_review",
   "rejected",
@@ -200,9 +203,15 @@ export default function AccountSubmissions({
     ? submissions.filter((s) => s.status === status)
     : submissions;
 
+  const needChanges = submissions.filter(
+    (s) => s.status === "changes_requested",
+  ).length;
   const tabs = [
     { value: "all", label: "All", search: "", count: submissions.length },
-    ...FILTER_STATUSES.map((s) => ({
+    // The tab for papers waiting for changes only shows while there are some.
+    ...FILTER_STATUSES.filter(
+      (s) => s !== "changes_requested" || needChanges > 0,
+    ).map((s) => ({
       value: s,
       label: STATUS_LABELS[s],
       search: `?status=${s}`,
@@ -228,8 +237,11 @@ export default function AccountSubmissions({
             },
             {
               label: "in review",
-              value: submissions.filter((s) => s.status === "pending_review")
-                .length,
+              value: submissions.filter(
+                (s) =>
+                  s.status === "pending_review" ||
+                  s.status === "changes_requested",
+              ).length,
             },
             {
               label: "views",
@@ -249,6 +261,29 @@ export default function AccountSubmissions({
         </dl>
       )}
 
+      {needChanges > 0 && (
+        <Alert variant="warning">
+          <FilePen />
+          <AlertTitle>
+            {needChanges === 1
+              ? "A reviewer asked you to change a paper"
+              : `Reviewers asked you to change ${needChanges} papers`}
+          </AlertTitle>
+          <AlertDescription>
+            <p>
+              Open it to see what to fix, then resubmit it.{" "}
+              {status !== "changes_requested" && (
+                <Link
+                  to="?status=changes_requested"
+                  className="font-medium underline underline-offset-4"
+                >
+                  Show {needChanges === 1 ? "it" : "them"}
+                </Link>
+              )}
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
       {submissions.length === 0 ? (
         <EmptyState
           icon={FileUp}

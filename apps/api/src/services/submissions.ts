@@ -19,7 +19,7 @@ import { enqueueAnalysis, type AnalysisJob } from "./analysis";
 
 const PDF_MAGIC_BYTES = [0x25, 0x50, 0x44, 0x46, 0x2d]; // "%PDF-"
 
-async function assertIsPdf(file: File) {
+export async function assertIsPdf(file: File) {
   if (file.size === 0 || file.size > MAX_SUBMISSION_FILE_BYTES) {
     throw new AppError(
       400,
@@ -198,6 +198,13 @@ export function classificationColumns(
   };
 }
 
+/**
+ * R2 key for an uploaded PDF. Named before the row exists (its id comes from the
+ * insert), so not after the id; a replaced file gets a new key too.
+ */
+export const newSubmissionFileKey = () =>
+  `submissions/${crypto.randomUUID()}.pdf`;
+
 export async function createSubmission(
   db: Database,
   bucket: R2Bucket,
@@ -209,8 +216,7 @@ export async function createSubmission(
   const fields = await preferExistingValues(db, params.fields);
   const questionId = await resolveQuestionId(db, fields);
 
-  // Named before the row exists (its id comes from the insert), so not after the id.
-  const fileKey = `submissions/${crypto.randomUUID()}.pdf`;
+  const fileKey = newSubmissionFileKey();
   await bucket.put(fileKey, file, {
     httpMetadata: { contentType: "application/pdf" },
   });

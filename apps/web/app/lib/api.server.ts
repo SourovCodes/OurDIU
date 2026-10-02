@@ -63,10 +63,13 @@ export async function apiRequest(
     method,
     ...(body === undefined
       ? {}
-      : {
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(body),
-        }),
+      : body instanceof FormData
+        ? // Multipart, e.g. a file: fetch sets the content type and boundary.
+          { body }
+        : {
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(body),
+          }),
   });
   if (res.ok) return data<ActionResult>({ ok: true, intent });
 

@@ -20,6 +20,7 @@ interface Env {
   UPLOAD_LIMITER: RateLimit;
   VOTE_LIMITER: RateLimit;
   REPORT_LIMITER: RateLimit;
+  MESSAGE_LIMITER: RateLimit;
   VIEW_LIMITER: RateLimit;
   SITE_URL: string;
   FILES_URL: string;
@@ -43,6 +44,7 @@ declare namespace Cloudflare {
     UPLOAD_LIMITER: RateLimit;
     VOTE_LIMITER: RateLimit;
     REPORT_LIMITER: RateLimit;
+    MESSAGE_LIMITER: RateLimit;
     VIEW_LIMITER: RateLimit;
     SITE_URL: string;
     FILES_URL: string;

@@ -15,6 +15,7 @@ import {
   EllipsisVertical,
   ExternalLink,
   Eye,
+  FilePen,
   Inbox,
   RefreshCw,
   Stamp,
@@ -24,7 +25,10 @@ import { Link, useNavigate } from "react-router";
 import { ConfirmAction, useFormAction } from "~/components/actions";
 import { ExamBadge } from "~/components/exam-badge";
 import { AdminPageHeader } from "~/components/admin/admin-header";
-import { RejectDialog } from "~/components/admin/reject-dialog";
+import {
+  RejectDialog,
+  RequestChangesDialog,
+} from "~/components/admin/reject-dialog";
 import {
   AnalysisBadge,
   SubmissionFlags,
@@ -132,11 +136,14 @@ function RowActions({
   submission,
   run,
   onReject,
+  onRequestChanges,
 }: {
   submission: AdminSubmission;
   run: Run;
   /** Rejecting asks for a reason, in a dialog the page owns. */
   onReject: () => void;
+  /** So does asking for changes. */
+  onRequestChanges: () => void;
 }) {
   const publish = () =>
     run(
@@ -190,6 +197,13 @@ function RowActions({
           Publish
         </DropdownMenuItem>
         <DropdownMenuItem
+          disabled={submission.status === "published"}
+          onSelect={onRequestChanges}
+        >
+          <FilePen />
+          Request changes
+        </DropdownMenuItem>
+        <DropdownMenuItem
           variant="destructive"
           disabled={submission.status === "rejected"}
           onSelect={onReject}
@@ -211,6 +225,7 @@ export default function AdminSubmissions({ loaderData }: Route.ComponentProps) {
   const { run } = useFormAction();
   // Keyed per opening, so each one starts from a fresh dialog.
   const [rejecting, setRejecting] = useState<{ id: number; key: number }>();
+  const [requesting, setRequesting] = useState<{ id: number; key: number }>();
 
   /** Search string for a status, AI filter and page, leaving out the defaults. */
   const searchFor = (
@@ -234,6 +249,12 @@ export default function AdminSubmissions({ loaderData }: Route.ComponentProps) {
       count: ai ? undefined : counts.pendingReview,
     },
     {
+      value: "changes_requested",
+      label: STATUS_LABELS.changes_requested,
+      search: searchFor({ status: "changes_requested" }),
+      count: ai ? undefined : counts.changesRequested,
+    },
+    {
       value: "published",
       label: STATUS_LABELS.published,
       search: searchFor({ status: "published" }),
@@ -251,7 +272,10 @@ export default function AdminSubmissions({ loaderData }: Route.ComponentProps) {
       search: searchFor({ status: "all" }),
       count: ai
         ? undefined
-        : counts.published + counts.pendingReview + counts.rejected,
+        : counts.published +
+          counts.pendingReview +
+          counts.changesRequested +
+          counts.rejected,
     },
   ];
 
@@ -350,8 +374,10 @@ export default function AdminSubmissions({ loaderData }: Route.ComponentProps) {
               ai
                 ? "No papers with this status match the AI filter."
                 : status === "pending_review"
-                  ? "New uploads show up here."
-                  : undefined
+                  ? "New uploads and resubmitted papers show up here."
+                  : status === "changes_requested"
+                    ? "Papers you ask uploaders to change wait here until they resubmit them."
+                    : undefined
             }
           />
         ) : (
@@ -443,6 +469,9 @@ export default function AdminSubmissions({ loaderData }: Route.ComponentProps) {
                         onReject={() =>
                           setRejecting({ id: submission.id, key: Date.now() })
                         }
+                        onRequestChanges={() =>
+                          setRequesting({ id: submission.id, key: Date.now() })
+                        }
                       />
                     </TableCell>
                   </TableRow>
@@ -465,6 +494,14 @@ export default function AdminSubmissions({ loaderData }: Route.ComponentProps) {
           open
           onOpenChange={(open) => !open && setRejecting(undefined)}
           action={adminSubmissionUrl(rejecting.id)}
+        />
+      )}
+      {requesting && (
+        <RequestChangesDialog
+          key={requesting.key}
+          open
+          onOpenChange={(open) => !open && setRequesting(undefined)}
+          action={adminSubmissionUrl(requesting.id)}
         />
       )}
     </>

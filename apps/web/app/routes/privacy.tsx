@@ -51,7 +51,10 @@ export default function Privacy() {
           <strong>When you upload a paper</strong> (this needs a DIU email
           address), the site stores the PDF, the details you chose (department,
           course, semester, exam type and the optional section or batch) and
-          when you uploaded it.
+          when you uploaded it. While it’s reviewed, the site also keeps the
+          messages you and the site’s admins write about it, and each step of
+          the review: when it was published, sent back for changes or rejected,
+          and when you edited it, replaced its file or resubmitted it.
         </p>
         <p>
           <strong>When you like, dislike or report a paper</strong>, the site
@@ -124,9 +127,10 @@ export default function Privacy() {
           </li>
         </ul>
         <p>
-          Your email address, papers that are pending or rejected, and who
-          liked, disliked or reported a paper are never shown publicly. The
-          site’s admins can see them to review uploads and reports.
+          Your email address, papers that are pending or rejected, review
+          messages, and who liked, disliked or reported a paper are never shown
+          publicly. The site’s admins can see them to review uploads and
+          reports.
         </p>
       </LegalSection>
 
@@ -164,10 +168,14 @@ export default function Privacy() {
             can keep using them.
           </li>
           <li>
+            A paper’s review messages, as long as the paper: withdrawing or
+            deleting it deletes them too.
+          </li>
+          <li>
             If your account is deleted, your likes, dislikes, reports and saved
-            papers are deleted with it. Papers you published stay, no longer
-            linked to you; ask, and their public copies are re-made without your
-            name.
+            papers are deleted with it. Papers you published, and the review
+            messages you wrote on them, stay, no longer linked to you; ask, and
+            their public copies are re-made without your name.
           </li>
         </ul>
       </LegalSection>

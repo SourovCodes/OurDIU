@@ -77,6 +77,12 @@
       "namespace_id": "2003",
       "simple": { "limit": 10, "period": 60 },
     },
+    // Review conversation messages and resubmissions, per user.
+    {
+      "name": "MESSAGE_LIMITER",
+      "namespace_id": "2005",
+      "simple": { "limit": 10, "period": 60 },
+    },
     // View counts, per question page token and page: a page load counts each page
     // once, so a script can't replay one token for the hour it is valid.
     {

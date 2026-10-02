@@ -12,7 +12,15 @@ import 'share_flow.dart';
 
 /// "Just sat an exam?" on Home: asks for the paper while it's fresh.
 class ShareCard extends ConsumerWidget {
-  const ShareCard({super.key});
+  const ShareCard({
+    super.key,
+    this.title = 'Just sat an exam?',
+    this.body =
+        'Share the question paper. It takes a minute and helps the next batch.',
+  });
+
+  final String title;
+  final String body;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -51,7 +59,7 @@ class ShareCard extends ConsumerWidget {
               spacing: 8,
               children: [
                 Text(
-                  'Just sat an exam?',
+                  title,
                   style: expressive(
                     20,
                     width: 112,
@@ -60,8 +68,7 @@ class ShareCard extends ConsumerWidget {
                   ),
                 ),
                 Text(
-                  'Share the question paper. It takes a minute and helps the '
-                  'next batch.',
+                  body,
                   style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
                 ),
                 const SizedBox(height: 2),

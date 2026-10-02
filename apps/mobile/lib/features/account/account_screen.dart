@@ -294,14 +294,15 @@ class _SignInCard extends ConsumerWidget {
                 ),
               ),
               Text(
-                'Sign in to like the useful papers and report problems. '
-                'Uploading from the app comes next. Reading never needs an '
-                'account.',
+                'Sign in to keep your saved papers on ourdiu.com too, like '
+                'the clearest copies, report problems and share papers you '
+                'sat. Reading never needs an account.',
                 style: TextStyle(color: scheme.onPrimaryContainer, height: 1.4),
               ),
               GoogleButton(onPressed: () => runSignIn(context, ref)),
               Text(
-                'Sharing papers needs your DIU Google account (@diu.edu.bd).',
+                'Sharing papers needs your DIU Google account '
+                '(@diu.edu.bd or @s.diu.edu.bd).',
                 style: TextStyle(
                   fontSize: 13,
                   color: scheme.onPrimaryContainer.withValues(alpha: 0.85),

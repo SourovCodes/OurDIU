@@ -220,6 +220,31 @@ test("an admin compares the AI's reading and prefills the form with it", async (
   ).toBeVisible();
 });
 
+test("an admin can scroll the course list in the classification dialog", async ({
+  page,
+}) => {
+  await logInAs(page, SEED_ADMIN, "/admin/questions/submissions/15");
+  const dialog = page.getByRole("dialog");
+  await expect(async () => {
+    await page.getByRole("button", { name: "Apply AI values" }).click();
+    await expect(dialog).toBeVisible({ timeout: 1_000 });
+  }).toPass();
+  await dialog.getByRole("combobox", { name: "Course" }).click();
+
+  // The seed has few courses: a short list makes it overflow, as production's do.
+  const list = page.locator("[cmdk-list]");
+  await list.evaluate((el) => {
+    el.style.setProperty("height", "80px", "important");
+    el.style.setProperty("max-height", "80px", "important");
+  });
+  await list.hover();
+  await page.mouse.wheel(0, 200);
+  // The dialog's scroll lock must not swallow the wheel over the list.
+  await expect
+    .poll(() => list.evaluate((el) => el.scrollTop))
+    .toBeGreaterThan(0);
+});
+
 test("an admin rejects a paper with a reason the uploader sees", async ({
   page,
   browser,

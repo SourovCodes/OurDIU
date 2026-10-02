@@ -109,6 +109,12 @@ export function SearchableSelect({
         <PopoverContent
           align="start"
           className="w-(--radix-popover-trigger-width) min-w-64 p-0"
+          // Inside a dialog or sheet (classifying a paper in the admin panel, the
+          // phone filters), their scroll lock listens on the document and blocks
+          // wheel and touch scrolling outside them, and this list is portalled
+          // outside them. Stopping the events here lets the list scroll.
+          onWheel={(event) => event.stopPropagation()}
+          onTouchMove={(event) => event.stopPropagation()}
           onCloseAutoFocus={(event) => {
             // Radix moves focus back to this trigger once the closing animation
             // ends. If another picker opened meanwhile (quick hands, a slow phone),

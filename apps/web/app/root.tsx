@@ -124,7 +124,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <div className="max-w-sm space-y-3">
                   <Link
                     to="/"
-                    className="inline-flex items-center gap-2 font-expressive text-xl text-primary"
+                    className="inline-flex items-center gap-2 font-expressive text-xl text-primary transition-opacity hover:opacity-80"
                   >
                     <GraduationCap className="size-6" aria-hidden />
                     OurDIU
@@ -150,7 +150,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label={`${AUTHOR.firstName} on ${label}`}
-                        className="flex size-9 items-center justify-center rounded-full transition-colors hover:bg-accent hover:text-foreground"
+                        className="flex size-9 items-center justify-center rounded-full transition-colors hover:state-layer hover:text-foreground"
                       >
                         <SocialIcon network={network} className="size-4" />
                       </a>

@@ -187,7 +187,7 @@ export default function Course({ loaderData }: Route.ComponentProps) {
                     filter.id ? "pl-2.5" : "pl-3.5",
                     on
                       ? "border-primary-container bg-primary-container text-primary-container-foreground"
-                      : "border-input hover:bg-accent",
+                      : "border-input hover:state-layer",
                   )}
                 >
                   {filter.id && (
@@ -239,7 +239,7 @@ export default function Course({ loaderData }: Route.ComponentProps) {
                       to={`/questions/${question.id}`}
                       prefetch="intent"
                       className={cn(
-                        "flex items-center gap-4 bg-surface px-4 py-3.5 transition-[background-color,scale] hover:bg-surface-high active:scale-[0.995]",
+                        "flex items-center gap-4 bg-surface px-4 py-3.5 transition-[background-color,scale] hover:state-layer active:scale-[0.995]",
                         rowRadius(i, group.questions.length),
                       )}
                     >

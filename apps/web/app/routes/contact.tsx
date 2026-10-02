@@ -59,7 +59,7 @@ const TOPICS: Topic[] = [
         Copyright or personal details. See{" "}
         <Link
           to="/copyright"
-          className="relative z-10 font-medium text-foreground underline underline-offset-4"
+          className="relative z-10 font-medium text-foreground underline underline-offset-4 hover:text-primary"
         >
           how removal works
         </Link>
@@ -77,7 +77,7 @@ const TOPICS: Topic[] = [
         A copy, a correction or deletion. See the{" "}
         <Link
           to="/privacy#your-rights"
-          className="relative z-10 font-medium text-foreground underline underline-offset-4"
+          className="relative z-10 font-medium text-foreground underline underline-offset-4 hover:text-primary"
         >
           privacy policy
         </Link>

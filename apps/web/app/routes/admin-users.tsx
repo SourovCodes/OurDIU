@@ -136,7 +136,7 @@ function RowActions({ user }: { user: AdminUser }) {
           <Button
             variant="ghost"
             size="icon"
-            className="size-8 text-muted-foreground data-[state=open]:bg-muted"
+            className="size-8 text-muted-foreground data-[state=open]:state-layer"
             aria-label={`Actions for ${user.name}`}
           >
             <EllipsisVertical />

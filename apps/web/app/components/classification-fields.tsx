@@ -342,7 +342,7 @@ export function ClassificationFields({
                     "relative flex h-11 cursor-pointer items-center gap-2 rounded-xl border pr-4 pl-2.5 text-sm font-semibold transition-colors has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50",
                     on
                       ? cn("border-transparent", EXAM_TONE[kind])
-                      : "border-input hover:bg-accent",
+                      : "border-input hover:state-layer",
                   )}
                 >
                   <input

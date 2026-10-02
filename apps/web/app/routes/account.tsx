@@ -45,7 +45,7 @@ function QuickLink({
   return (
     <Link
       to={to}
-      className="flex items-center gap-4 rounded-3xl bg-surface p-4 transition-[background-color,scale] hover:bg-surface-high active:scale-[0.99]"
+      className="flex items-center gap-4 rounded-3xl bg-surface p-4 transition-[background-color,scale] hover:state-layer active:scale-[0.99]"
     >
       <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary-container text-primary-container-foreground">
         <Icon className="size-5" aria-hidden />
@@ -95,7 +95,7 @@ function Appearance() {
                 "flex h-10 items-center justify-center gap-2 px-5 text-sm font-semibold transition-colors",
                 on
                   ? "bg-primary-container text-primary-container-foreground"
-                  : "hover:bg-accent",
+                  : "hover:state-layer",
               )}
             >
               <Icon className="size-4" aria-hidden />

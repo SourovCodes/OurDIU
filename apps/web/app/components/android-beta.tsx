@@ -71,7 +71,7 @@ export function AndroidBetaStrip() {
           OurDIU app for Android:{" "}
           <Link
             to="/app"
-            className="font-semibold underline underline-offset-4"
+            className="font-semibold underline decoration-1 underline-offset-4 hover:decoration-2"
           >
             become a tester
           </Link>

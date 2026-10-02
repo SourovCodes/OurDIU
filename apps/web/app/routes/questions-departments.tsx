@@ -54,7 +54,7 @@ export default function Departments({ loaderData }: Route.ComponentProps) {
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <CourseSearchTrigger className="flex h-12 items-center gap-3 rounded-full bg-surface pr-5 pl-4 text-muted-foreground transition-colors hover:bg-surface-high focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none sm:w-72">
+          <CourseSearchTrigger className="flex h-12 items-center gap-3 rounded-full bg-surface pr-5 pl-4 text-muted-foreground transition-colors hover:state-layer focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none sm:w-72">
             <Search className="size-5 shrink-0" aria-hidden />
             <span className="truncate">Know the course? Search it</span>
           </CourseSearchTrigger>

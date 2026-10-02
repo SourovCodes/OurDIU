@@ -77,8 +77,8 @@ export function SubmissionList({
                   preventScrollReset
                   aria-current={active ? "true" : undefined}
                   className={cn(
-                    "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-colors hover:bg-surface-high focus-visible:bg-surface-high focus-visible:outline-none",
-                    active && "bg-card shadow-xs hover:bg-card",
+                    "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-colors hover:state-layer focus-visible:state-layer focus-visible:outline-none",
+                    active && "bg-card shadow-xs",
                   )}
                 >
                   <span
@@ -224,9 +224,9 @@ export function PaperSwitcher({
                       ?.removeAttribute("open")
                   }
                   className={cn(
-                    "flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm transition-colors hover:bg-accent",
+                    "flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm transition-colors hover:state-layer",
                     active &&
-                      "bg-primary-container text-primary-container-foreground hover:bg-primary-container",
+                      "bg-primary-container text-primary-container-foreground",
                   )}
                 >
                   <span className="w-5 text-center text-xs font-semibold text-muted-foreground tabular-nums">

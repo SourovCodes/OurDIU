@@ -21,7 +21,7 @@ export const CARD_ROW_ON_PHONES = "max-sm:rounded-sm";
 
 /** Hover, press and focus styles for a card that is one big link. */
 export const LINK_CARD =
-  "relative gap-4 transition-[background-color,scale] hover:bg-surface-high active:scale-[0.99] has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring/50";
+  "relative gap-4 transition-[background-color,scale] hover:state-layer active:scale-[0.99] has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring/50";
 
 /** Makes a card's title link cover the whole card. */
 export const STRETCHED_LINK =

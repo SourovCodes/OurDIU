@@ -96,7 +96,13 @@ GoRouter buildRouter({String initialLocation = '/home'}) => GoRouter(
             GoRoute(
               path: '/browse',
               builder: (context, state) => const BrowseScreen(),
-              routes: _catalogRoutes(),
+              routes: [
+                GoRoute(
+                  path: 'search',
+                  builder: (context, state) => const SearchScreen(),
+                ),
+                ..._catalogRoutes(),
+              ],
             ),
           ],
         ),

@@ -98,7 +98,7 @@ class _DiuEmailNeeded extends StatelessWidget {
             ),
             Text(
               "You're signed in as $email. To keep the papers trustworthy, "
-              'only DIU accounts (@diu.edu.bd) can share them.',
+              'only DIU accounts (@diu.edu.bd or @s.diu.edu.bd) can share them.',
               style: TextStyle(
                 color: theme.colorScheme.onSurfaceVariant,
                 height: 1.4,

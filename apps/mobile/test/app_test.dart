@@ -66,7 +66,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('CSE · Computer Science and Engineering'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.north_west_rounded));
+    // Each result shows the course's paper count.
+    await tester.tap(find.text('1 paper'));
     await tester.pumpAndSettle();
     expect(find.text('Data Structures'), findsOneWidget);
 
@@ -79,6 +80,12 @@ void main() {
     await tester.enterText(find.byType(TextField), 'chemistry');
     await tester.pumpAndSettle();
     expect(find.text('No course matches “chemistry”'), findsOneWidget);
+
+    // Home has it under "Jump back in".
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Jump back in'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, 'Data Structures'), findsOneWidget);
   });
 
   testWidgets('offline, home says so and points to saved papers', (

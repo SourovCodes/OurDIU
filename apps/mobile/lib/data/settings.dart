@@ -23,7 +23,8 @@ final appearanceProvider = NotifierProvider<AppearanceSetting, ThemeMode>(
   AppearanceSetting.new,
 );
 
-/// Courses opened from search, most recent first (up to 5), shown as shortcuts.
+/// Courses opened (from search, Browse or a link), most recent first (up to 5),
+/// shown as shortcuts on Home and in search.
 class RecentCourses extends Notifier<List<int>> {
   static const _key = 'recent_course_ids';
 
@@ -43,4 +44,23 @@ class RecentCourses extends Notifier<List<int>> {
 
 final recentCoursesProvider = NotifierProvider<RecentCourses, List<int>>(
   RecentCourses.new,
+);
+
+/// The department the reader last opened: Browse leads with it and Home lists
+/// it first, as the website does with its `qb_department` cookie.
+class MyDepartment extends Notifier<int?> {
+  static const _key = 'my_department_id';
+
+  @override
+  int? build() => ref.watch(prefsProvider).getInt(_key);
+
+  void set(int departmentId) {
+    if (state == departmentId) return;
+    state = departmentId;
+    ref.read(prefsProvider).setInt(_key, departmentId);
+  }
+}
+
+final myDepartmentProvider = NotifierProvider<MyDepartment, int?>(
+  MyDepartment.new,
 );

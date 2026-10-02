@@ -62,7 +62,7 @@ void main() {
       [for (final r in rows) (r.label, r.differs)],
       [
         ('Department', false),
-        ('CourseListItem', false),
+        ('Course', false),
         ('Semester', true),
         ('Exam', false),
       ],

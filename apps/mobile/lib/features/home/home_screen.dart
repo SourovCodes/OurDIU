@@ -6,6 +6,7 @@ import '../../api/generated/export.dart';
 import '../../auth/session.dart';
 import '../../data/format.dart';
 import '../../data/questions.dart';
+import '../../data/settings.dart';
 import '../../data/taxonomy.dart';
 import '../../theme/exam_shape.dart';
 import '../../theme/theme.dart';
@@ -104,6 +105,7 @@ class HomeScreen extends ConsumerWidget {
             if (taxonomy.value case final t?) ...[
               const SizedBox(height: 16),
               _DepartmentChips(departments: t.departments),
+              _JumpBackIn(taxonomy: t),
             ],
             const SizedBox(height: 20),
             SectionHeader(
@@ -122,7 +124,8 @@ class HomeScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             RowGroup(
               children: [
-                for (final q in newest.requireValue.items.take(8))
+                // One exam per course, so a busy course doesn't fill it.
+                for (final q in onePerCourse(newest.requireValue.items, 6))
                   QuestionRow(q),
               ],
             ),
@@ -159,17 +162,25 @@ class _Masthead extends ConsumerWidget {
   }
 }
 
-/// The departments with the most papers first, each with its paper count.
-class _DepartmentChips extends StatelessWidget {
+/// The departments, the reader's own first (selected), then the most papers
+/// first, each with its paper count.
+class _DepartmentChips extends ConsumerWidget {
   const _DepartmentChips({required this.departments});
 
   final List<DepartmentListItem> departments;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final mine = ref.watch(myDepartmentProvider);
     final sorted = [...departments]
-      ..sort((a, b) => b.publishedCount.compareTo(a.publishedCount));
+      ..sort(
+        (a, b) => a.id == mine
+            ? -1
+            : b.id == mine
+            ? 1
+            : b.publishedCount.compareTo(a.publishedCount),
+      );
     return SizedBox(
       height: MediaQuery.textScalerOf(context).scale(44),
       child: ListView.separated(
@@ -179,9 +190,15 @@ class _DepartmentChips extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
           final d = sorted[i];
+          final own = d.id == mine;
           return ActionChip(
             tooltip: d.name,
-            shape: const StadiumBorder(),
+            shape: StadiumBorder(
+              side: own
+                  ? BorderSide.none
+                  : BorderSide(color: scheme.outlineVariant),
+            ),
+            backgroundColor: own ? scheme.secondaryContainer : null,
             padding: const EdgeInsets.fromLTRB(4, 4, 10, 4),
             avatar: null,
             label: Row(
@@ -484,6 +501,62 @@ class _TopContributors extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The first exam of each course, in order, up to [limit].
+List<Question> onePerCourse(List<Question> questions, int limit) {
+  final seen = <int>{};
+  return [
+    for (final q in questions)
+      if (seen.add(q.course.id)) q,
+  ].take(limit).toList();
+}
+
+/// Courses opened lately, a tap away: during exam week it's the same few.
+class _JumpBackIn extends ConsumerWidget {
+  const _JumpBackIn({required this.taxonomy});
+
+  final Taxonomy taxonomy;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final courses = [
+      for (final id in ref.watch(recentCoursesProvider))
+        ?taxonomy.courses.where((c) => c.id == id).firstOrNull,
+    ];
+    if (courses.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 8,
+        children: [
+          Text(
+            'Jump back in',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(
+            height: MediaQuery.textScalerOf(context).scale(40),
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              itemCount: courses.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, i) => ActionChip(
+                avatar: const Icon(Icons.history_rounded, size: 18),
+                label: Text(courses[i].name),
+                onPressed: () => context.push('/home/courses/${courses[i].id}'),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../api/generated/export.dart';
+import '../../data/format.dart';
 import '../../data/settings.dart';
 import '../../data/taxonomy.dart';
+import '../../shell/app_shell.dart';
 import '../../theme/exam_shape.dart';
 import '../../widgets/state_message.dart';
 import '../home/search_pill.dart';
@@ -50,7 +52,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   void _open(CourseListItem course) {
     ref.read(recentCoursesProvider.notifier).add(course.id);
-    context.push('/home/courses/${course.id}');
+    // In the tab it was opened from (Home or Browse).
+    context.push('${tabRoot(context)}/courses/${course.id}');
   }
 
   @override
@@ -81,7 +84,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 if (hits.isNotEmpty) _open(hits.first);
               },
               decoration: InputDecoration(
-                hintText: 'CourseListItem name',
+                hintText: 'Course name',
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 20,
@@ -143,9 +146,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     subtitle: dept == null
                         ? null
                         : Text('${dept.shortName} · ${dept.name}'),
-                    trailing: Icon(
-                      Icons.north_west_rounded,
-                      color: scheme.onSurfaceVariant,
+                    // How many papers, so an empty course isn't a surprise.
+                    trailing: Text(
+                      course.publishedCount == 0
+                          ? 'No papers yet'
+                          : plural(course.publishedCount, 'paper'),
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
                     ),
                     onTap: () => _open(course),
                   ),

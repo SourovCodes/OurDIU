@@ -5,11 +5,13 @@ import 'package:go_router/go_router.dart';
 import '../../api/generated/export.dart';
 import '../../data/format.dart';
 import '../../data/questions.dart';
+import '../../data/settings.dart';
 import '../../data/taxonomy.dart';
 import '../../shell/app_shell.dart';
 import '../../theme/exam_shape.dart';
 import '../../theme/theme.dart';
 import '../../widgets/question_row.dart';
+import '../upload/share_card.dart';
 import '../../widgets/skeleton.dart';
 import '../../widgets/state_message.dart';
 
@@ -25,6 +27,15 @@ class CourseScreen extends ConsumerStatefulWidget {
 
 class _CourseScreenState extends ConsumerState<CourseScreen> {
   String? _examType;
+
+  @override
+  void initState() {
+    super.initState();
+    // Shown under "Jump back in" on Home and as Recent in search.
+    Future.microtask(
+      () => ref.read(recentCoursesProvider.notifier).add(widget.id),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -250,6 +261,11 @@ class _CourseScreenState extends ConsumerState<CourseScreen> {
             ),
           ),
         ],
+        const SizedBox(height: 16),
+        const ShareCard(
+          title: 'Missing a semester?',
+          body: 'Share the paper from your exam, so the next batch has it.',
+        ),
       ],
     );
   }

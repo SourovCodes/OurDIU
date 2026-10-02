@@ -4,10 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../api/generated/export.dart';
 import '../../data/format.dart';
+import '../../data/settings.dart';
 import '../../data/taxonomy.dart';
 import '../../theme/exam_shape.dart';
 import '../../theme/theme.dart';
 import '../../widgets/skeleton.dart';
+import '../home/search_pill.dart';
 import '../../widgets/state_message.dart';
 
 /// Departments, the one with the most papers first and largest.
@@ -21,7 +23,10 @@ class BrowseScreen extends ConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: switch (ref.watch(taxonomyProvider)) {
-          AsyncData(:final value) => _Departments(taxonomy: value),
+          AsyncData(:final value) => _Departments(
+            taxonomy: value,
+            mine: ref.watch(myDepartmentProvider),
+          ),
           AsyncError(:final error) => StateMessage(
             icon: isOffline(error)
                 ? Icons.cloud_off_rounded
@@ -69,15 +74,28 @@ class BrowseScreen extends ConsumerWidget {
 }
 
 class _Departments extends StatelessWidget {
-  const _Departments({required this.taxonomy});
+  const _Departments({required this.taxonomy, required this.mine});
 
   final Taxonomy taxonomy;
+
+  /// The reader's department (the one opened last), which leads.
+  final int? mine;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final depts = [...taxonomy.departments]
-      ..sort((a, b) => b.publishedCount.compareTo(a.publishedCount));
+      ..sort(
+        (a, b) => a.id == mine
+            ? -1
+            : b.id == mine
+            ? 1
+            : b.publishedCount.compareTo(a.publishedCount),
+      );
+    final courseCounts = <int, int>{};
+    for (final c in taxonomy.courses) {
+      courseCounts.update(c.departmentId, (n) => n + 1, ifAbsent: () => 1);
+    }
     final total = depts.fold(0, (sum, d) => sum + d.publishedCount);
     final rest = depts.skip(1).toList();
     return ListView(
@@ -90,7 +108,17 @@ class _Departments extends StatelessWidget {
           style: TextStyle(color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 16),
-        if (depts.isNotEmpty) _DepartmentCard(depts.first, featured: true),
+        SearchPill(
+          label: 'Know the course? Search it',
+          onTap: () => context.push('/browse/search'),
+        ),
+        const SizedBox(height: 16),
+        if (depts.isNotEmpty)
+          _DepartmentCard(
+            depts.first,
+            courses: courseCounts[depts.first.id] ?? 0,
+            featured: true,
+          ),
         for (var i = 0; i < rest.length; i += 2) ...[
           const SizedBox(height: 10),
           IntrinsicHeight(
@@ -98,10 +126,18 @@ class _Departments extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               spacing: 10,
               children: [
-                Expanded(child: _DepartmentCard(rest[i])),
+                Expanded(
+                  child: _DepartmentCard(
+                    rest[i],
+                    courses: courseCounts[rest[i].id] ?? 0,
+                  ),
+                ),
                 Expanded(
                   child: i + 1 < rest.length
-                      ? _DepartmentCard(rest[i + 1])
+                      ? _DepartmentCard(
+                          rest[i + 1],
+                          courses: courseCounts[rest[i + 1].id] ?? 0,
+                        )
                       : const SizedBox(),
                 ),
               ],
@@ -114,9 +150,14 @@ class _Departments extends StatelessWidget {
 }
 
 class _DepartmentCard extends StatelessWidget {
-  const _DepartmentCard(this.department, {this.featured = false});
+  const _DepartmentCard(
+    this.department, {
+    required this.courses,
+    this.featured = false,
+  });
 
   final DepartmentListItem department;
+  final int courses;
   final bool featured;
 
   @override
@@ -156,7 +197,8 @@ class _DepartmentCard extends StatelessWidget {
                       style: TextStyle(fontSize: 13, color: fg, height: 1.3),
                     ),
                     Text(
-                      plural(department.publishedCount, 'paper'),
+                      '${plural(department.publishedCount, 'paper')} · '
+                      '${plural(courses, 'course')}',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,

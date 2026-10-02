@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../api/generated/export.dart';
 import '../../data/format.dart';
+import '../../data/settings.dart';
 import '../../data/taxonomy.dart';
 import '../../shell/app_shell.dart';
 import '../../theme/exam_shape.dart';
@@ -23,6 +24,14 @@ class DepartmentScreen extends ConsumerStatefulWidget {
 
 class _DepartmentScreenState extends ConsumerState<DepartmentScreen> {
   var _filter = '';
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(
+      () => ref.read(myDepartmentProvider.notifier).set(widget.id),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

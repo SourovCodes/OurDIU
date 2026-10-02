@@ -38,10 +38,34 @@ List<RouteBase> _catalogRoutes() => [
   ),
 ];
 
+/// Where an ourdiu.com link (Android App Links, see AndroidManifest.xml) opens
+/// in the app, or null when the location is the app's own. The site's pages
+/// live under /questions; a paper (`/questions/123`) is the same path here.
+String? webLinkLocation(Uri uri) {
+  final s = uri.pathSegments;
+  if (s.isEmpty || s.first != 'questions') return null;
+  if (s.length == 2 && int.tryParse(s[1]) != null) return null;
+  final rest = s.length > 2 ? s[2] : null;
+  return switch (s.length > 1 ? s[1] : null) {
+    'departments' when rest != null => '/browse/departments/$rest',
+    'courses' when rest != null => '/browse/courses/$rest',
+    'departments' || 'courses' || 'browse' => '/browse',
+    'saved' => '/saved',
+    'contributors' when rest != null => '/home/contributors/$rest',
+    'contributors' => '/home/contributors',
+    'my-submissions' when rest != null => '/account/papers/$rest',
+    'my-submissions' => '/account/papers',
+    // Sharing starts from Account (it needs a file and a signed-in user).
+    'contribute' => '/account',
+    _ => '/home',
+  };
+}
+
 /// [initialLocation] is where the app opens: see `startLocation`.
 GoRouter buildRouter({String initialLocation = '/home'}) => GoRouter(
   navigatorKey: _rootKey,
   initialLocation: initialLocation,
+  redirect: (context, state) => webLinkLocation(state.uri),
   routes: [
     // First launch: which product to open.
     GoRoute(path: '/choose', builder: (context, state) => const ChooseScreen()),

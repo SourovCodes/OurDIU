@@ -47,5 +47,6 @@ export default [
   route("logout", "routes/logout.tsx"),
   route("sitemap.xml", "routes/sitemap.ts"),
   route("robots.txt", "routes/robots.ts"),
+  route(".well-known/assetlinks.json", "routes/assetlinks.ts"),
   route("*", "routes/not-found.tsx"),
 ] satisfies RouteConfig;

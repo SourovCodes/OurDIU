@@ -250,7 +250,8 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
-  /* Tailwind 4 gives buttons the arrow cursor; everything clickable gets the hand. */
+  /* Tailwind 4 gives buttons the arrow cursor; everything clickable gets the hand.
+     cmdk marks enabled items `data-disabled="false"`, Radix omits the attribute. */
   :where(
     button,
     select,
@@ -266,7 +267,11 @@
     [role="checkbox"],
     [role="radio"],
     [role="switch"]
-  ):not(:disabled, [aria-disabled="true"], [data-disabled]) {
+  ):not(
+    :disabled,
+    [aria-disabled="true"],
+    [data-disabled]:not([data-disabled="false"])
+  ) {
     cursor: pointer;
   }
 }

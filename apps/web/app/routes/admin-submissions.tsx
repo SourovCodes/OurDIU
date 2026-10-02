@@ -21,6 +21,7 @@ import {
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { ConfirmAction, useFormAction } from "~/components/actions";
+import { ExamBadge } from "~/components/exam-badge";
 import { AdminPageHeader } from "~/components/admin/admin-header";
 import { RejectDialog } from "~/components/admin/reject-dialog";
 import {
@@ -263,7 +264,9 @@ export default function AdminSubmissions({ loaderData }: Route.ComponentProps) {
       }
     >
       <SelectTrigger size="sm" className="w-fit" aria-label="Filter by AI">
-        <SelectValue />
+        <SelectValue>
+          {ai ? ANALYSIS_FILTER_LABELS[ai] : "Any AI result"}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent align="end">
         <SelectItem value="any">Any AI result</SelectItem>
@@ -335,9 +338,9 @@ export default function AdminSubmissions({ loaderData }: Route.ComponentProps) {
             }
           />
         ) : (
-          <div className="overflow-hidden rounded-lg border">
+          <div className="overflow-hidden rounded-2xl bg-surface-low">
             <Table>
-              <TableHeader className="bg-muted">
+              <TableHeader className="bg-surface-high">
                 <TableRow>
                   <TableHead>Paper</TableHead>
                   <TableHead className="hidden @3xl/main:table-cell">
@@ -346,7 +349,9 @@ export default function AdminSubmissions({ loaderData }: Route.ComponentProps) {
                   <TableHead className="hidden @xl/main:table-cell">
                     Submitted
                   </TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden @xl/main:table-cell">
+                    Status
+                  </TableHead>
                   <TableHead className="w-10">
                     <span className="sr-only">Actions</span>
                   </TableHead>
@@ -360,23 +365,35 @@ export default function AdminSubmissions({ loaderData }: Route.ComponentProps) {
                     onClick={() => navigate(adminSubmissionUrl(submission.id))}
                   >
                     <TableCell className="w-full max-w-0">
-                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                        <Link
-                          to={adminSubmissionUrl(submission.id)}
-                          prefetch="intent"
-                          className="max-w-full truncate font-medium hover:underline"
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          {submission.classification.course.name}
-                        </Link>
-                        <SubmissionFlags {...submission} />
-                        {submission.analysis && (
-                          <AnalysisBadge analysis={submission.analysis} />
-                        )}
+                      <div className="flex min-w-0 items-center gap-3">
+                        <ExamBadge
+                          examType={submission.classification.examType.name}
+                          size={36}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                            <Link
+                              to={adminSubmissionUrl(submission.id)}
+                              prefetch="intent"
+                              className="max-w-full truncate font-medium hover:underline"
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              {submission.classification.course.name}
+                            </Link>
+                            <SubmissionFlags {...submission} />
+                            {submission.analysis && (
+                              <AnalysisBadge analysis={submission.analysis} />
+                            )}
+                          </div>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {classificationLine(submission.classification)}
+                          </p>
+                          {/* The status column is gone on narrow screens. */}
+                          <div className="pt-1.5 @xl/main:hidden">
+                            <SubmissionStatusBadge status={submission.status} />
+                          </div>
+                        </div>
                       </div>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {classificationLine(submission.classification)}
-                      </p>
                     </TableCell>
                     <TableCell className="hidden @3xl/main:table-cell">
                       {submission.uploader ? (
@@ -399,7 +416,7 @@ export default function AdminSubmissions({ loaderData }: Route.ComponentProps) {
                     <TableCell className="hidden text-muted-foreground @xl/main:table-cell">
                       {formatDate(submission.createdAt)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden @xl/main:table-cell">
                       <SubmissionStatusBadge status={submission.status} />
                     </TableCell>
                     <TableCell>

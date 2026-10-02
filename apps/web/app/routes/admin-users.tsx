@@ -270,9 +270,9 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
             title={q ? `No users match “${q}”` : "No users yet"}
           />
         ) : (
-          <div className="overflow-hidden rounded-lg border">
+          <div className="overflow-hidden rounded-2xl bg-surface-low">
             <Table>
-              <TableHeader className="bg-muted">
+              <TableHeader className="bg-surface-high">
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Role</TableHead>

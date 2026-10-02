@@ -50,7 +50,7 @@ export function StatusBreakdown({ counts }: { counts: SubmissionCounts }) {
             <li key={status}>
               <Link
                 to={`/admin/questions/submissions?status=${status}`}
-                className="-mx-2 flex items-center gap-3 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted"
+                className="-mx-2 flex items-center gap-3 rounded-xl px-2 py-1.5 text-sm transition-colors hover:bg-surface-high"
               >
                 <SubmissionStatusBadge status={status} />
                 <span className="ml-auto font-medium tabular-nums">

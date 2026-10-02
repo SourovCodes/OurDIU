@@ -9,18 +9,22 @@ import {
 } from "lucide-react";
 import { Link, useNavigate, useRouteLoaderData } from "react-router";
 import { AdminPageHeader } from "~/components/admin/admin-header";
+import {
+  EXAM_TONE,
+  ExamBadge,
+  ExamShape,
+  type ExamKind,
+} from "~/components/exam-badge";
 import { AdminRouteError } from "~/components/admin/route-error";
 import { StatusBreakdown } from "~/components/admin/status-breakdown";
 import { UploadsChart } from "~/components/admin/uploads-chart";
 import { UserAvatar } from "~/components/admin/user-avatar";
-import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
   Card,
   CardAction,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
@@ -38,6 +42,7 @@ import { formatDate } from "~/lib/dates";
 import { REPORT_REASON_LABELS } from "~/lib/engagement";
 import { formatCount } from "~/lib/format";
 import { plural } from "~/lib/submissions";
+import { cn } from "~/lib/utils";
 import type { loader as adminLoader } from "./admin";
 import type { Route } from "./+types/admin-dashboard";
 
@@ -68,51 +73,67 @@ type StatCard = {
   label: string;
   value: number;
   icon: typeof Inbox;
-  /** Short context beside the label; omitted when there is nothing to say. */
+  /** Short context under the number; omitted when there is nothing to say. */
   badge?: string;
-  /** Amber badge: something is waiting for an admin. */
+  /** Something is waiting for an admin: the badge says so. */
   attention?: boolean;
   footer: string;
   detail: string;
   to: string;
+  /** Its colour and shape, from the exam types, as the site's tiles. */
+  tone: ExamKind;
 };
 
+/** The four numbers as tiles in the exam colours, each leading to its list. */
 function SectionCards({ cards }: { cards: StatCard[] }) {
   return (
-    <div className="grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
+    <div className="grid grid-cols-1 gap-3 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
       {cards.map((card) => (
-        <Card key={card.label} className="@container/card">
-          <CardHeader>
-            <CardDescription>{card.label}</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {formatCount(card.value)}
-            </CardTitle>
+        <Link
+          key={card.label}
+          to={card.to}
+          className={cn(
+            "group relative flex min-h-48 flex-col justify-between gap-6 overflow-hidden rounded-[1.75rem] p-5 transition-[scale] focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:scale-[0.98]",
+            EXAM_TONE[card.tone],
+          )}
+        >
+          <ExamShape
+            kind={card.tone}
+            colored={false}
+            className="absolute -right-10 -bottom-12 size-44 opacity-[0.12] transition-transform duration-500 group-hover:rotate-12"
+          />
+          <div className="relative flex items-start justify-between gap-3">
+            <span className="flex items-center gap-2 text-sm font-semibold">
+              <card.icon className="size-4" aria-hidden />
+              {card.label}
+            </span>
             {card.badge && (
-              <CardAction>
-                <Badge
-                  variant="outline"
-                  className={
-                    card.attention
-                      ? "border-amber-500/40 text-amber-700 dark:text-amber-400"
-                      : undefined
-                  }
-                >
-                  <card.icon />
-                  {card.badge}
-                </Badge>
-              </CardAction>
+              <span
+                className={cn(
+                  "rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                  card.attention
+                    ? "bg-current/15"
+                    : "bg-current/10 font-medium",
+                )}
+              >
+                {card.badge}
+              </span>
             )}
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <Link
-              to={card.to}
-              className="line-clamp-1 flex items-center gap-2 font-medium hover:underline"
-            >
-              {card.footer} <ArrowRight className="size-4" />
-            </Link>
-            <div className="text-muted-foreground">{card.detail}</div>
-          </CardFooter>
-        </Card>
+          </div>
+          <div className="relative space-y-1">
+            <p className="font-display-xl text-5xl tabular-nums">
+              {formatCount(card.value)}
+            </p>
+            <p className="flex items-center gap-1.5 text-sm font-semibold">
+              {card.footer}
+              <ArrowRight
+                className="size-4 transition-transform group-hover:translate-x-0.5"
+                aria-hidden
+              />
+            </p>
+            <p className="text-xs opacity-80">{card.detail}</p>
+          </div>
+        </Link>
       ))}
     </div>
   );
@@ -137,9 +158,9 @@ function QueueCard({ queue }: { queue: AdminSubmissionList["items"] }) {
             Nothing to review. The queue is clear.
           </p>
         ) : (
-          <div className="overflow-hidden rounded-lg border">
+          <div className="overflow-hidden rounded-2xl bg-surface-low">
             <Table>
-              <TableHeader className="bg-muted">
+              <TableHeader className="bg-surface-high">
                 <TableRow>
                   <TableHead>Paper</TableHead>
                   <TableHead className="hidden @3xl/main:table-cell">
@@ -156,18 +177,26 @@ function QueueCard({ queue }: { queue: AdminSubmissionList["items"] }) {
                     onClick={() => navigate(adminSubmissionUrl(submission.id))}
                   >
                     <TableCell className="w-full max-w-0">
-                      <Link
-                        to={adminSubmissionUrl(submission.id)}
-                        className="block truncate font-medium hover:underline"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        {submission.classification.course.name}
-                      </Link>
-                      <div className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
-                        {classificationLine(submission.classification)}
-                        {submission.questionId === null && (
-                          <Sparkles className="size-3 text-primary" />
-                        )}
+                      <div className="flex min-w-0 items-center gap-3">
+                        <ExamBadge
+                          examType={submission.classification.examType.name}
+                          size={32}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <Link
+                            to={adminSubmissionUrl(submission.id)}
+                            className="block truncate font-medium hover:underline"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            {submission.classification.course.name}
+                          </Link>
+                          <div className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+                            {classificationLine(submission.classification)}
+                            {submission.questionId === null && (
+                              <Sparkles className="size-3 text-primary" />
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="hidden @3xl/main:table-cell">
@@ -212,7 +241,7 @@ function ReportsCard({ reports }: { reports: AdminReportList["items"] }) {
               <li key={report.id}>
                 <Link
                   to={adminSubmissionUrl(report.submission.id)}
-                  className="-mx-2 flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-muted"
+                  className="-mx-2 flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-surface-high"
                 >
                   <UserAvatar
                     name={report.reporter.name}
@@ -260,6 +289,7 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
         submissions.pendingReview > 0 ? "Review submissions" : "All caught up",
       detail: "Papers waiting for a decision",
       to: "/admin/questions/submissions",
+      tone: "quiz",
     },
     {
       label: "Open reports",
@@ -270,6 +300,7 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
       footer: stats.openReports > 0 ? "Handle reports" : "No open reports",
       detail: "Papers hide at 3 open reports",
       to: "/admin/questions/reports",
+      tone: "midterm",
     },
     {
       label: "Published",
@@ -279,6 +310,7 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
       footer: "Browse published",
       detail: `${formatCount(stats.views)} views in total`,
       to: "/admin/questions/submissions?status=published",
+      tone: "final",
     },
     {
       label: "Users",
@@ -288,6 +320,7 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
       footer: "Manage users",
       detail: `${catalog.departments} departments · ${catalog.courses} courses`,
       to: "/admin/users",
+      tone: "lab",
     },
   ];
 

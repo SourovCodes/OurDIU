@@ -101,7 +101,7 @@ function NavUser({ user }: { user: SessionUser }) {
               <UserAvatar
                 name={user.name}
                 image={user.image}
-                className="rounded-lg"
+                className="rounded-full"
               />
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
@@ -113,7 +113,7 @@ function NavUser({ user }: { user: SessionUser }) {
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-56"
             side={isMobile ? "bottom" : "right"}
             align="end"
             sideOffset={4}
@@ -149,7 +149,10 @@ function NavUser({ user }: { user: SessionUser }) {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={() =>
-                submit(null, { method: "post", action: "/logout" })
+                submit(
+                  { redirectTo: "/" },
+                  { method: "post", action: "/logout" },
+                )
               }
             >
               <LogOut />
@@ -175,13 +178,15 @@ export function AdminSidebar({ user, counts, ...props }: AdminSidebarProps) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link to="/admin">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <GraduationCap className="size-4" />
+                <div className="flex aspect-square size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                  <GraduationCap className="size-5" />
                 </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">OurDIU</span>
+                <div className="grid flex-1 text-left leading-tight">
+                  <span className="truncate font-expressive text-lg text-primary">
+                    OurDIU
+                  </span>
                   <span className="truncate text-xs text-muted-foreground">
-                    Admin
+                    Admin panel
                   </span>
                 </div>
               </Link>

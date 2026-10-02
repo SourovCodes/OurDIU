@@ -41,7 +41,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
         style={
           {
             "--sidebar-width": "calc(var(--spacing) * 64)",
-            "--header-height": "calc(var(--spacing) * 12)",
+            "--header-height": "calc(var(--spacing) * 14)",
           } as React.CSSProperties
         }
       >
@@ -55,7 +55,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
         />
         <SidebarInset>
           <AdminHeader />
-          <div className="@container/main flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
+          <div className="@container/main flex flex-1 flex-col gap-5 px-4 pt-2 pb-8 md:gap-6 md:px-8">
             <Outlet />
           </div>
         </SidebarInset>

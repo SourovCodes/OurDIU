@@ -4,7 +4,7 @@
  * can go to production. Testers join the Google Group, which is the closed
  * track's tester list, then opt in on Play.
  *
- * Set ANDROID_BETA to false once the app is public: the banner and the account
+ * Set ANDROID_BETA to false once the app is public: the strip and the account
  * page's link disappear, and /app becomes a plain "Get it on Google Play" page.
  */
 export const ANDROID_BETA = true;
@@ -53,14 +53,15 @@ export function isAndroid(userAgent: string) {
  * storage, so the server knows too and the page never shifts when it hides.
  */
 export const DISMISSED_COOKIE = "ourdiu_android_invite";
-const DISMISS_FOR_SECONDS = 30 * 24 * 60 * 60;
+// For good: 400 days is the longest a browser keeps a cookie.
+const DISMISS_FOR_SECONDS = 400 * 24 * 60 * 60;
 
 /** Whether a Cookie header (or `document.cookie`) says the invitation was closed. */
 export function inviteDismissed(cookie: string | null | undefined) {
   return new RegExp(`(?:^|;\\s*)${DISMISSED_COOKIE}=`).test(cookie ?? "");
 }
 
-/** Hides the invitation for 30 days. */
+/** Hides the invitation for good. */
 export function dismissBanner() {
   document.cookie = `${DISMISSED_COOKIE}=dismissed; Max-Age=${DISMISS_FOR_SECONDS}; Path=/; SameSite=Lax`;
 }

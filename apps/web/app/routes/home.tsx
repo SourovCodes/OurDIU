@@ -1,6 +1,5 @@
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router";
-import { AndroidBetaBanner } from "~/components/android-beta";
 import { SpaceIcon } from "~/components/space-icon";
 import { PRODUCTS, type Product } from "~/lib/products";
 import { plural } from "~/lib/submissions";
@@ -116,11 +115,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           />
         ))}
       </section>
-
-      {/* After the products: visitors came for one of them. */}
-      <div className="max-w-2xl empty:hidden">
-        <AndroidBetaBanner />
-      </div>
     </div>
   );
 }

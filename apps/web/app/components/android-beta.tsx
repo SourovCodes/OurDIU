@@ -1,4 +1,4 @@
-import { ArrowRight, Smartphone, X } from "lucide-react";
+import { Smartphone, X } from "lucide-react";
 import { useCallback, useState, useSyncExternalStore } from "react";
 import {
   Link,
@@ -21,85 +21,44 @@ import type { RootLoader } from "~/root";
 const subscribe = () => () => {};
 
 /**
- * Whether to invite this visitor to test the app: Android, while the app is in
- * closed testing. The server decides from the request (root loader), so the
- * invitation is in the HTML and nothing moves after hydration.
+ * Whether the visitor closed the invitation. The server reads the cookie
+ * (root loader), so the invitation is in the HTML and nothing moves after
+ * hydration.
  */
-function useAndroidBeta({ dismissible }: { dismissible: boolean }) {
+function useInviteDismissed() {
   const invite = useRouteLoaderData<RootLoader>("root")?.androidInvite;
-  const dismissed = useSyncExternalStore(
+  return useSyncExternalStore(
     subscribe,
     () => inviteDismissed(document.cookie),
     () => invite?.dismissed ?? false,
   );
+}
+
+/** Whether this visitor browses on Android, as the server saw it. */
+function useOnAndroid() {
   return Boolean(
-    ANDROID_BETA && invite?.android && !(dismissible && dismissed),
+    useRouteLoaderData<RootLoader>("root")?.androidInvite?.android,
   );
 }
 
-/** "Try the OurDIU Android app early", on the hub. */
-export function AndroidBetaBanner() {
-  const invited = useAndroidBeta({ dismissible: true });
-  const [closed, setClosed] = useState(false);
-  if (!invited || closed) return null;
-
-  return (
-    <aside
-      aria-label="Android app"
-      className="flex items-start gap-3 rounded-3xl bg-primary-container p-4 text-left text-primary-container-foreground sm:p-5"
-    >
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-        <Smartphone className="size-5" aria-hidden />
-      </span>
-      <div className="min-w-0 flex-1 space-y-2">
-        <div>
-          <p className="font-semibold">Try the OurDIU Android app early</p>
-          <p className="text-sm text-pretty opacity-85">
-            Help us get it on the Play Store. We need 12 testers.
-          </p>
-        </div>
-        <Button size="sm" asChild>
-          <Link to="/app">
-            Become a tester
-            <ArrowRight />
-          </Link>
-        </Button>
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="-mt-1 -mr-1 size-9 text-current hover:bg-current/10 hover:text-current"
-        aria-label="Dismiss"
-        onClick={() => {
-          dismissBanner();
-          setClosed(true);
-        }}
-      >
-        <X />
-      </Button>
-    </aside>
-  );
+/** Pages without the strip: the page it leads to. */
+function stripShownOn(pathname: string) {
+  return pathname !== "/app";
 }
 
 /**
- * Question Bank pages that get the slim strip under the header: its home and
- * where readers land from search and shared links. Contributing and your own
- * papers have their own invitations or none.
+ * The invitation to test the app, under the header on every page and for
+ * every visitor (a computer's owner likely has an Android phone too) while
+ * the app is in closed testing. Once closed it stays closed; the footer's
+ * "Get the app" and the account page still lead to /app.
  */
-function stripShownOn(pathname: string) {
-  return (
-    (pathname === "/questions" || pathname.startsWith("/questions/")) &&
-    !pathname.startsWith("/questions/contribute") &&
-    !pathname.startsWith("/questions/my-submissions")
-  );
-}
-
-/** The banner's one-line form, under the header on Question Bank pages. */
 export function AndroidBetaStrip() {
   const { pathname } = useLocation();
-  const invited = useAndroidBeta({ dismissible: true });
+  const dismissed = useInviteDismissed();
   const [closed, setClosed] = useState(false);
-  if (!invited || closed || !stripShownOn(pathname)) return null;
+  if (!ANDROID_BETA || dismissed || closed || !stripShownOn(pathname)) {
+    return null;
+  }
 
   return (
     <aside
@@ -116,6 +75,10 @@ export function AndroidBetaStrip() {
           >
             become a tester
           </Link>
+          <span className="hidden opacity-85 sm:inline">
+            {" "}
+            and help us get it on the Play Store
+          </span>
         </p>
         <Button
           variant="ghost"
@@ -135,15 +98,15 @@ export function AndroidBetaStrip() {
 }
 
 /**
- * A one-line invitation for Android visitors, e.g. on the account page, where
- * it isn't dismissible.
+ * A one-line invitation, e.g. on the account page. It can't be closed, so a
+ * visitor who closed the strip can still find the app.
  */
 export function AndroidBetaLink({
   children = "The OurDIU Android app is in testing.",
 }: {
   children?: React.ReactNode;
 }) {
-  if (!useAndroidBeta({ dismissible: false })) return null;
+  if (!ANDROID_BETA) return null;
 
   return (
     <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -163,10 +126,12 @@ export function AndroidBetaLink({
 
 /**
  * A click handler for Download buttons: once per visit, an Android visitor who
- * hasn't dismissed the banner hears that the app reads papers offline.
+ * hasn't closed the strip hears that the app reads papers offline.
  */
 export function useDownloadInvite() {
-  const invited = useAndroidBeta({ dismissible: true });
+  const android = useOnAndroid();
+  const dismissed = useInviteDismissed();
+  const invited = ANDROID_BETA && android && !dismissed;
   const navigate = useNavigate();
   return useCallback(() => {
     if (!invited || !takeDownloadInvite()) return;

@@ -17,18 +17,12 @@ import {
 
 failOnConsoleErrors();
 
-test("Android visitors are invited to test the app", async ({ page }) => {
+test("visitors are invited to test the app", async ({ page }) => {
   await page.goto("/");
-  const banner = page.getByRole("complementary", { name: "Android app" });
-  // The mobile project is a Pixel; desktop visitors never see the banner.
-  if (test.info().project.name !== "mobile") {
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect(banner).toHaveCount(0);
-    return;
-  }
-
-  await banner.getByRole("link", { name: "Become a tester" }).click();
+  const strip = page.getByRole("complementary", { name: "Android app" });
+  await strip.getByRole("link", { name: "become a tester" }).click();
   await expect(page).toHaveURL(/\/app$/);
+  await expect(strip).toHaveCount(0);
   await expect(
     page.getByRole("link", { name: "Join the group" }),
   ).toHaveAttribute("href", "https://groups.google.com/g/ourdiu");
@@ -45,21 +39,15 @@ test("Android visitors are invited to test the app", async ({ page }) => {
     "https://play.google.com/store/apps/details?id=com.ourdiu.app",
   );
 
-  // Question Bank pages, where readers land from search, have a slim strip.
+  // Closed, it stays away on every page.
   await page.goto("/questions/browse");
-  await expect(
-    banner.getByRole("link", { name: "become a tester" }),
-  ).toBeVisible();
-
-  // Dismissed, it stays away.
-  await page.goto("/");
   await expect(async () => {
-    await banner.getByRole("button", { name: "Dismiss" }).click();
-    await expect(banner).toHaveCount(0, { timeout: 1_000 });
+    await strip.getByRole("button", { name: "Dismiss" }).click();
+    await expect(strip).toHaveCount(0, { timeout: 1_000 });
   }).toPass();
-  await page.reload();
+  await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  await expect(banner).toHaveCount(0);
+  await expect(strip).toHaveCount(0);
 });
 
 test("the hub leads to the question bank and its questions", async ({

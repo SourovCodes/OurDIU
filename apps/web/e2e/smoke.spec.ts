@@ -953,6 +953,15 @@ test("buttons and menu items show the hand cursor", async ({ page }) => {
     await expect(option).toBeVisible({ timeout: 1_000 });
   }).toPass();
   await expect(option).toHaveCSS("cursor", "pointer");
+
+  // The searchable pickers (cmdk) mark enabled items data-disabled="false".
+  await page.goto("/questions/browse");
+  await openQuestionFilters(page);
+  await openCombobox(page, "Course");
+  await expect(page.getByRole("option", { name: "Algorithms" })).toHaveCSS(
+    "cursor",
+    "pointer",
+  );
 });
 
 test("hover and menu highlights tint the surface in both themes", async ({

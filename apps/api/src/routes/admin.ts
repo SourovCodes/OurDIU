@@ -51,7 +51,11 @@ import {
 } from "../services/moderation";
 import { updateUsername } from "../services/account";
 import { listAdminUsers, updateUserRole } from "../services/users";
-import { rewatermark, watermarkMissing } from "../services/watermark";
+import {
+  rewatermark,
+  rewatermarkAll,
+  watermarkMissing,
+} from "../services/watermark";
 import type { AppEnv } from "../types";
 
 // Every route here is for admins only.
@@ -218,6 +222,20 @@ const watermarkMissingRoute = createRoute({
   summary: "Watermark every published paper that has no watermarked copy",
   description:
     "Queues published papers that were never watermarked or whose watermark failed. Until a copy is ready, the public downloads the original.",
+  middleware,
+  responses: {
+    202: jsonResponse(watermarkQueuedSchema, "Papers queued"),
+    ...denied,
+  },
+});
+
+const rewatermarkAllRoute = createRoute({
+  method: "post",
+  path: "/submissions/watermark/all",
+  tags: submissionTags,
+  summary: "Make every published paper's watermarked copy again",
+  description:
+    "E.g. after the watermark changed. Current copies are served until their replacements are ready.",
   middleware,
   responses: {
     202: jsonResponse(watermarkQueuedSchema, "Papers queued"),
@@ -506,6 +524,12 @@ export const adminRoutes = new OpenAPIHono<AppEnv>({
   .openapi(watermarkMissingRoute, async (c) =>
     c.json(
       { queued: await watermarkMissing(c.var.db, c.env.WATERMARK_QUEUE) },
+      202,
+    ),
+  )
+  .openapi(rewatermarkAllRoute, async (c) =>
+    c.json(
+      { queued: await rewatermarkAll(c.var.db, c.env.WATERMARK_QUEUE) },
       202,
     ),
   )

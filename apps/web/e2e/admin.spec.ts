@@ -115,6 +115,20 @@ test("an admin watermarks published papers that have no public copy", async ({
   await expect(page.getByText("Watermarking started")).toBeVisible();
 });
 
+test("an admin redoes every published paper's watermark", async ({ page }) => {
+  await logInAs(page, SEED_ADMIN, "/admin/questions/submissions");
+  // A click that lands before hydration is dropped, so retry until the dialog opens.
+  const dialog = page.getByRole("alertdialog");
+  await expect(async () => {
+    await page.getByRole("button", { name: "Redo all watermarks" }).click();
+    await expect(dialog).toBeVisible({ timeout: 1_000 });
+  }).toPass();
+  await expect(dialog).toContainText("Watermark every published paper again?");
+  await dialog.getByRole("button", { name: "Redo all" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText("Watermarking started")).toBeVisible();
+});
+
 test("an admin adds, renames and deletes a semester", async ({
   page,
 }, testInfo) => {

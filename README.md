@@ -94,11 +94,11 @@ Configuration: `GEMINI_MODEL` and `PDF_PROCESSOR_URL` in `apps/web/wrangler.json
 
 ### Watermarked public PDFs
 
-Whenever a paper is published (by an admin, by the AI check, or after its uploader fixes the details), the API queues it on `questions-watermark`. The handler (`services/watermark.ts`) sends the original to the PDF processor's `watermark-compress` endpoint. That endpoint puts a credit line on top of every page ("ourdiu.com | Shared by <contributor>", ASCII only because the processor uses a standard PDF font; copies made before the move say diuqbank.com) and compresses the file. The handler stores the result in R2 as `watermarked/{id}.pdf`. The original under `file_key` is never changed.
+Whenever a paper is published (by an admin, by the AI check, or after its uploader fixes the details), the API queues it on `questions-watermark`. The handler (`services/watermark.ts`) sends the original to the PDF processor's `credit-watermark-compress` endpoint. That endpoint puts a credit line on top of every page ("ourdiu.com | Shared by <contributor>", ASCII only because the processor uses a standard PDF font; copies made before the move say diuqbank.com), stamps the site's domain faintly at random positions and angles across every page, and compresses the file. The handler stores the result in R2 as `watermarked/{id}.pdf`. The original under `file_key` is never changed.
 
 - **Public route** `/api/v1/submissions/{id}/file` serves the watermarked copy. Until the copy is ready, or if watermarking failed, it serves the original, cached for 5 minutes instead of a day. Public file sizes are those of the copy.
 - **Originals:** the admin and uploader file routes keep serving the original.
-- **Admins:** the review page shows the state of the public copy and can **Redo the watermark**, e.g. after a contributor renames themselves. **Watermark missing PDFs** on the submissions list queues every published paper without a copy, which is how existing papers get one.
+- **Admins:** the review page shows the state of the public copy and can **Redo the watermark**, e.g. after a contributor renames themselves. **Watermark missing PDFs** on the submissions list queues every published paper without a copy, which is how existing papers get one. **Redo all watermarks** queues every published paper again, e.g. after the watermark changed; current copies stay public until their replacements are ready.
 
 ### Admin panel
 

@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Eye,
   Inbox,
+  RefreshCw,
   Stamp,
 } from "lucide-react";
 import { useState } from "react";
@@ -112,6 +113,9 @@ export async function action({ request }: Route.ActionArgs) {
   const intent = String(form.get("intent"));
   if (intent === "watermark-missing") {
     return adminRequest(request, intent, "POST", "/submissions/watermark");
+  }
+  if (intent === "watermark-all") {
+    return adminRequest(request, intent, "POST", "/submissions/watermark/all");
   }
   if (intent === "check-unchecked") {
     return adminRequest(request, intent, "POST", "/submissions/analysis");
@@ -311,6 +315,19 @@ export default function AdminSubmissions({ loaderData }: Route.ComponentProps) {
               confirmLabel="Watermark"
               successMessage="Watermarking started"
               fields={{ intent: "watermark-missing" }}
+            />
+            <ConfirmAction
+              trigger={
+                <Button variant="outline" size="sm">
+                  <RefreshCw />
+                  Redo all watermarks
+                </Button>
+              }
+              title="Watermark every published paper again?"
+              description="Every published paper's public copy is made again in the background, e.g. after the watermark changed. The current copies stay public until their replacements are ready."
+              confirmLabel="Redo all"
+              successMessage="Watermarking started"
+              fields={{ intent: "watermark-all" }}
             />
           </>
         }

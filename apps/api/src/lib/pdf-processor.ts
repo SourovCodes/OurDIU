@@ -49,21 +49,23 @@ export class PdfProcessorError extends Error {
 }
 
 /**
- * Adds `text` as a header line on every page, then compresses the PDF like
- * `compressPdf`. Throws a `PdfProcessorError` on failure.
+ * Adds `credit` as a header line on every page and stamps `stamp` faintly at random
+ * positions and angles across each page, then compresses the PDF like `compressPdf`.
+ * Throws a `PdfProcessorError` on failure.
  */
 export async function watermarkPdf(
   pdf: Uint8Array<ArrayBuffer>,
-  text: string,
+  text: { credit: string; stamp: string },
   options: { url: string; apiKey: string; fetch?: Fetcher },
 ): Promise<Uint8Array<ArrayBuffer>> {
   const body = new FormData();
   body.append("pdf", new File([pdf], "paper.pdf", { type: "application/pdf" }));
-  body.append("watermark_text", text);
+  body.append("credit_text", text.credit);
+  body.append("watermark_text", text.stamp);
   let res: Response;
   try {
     res = await (options.fetch ?? fetch)(
-      new URL("/api/pdfs/watermark-compress", options.url),
+      new URL("/api/pdfs/credit-watermark-compress", options.url),
       {
         method: "POST",
         headers: { "X-API-Key": options.apiKey },

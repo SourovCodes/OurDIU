@@ -13,9 +13,11 @@ import { updateSubmissionStatus } from "../src/services/moderation";
 import { getQuestion } from "../src/services/questions";
 import {
   enqueueWatermarks,
+  creditText,
+  rewatermarkAll,
   runWatermark,
+  stampText,
   watermarkMissing,
-  watermarkText,
   WATERMARK_MAX_ATTEMPTS,
   type WatermarkEnv,
   type WatermarkJob,
@@ -107,16 +109,24 @@ const SITE = "https://diuqbank.com/";
 
 /** Answers the PDF processor and records the watermark requests. */
 function fakeProcessor(respond?: () => Response) {
-  const calls: { apiKey: string | null; text: string; pdf: string }[] = [];
+  const calls: {
+    apiKey: string | null;
+    credit: string;
+    stamp: string;
+    pdf: string;
+  }[] = [];
   const fetcher = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
-    if (url !== "https://pdf-processor.test/api/pdfs/watermark-compress") {
+    if (
+      url !== "https://pdf-processor.test/api/pdfs/credit-watermark-compress"
+    ) {
       throw new Error(`Unexpected fetch: ${url}`);
     }
     const form = init!.body as FormData;
     calls.push({
       apiKey: new Headers(init!.headers).get("x-api-key"),
-      text: String(form.get("watermark_text")),
+      credit: String(form.get("credit_text")),
+      stamp: String(form.get("watermark_text")),
       pdf: await (form.get("pdf") as File).text(),
     });
     return (
@@ -129,31 +139,38 @@ function fakeProcessor(respond?: () => Response) {
   return { fetch: fetcher, calls };
 }
 
-describe("watermarkText", () => {
+describe("creditText", () => {
   it("credits the site and the contributor", () => {
-    expect(watermarkText(SITE, "Jane  Doe ")).toBe(
+    expect(creditText(SITE, "Jane  Doe ")).toBe(
       "diuqbank.com | Shared by Jane Doe",
     );
   });
 
   it("credits only the site without a contributor", () => {
-    expect(watermarkText(SITE, null)).toBe("Downloaded from diuqbank.com");
-    expect(watermarkText(SITE, "  ")).toBe("Downloaded from diuqbank.com");
+    expect(creditText(SITE, null)).toBe("Downloaded from diuqbank.com");
+    expect(creditText(SITE, "  ")).toBe("Downloaded from diuqbank.com");
   });
 
   it("stays within the processor's 255 characters", () => {
-    const text = watermarkText(SITE, "n".repeat(400));
+    const text = creditText(SITE, "n".repeat(400));
     expect(text).toHaveLength(255);
     expect(text.endsWith("...")).toBe(true);
   });
 
   it("keeps to ASCII, which the processor's font can draw", () => {
-    expect(watermarkText(SITE, "José Núñez")).toBe(
+    expect(creditText(SITE, "José Núñez")).toBe(
       "diuqbank.com | Shared by Jose Nunez",
     );
-    expect(watermarkText(SITE, "সৌরভ বিশ্বাস")).toBe(
+    expect(creditText(SITE, "সৌরভ বিশ্বাস")).toBe(
       "Downloaded from diuqbank.com",
     );
+  });
+});
+
+describe("stampText", () => {
+  it("stamps the site's domain", () => {
+    expect(stampText(SITE)).toBe("diuqbank.com");
+    expect(stampText("https://ourdiu.com")).toBe("ourdiu.com");
   });
 });
 
@@ -250,7 +267,8 @@ describe("runWatermark", () => {
     expect(processor.calls).toEqual([
       {
         apiKey: "processor-test-key",
-        text: "diuqbank.com | Shared by Test User",
+        credit: "diuqbank.com | Shared by Test User",
+        stamp: "diuqbank.com",
         pdf: ORIGINAL,
       },
     ]);
@@ -279,7 +297,7 @@ describe("runWatermark", () => {
       { submissionId: paper.id },
       { fetch: processor.fetch },
     );
-    expect(processor.calls[0]!.text).toBe("Downloaded from diuqbank.com");
+    expect(processor.calls[0]!.credit).toBe("Downloaded from diuqbank.com");
   });
 
   it("retries server errors, then gives up after the last attempt", async () => {
@@ -517,6 +535,41 @@ describe("admin endpoints", () => {
     expect((await readRow(paper.id)).watermarkStatus).not.toBeNull();
   });
 
+  it("queues every published paper again, with or without a copy", async () => {
+    const [missing, done, pending] = await Promise.all([
+      seedPaper(),
+      seedWatermarkedPaper(),
+      seedPaper({ status: "pending_review" }),
+    ]);
+    const { queue, sent } = fakeQueue();
+    const queued = await rewatermarkAll(db(), queue);
+    const ids = sent.map((job) => job.submissionId);
+    expect(ids).toEqual(expect.arrayContaining([missing.id, done.id]));
+    expect(ids).not.toContain(pending.id);
+    expect(queued).toBe(sent.length);
+  });
+
+  it("redoes every copy through the API, for admins only", async () => {
+    const paper = await seedWatermarkedPaper();
+    const denied = await api("/api/v1/admin/submissions/watermark/all", {
+      method: "POST",
+      headers: { cookie: member.cookie },
+    });
+    expect(denied.status).toBe(403);
+
+    const res = await api("/api/v1/admin/submissions/watermark/all", {
+      method: "POST",
+      headers: { cookie: admin.cookie },
+    });
+    expect(res.status).toBe(202);
+    const body = await res.json<{ queued: number }>();
+    expect(body.queued).toBeGreaterThanOrEqual(1);
+    expect((await readRow(paper.id)).watermarkStatus).toBe("queued");
+    // The current copy keeps being served meanwhile.
+    const file = await api(`/api/v1/submissions/${paper.id}/file`);
+    expect(await pdfText(file)).toBe(WATERMARKED);
+  });
+
   it("makes a published paper's copy again", async () => {
     const paper = await seedWatermarkedPaper();
     const res = await api(`/api/v1/admin/submissions/${paper.id}/watermark`, {
@@ -569,7 +622,7 @@ describe("admin endpoints", () => {
       { submissionId: paper.id },
       { fetch: processor.fetch },
     );
-    expect(processor.calls[0]!.text).toBe(
+    expect(processor.calls[0]!.credit).toBe(
       "diuqbank.com | Shared by Ada Lovelace",
     );
   });

@@ -10,8 +10,8 @@ import {
   type Fetcher,
 } from "../lib/pdf-processor";
 
-// Published papers get a public copy with a credit line on every page (compressed by
-// the same call). The original stays untouched for admins and the uploader; the
+// Published papers get a public copy with a credit line on top of every page and the
+// site's domain stamped faintly across it (compressed by the same call). The original stays untouched for admins and the uploader; the
 // public gets it only until the copy is ready.
 
 /** The queue message. */
@@ -20,8 +20,9 @@ export type WatermarkJob = { submissionId: number };
 /** First delivery plus `max_retries` (3) of the consumer in wrangler.jsonc. */
 export const WATERMARK_MAX_ATTEMPTS = 4;
 
-/** The PDF processor's limit on `watermark_text`. */
-const MAX_WATERMARK_LENGTH = 255;
+/** The PDF processor's limits on `credit_text` and `watermark_text`. */
+const MAX_CREDIT_LENGTH = 255;
+const MAX_STAMP_LENGTH = 100;
 
 /** Queue `sendBatch` takes at most 100 messages. */
 const QUEUE_BATCH_SIZE = 100;
@@ -57,7 +58,7 @@ const toAscii = (text: string) =>
  * The credit line: the site's domain, and the contributor when their account still
  * exists and their name has Latin letters.
  */
-export function watermarkText(
+export function creditText(
   siteUrl: string,
   uploaderName: string | null,
 ): string {
@@ -65,9 +66,13 @@ export function watermarkText(
   const name = toAscii(uploaderName ?? "");
   if (!/[a-z]/i.test(name)) return `Downloaded from ${site}`;
   const prefix = `${site} | Shared by `;
-  const room = MAX_WATERMARK_LENGTH - prefix.length;
+  const room = MAX_CREDIT_LENGTH - prefix.length;
   return prefix + (name.length > room ? `${name.slice(0, room - 3)}...` : name);
 }
+
+/** The faint stamps scattered over every page: the site's domain. */
+export const stampText = (siteUrl: string) =>
+  toAscii(new URL(siteUrl).host).slice(0, MAX_STAMP_LENGTH);
 
 /**
  * Marks submissions queued and sends them to the watermark queue. Never throws for
@@ -140,6 +145,27 @@ export async function watermarkMissing(
         ),
       ),
     );
+  await enqueueWatermarks(
+    db,
+    queue,
+    rows.map((row) => row.id),
+  );
+  return rows.length;
+}
+
+/**
+ * Admin action: makes every published paper's copy again, e.g. after the stamps
+ * changed. Current copies stay public until their replacements are ready. Returns
+ * how many were queued.
+ */
+export async function rewatermarkAll(
+  db: Database,
+  queue: Queue<WatermarkJob>,
+): Promise<number> {
+  const rows = await db
+    .select({ id: submissions.id })
+    .from(submissions)
+    .where(eq(submissions.status, "published"));
   await enqueueWatermarks(
     db,
     queue,
@@ -230,7 +256,10 @@ export async function runWatermark(
     }
     const pdf = await watermarkPdf(
       new Uint8Array(await object.arrayBuffer()),
-      watermarkText(env.SITE_URL, row.uploaderName),
+      {
+        credit: creditText(env.SITE_URL, row.uploaderName),
+        stamp: stampText(env.SITE_URL),
+      },
       {
         url: env.PDF_PROCESSOR_URL,
         apiKey: env.COMPRESSOR_API_KEY,

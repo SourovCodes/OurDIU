@@ -4195,6 +4195,55 @@
         }
       }
     },
+    "/api/v1/admin/submissions/watermark/all": {
+      "post": {
+        "tags": [
+          "Admin: submissions"
+        ],
+        "summary": "Make every published paper's watermarked copy again",
+        "description": "E.g. after the watermark changed. Current copies are served until their replacements are ready.",
+        "responses": {
+          "202": {
+            "description": "Papers queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "queued": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "queued"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/submissions/{id}/watermark": {
       "post": {
         "tags": [

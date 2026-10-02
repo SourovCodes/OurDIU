@@ -82,7 +82,7 @@ export default function Department({ loaderData }: Route.ComponentProps) {
               "flex h-9 items-center rounded-xl border px-3.5 text-sm font-semibold transition-colors",
               d.id === department.id
                 ? "border-primary-container bg-primary-container text-primary-container-foreground"
-                : "border-input hover:bg-accent",
+                : "border-input hover:state-layer",
             )}
           >
             {d.shortName}
@@ -146,7 +146,7 @@ export default function Department({ loaderData }: Route.ComponentProps) {
                       to={courseHref(course.id)}
                       prefetch="intent"
                       className={cn(
-                        "flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 py-2 text-[0.9375rem] transition-colors hover:bg-surface-high active:bg-surface-high",
+                        "flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 py-2 text-[0.9375rem] transition-colors hover:state-layer active:bg-surface-high",
                         course.publishedCount === 0 && "text-muted-foreground",
                       )}
                     >

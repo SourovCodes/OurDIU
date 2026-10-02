@@ -80,8 +80,11 @@ export default function Contributors({ loaderData }: Route.ComponentProps) {
                     className={cn(
                       "flex gap-4 rounded-3xl transition-[background-color,scale] focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:scale-[0.99]",
                       podium
-                        ? cn("min-h-52 flex-col justify-between p-6", podium)
-                        : "items-center bg-surface p-4 hover:bg-surface-high",
+                        ? cn(
+                            "min-h-52 flex-col justify-between p-6 hover:state-layer",
+                            podium,
+                          )
+                        : "items-center bg-surface p-4 hover:state-layer",
                     )}
                   >
                     {podium ? (

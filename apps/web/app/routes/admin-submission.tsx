@@ -608,7 +608,7 @@ function DetailsCard({ submission }: { submission: AdminSubmissionDetail }) {
         {uploader ? (
           <Link
             to={contributorUrl(uploader.username)}
-            className="-m-2 flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-surface-high"
+            className="-m-2 flex items-center gap-3 rounded-xl p-2 transition-colors hover:state-layer"
           >
             <UserAvatar name={uploader.name} image={uploader.image} />
             <div className="grid min-w-0 text-sm leading-tight">

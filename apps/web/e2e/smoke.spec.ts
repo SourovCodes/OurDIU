@@ -927,3 +927,52 @@ test("the old question bank's addresses lead to their new pages", async ({
     expect([200, 302]).toContain(res.status());
   }
 });
+
+test("buttons and menu items show the hand cursor", async ({ page }) => {
+  await page.goto("/questions/browse");
+  const arrows = await page.evaluate(() =>
+    [
+      ...document.querySelectorAll<HTMLElement>(
+        "button:not(:disabled), [role=tab], [role=combobox]",
+      ),
+    ]
+      .filter((el) => el.offsetParent !== null)
+      .filter((el) => getComputedStyle(el).cursor !== "pointer")
+      .map((el) => el.getAttribute("aria-label") ?? el.innerText),
+  );
+  expect(arrows).toEqual([]);
+
+  // A click that lands before hydration is dropped, so retry until the list opens.
+  const option = page.getByRole("option").first();
+  await expect(async () => {
+    await page.getByRole("combobox", { name: "Sort exams" }).click();
+    await expect(option).toBeVisible({ timeout: 1_000 });
+  }).toPass();
+  await expect(option).toHaveCSS("cursor", "pointer");
+});
+
+test("hover and menu highlights tint the surface in both themes", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, "Phones have no hover");
+  const TINT = /^linear-gradient\(rgba\(\d+, \d+, \d+, 0\.08\)/;
+  for (const theme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme: theme });
+    await page.goto("/questions/browse");
+    // A card: its own surface stays, the state layer is laid over it.
+    const card = page.locator('[data-slot="card"]').first();
+    await card.hover();
+    await expect(card).toHaveCSS("background-image", TINT);
+
+    // The product switcher's items, which used to match the menu's colour.
+    const item = page.getByRole("menuitem", { name: /Class Routine/ });
+    await expect(async () => {
+      await page.getByRole("button", { name: "Switch product" }).click();
+      await expect(item).toBeVisible({ timeout: 1_000 });
+    }).toPass();
+    await item.hover();
+    await expect(item).toHaveCSS("background-image", TINT);
+    await page.keyboard.press("Escape");
+  }
+});

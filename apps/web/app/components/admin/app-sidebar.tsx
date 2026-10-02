@@ -96,7 +96,7 @@ function NavUser({ user }: { user: SessionUser }) {
             <SidebarMenuButton
               size="lg"
               aria-label="Account menu"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              className="data-[state=open]:state-layer data-[state=open]:text-sidebar-accent-foreground"
             >
               <UserAvatar
                 name={user.name}

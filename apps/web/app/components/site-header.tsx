@@ -78,7 +78,7 @@ function Brand({ product }: { product: Product | null }) {
   return (
     <Link
       to={product?.href ?? "/"}
-      className="flex min-w-0 shrink-0 items-center gap-2.5 text-primary"
+      className="flex min-w-0 shrink-0 items-center gap-2.5 text-primary transition-opacity hover:opacity-80"
     >
       <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
         <Icon className="size-5" aria-hidden />
@@ -173,7 +173,7 @@ function UserMenu({
 }
 
 const MENU_LINK =
-  "flex min-h-11 items-center rounded-full px-3 text-[0.9375rem] font-medium transition-colors hover:bg-accent";
+  "flex min-h-11 items-center rounded-full px-3 text-[0.9375rem] font-medium transition-colors hover:state-layer";
 
 /** Light or dark, as two segments; the header's toggle is hidden on phones. */
 function ThemeSegments() {
@@ -197,7 +197,7 @@ function ThemeSegments() {
               "flex h-10 items-center justify-center gap-2 text-sm font-semibold transition-colors",
               on
                 ? "bg-primary-container text-primary-container-foreground"
-                : "hover:bg-accent",
+                : "hover:state-layer",
             )}
           >
             <Icon className="size-4" aria-hidden />
@@ -309,7 +309,7 @@ function MobileMenu({
                       className={cn(
                         MENU_LINK,
                         active &&
-                          "bg-primary-container text-primary-container-foreground hover:bg-primary-container",
+                          "bg-primary-container text-primary-container-foreground",
                       )}
                     >
                       {item.label}
@@ -400,7 +400,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
                   "flex h-10 items-center rounded-full px-4 text-[0.9375rem] font-medium whitespace-nowrap transition-colors",
                   active
                     ? "bg-primary-container font-semibold text-primary-container-foreground"
-                    : "hover:bg-accent",
+                    : "hover:state-layer",
                 )}
               >
                 {item.label}
@@ -412,7 +412,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
           {questions && (
             <>
-              <CourseSearchTrigger className="hidden h-10 w-60 items-center gap-2.5 rounded-full bg-surface pr-2 pl-4 text-sm text-muted-foreground transition-colors hover:bg-surface-high xl:flex">
+              <CourseSearchTrigger className="hidden h-10 w-60 items-center gap-2.5 rounded-full bg-surface pr-2 pl-4 text-sm text-muted-foreground transition-colors hover:state-layer xl:flex">
                 <Search className="size-4" aria-hidden />
                 <span className="flex-1">Search courses</span>
                 <kbd className="rounded-md border border-input px-1.5 py-0.5 font-sans text-xs">

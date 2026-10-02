@@ -69,8 +69,8 @@ export function DepartmentTile({
       className={cn(
         "flex min-h-40 flex-col justify-between gap-6 rounded-[1.75rem] p-5 transition-[background-color,scale] focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:scale-[0.98]",
         featured
-          ? "bg-primary-container text-primary-container-foreground hover:bg-primary-container/85"
-          : "bg-surface hover:bg-surface-high",
+          ? "bg-primary-container text-primary-container-foreground hover:state-layer"
+          : "bg-surface hover:state-layer",
         className,
       )}
     >

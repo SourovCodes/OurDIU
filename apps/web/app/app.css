@@ -147,6 +147,8 @@
   --exam-quiz-foreground: #5a4200;
   --exam-lab: #b9f0e3;
   --exam-lab-foreground: #00493d;
+  /* --foreground at 8%. */
+  --state-layer: rgb(28 27 35 / 0.08);
 }
 
 .dark {
@@ -196,6 +198,7 @@
   --exam-quiz-foreground: #ffe08f;
   --exam-lab: #005145;
   --exam-lab-foreground: #b9f0e3;
+  --state-layer: rgb(229 225 238 / 0.08);
 }
 
 /* Each product space has its own colour (docs/PLAN.md, decision 6); the body
@@ -247,12 +250,39 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+  /* Tailwind 4 gives buttons the arrow cursor; everything clickable gets the hand. */
+  :where(
+    button,
+    select,
+    summary,
+    label[for],
+    input:is([type="checkbox"], [type="radio"], [type="file"], [type="range"]),
+    [role="button"],
+    [role="tab"],
+    [role="option"],
+    [role="menuitem"],
+    [role="menuitemcheckbox"],
+    [role="menuitemradio"],
+    [role="checkbox"],
+    [role="radio"],
+    [role="switch"]
+  ):not(:disabled, [aria-disabled="true"], [data-disabled]) {
+    cursor: pointer;
+  }
 }
 
 /* Dialogs and menus lock scrolling (react-remove-scroll) and make up for the hidden
    scrollbar with a right margin; the gutter above already keeps that space. */
 html body[data-scroll-locked] {
   margin-right: 0 !important;
+}
+
+/* Material's state layer: the text colour at 8% (`--state-layer`) laid over the
+   element's own surface. Hover, focus and open states use it (`hover:state-layer`)
+   instead of swapping to a fixed colour, which can match the surface it sits on
+   (menus are `popover`, which equals `accent` in dark mode). */
+@utility state-layer {
+  background-image: linear-gradient(var(--state-layer), var(--state-layer));
 }
 
 /* Tailwind's default `container` (max-width per breakpoint), centred with side padding. */

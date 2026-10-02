@@ -31,7 +31,7 @@ export function OtherExams({ course, questions }: OtherExamsProps) {
             <Link
               to={`/questions/${question.id}`}
               prefetch="intent"
-              className="flex items-center gap-3 rounded-2xl px-3 py-2 text-sm transition-colors hover:bg-accent"
+              className="flex items-center gap-3 rounded-2xl px-3 py-2 text-sm transition-colors hover:state-layer"
             >
               <ExamBadge examType={question.examType.name} size={32} />
               <span className="min-w-0 flex-1">

@@ -194,7 +194,7 @@ export default function Login({
             variant="outline"
             size="lg"
             disabled={submitting}
-            className="w-full border-input bg-background text-base text-foreground hover:bg-background/80 hover:text-foreground"
+            className="w-full border-input bg-background text-base text-foreground hover:bg-background hover:state-layer hover:text-foreground"
           >
             {submitting ? (
               <Loader2 className="animate-spin" aria-hidden />
@@ -206,7 +206,10 @@ export default function Login({
           <p className="text-sm text-pretty opacity-85">
             New here? Your account is made the first time you log in. We only
             keep your name, email and photo (
-            <Link to="/privacy" className="underline underline-offset-2">
+            <Link
+              to="/privacy"
+              className="underline underline-offset-2 hover:decoration-2"
+            >
               privacy policy
             </Link>
             ).

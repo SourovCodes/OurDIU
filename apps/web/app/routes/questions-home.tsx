@@ -176,7 +176,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               </p>
             )}
           </div>
-          <CourseSearchTrigger className="flex h-16 max-w-xl items-center gap-3 rounded-full bg-surface pr-2 pl-6 text-muted-foreground transition-colors hover:bg-surface-high focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
+          <CourseSearchTrigger className="flex h-16 max-w-xl items-center gap-3 rounded-full bg-surface pr-2 pl-6 text-muted-foreground transition-colors hover:state-layer focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
             <Search className="size-5 shrink-0" aria-hidden />
             <span className="flex-1 truncate text-base">
               Search {courseTotal > 0 ? `${formatNumber(courseTotal)} ` : ""}
@@ -204,8 +204,8 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                   className={cn(
                     "flex h-10 shrink-0 items-center gap-2 rounded-full border pr-3.5 pl-1.5 text-sm transition-colors",
                     department.id === myDepartmentId
-                      ? "border-primary-container bg-primary-container text-primary-container-foreground"
-                      : "border-input hover:bg-accent",
+                      ? "border-primary-container bg-primary-container text-primary-container-foreground hover:state-layer"
+                      : "border-input hover:state-layer",
                   )}
                 >
                   <span className="rounded-full bg-primary-container px-2 py-0.5 text-xs font-bold text-primary-container-foreground">

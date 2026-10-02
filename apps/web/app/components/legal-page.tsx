@@ -43,7 +43,7 @@ export function LegalPage({ title, description, children }: LegalPageProps) {
                 "flex h-10 shrink-0 items-center rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors",
                 isActive
                   ? "border-primary-container bg-primary-container font-semibold text-primary-container-foreground"
-                  : "border-input hover:bg-accent",
+                  : "border-input hover:state-layer",
               )
             }
           >
@@ -59,7 +59,7 @@ export function LegalPage({ title, description, children }: LegalPageProps) {
           Questions about this page? Email{" "}
           <a
             href={`mailto:${AUTHOR.email}`}
-            className="font-medium break-all underline underline-offset-4"
+            className="font-medium break-all underline underline-offset-4 hover:text-primary"
           >
             {AUTHOR.email}
           </a>

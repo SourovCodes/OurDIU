@@ -241,7 +241,7 @@ function ReportsCard({ reports }: { reports: AdminReportList["items"] }) {
               <li key={report.id}>
                 <Link
                   to={adminSubmissionUrl(report.submission.id)}
-                  className="-mx-2 flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-surface-high"
+                  className="-mx-2 flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:state-layer"
                 >
                   <UserAvatar
                     name={report.reporter.name}

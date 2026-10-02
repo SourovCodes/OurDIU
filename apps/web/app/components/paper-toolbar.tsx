@@ -371,7 +371,7 @@ function ReportDialog({
             {REPORT_REASONS.map((value) => (
               <label
                 key={value}
-                className="flex min-h-11 cursor-pointer items-center gap-3 rounded-2xl border border-input px-4 py-2 text-sm transition-colors hover:bg-accent/60 has-checked:border-primary-container has-checked:bg-primary-container has-checked:text-primary-container-foreground has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50"
+                className="flex min-h-11 cursor-pointer items-center gap-3 rounded-2xl border border-input px-4 py-2 text-sm transition-colors hover:state-layer has-checked:border-primary-container has-checked:bg-primary-container has-checked:text-primary-container-foreground has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50"
               >
                 <input
                   type="radio"

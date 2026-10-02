@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../api/api.dart';
 import '../../api/generated/export.dart';
@@ -181,6 +182,9 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
     _countViews(question);
   }
 
+  void _back(BuildContext context) =>
+      context.canPop() ? context.pop() : context.go('/home');
+
   @override
   Widget build(BuildContext context) {
     return switch (ref.watch(questionProvider(widget.id))) {
@@ -242,176 +246,187 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
     const barHeight = 64.0;
     const motion = Duration(milliseconds: 220);
 
-    return Scaffold(
-      backgroundColor: scheme.surfaceContainer,
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: AnimatedPadding(
-              duration: motion,
-              curve: Curves.easeOutCubic,
-              padding: EdgeInsets.only(
-                top: padding.top + (_chrome ? barHeight : 0),
-              ),
-              child: url != null && selected != null
-                  ? KeyedSubtree(
-                      // Keyed, so switching papers loads the new document.
-                      key: ValueKey(selected.id),
-                      child: ref.watch(paperViewerProvider)(
-                        url,
-                        PaperViewEvents(
-                          onTap: () => setState(() => _chrome = !_chrome),
-                          onPage: (page, count) {
-                            if (mounted) setState(() => _page = (page, count));
-                          },
-                        ),
-                      ),
-                    )
-                  : StateMessage(
-                      icon: question.submissionCounts.pendingReview > 0
-                          ? Icons.schedule_rounded
-                          : Icons.description_outlined,
-                      shape: ExamKind.quiz,
-                      title: 'No published paper yet',
-                      body: question.submissionCounts.pendingReview > 0
-                          ? '${plural(question.submissionCounts.pendingReview, 'submission is', 'submissions are')} '
-                                'waiting for review. The paper appears here once approved.'
-                          : "The papers shared for this exam weren't approved.",
-                    ),
-            ),
-          ),
-          // Top bar
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: AnimatedSlide(
-              duration: motion,
-              curve: Curves.easeOutCubic,
-              offset: _chrome ? Offset.zero : const Offset(0, -1),
-              child: Material(
-                color: scheme.surface,
-                child: Padding(
-                  padding: EdgeInsets.only(top: padding.top),
-                  child: SizedBox(
-                    height: barHeight,
-                    child: Row(
-                      children: [
-                        const BackButton(),
-                        Expanded(
-                          child: _Title(
-                            title: question.course.name,
-                            details: questionDetails(summary),
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: saved ? 'Remove from saved' : 'Save',
-                          isSelected: saved,
-                          selectedIcon: Icon(
-                            Icons.bookmark_rounded,
-                            color: scheme.primary,
-                          ),
-                          icon: const Icon(Icons.bookmark_border_rounded),
-                          onPressed: () {
-                            ref
-                                .read(savedQuestionsProvider.notifier)
-                                .toggle(summary);
-                            ScaffoldMessenger.of(context)
-                              ..hideCurrentSnackBar()
-                              ..showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    saved ? 'Removed from saved' : 'Saved',
-                                  ),
-                                ),
-                              );
-                          },
-                        ),
-                        if (url != null && selected != null)
-                          _PaperMenu(
-                            reported: _isReported(selected),
-                            own: _isOwn(selected),
-                            onShareLink: () => SharePlus.instance.share(
-                              ShareParams(
-                                uri: Uri.parse(
-                                  '$apiBaseUrl/questions/${widget.id}',
-                                ),
-                              ),
-                            ),
-                            onOpenInBrowser: () => openInBrowser(url),
-                            onReport: () => _report(
-                              selected,
-                              published.length > 1 ? titles[selected.id] : null,
-                            ),
-                          ),
-                        const SizedBox(width: 4),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          // Page counter
-          if (_page case (final page, final count) when url != null)
-            Positioned(
-              top: padding.top + barHeight + 10,
-              right: 14,
-              child: AnimatedOpacity(
+    // Opened from a link, the paper is all there is: back goes to Home.
+    return PopScope(
+      canPop: context.canPop(),
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/home');
+      },
+      child: Scaffold(
+        backgroundColor: scheme.surfaceContainer,
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: AnimatedPadding(
                 duration: motion,
-                opacity: _chrome ? 1 : 0,
-                child: DecoratedBox(
-                  decoration: ShapeDecoration(
-                    color: scheme.surfaceContainerHighest,
-                    shape: const StadiumBorder(),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    child: Text(
-                      'Page $page of $count',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ),
+                curve: Curves.easeOutCubic,
+                padding: EdgeInsets.only(
+                  top: padding.top + (_chrome ? barHeight : 0),
                 ),
+                child: url != null && selected != null
+                    ? KeyedSubtree(
+                        // Keyed, so switching papers loads the new document.
+                        key: ValueKey(selected.id),
+                        child: ref.watch(paperViewerProvider)(
+                          url,
+                          PaperViewEvents(
+                            onTap: () => setState(() => _chrome = !_chrome),
+                            onPage: (page, count) {
+                              if (mounted) {
+                                setState(() => _page = (page, count));
+                              }
+                            },
+                          ),
+                        ),
+                      )
+                    : StateMessage(
+                        icon: question.submissionCounts.pendingReview > 0
+                            ? Icons.schedule_rounded
+                            : Icons.description_outlined,
+                        shape: ExamKind.quiz,
+                        title: 'No published paper yet',
+                        body: question.submissionCounts.pendingReview > 0
+                            ? '${plural(question.submissionCounts.pendingReview, 'submission is', 'submissions are')} '
+                                  'waiting for review. The paper appears here once approved.'
+                            : "The papers shared for this exam weren't approved.",
+                      ),
               ),
             ),
-          // Floating toolbar
-          if (url != null && selected != null)
+            // Top bar
             Positioned(
-              left: 12,
-              right: 12,
-              bottom: padding.bottom + 14,
+              top: 0,
+              left: 0,
+              right: 0,
               child: AnimatedSlide(
                 duration: motion,
                 curve: Curves.easeOutCubic,
-                offset: _chrome ? Offset.zero : const Offset(0, 1.8),
-                child: _Toolbar(
-                  paperTitle: titles[selected.id]!,
-                  position: published.length > 1
-                      ? (published.indexOf(selected) + 1, published.length)
-                      : null,
-                  onPickPaper: () =>
-                      _showPapers(context, question, published, titles),
-                  vote: _voteOf(selected),
-                  own: _isOwn(selected),
-                  onVote: (value) => _vote(selected, value),
-                  url: url,
-                  fileName: paperFileName([
-                    question.course.name,
-                    question.examType.name,
-                    question.semester.name,
-                    if (published.length > 1) titles[selected.id]!,
-                  ]),
+                offset: _chrome ? Offset.zero : const Offset(0, -1),
+                child: Material(
+                  color: scheme.surface,
+                  child: Padding(
+                    padding: EdgeInsets.only(top: padding.top),
+                    child: SizedBox(
+                      height: barHeight,
+                      child: Row(
+                        children: [
+                          BackButton(onPressed: () => _back(context)),
+                          Expanded(
+                            child: _Title(
+                              title: question.course.name,
+                              details: questionDetails(summary),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: saved ? 'Remove from saved' : 'Save',
+                            isSelected: saved,
+                            selectedIcon: Icon(
+                              Icons.bookmark_rounded,
+                              color: scheme.primary,
+                            ),
+                            icon: const Icon(Icons.bookmark_border_rounded),
+                            onPressed: () {
+                              ref
+                                  .read(savedQuestionsProvider.notifier)
+                                  .toggle(summary);
+                              ScaffoldMessenger.of(context)
+                                ..hideCurrentSnackBar()
+                                ..showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      saved ? 'Removed from saved' : 'Saved',
+                                    ),
+                                  ),
+                                );
+                            },
+                          ),
+                          if (url != null && selected != null)
+                            _PaperMenu(
+                              reported: _isReported(selected),
+                              own: _isOwn(selected),
+                              onShareLink: () => SharePlus.instance.share(
+                                ShareParams(
+                                  uri: Uri.parse(
+                                    '$apiBaseUrl/questions/${widget.id}',
+                                  ),
+                                ),
+                              ),
+                              onOpenInBrowser: () => openInBrowser(url),
+                              onReport: () => _report(
+                                selected,
+                                published.length > 1
+                                    ? titles[selected.id]
+                                    : null,
+                              ),
+                            ),
+                          const SizedBox(width: 4),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-        ],
+            // Page counter
+            if (_page case (final page, final count) when url != null)
+              Positioned(
+                top: padding.top + barHeight + 10,
+                right: 14,
+                child: AnimatedOpacity(
+                  duration: motion,
+                  opacity: _chrome ? 1 : 0,
+                  child: DecoratedBox(
+                    decoration: ShapeDecoration(
+                      color: scheme.surfaceContainerHighest,
+                      shape: const StadiumBorder(),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      child: Text(
+                        'Page $page of $count',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            // Floating toolbar
+            if (url != null && selected != null)
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: padding.bottom + 14,
+                child: AnimatedSlide(
+                  duration: motion,
+                  curve: Curves.easeOutCubic,
+                  offset: _chrome ? Offset.zero : const Offset(0, 1.8),
+                  child: _Toolbar(
+                    paperTitle: titles[selected.id]!,
+                    position: published.length > 1
+                        ? (published.indexOf(selected) + 1, published.length)
+                        : null,
+                    onPickPaper: () =>
+                        _showPapers(context, question, published, titles),
+                    vote: _voteOf(selected),
+                    own: _isOwn(selected),
+                    onVote: (value) => _vote(selected, value),
+                    url: url,
+                    fileName: paperFileName([
+                      question.course.name,
+                      question.examType.name,
+                      question.semester.name,
+                      if (published.length > 1) titles[selected.id]!,
+                    ]),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

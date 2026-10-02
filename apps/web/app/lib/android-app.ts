@@ -15,6 +15,31 @@ export const PLAY_TESTING_URL =
 export const PLAY_STORE_URL =
   "https://play.google.com/store/apps/details?id=com.ourdiu.app";
 
+export const ANDROID_PACKAGE = "com.ourdiu.app";
+
+/**
+ * SHA-256 of the key Google Play signs the app with (Play App Signing: Play
+ * Console → App integrity → App signing, "App signing key certificate"; not
+ * the upload key). Android checks it against `/.well-known/assetlinks.json`
+ * before letting the app open ourdiu.com links.
+ */
+export const ANDROID_SIGNING_SHA256 =
+  "86:51:83:0A:15:06:D3:72:70:63:2D:BE:A3:19:46:0C:58:C0:F2:CD:33:4C:61:C6:09:13:1D:79:86:26:45:C4";
+
+/** Digital Asset Links: the app may open this site's links (Android App Links). */
+export function assetLinks() {
+  return [
+    {
+      relation: ["delegate_permission/common.handle_all_urls"],
+      target: {
+        namespace: "android_app",
+        package_name: ANDROID_PACKAGE,
+        sha256_cert_fingerprints: [ANDROID_SIGNING_SHA256],
+      },
+    },
+  ];
+}
+
 export function isAndroid(userAgent: string) {
   return /\bAndroid\b/i.test(userAgent);
 }

@@ -26,6 +26,16 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Question Bank links on ourdiu.com open here (Android App Links),
+                 verified against https://ourdiu.com/.well-known/assetlinks.json.
+                 Only ourdiu.com: www redirects, and a host whose file redirects
+                 can't be verified. lib/router.dart maps the paths. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="ourdiu.com" android:pathPrefix="/questions"/>
+            </intent-filter>
             <!-- "Share → OurDIU" for a PDF opens the upload form with it. -->
             <intent-filter android:label="Share a paper">
                 <action android:name="android.intent.action.SEND"/>

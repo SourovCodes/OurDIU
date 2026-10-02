@@ -233,7 +233,7 @@ export default function Questions({ loaderData }: Route.ComponentProps) {
     <Select value={sort} onValueChange={setSort}>
       <SelectTrigger
         size={size}
-        aria-label="Sort questions"
+        aria-label="Sort exams"
         className={cn(size === "default" && "flex-1")}
       >
         {/* The label itself: Radix only knows it once the list has opened. */}
@@ -278,7 +278,7 @@ export default function Questions({ loaderData }: Route.ComponentProps) {
           results below the fold, so they live in a sheet behind one button. */}
       <div
         role="search"
-        aria-label="Filter questions"
+        aria-label="Filter exams"
         className="hidden gap-4 rounded-3xl bg-surface p-5 sm:grid sm:grid-cols-2 lg:grid-cols-4"
       >
         {filterFields}
@@ -300,14 +300,14 @@ export default function Questions({ loaderData }: Route.ComponentProps) {
             </SheetTrigger>
             <SheetContent side="bottom" className="max-h-[85svh]">
               <SheetHeader>
-                <SheetTitle>Filter questions</SheetTitle>
+                <SheetTitle>Filter exams</SheetTitle>
                 <SheetDescription>
                   Pick a course and exam type to compare semesters.
                 </SheetDescription>
               </SheetHeader>
               <div
                 role="search"
-                aria-label="Filter questions"
+                aria-label="Filter exams"
                 className="grid gap-4 overflow-y-auto px-4"
               >
                 {filterFields}
@@ -324,7 +324,7 @@ export default function Questions({ loaderData }: Route.ComponentProps) {
                   <Button className="flex-1" disabled={loading}>
                     {loading
                       ? "Loading…"
-                      : `Show ${plural(list.total, "question")}`}
+                      : `Show ${plural(list.total, "exam")}`}
                   </Button>
                 </SheetClose>
               </SheetFooter>
@@ -360,7 +360,7 @@ export default function Questions({ loaderData }: Route.ComponentProps) {
       >
         <div className="flex min-h-9 items-center justify-between gap-3">
           <h2 id="results-heading" className="text-sm font-medium">
-            {plural(list.total, "question")}
+            {plural(list.total, "exam")}
           </h2>
           <div className="flex items-center gap-2 max-sm:hidden">
             {hasFilters && (
@@ -384,11 +384,7 @@ export default function Questions({ loaderData }: Route.ComponentProps) {
         {list.items.length === 0 ? (
           <EmptyState
             icon={SearchX}
-            title={
-              hasFilters
-                ? "No questions match these filters"
-                : "No questions yet"
-            }
+            title={hasFilters ? "No exams match these filters" : "No exams yet"}
             description={
               hasFilters
                 ? "Try removing a filter or choosing a different combination."
@@ -416,7 +412,7 @@ export default function Questions({ loaderData }: Route.ComponentProps) {
           page={list.page}
           pageSize={list.pageSize}
           total={list.total}
-          noun="question"
+          noun="exam"
           hrefFor={pageHref}
         />
       </section>

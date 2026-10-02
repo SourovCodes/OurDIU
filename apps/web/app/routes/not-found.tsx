@@ -19,7 +19,7 @@ export function loader() {
 export default function NotFound() {
   return (
     <EmptyState
-      className="min-h-[60svh] border-none"
+      className="min-h-[60svh] bg-transparent"
       icon={FileQuestion}
       title="Page not found"
       description="The link may be old, or the page may have moved. Try browsing the question papers instead."
@@ -29,7 +29,7 @@ export default function NotFound() {
             to="/questions/browse"
             className={buttonVariants({ size: "sm" })}
           >
-            Browse questions
+            Browse papers
           </Link>
           <Link
             to="/"

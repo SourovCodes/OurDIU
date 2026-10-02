@@ -94,9 +94,9 @@ function CookieNames({ names }: { names: string[] }) {
 function CookieTable({ label, rows }: { label: string; rows: CookieRow[] }) {
   return (
     <>
-      <div className="overflow-hidden rounded-lg border max-sm:hidden">
+      <div className="overflow-hidden rounded-2xl bg-surface-low max-sm:hidden">
         <Table aria-label={label}>
-          <TableHeader className="bg-muted">
+          <TableHeader className="bg-surface-high">
             <TableRow>
               <TableHead className="w-1/3">Cookie</TableHead>
               <TableHead>What it’s for</TableHead>
@@ -124,7 +124,7 @@ function CookieTable({ label, rows }: { label: string; rows: CookieRow[] }) {
         {rows.map((row) => (
           <li
             key={row.names[0]}
-            className="space-y-2 rounded-lg border p-4 !pl-4 text-sm"
+            className="space-y-2 rounded-2xl bg-surface-low p-4 !pl-4 text-sm"
           >
             <CookieNames names={row.names} />
             <p>{row.purpose}</p>

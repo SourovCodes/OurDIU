@@ -442,7 +442,20 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
           {questions && (
             <Link
               to="/questions/contribute"
-              className={cn(buttonVariants(), "hidden sm:inline-flex")}
+              aria-current={
+                pathname.startsWith("/questions/contribute")
+                  ? "page"
+                  : undefined
+              }
+              // On the page itself it's a tonal "you are here", not a call to action.
+              className={cn(
+                buttonVariants({
+                  variant: pathname.startsWith("/questions/contribute")
+                    ? "secondary"
+                    : "default",
+                }),
+                "hidden sm:inline-flex",
+              )}
             >
               <Plus aria-hidden />
               Share a paper

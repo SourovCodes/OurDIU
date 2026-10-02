@@ -1,10 +1,11 @@
 import type { ContributorList } from "@ourdiu/shared";
-import { Users } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import { data, Link } from "react-router";
 import { ContributorAvatar } from "~/components/contributor-avatar";
 import { EmptyState } from "~/components/empty-state";
 import { EXAM_TONE } from "~/components/exam-badge";
 import { TablePagination } from "~/components/table-pagination";
+import { buttonVariants } from "~/components/ui/button";
 import { apiFetch, readJson } from "~/lib/api.server";
 import { formatCount, formatNumber } from "~/lib/format";
 import { contributorUrl, plural } from "~/lib/submissions";
@@ -130,6 +131,28 @@ export default function Contributors({ loaderData }: Route.ComponentProps) {
           noun="contributor"
           hrefFor={(page) => `/questions/contributors?page=${page}`}
         />
+      </section>
+
+      <section
+        aria-labelledby="join-heading"
+        className="flex flex-col gap-4 rounded-[1.75rem] bg-primary-container p-6 text-primary-container-foreground sm:flex-row sm:items-center sm:justify-between sm:p-8"
+      >
+        <div className="space-y-1.5">
+          <h2 id="join-heading" className="font-expressive text-2xl">
+            Your name could be here
+          </h2>
+          <p className="max-w-xl text-pretty opacity-85">
+            Just sat an exam? Share the paper; it takes a minute, and the next
+            batch studies from it.
+          </p>
+        </div>
+        <Link
+          to="/questions/contribute"
+          className={cn(buttonVariants({ size: "lg" }), "shrink-0")}
+        >
+          <Plus aria-hidden />
+          Share a paper
+        </Link>
       </section>
     </div>
   );

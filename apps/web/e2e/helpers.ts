@@ -68,18 +68,18 @@ export async function openMenu(trigger: Locator) {
 export async function openQuestionFilters(page: Page) {
   const button = page.getByRole("button", { name: /^Filters/ });
   if (!(await button.isVisible())) return;
-  const sheet = page.getByRole("dialog", { name: "Filter questions" });
+  const sheet = page.getByRole("dialog", { name: "Filter exams" });
   await expect(async () => {
     await button.click();
     await expect(sheet).toBeVisible({ timeout: 1_000 });
   }).toPass();
 }
 
-/** Closes the filter sheet on phones with its "Show N questions" button. */
+/** Closes the filter sheet on phones with its "Show N exams" button. */
 export async function closeQuestionFilters(page: Page) {
-  const sheet = page.getByRole("dialog", { name: "Filter questions" });
+  const sheet = page.getByRole("dialog", { name: "Filter exams" });
   if (await sheet.isVisible()) {
-    await sheet.getByRole("button", { name: /^Show \d+ question/ }).click();
+    await sheet.getByRole("button", { name: /^Show \d+ exam/ }).click();
     await expect(sheet).toBeHidden();
   }
 }

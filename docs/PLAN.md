@@ -89,10 +89,12 @@ Phases (tick as they land):
 - [x] W2 hub (product tiles in each space's colours, as the app's chooser), coming-soon pages, contributors (podium + rows), contributor profile, login.
 - [x] W2 contribute flow (like the app's upload: file card, pickers, exam chips, "this exam already has N papers"), my submissions and a submission's status (status hero, timeline, AI comparison), account page, about, contact, legal pages, `/app`, 404/error, delete-account.
 - [x] W3 web polish (first pass): phone and dark-mode pass on the main pages; header and paper bar fixed for narrow phones; e2e updated for the new names.
-- [ ] W3 still to do: motion and loading placeholders across pages, an accessibility pass, admin pages untouched by design (they share the restyled components).
+- [x] W3 motion and accessibility: pages rise in after navigation and fade back while the next loads (`PageTransition`), a paper-shaped PDF placeholder, save and vote pop; skip link, route announcements, focus moved to the new page, a focus ring for links, axe-clean public pages in light and dark.
+- [x] W4 review pass: login keeps the space it returns to and says why; hub led by the live product; the Android invitation decided on the server (no layout shift); Question Bank home shows your saved papers and your department first; Browse has the search; courses show their paper counts (`courses.published_count`, migrations 0008–0009, also in the app); "exams" and "papers" used consistently; tonal empty states.
+- [ ] Admin pages are untouched by design (they share the restyled components).
 - [x] A1 app: saved papers synced with the account (merge the phone's list on sign-in), contributors and contributor screens, course page "This course" / "Same course, other names", paper reader wording ("N copies of this exam", "Was this paper useful?", share), anything the website now does better.
 - [x] A2 app: department letters, course screen and Home checked on the emulator against the local server; `flutter analyze` and 60 tests green.
-- [ ] Release: the app needs a new `mobile-v*` tag for synced saved papers and contributors; the website ships when PR #1 merges; CI's deploy applies migration 0007 (a new `saved_questions` table, nothing else changes).
+- [ ] Release: the app needs a new `mobile-v*` tag for synced saved papers and contributors; the website ships when PR #1 merges; CI's deploy applies migrations 0007–0009 (a new `saved_questions` table; `courses.published_count`, backfilled, with its triggers). Android releases now roll out to closed testing (`alpha`) automatically.
 
 ### Phase 2 – One app
 

@@ -1,5 +1,6 @@
 // Seeds the LOCAL D1 database and R2 bucket with sample data (never touches remote).
-// Run from the repo root with `pnpm db:seed` after `pnpm db:migrate`.
+// Run from the repo root with `pnpm db:seed` after `pnpm db:migrate`. The e2e tests
+// seed their own state with `--persist-to <dir>` (e2e/prepare-state.mjs).
 import { execFileSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
@@ -10,8 +11,12 @@ const sqlFile = path.join(import.meta.dirname, "dev.sql");
 const samplePdf = path.join(import.meta.dirname, "sample.pdf");
 const bucket = "ourdiu-files";
 
+const persistAt = process.argv.indexOf("--persist-to");
+const persist =
+  persistAt === -1 ? [] : ["--persist-to", process.argv[persistAt + 1]];
+
 function wrangler(args) {
-  execFileSync("pnpm", ["exec", "wrangler", ...args], {
+  execFileSync("pnpm", ["exec", "wrangler", ...args, ...persist], {
     cwd: webDir,
     stdio: ["ignore", "ignore", "inherit"],
   });

@@ -30,6 +30,10 @@ Most users come from the question bank, so it moves in first and the others are 
 Design mockups (website, Material app, and the rejected iOS style): <https://claude.ai/artifact/RfDHeYL7wiGdBDo2QqKokQ>. The website redesign that brings it up to the app (approved 2 October 2026): <https://claude.ai/artifact/Mh2DpngKUFRop8H1UQ7Vnj>.
 
 9. **The website follows the app's design** (decided 2 October 2026). Same palette (indigo with tinted greys, the exam-type colours), Roboto Flex `font-expressive` headings over Inter, the exam badges (`ExamBadge`, shapes from `apps/mobile/lib/theme/exam_shape.dart`), search first, and the app's department → course → semester path. Pages: `/questions/departments/:id` (courses A–Z) and `/questions/courses/:id` (exams by semester, exam-type filter, "same course, other names").
+10. **Platform pages keep the visitor's space** (2 October 2026). Account, about, contact, legal, login and missing pages show the header of the space the visitor was last in (the `ourdiu_space` cookie, `useSpace`); "Back to …" links and logging out lead to that space's home, not the hub. The hub itself belongs to no space.
+11. **Two page widths** (2 October 2026): browsing pages (lists, papers, courses, departments) use the full container; single-purpose pages (account, about, contact, legal, login, `/app`) share `NARROW_PAGE` (`max-w-4xl`, centred).
+12. **Android releases go straight to testers** (2 October 2026): a `mobile-v*` tag uploads to the closed testing track (`alpha`) as a completed release, so testers get it from the Play Store once Google approves it; the tag's message becomes "What's new". `PLAY_TRACK` / `PLAY_RELEASE_STATUS` repository variables override this.
+13. **ourdiu.com links open in the app** (Android App Links, 2 October 2026): only `https://ourdiu.com/questions…` (not `www`, which redirects and so can't be verified). The site serves `/.well-known/assetlinks.json` with the fingerprints Play Console generates for the app (the app signing key first; not the upload key); `webLinkLocation` in `apps/mobile/lib/router.dart` maps the site's paths to the app's screens.
 
 ## Roadmap
 
@@ -77,7 +81,7 @@ The switch (done; only 2 page views on diuqbank.com fell between the export and 
 14. Status: steps 6–12 done (copy Worker deleted); DIUQBank archived. `www.diuqbank.com` is on the `ourdiu` Worker. App `mobile-v1.6.0` (version code 1006000: OurDIU name, switcher, icon and splash, ourdiu.com, `ourdiu` sign-in) was built and uploaded to Play's internal track as a draft by the new `play-publisher@ourdiu` account. Left: roll it out in Play Console, check sign-in on the Play build, and point the Play listing's privacy and delete-account URLs at ourdiu.com.
 15. Later: retire the `questionbank` Worker, D1, R2 (and `r2.diuqbank.com`) and `qb-*` queues, and the `ourdiu` placeholder database, once nothing needs them.
 
-### Design overhaul: website and app as one (started 2 October 2026, branch `web-redesign`, PR #1)
+### Design overhaul: website and app as one (done, 2 October 2026; PRs #1–#3)
 
 The owner asked for a very thoughtful UI/UX across the whole public website (not the admin panel) and the app, matching each other: Material 3 Expressive, the app's palette, Roboto Flex everywhere, exam shapes and colours, tonal surfaces instead of borders. Reference mockups: <https://claude.ai/artifact/Mh2DpngKUFRop8H1UQ7Vnj> (approved; the owner prefers its department and course pages) and the earlier QuestionBank web redesign (home, browse, paper). The owner allowed API changes or a v2 where they help.
 
@@ -95,7 +99,11 @@ Phases (tick as they land):
 - [x] Platform pages remember the last space (`ourdiu_space` cookie): header, 404 and error pages, logging out; single-purpose pages share `NARROW_PAGE`.
 - [x] A1 app: saved papers synced with the account (merge the phone's list on sign-in), contributors and contributor screens, course page "This course" / "Same course, other names", paper reader wording ("N copies of this exam", "Was this paper useful?", share), anything the website now does better.
 - [x] A2 app: department letters, course screen and Home checked on the emulator against the local server; `flutter analyze` and 60 tests green.
-- [ ] Release: the app needs a new `mobile-v*` tag for synced saved papers and contributors; the website ships when PR #1 merges; CI's deploy applies migrations 0007–0009 (a new `saved_questions` table; `courses.published_count`, backfilled, with its triggers). Android releases now roll out to closed testing (`alpha`) automatically.
+- [x] Released: PR #1 merged and deployed (CI applied migrations 0007–0009 to production: `saved_questions`; `courses.published_count`, backfilled, with its triggers); `mobile-v1.7.0` (synced saved papers, contributors, course and reader changes) went to closed testing and was approved.
+- [x] A3 app review on the emulator (PR #2): papers could load forever (the PDF engine is now started at launch, `pdfrxFlutterInitialize`), and a paper that fails to load says so with "Try again"; the Course → CourseListItem rename had leaked "CourseListItem" into the search hint and upload labels in 1.7.0 (fixed); search results show paper counts; the last department opened leads Browse and Home's chips; Home has "Jump back in" (recent courses) and one exam per course under "Recently added"; Browse has a search pill and course counts; the course screen ends with "Missing a semester?"; Account's sign-in copy updated (uploading is here, both DIU domains).
+- [x] App Links (PRs #2–#3, decision 13): manifest filter with `autoVerify`, `webLinkLocation`, `assetlinks.json`; a paper opened from a link goes back to Home. Google's Digital Asset Links check returns `linked: true`; Play Console's Deep links page shows `/questions` on ourdiu.com as "Deep linked" ("All links working") for 1.7.1, and ourdiu.com is added as a domain there (website association created; its Web URLs report fills in as Google crawls).
+- [x] Released `mobile-v1.7.1` (version code 1007001) to closed testing, approved on 2 October 2026.
+- [x] CI kept green: e2e follow the new pages (Browse opens the department tiles, the search pill's wording, the review timeline, exam-type chips that are real radio inputs); the page transition no longer mismatches on hydration; the rate-limit test avoids the local limiter's minute boundary.
 
 ### Phase 2 – One app
 
@@ -109,6 +117,8 @@ Phases (tick as they land):
 - [ ] The one-time "your class routine is here too" hint, once the routine is live.
 - [x] `apiBaseUrl` → `https://ourdiu.com`; links to `ourdiu.com/questions/…` (released in `mobile-v1.6.0`).
 - [x] Sign-in on Play builds: the `ourdiu` project's Android OAuth client has Play's app signing SHA-1 (`6F:83:97:5F:55:BC:FD:A0:EE:2C:6D:87:0B:87:E3:EA:5F:CE:10:3C`), added by the owner on 1 October 2026. `mobile-v1.6.1`: any Google account signs in, sharing papers needs a DIU email.
+- [x] Releases go to closed testing (`alpha`) automatically with "What's new" from the tag (decision 12). `mobile-v1.7.0` and `mobile-v1.7.1` shipped this way on 2 October 2026. Play App Signing key SHA-256: `86:51:83:0A:15:06:D3:72:70:63:2D:BE:A3:19:46:0C:58:C0:F2:CD:33:4C:61:C6:09:13:1D:79:86:26:45:C4`; upload key: `44:06:4D:E0:1C:F8:FC:37:28:70:7E:C1:9E:98:66:AE:9E:3A:85:E5:09:D0:46:17:72:0B:03:12:1A:B2:96:67`.
+- [x] ourdiu.com links open in the app (decision 13), verified in Play Console.
 - [ ] Closed testing ("alpha"), then production. Play needs 12 testers opted in for 14 days in a row before a production release. Testers are the Google Group `ourdiu@googlegroups.com` (set to "Anyone on the web can join", posting by owners only). The site recruits them: `/app` (join the group, opt in at `play.google.com/apps/testing/com.ourdiu.app`, install), a dismissible banner for Android visitors on the hub and the Question Bank home, and a line on the account page. When the app is public, set `ANDROID_BETA` to false in `apps/web/app/lib/android-app.ts`: the banner and the link go, and `/app` becomes a "Get it on Google Play" page.
 
 ### Phase 3 – Class Routine (from scratch)

@@ -14,6 +14,7 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { E2E_STATE } from "./env";
 
 const webDir = path.join(import.meta.dirname, "..");
 const sessionsDir = path.join(import.meta.dirname, ".sessions");
@@ -23,7 +24,7 @@ const claimsDir = path.join(sessionsDir, "claims");
 /** Enough for every test in both projects, including CI's two retries. */
 const POOL_SIZE = { user: 60, reader: 10, admin: 40 };
 
-/** The admin account created by `pnpm db:seed`. */
+/** The admin account in the seed data (`apps/api/seeds/dev.sql`). */
 const SEED_ADMIN_ID = "seed-user-admin";
 
 export type SessionKind = keyof typeof POOL_SIZE;
@@ -43,21 +44,15 @@ function authSecret() {
 }
 
 function localDb() {
-  const dir = path.join(
-    webDir,
-    ".wrangler/state/v3/d1/miniflare-D1DatabaseObject",
-  );
+  const dir = path.join(webDir, E2E_STATE, "v3/d1/miniflare-D1DatabaseObject");
   const files = readdirSync(dir).filter(
     (name) => name.endsWith(".sqlite") && name !== "metadata.sqlite",
   );
   if (files.length === 0)
-    throw new Error("No local D1 database: run `pnpm db:migrate`");
-  // A database_id change in wrangler.jsonc leaves the old database's file behind,
-  // and sessions written there wouldn't be seen by the dev server.
+    throw new Error(`No e2e D1 database in ${dir}: did prepare-state.mjs run?`);
+  // Recreated on every run, so there's only ever the one.
   if (files.length > 1)
-    throw new Error(
-      `${files.length} local D1 databases in ${dir}: delete the folder, then run \`pnpm db:migrate && pnpm db:seed\``,
-    );
+    throw new Error(`${files.length} local D1 databases in ${dir}`);
   const file = files[0]!;
   const db = new DatabaseSync(path.join(dir, file));
   db.exec("PRAGMA busy_timeout = 10000");

@@ -173,18 +173,18 @@ API docs are at http://localhost:5173/api/docs. Everything (D1, R2, Queues, secr
 
 ## Common commands
 
-| Command            | What it does                                                          |
-| ------------------ | --------------------------------------------------------------------- |
-| `pnpm dev`         | Run the site (pages + API) locally                                    |
-| `pnpm check`       | Lint + format check + typecheck + unit/integration tests              |
-| `pnpm test`        | Unit and integration tests for every package                          |
-| `pnpm test:e2e`    | Playwright end-to-end tests (needs `pnpm db:migrate && pnpm db:seed`) |
-| `pnpm db:generate` | Generate a SQL migration after changing `apps/api/src/db/schema`      |
-| `pnpm db:migrate`  | Apply pending migrations to the local D1 database                     |
-| `pnpm db:seed`     | Reset local data to the sample set, with an admin login               |
-| `pnpm make-admin`  | Give an existing account the admin role (`<email> [--remote]`)        |
-| `pnpm openapi`     | Write the API's OpenAPI document to `apps/api/openapi.json`           |
-| `pnpm format`      | Format the codebase with Prettier                                     |
+| Command            | What it does                                                                                         |
+| ------------------ | ---------------------------------------------------------------------------------------------------- |
+| `pnpm dev`         | Run the site (pages + API) locally                                                                   |
+| `pnpm check`       | Lint + format check + typecheck + unit/integration tests                                             |
+| `pnpm test`        | Unit and integration tests for every package                                                         |
+| `pnpm test:e2e`    | Playwright end-to-end tests, on their own server (port 5174) and fresh local data, beside `pnpm dev` |
+| `pnpm db:generate` | Generate a SQL migration after changing `apps/api/src/db/schema`                                     |
+| `pnpm db:migrate`  | Apply pending migrations to the local D1 database                                                    |
+| `pnpm db:seed`     | Reset local data to the sample set, with an admin login                                              |
+| `pnpm make-admin`  | Give an existing account the admin role (`<email> [--remote]`)                                       |
+| `pnpm openapi`     | Write the API's OpenAPI document to `apps/api/openapi.json`                                          |
+| `pnpm format`      | Format the codebase with Prettier                                                                    |
 
 ## Mobile app
 

@@ -38,6 +38,7 @@ export default defineConfig([
       "eslint.config.js",
       "apps/api/seeds/**",
       "apps/api/scripts/**",
+      "apps/web/e2e/**/*.mjs",
     ],
     languageOptions: { globals: globals.node },
   },

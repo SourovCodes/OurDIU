@@ -1,7 +1,8 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { E2E_ORIGIN } from "./env";
 import { claimSession, type SessionKind } from "./sessions";
 
-// Shared by the e2e specs. They rely on the local seed data: `pnpm db:migrate && pnpm db:seed`.
+// Shared by the e2e specs. They rely on the seed data, which their server gets fresh on every run.
 
 // Fail any test that logs a console error, such as React's duplicate key or hydration
 // warnings, which otherwise go unnoticed while every assertion still passes.
@@ -143,7 +144,7 @@ export async function logOut(page: Page) {
 
 /**
  * Who `logInAs` signs in: a fresh member (on a DIU address), a fresh reader (on
- * another address, so they can't contribute), or the admin created by `pnpm db:seed`.
+ * another address, so they can't contribute), or the seed admin (`apps/api/seeds/dev.sql`).
  */
 export const NEW_USER = "user";
 export const NEW_READER = "reader";
@@ -163,7 +164,7 @@ export async function logInAs(
     {
       name: "better-auth.session_token",
       value: session.cookie,
-      url: "http://localhost:5173",
+      url: E2E_ORIGIN,
       httpOnly: true,
       sameSite: "Lax",
     },

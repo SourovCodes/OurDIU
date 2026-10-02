@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { E2E_ORIGIN } from "./env";
 import {
   clickUntilUrl,
   closeQuestionFilters,
@@ -12,7 +13,7 @@ import {
   uploadPaperWithNewCourse,
 } from "./helpers";
 
-// These tests rely on the local seed data: `pnpm db:migrate && pnpm db:seed`.
+// These tests rely on the seed data, which their server gets fresh on every run.
 // Question 1 (Data Structures) has 2 published, 1 pending and 1 rejected submission.
 
 failOnConsoleErrors();
@@ -502,7 +503,7 @@ test("logging in sends visitors to Google", async ({ page }) => {
     "/login?redirectTo=%2Fquestions%2Fcontribute",
     {
       form: { redirectTo: "/questions/contribute" },
-      headers: { origin: "http://localhost:5173" },
+      headers: { origin: E2E_ORIGIN },
       maxRedirects: 0,
     },
   );
@@ -510,7 +511,7 @@ test("logging in sends visitors to Google", async ({ page }) => {
   const google = new URL(res.headers()["location"]!);
   expect(google.origin).toBe("https://accounts.google.com");
   expect(google.searchParams.get("redirect_uri")).toBe(
-    "http://localhost:5173/api/auth/callback/google",
+    `${E2E_ORIGIN}/api/auth/callback/google`,
   );
   expect(google.searchParams.get("state")).toBeTruthy();
   // The OAuth state cookie comes along, for the callback to check.
@@ -569,7 +570,10 @@ test("contributors index leads to a contributor's submissions", async ({
   // Published submissions open the question with that paper selected.
   await page.getByRole("link", { name: /Algorithms/ }).click();
   await expect(page).toHaveURL(/\/questions\/3\?submission=4$/);
-  await expect(page.getByRole("link", { name: /^Nusrat Jahan/ })).toBeVisible();
+  // Credited on the paper and in its row of the list.
+  await expect(
+    page.getByRole("link", { name: /^Nusrat Jahan/ }).first(),
+  ).toBeVisible();
 
   // Links from before usernames (by user id) and other cases lead to the same page.
   for (const old of [

@@ -120,7 +120,7 @@ Phases (tick as they land):
 - [x] App's generated client regenerated (the old app shows a paper waiting for changes as "Waiting for review" and can't edit it there).
 - [x] Website and API released (PR #8, 2 October 2026; CI applied migrations 0010–0011 to production).
 - [x] App mockups approved (<https://claude.ai/artifact/QL4ymgNWGPLG98uYZu87w3>) and built: a "Needs changes" stage in the website's sky blue (`ExamColors.changes`), the paper screen's "Needs your changes" hero quoting the request with Replace file and Edit details, "Resubmit for review", the newest messages on the paper and a Messages screen (`/account/papers/:id/messages`), Replace file and Resubmit sheets, a banner and filter on My papers, "N new" on paper rows, and a count on the Account tab (refreshed when the app comes back to the foreground). Widget tests in `test/review_flow_test.dart`.
-- [ ] Release it in the next `mobile-v*` tag.
+- [x] Released in `mobile-v1.8.0` (version code 1008000) to closed testing on 2 October 2026, with the scanner fix (PR #10: R8 stripped ML Kit, so "Scan the paper" failed in Play builds since at least 1.7.1; keep rules in `android/app/proguard-rules.pro`).
 - [ ] Later, if wanted: push notifications (Firebase Cloud Messaging) when a reviewer writes.
 - [ ] Later, if wanted: email the uploader when a reviewer asks for changes or writes (Cloudflare Email Sending; legal pages to update).
 

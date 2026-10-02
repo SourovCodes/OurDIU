@@ -1,6 +1,6 @@
 import { Mail } from "lucide-react";
 import { Link, NavLink } from "react-router";
-import { PageHeader } from "~/components/page-header";
+import { PageHeader, NARROW_PAGE } from "~/components/page-header";
 import { AUTHOR } from "~/lib/author";
 import { LEGAL_PAGES, LEGAL_UPDATED } from "~/lib/legal";
 import { cn } from "~/lib/utils";
@@ -23,7 +23,7 @@ type LegalPageProps = {
  */
 export function LegalPage({ title, description, children }: LegalPageProps) {
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
+    <div className={cn(NARROW_PAGE, "space-y-8")}>
       <PageHeader title={title} description={description}>
         <p className="pt-1 text-xs text-muted-foreground">
           Last updated {LEGAL_UPDATED}

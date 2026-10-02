@@ -17,6 +17,7 @@ import { AUTHOR } from "~/lib/author";
 import { mailto } from "~/lib/legal";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/contact";
+import { NARROW_PAGE } from "~/components/page-header";
 
 export const meta: Route.MetaFunction = () => [
   { title: "Contact — OurDIU" },
@@ -98,7 +99,7 @@ async function copyEmail() {
 
 export default function Contact() {
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
+    <div className={cn(NARROW_PAGE, "space-y-8")}>
       <div className="space-y-3">
         <h1 className="font-display-xl text-5xl sm:text-7xl">Contact</h1>
         <p className="text-lg text-muted-foreground">

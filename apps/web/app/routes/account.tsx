@@ -16,9 +16,11 @@ import { ContributorAvatar } from "~/components/contributor-avatar";
 import { Button } from "~/components/ui/button";
 import { requireUser } from "~/lib/session.server";
 import { contributorUrl } from "~/lib/submissions";
+import { useLogoutTarget } from "~/lib/use-space";
 import { setTheme, useIsDark } from "~/lib/theme";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/account";
+import { NARROW_PAGE } from "~/components/page-header";
 
 export const meta: Route.MetaFunction = () => [
   { title: "Account — OurDIU" },
@@ -113,9 +115,10 @@ function Appearance() {
 export default function AccountLayout({ loaderData }: Route.ComponentProps) {
   const { user } = loaderData;
   const contributes = canContribute({ email: user.email, role: user.role });
+  const logoutTarget = useLogoutTarget();
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className={cn(NARROW_PAGE, "space-y-6")}>
       <h1 className="font-display-xl text-5xl sm:text-7xl">Account</h1>
 
       <section className="flex items-center gap-5 rounded-[2rem] bg-primary-container p-6 text-primary-container-foreground sm:p-8">
@@ -170,6 +173,7 @@ export default function AccountLayout({ loaderData }: Route.ComponentProps) {
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
         <Form method="post" action="/logout">
+          <input type="hidden" name="redirectTo" value={logoutTarget} />
           <Button type="submit" variant="outline">
             <LogOut aria-hidden />
             Log out

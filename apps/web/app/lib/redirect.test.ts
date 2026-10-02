@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  afterLogoutPath,
   canonicalHostRedirect,
   legacyPath,
   loginHref,
   safeRedirect,
 } from "./redirect";
-import { spaceAt } from "./products";
+import { product, rememberedSpace, spaceAt } from "./products";
 
 describe("safeRedirect", () => {
   it.each(["/", "/questions/contribute", "/papers/1?x=1"])(
@@ -127,5 +128,46 @@ describe("spaceAt", () => {
       }),
     ).toBeNull();
     expect(spaceAt({ pathname: "/routine", search: "" })?.id).toBe("routine");
+  });
+});
+
+describe("spaceAt with a remembered space", () => {
+  const questions = product("questions");
+  it("keeps platform pages in the last space, but not the hub or admin", () => {
+    for (const pathname of ["/account", "/privacy", "/missing-page"]) {
+      expect(spaceAt({ pathname, search: "" }, questions)?.id).toBe(
+        "questions",
+      );
+    }
+    expect(spaceAt({ pathname: "/", search: "" }, questions)).toBeNull();
+    expect(spaceAt({ pathname: "/admin", search: "" }, questions)).toBeNull();
+    // A product's own pages are always its own.
+    expect(spaceAt({ pathname: "/routine", search: "" }, questions)?.id).toBe(
+      "routine",
+    );
+  });
+  it("reads the space from a Cookie header", () => {
+    expect(rememberedSpace("a=1; ourdiu_space=market")?.id).toBe("market");
+    expect(rememberedSpace("ourdiu_space=nope")).toBeNull();
+    expect(rememberedSpace(null)).toBeNull();
+  });
+});
+
+describe("afterLogoutPath", () => {
+  it("stays on pages that work signed out", () => {
+    expect(
+      afterLogoutPath({ pathname: "/questions/12", search: "?submission=3" }),
+    ).toBe("/questions/12?submission=3");
+  });
+  it("leaves signed-in pages for the space's home", () => {
+    expect(
+      afterLogoutPath(
+        { pathname: "/account/profile", search: "" },
+        "/questions",
+      ),
+    ).toBe("/questions");
+    expect(
+      afterLogoutPath({ pathname: "/questions/my-submissions/4", search: "" }),
+    ).toBe("/");
   });
 });

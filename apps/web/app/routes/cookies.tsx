@@ -26,7 +26,7 @@ type CookieRow = {
 };
 
 // Keep in step with the code that sets them: Better Auth (apps/api/src/lib/auth.ts),
-// lib/theme.ts, lib/department-preference.ts, lib/android-app.ts, the API's lib/view-cookie.ts and
+// lib/theme.ts, lib/department-preference.ts, lib/android-app.ts, lib/products.ts, the API's lib/view-cookie.ts and
 // lib/analytics.ts.
 const NEEDED: CookieRow[] = [
   {
@@ -53,6 +53,12 @@ const PREFERENCES: CookieRow[] = [
     names: ["qb_department"],
     purpose:
       "Remembers the department you last filtered questions by, so the list opens on it.",
+    lasts: "1 year",
+  },
+  {
+    names: ["ourdiu_space"],
+    purpose:
+      "Remembers which part of OurDIU you were last in (e.g. the Question Bank), so pages like your account keep its menu and lead back to it.",
     lasts: "1 year",
   },
   {

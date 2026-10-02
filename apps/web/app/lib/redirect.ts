@@ -32,6 +32,28 @@ export function loginReturnPath(search: string): string {
   return safeRedirect(new URLSearchParams(search).get("redirectTo"));
 }
 
+/** Pages that only make sense signed in; logging out there leaves them. */
+const SIGNED_IN_ONLY = [
+  "/account",
+  "/admin",
+  "/questions/my-submissions",
+  "/questions/contribute",
+];
+
+/**
+ * Where logging out lands: the same page if it still works signed out, otherwise
+ * `home` (the space's home page).
+ */
+export function afterLogoutPath(
+  { pathname, search }: { pathname: string; search: string },
+  home = "/",
+): string {
+  const signedInOnly = SIGNED_IN_ONLY.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+  return signedInOnly ? home : pathname + search;
+}
+
 /**
  * The question bank's old site. Its pages now live under /questions here, and its
  * API is still served there unchanged: installed copies of the app call it.

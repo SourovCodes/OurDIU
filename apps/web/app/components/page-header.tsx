@@ -9,6 +9,13 @@ import {
   BreadcrumbSeparator,
 } from "~/components/ui/breadcrumb";
 
+/**
+ * The one width for single-purpose pages (account, about, contact, legal, the
+ * app, login), centred. Browsing pages (lists, papers, courses) use the full
+ * container instead.
+ */
+export const NARROW_PAGE = "mx-auto w-full max-w-4xl";
+
 export type Crumb = { label: string; to?: string };
 
 type PageHeaderProps = {

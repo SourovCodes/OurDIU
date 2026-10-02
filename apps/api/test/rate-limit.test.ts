@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { api, signIn } from "./helpers";
 
 // The limits in apps/web/wrangler.jsonc, per 60 seconds. Requests count whether or
@@ -23,6 +23,13 @@ async function exhaust(count: number, send: () => Promise<Response>) {
 }
 
 describe("rate limits", () => {
+  // The local limiter counts in fixed 60-second windows; a test that runs across
+  // the end of one starts again from zero and never reaches the limit.
+  beforeEach(async () => {
+    const left = 60_000 - (Date.now() % 60_000);
+    if (left < 5_000) await new Promise((resolve) => setTimeout(resolve, left));
+  });
+
   it("limits uploads per user", async () => {
     const alice = await signIn();
     const bob = await signIn();

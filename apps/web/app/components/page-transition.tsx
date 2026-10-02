@@ -16,6 +16,18 @@ export function SkipLink() {
   );
 }
 
+// In the browser only: the page it was loaded on arrives with the HTML and
+// doesn't animate (the server can't know, and hydration must match it); every
+// page after the visitor leaves it does.
+let landing: string | null = null;
+let left = false;
+function arrivedByNavigation(pathname: string) {
+  if (typeof document === "undefined") return false;
+  landing ??= pathname;
+  if (pathname !== landing) left = true;
+  return left;
+}
+
 /**
  * The page in `<main>`. A new page rises in, as screens do in the app, and while
  * the next page or a filtered list loads the current one fades back, so a slow
@@ -29,15 +41,13 @@ export function PageTransition({
   className?: string;
   children: React.ReactNode;
 }) {
-  const { pathname, key } = useLocation();
+  const { pathname } = useLocation();
   const navigation = useNavigation();
   // Loading another page or new search results; not the reload after a form posts.
   const pending = navigation.state === "loading" && !navigation.formData;
   const mainRef = useRef<HTMLElement>(null);
   const announcerRef = useRef<HTMLParagraphElement>(null);
-  // The first page arrives with the HTML (its location key is "default"), so
-  // only pages navigated to animate.
-  const navigated = key !== "default";
+  const navigated = arrivedByNavigation(pathname);
 
   useEffect(() => {
     if (!navigated) return;

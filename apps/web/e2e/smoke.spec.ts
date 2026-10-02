@@ -379,7 +379,368 @@ test("course search leads to a course, its exams and a paper", async ({
   // The pill opens the search once hydrated; before that it links to browsing.
   await page.waitForLoadState("networkidle");
   const search = page.getByRole("dialog", { name: "Search courses" });
-  await page.getByRole("link", { name: /Search a course/ }).click();
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: /^Search \d+ courses/ })
+    .click();
+  await expect(search).toBeVisible();
+
+  // Every word must match, in any order.
+  await search.getByRole("combobox").fill("struct data");
+  await search.getByRole("option", { name: /Data Structures/ }).click();
+  await expect(page).toHaveURL(/\/questions\/courses\/1$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Data Structures",
+  );
+
+  // Only midterms, newest semester first.
+  await page
+    .getByRole("navigation", { name: "Exam type" })
+    .getByRole("link", { name: /^Midterm/ })
+    .click();
+  await expect(page).toHaveURL(/examTypeId=\d+$/);
+  const semesters = page.getByRole("main").getByRole("heading", { level: 2 });
+  await expect(semesters.first()).toHaveText("Summer 24");
+  await expect(
+    page.getByRole("region", { name: "Summer 24" }).getByRole("link"),
+  ).toHaveCount(1);
+
+  await page
+    .getByRole("region", { name: "Spring 24" })
+    .getByRole("link", { name: /Midterm/ })
+    .click();
+  await expect(page).toHaveURL(/\/questions\/11$/);
+
+  // The search remembers the course.
+  await page.keyboard.press("/");
+  await expect(
+    search.getByRole("group", { name: "Recent" }).getByRole("option", {
+      name: /Data Structures/,
+    }),
+  ).toBeVisible();
+});
+
+test("a department lists its courses A to Z, filtered as you type", async ({
+  page,
+}) => {
+  // "Browse" lists the departments, the one with the most papers first; on
+  // phones it's in the menu.
+  await page.goto("/questions");
+  const menu = page.getByRole("dialog", { name: "Menu" });
+  await expect(async () => {
+    if (test.info().project.name === "mobile") {
+      await page.getByRole("button", { name: "Open menu" }).click();
+      await menu
+        .getByRole("link", { name: "Browse" })
+        .click({ timeout: 1_000 });
+    } else {
+      await page
+        .getByRole("banner")
+        .getByRole("link", { name: "Browse" })
+        .click();
+    }
+    await expect(page).toHaveURL(/\/questions\/departments$/, {
+      timeout: 2_000,
+    });
+  }).toPass();
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: /^CSE Computer Science and Engineering/ })
+    .click();
+  await expect(page).toHaveURL(/\/questions\/departments\/1$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Computer Science and Engineering",
+  );
+});
+
+test("a slow navigation shows the top loader until the page is ready", async ({
+  page,
+}) => {
+  await page.goto("/questions/browse");
+  // Hydrated once its scripts have loaded; a click before that would load the next
+  // page in full, which the loader doesn't show for.
+  await page.waitForLoadState("networkidle");
+  // Client navigations load their data from `*.data`; hold it back for a moment.
+  await page.route("**/*.data*", async (route) => {
+    // Long enough to see the bar even on a busy test machine.
+    await new Promise((resolve) => setTimeout(resolve, 3_000));
+    await route.continue();
+  });
+  const loader = page.getByRole("progressbar", { name: "Loading page" });
+  await expect(loader).toHaveCount(0);
+  await page
+    .getByRole("banner")
+    .getByRole("link", { name: "Question Bank" })
+    .click();
+  await expect(loader).toBeVisible();
+  await expect(page).toHaveURL(/\/questions$/);
+  await expect(loader).toHaveCount(0);
+});
+
+test("the footer leads to the about page and its promise", async ({ page }) => {
+  await page.goto("/");
+  await clickUntilUrl(page, "About", /\/about$/);
+  await expect(page).toHaveTitle("About — OurDIU");
+  await expect(
+    page.getByRole("heading", { name: "The promise" }),
+  ).toBeVisible();
+  await expect(page.getByText("Free forever", { exact: true })).toBeVisible();
+
+  const linkedin = page
+    .getByRole("main")
+    .getByRole("link", { name: "LinkedIn" });
+  await expect(linkedin).toHaveAttribute(
+    "href",
+    "https://www.linkedin.com/in/sourov-biswas/",
+  );
+  await expect(linkedin).toHaveAttribute("target", "_blank");
+});
+
+test("the footer leads to the contact and legal pages", async ({ page }) => {
+  await page.goto("/");
+  await clickUntilUrl(page, "Contact", /\/contact$/);
+  await expect(page).toHaveTitle("Contact — OurDIU");
+  const main = page.getByRole("main");
+  await expect(
+    main.getByRole("link", { name: "sourov2305101004@diu.edu.bd" }),
+  ).toHaveAttribute("href", "mailto:sourov2305101004@diu.edu.bd");
+  // Each topic starts an email with its own subject.
+  await expect(
+    main.getByRole("link", { name: "Report a bug" }),
+  ).toHaveAttribute(
+    "href",
+    /^mailto:sourov2305101004@diu\.edu\.bd\?subject=Bug%20report&body=/,
+  );
+
+  const legal = page.getByRole("navigation", { name: "Legal", exact: true });
+  for (const [label, path, title] of [
+    ["Privacy", "/privacy", "Privacy policy"],
+    ["Terms", "/terms", "Terms of use"],
+    ["Copyright", "/copyright", "Copyright and removal"],
+    ["Cookies", "/cookies", "Cookie notice"],
+  ] as const) {
+    await expect(async () => {
+      await legal.getByRole("link", { name: label }).click();
+      await expect(page).toHaveURL(new RegExp(`${path}$`), { timeout: 2_000 });
+    }).toPass();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+    // The tabs between the legal pages mark the current one.
+    await expect(
+      page
+        .getByRole("navigation", { name: "Legal pages" })
+        .getByRole("link", { name: label }),
+    ).toHaveAttribute("aria-current", "page");
+  }
+  // The cookie notice lists the cookies the site sets (a table, or cards on phones).
+  await expect(
+    page.getByText("qb_views_q", { exact: true }).filter({ visible: true }),
+  ).toHaveCount(1);
+});
+
+test("the account deletion page explains how to ask", async ({ page }) => {
+  // Google Play links here, and so does the app's Account screen.
+  await page.goto("/privacy");
+  await expect(async () => {
+    await page
+      .getByRole("main")
+      .getByRole("link", { name: "how deleting works" })
+      .click();
+    await expect(page).toHaveURL(/\/delete-account$/, { timeout: 2_000 });
+  }).toPass();
+  await expect(page).toHaveTitle("Delete your account — OurDIU");
+  await expect(
+    page
+      .getByRole("main")
+      .getByRole("link", { name: "Email a deletion request" }),
+  ).toHaveAttribute(
+    "href",
+    /^mailto:sourov2305101004@diu\.edu\.bd\?subject=Delete%20my%20account/,
+  );
+});
+
+test("an unknown URL renders a styled 404 page", async ({ page }) => {
+  const response = await page.goto("/no-such-page");
+  expect(response?.status()).toBe(404);
+  await expect(page).toHaveTitle("Page not found — OurDIU");
+  await expect(page.getByText("Page not found")).toBeVisible();
+
+  // The document must carry real CSS, or the page paints unstyled until hydration.
+  // The dev server builds its stylesheet from the matched routes, so before the
+  // catch-all route an unmatched path served an empty one.
+  const html = await (await page.request.get("/no-such-page")).text();
+  const hrefs = [
+    ...html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g),
+  ].map((match) => match[1]!);
+  expect(hrefs.length).toBeGreaterThan(0);
+  for (const href of hrefs) {
+    const css = await (await page.request.get(href)).text();
+    expect(css.length, href).toBeGreaterThan(0);
+  }
+
+  await clickUntilUrl(page, "Back to home", /\/$/);
+
+  // Routes that exist but can't find their record still go through the error boundary.
+  const missing = await page.goto("/questions/999999");
+  expect(missing?.status()).toBe(404);
+  await expect(page.getByText("Page not found")).toBeVisible();
+});
+
+test("course filter follows the selected department", async ({ page }) => {
+  await page.goto("/questions/browse");
+  await openQuestionFilters(page);
+
+  // No department: every course, suffixed with its department's short name.
+  await openCombobox(page, "Course");
+  await expect(
+    page.getByRole("option", { name: "Circuit Analysis (EEE)" }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  // Closing a picker returns focus to it (unless another picker took it meanwhile).
+  await expect(page.getByRole("combobox", { name: "Course" })).toBeFocused();
+
+  // Pick a department by searching its short name.
+  await openCombobox(page, "Department");
+  await page.getByPlaceholder("Search departments…").fill("CSE");
+  await page.getByRole("option", { name: /Computer Science/ }).click();
+  await expect(page).toHaveURL(/departmentId=1/);
+
+  // Now only that department's courses, without the suffix.
+  await openCombobox(page, "Course");
+  await expect(
+    page.getByRole("option", { name: "Algorithms", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("option", { name: /Circuit Analysis/ }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("option", { name: "Data Structures", exact: true })
+    .click();
+  await expect(page).toHaveURL(/courseId=1/);
+  await closeQuestionFilters(page);
+
+  await page
+    .getByRole("link", { name: /Data Structures/ })
+    .first()
+    .click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Data Structures",
+  );
+
+  // The next visit opens on the department picked last.
+  await page.goto("/questions/browse");
+  await expect(page).toHaveURL(/\/questions\/browse\?departmentId=1$/);
+});
+
+/** A paper in the list (or, on phones, the switcher), by its uploader or details. */
+const paperLink = (page: Page, text: string) =>
+  page
+    .getByRole("list", { name: "Papers" })
+    .getByRole("link", { name: new RegExp(text) })
+    .filter({ visible: true })
+    .first();
+
+/** The uploader's link in the viewer's bar. */
+const uploaderLink = (page: Page, name: string) =>
+  page
+    .getByRole("region", { name: "Question paper" })
+    .getByRole("link", { name: new RegExp(`^${name}`) });
+
+// Papers are told apart by section and batch, otherwise by uploader.
+const SEED_01 = "Section A · Batch 61";
+const SEED_02 = "Tanvir Hasan";
+
+test("question page embeds the PDF, shows its uploader and switches submissions", async ({
+  page,
+}) => {
+  await page.goto("/questions/1");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Data Structures",
+  );
+
+  // The newest published paper (#1, by Ayesha) is selected by default.
+  await expect(paperLink(page, SEED_01)).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
+  const viewer = page.getByTestId("pdf-viewer");
+  await expect(viewer).toHaveAttribute(
+    "data",
+    /^\/api\/v1\/submissions\/1\/file/,
+  );
+  // Browsers without an inline PDF viewer get links to the same file instead.
+  await expect(
+    page.getByTestId("pdf-viewer-fallback").locator("a[download]"),
+  ).toHaveAttribute("href", "/api/v1/submissions/1/file");
+  // The uploader card links to their profile.
+  await expect(uploaderLink(page, "Ayesha Rahman")).toBeVisible();
+  // The optional section and batch tell papers apart.
+
+  await paperLink(page, SEED_02).click();
+  await expect(page).toHaveURL(/submission=2$/);
+  await expect(paperLink(page, SEED_02)).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
+  await expect(viewer).toHaveAttribute("data", /\/submissions\/2\/file/);
+  await expect(uploaderLink(page, "Tanvir Hasan")).toBeVisible();
+
+  // Switching back and forth keeps exactly one toolbar and viewer on the page.
+  await paperLink(page, SEED_01).click();
+  await expect(viewer).toHaveAttribute("data", /\/submissions\/1\/file/);
+  await paperLink(page, SEED_02).click();
+  await expect(viewer).toHaveAttribute("data", /\/submissions\/2\/file/);
+  await expect(page.getByRole("link", { name: /^Log in to like/ })).toHaveCount(
+    1,
+  );
+  await expect(page.getByRole("link", { name: "Report" })).toHaveCount(1);
+  await expect(viewer).toHaveCount(1);
+
+  // Unpublished submissions are listed but can't be opened.
+  await expect(page.getByText("Pending review", { exact: true })).toBeVisible();
+  await expect(page.getByText("Rejected", { exact: true })).toBeVisible();
+  const pendingFile = await page.request.get("/api/v1/submissions/13/file");
+  expect(pendingFile.status()).toBe(404);
+});
+
+test("question with only pending submissions explains the review", async ({
+  page,
+}) => {
+  // Question 9 (Marketing Management) only has a pending submission.
+  await page.goto("/questions/9");
+  await expect(page.getByText("No published paper yet")).toBeVisible();
+  await expect(
+    page.getByText(/waiting for admin review/).first(),
+  ).toBeVisible();
+  await expect(page.getByTestId("pdf-viewer")).toHaveCount(0);
+});
+
+test("a question links to the same exam from other semesters", async ({
+  page,
+}) => {
+  // Questions 1 and 11: the Data Structures midterm, 2nd and 1st semester.
+  await page.goto("/questions/1");
+  const others = page.getByRole("heading", {
+    name: "Other Data Structures exams",
+  });
+  await others.scrollIntoViewIfNeeded();
+  await clickUntilUrl(page, "Spring 24", /\/questions\/11$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Data Structures",
+  );
+  await expect(page.getByText("Spring 24").first()).toBeVisible();
+});
+
+test("course search leads to a course, its exams and a paper", async ({
+  page,
+}) => {
+  await page.goto("/questions");
+  // The pill opens the search once hydrated; before that it links to browsing.
+  await page.waitForLoadState("networkidle");
+  const search = page.getByRole("dialog", { name: "Search courses" });
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: /^Search \d+ courses/ })
+    .click();
   await expect(search).toBeVisible();
 
   // Every word must match, in any order.

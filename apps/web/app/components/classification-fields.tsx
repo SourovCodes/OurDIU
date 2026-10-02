@@ -339,7 +339,7 @@ export function ClassificationFields({
                 <label
                   key={type.id}
                   className={cn(
-                    "flex h-11 cursor-pointer items-center gap-2 rounded-xl border pr-4 pl-2.5 text-sm font-semibold transition-colors has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50",
+                    "relative flex h-11 cursor-pointer items-center gap-2 rounded-xl border pr-4 pl-2.5 text-sm font-semibold transition-colors has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50",
                     on
                       ? cn("border-transparent", EXAM_TONE[kind])
                       : "border-input hover:bg-accent",
@@ -353,7 +353,8 @@ export function ClassificationFields({
                     onChange={() =>
                       setExamType({ kind: "existing", id: String(type.id) })
                     }
-                    className="sr-only"
+                    // Covers the chip, unseen: the label is what shows.
+                    className="absolute inset-0 cursor-pointer appearance-none rounded-xl opacity-0"
                   />
                   <ExamShape kind={kind} className="size-6" />
                   {type.name}

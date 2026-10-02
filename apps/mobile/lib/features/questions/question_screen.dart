@@ -229,7 +229,8 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
     final selected = _selected(question);
     final url = selected?.fileUrl == null
         ? null
-        : Uri.parse(selected!.fileUrl!);
+        // Relative on servers without a public files domain (development).
+        : absoluteUrl(selected!.fileUrl!);
     final summary = summaryOf(question);
     final saved = ref
         .watch(savedQuestionsProvider)

@@ -19,6 +19,7 @@ import { plural } from "~/lib/submissions";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/questions-course";
+import { breadcrumbJsonLd, originOf, pageMeta, QB_NAME } from "~/lib/seo";
 
 /** The API's largest page; no course has anywhere near this many exams. */
 const PAGE_SIZE = 100;
@@ -58,17 +59,22 @@ export function shouldRevalidate({
   return defaultShouldRevalidate;
 }
 
-export const meta: Route.MetaFunction = ({ loaderData }) => {
+export const meta: Route.MetaFunction = ({ loaderData, matches }) => {
   if (!loaderData) return [{ title: "Course not found — OurDIU" }];
   const { course, questions } = loaderData;
   return [
-    {
-      title: `${course.name} (${course.departmentShortName}) past papers — OurDIU Question Bank`,
-    },
-    {
-      name: "description",
-      content: `${plural(questions.length, "past exam")} of ${course.name}, ${course.departmentName}, DIU: finals, midterms and quizzes, free to read and download.`,
-    },
+    ...pageMeta({
+      title: `${course.name} previous questions (DIU ${course.departmentShortName}) — ${QB_NAME}`,
+      description: `${plural(questions.length, "past exam")} of ${course.name}, ${course.departmentName}, Daffodil International University (DIU): final, midterm and quiz question papers by semester. Free to read and download.`,
+    }),
+    breadcrumbJsonLd(originOf(matches), [
+      { name: QB_NAME, path: "/questions" },
+      {
+        name: course.departmentShortName,
+        path: `/questions/departments/${course.departmentId}`,
+      },
+      { name: course.name, path: courseHref(course.id) },
+    ]),
   ];
 };
 

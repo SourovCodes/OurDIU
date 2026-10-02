@@ -11,15 +11,13 @@ import { formatCount, formatNumber } from "~/lib/format";
 import { contributorUrl, plural } from "~/lib/submissions";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/contributors";
+import { pageMeta, QB_NAME } from "~/lib/seo";
 
-export const meta: Route.MetaFunction = () => [
-  { title: "Contributors — OurDIU Question Bank" },
-  {
-    name: "description",
-    content:
-      "The students sharing past question papers on the OurDIU Question Bank.",
-  },
-];
+export const meta: Route.MetaFunction = () =>
+  pageMeta({
+    title: `Contributors — ${QB_NAME}`,
+    description: `The DIU students sharing past question papers on the ${QB_NAME}.`,
+  });
 
 export async function loader({ request }: Route.LoaderArgs) {
   const page = new URL(request.url).searchParams.get("page");

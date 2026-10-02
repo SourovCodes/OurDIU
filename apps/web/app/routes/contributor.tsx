@@ -10,6 +10,7 @@ import { formatMonth } from "~/lib/dates";
 import { formatCount } from "~/lib/format";
 import { contributorUrl, plural } from "~/lib/submissions";
 import type { Route } from "./+types/contributor";
+import { pageMeta, QB_NAME } from "~/lib/seo";
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   const url = new URL(request.url);
@@ -36,16 +37,12 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export const meta: Route.MetaFunction = ({ loaderData }) => {
-  if (!loaderData)
-    return [{ title: "Contributor not found — OurDIU Question Bank" }];
+  if (!loaderData) return [{ title: `Contributor not found — ${QB_NAME}` }];
   const { name, publishedCount } = loaderData.contributor;
-  return [
-    { title: `${name} — Contributor — OurDIU Question Bank` },
-    {
-      name: "description",
-      content: `${name} has shared ${plural(publishedCount, "question paper")} on the OurDIU Question Bank.`,
-    },
-  ];
+  return pageMeta({
+    title: `${name} — Contributor — ${QB_NAME}`,
+    description: `${name} has shared ${plural(publishedCount, "question paper")} on the ${QB_NAME}.`,
+  });
 };
 
 function Stat({ value, label }: { value: string; label: string }) {

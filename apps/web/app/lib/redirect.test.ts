@@ -129,6 +129,11 @@ describe("spaceAt", () => {
     ).toBeNull();
     expect(spaceAt({ pathname: "/routine", search: "" })?.id).toBe("routine");
   });
+  it("puts /diuqbank in the question bank, though it sits at the root", () => {
+    expect(spaceAt({ pathname: "/diuqbank", search: "" })?.id).toBe(
+      "questions",
+    );
+  });
 });
 
 describe("spaceAt with a remembered space", () => {

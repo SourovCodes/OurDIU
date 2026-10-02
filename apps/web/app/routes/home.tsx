@@ -6,14 +6,16 @@ import { plural } from "~/lib/submissions";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/home";
+import { pageMeta, originOf, websiteJsonLd } from "~/lib/seo";
+import { AUTHOR } from "~/lib/author";
 
-export const meta: Route.MetaFunction = () => [
-  { title: "OurDIU — Tools for DIU students" },
-  {
-    name: "description",
-    content:
-      "Class routines, past question papers and a student marketplace for Daffodil International University, in one place.",
-  },
+export const meta: Route.MetaFunction = ({ matches }) => [
+  ...pageMeta({
+    title: "OurDIU — DIU Question Bank and tools for DIU students",
+    description:
+      "Free tools for Daffodil International University (DIU) students: the DIU Question Bank of past exam papers, and soon class routines and a student marketplace.",
+  }),
+  websiteJsonLd(originOf(matches), AUTHOR),
 ];
 
 /** A product as a tile in its own colours, like the app's "What do you need?". */

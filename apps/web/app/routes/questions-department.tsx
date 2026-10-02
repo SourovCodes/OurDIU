@@ -11,6 +11,7 @@ import { plural } from "~/lib/submissions";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/questions-department";
+import { breadcrumbJsonLd, originOf, pageMeta, QB_NAME } from "~/lib/seo";
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   const taxonomy = await loadTaxonomy(request);
@@ -37,17 +38,22 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   );
 }
 
-export const meta: Route.MetaFunction = ({ loaderData }) => {
+export const meta: Route.MetaFunction = ({ loaderData, matches }) => {
   if (!loaderData) return [{ title: "Department not found — OurDIU" }];
   const { department, courses } = loaderData;
   return [
-    {
-      title: `${department.name} (${department.shortName}) past papers — OurDIU Question Bank`,
-    },
-    {
-      name: "description",
-      content: `Past exam question papers for ${courses.length} ${department.shortName} courses at DIU, free to read and download.`,
-    },
+    ...pageMeta({
+      title: `DIU ${department.shortName} Question Bank — ${department.name} past papers`,
+      description: `Previous final, midterm and quiz questions of ${plural(courses.length, `${department.shortName} course`)} at Daffodil International University (DIU), on the ${QB_NAME}. Free to read and download.`,
+    }),
+    breadcrumbJsonLd(originOf(matches), [
+      { name: QB_NAME, path: "/questions" },
+      { name: "Departments", path: "/questions/departments" },
+      {
+        name: department.shortName,
+        path: `/questions/departments/${department.id}`,
+      },
+    ]),
   ];
 };
 
@@ -96,6 +102,7 @@ export default function Department({ loaderData }: Route.ComponentProps) {
             {department.name}
           </h1>
           <p className="text-muted-foreground">
+            DIU {department.shortName} question bank ·{" "}
             {plural(department.publishedCount, "paper")} across{" "}
             {plural(withPapers, "course")}
             {withPapers < courses.length &&

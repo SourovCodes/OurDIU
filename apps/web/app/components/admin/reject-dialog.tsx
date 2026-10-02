@@ -1,5 +1,7 @@
 import {
+  CHANGE_REQUEST_PRESETS,
   MAX_REJECTION_REASON_LENGTH,
+  MAX_REVIEW_MESSAGE_LENGTH,
   REJECTION_REASON_PRESETS,
 } from "@ourdiu/shared/constants";
 import { useId, useState } from "react";
@@ -8,21 +10,36 @@ import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
 
-type RejectDialogProps = {
+type DecisionDialogProps = {
   trigger?: React.ReactElement;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   /** The review page's route, when opened from elsewhere (the list). */
   action?: string;
-  /** The current reason, when rewording it. */
-  defaultReason?: string | null;
 };
 
 /**
- * Rejects a paper with a reason for the uploader. The presets fill in the common
- * reasons, which can then be edited.
+ * A decision that comes with a message for the uploader. The presets fill in common
+ * messages, which can then be edited.
  */
-export function RejectDialog({ defaultReason, ...props }: RejectDialogProps) {
+function ReasonDialog({
+  defaultReason,
+  status,
+  presets,
+  label,
+  maxLength,
+  ...props
+}: DecisionDialogProps &
+  Pick<
+    React.ComponentProps<typeof ActionDialog>,
+    "title" | "description" | "submitLabel" | "pendingLabel" | "successMessage"
+  > & {
+    defaultReason?: string | null;
+    status: "rejected" | "changes_requested";
+    presets: readonly { label: string; text: string }[];
+    label: string;
+    maxLength: number;
+  }) {
   const id = useId();
   const [reason, setReason] = useState(defaultReason ?? "");
 
@@ -33,12 +50,7 @@ export function RejectDialog({ defaultReason, ...props }: RejectDialogProps) {
         if (open) setReason(defaultReason ?? "");
         props.onOpenChange?.(open);
       }}
-      title={defaultReason ? "Change the reason" : "Reject this paper?"}
-      description="The uploader sees this reason on their submission."
-      submitLabel={defaultReason ? "Save" : "Reject"}
-      pendingLabel={defaultReason ? "Saving…" : "Rejecting…"}
-      successMessage={defaultReason ? "Reason saved" : "Paper rejected"}
-      fields={{ intent: "status", status: "rejected" }}
+      fields={{ intent: "status", status }}
       className="sm:max-w-lg"
     >
       {(fieldErrors) => (
@@ -46,9 +58,9 @@ export function RejectDialog({ defaultReason, ...props }: RejectDialogProps) {
           <div
             className="flex flex-wrap gap-1.5"
             role="group"
-            aria-label="Common reasons"
+            aria-label="Common messages"
           >
-            {REJECTION_REASON_PRESETS.map((preset) => (
+            {presets.map((preset) => (
               <Button
                 key={preset.label}
                 type="button"
@@ -61,16 +73,16 @@ export function RejectDialog({ defaultReason, ...props }: RejectDialogProps) {
             ))}
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor={id}>Reason</Label>
+            <Label htmlFor={id}>{label}</Label>
             <Textarea
               id={id}
               name="reason"
               rows={4}
               required
-              maxLength={MAX_REJECTION_REASON_LENGTH}
+              maxLength={maxLength}
               value={reason}
               onChange={(event) => setReason(event.target.value)}
-              placeholder="Pick a common reason above, or write your own"
+              placeholder="Pick a common one above, or write your own"
               aria-invalid={fieldErrors.reason ? true : undefined}
             />
             {fieldErrors.reason && (
@@ -80,5 +92,51 @@ export function RejectDialog({ defaultReason, ...props }: RejectDialogProps) {
         </div>
       )}
     </ActionDialog>
+  );
+}
+
+/** Rejects a paper for good, with a reason for the uploader. */
+export function RejectDialog({
+  defaultReason,
+  ...props
+}: DecisionDialogProps & {
+  /** The current reason, when rewording it. */
+  defaultReason?: string | null;
+}) {
+  return (
+    <ReasonDialog
+      {...props}
+      defaultReason={defaultReason}
+      status="rejected"
+      presets={REJECTION_REASON_PRESETS}
+      label="Reason"
+      maxLength={MAX_REJECTION_REASON_LENGTH}
+      title={defaultReason ? "Change the reason" : "Reject this paper?"}
+      description="The uploader sees this reason on their submission. To let them fix the paper instead, ask for changes."
+      submitLabel={defaultReason ? "Save" : "Reject"}
+      pendingLabel={defaultReason ? "Saving…" : "Rejecting…"}
+      successMessage={defaultReason ? "Reason saved" : "Paper rejected"}
+    />
+  );
+}
+
+/**
+ * Sends a paper back to its uploader with what to change. They can edit the details,
+ * replace the file and reply, then resubmit it.
+ */
+export function RequestChangesDialog(props: DecisionDialogProps) {
+  return (
+    <ReasonDialog
+      {...props}
+      status="changes_requested"
+      presets={CHANGE_REQUEST_PRESETS}
+      label="What should they change?"
+      maxLength={MAX_REVIEW_MESSAGE_LENGTH}
+      title="Ask the uploader for changes"
+      description="The paper goes back to its uploader with your message. They can fix the details or replace the file, reply, and send it back for review."
+      submitLabel="Send to uploader"
+      pendingLabel="Sending…"
+      successMessage="Changes requested"
+    />
   );
 }

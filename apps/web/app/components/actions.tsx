@@ -87,6 +87,8 @@ type ActionDialogProps = Controlled & {
   fields: Record<string, string>;
   /** Route action to post to. Defaults to the current route. */
   action?: string;
+  /** `multipart/form-data` for a form with a file. */
+  encType?: "multipart/form-data";
   className?: string;
   /** Visible form fields, given the errors from the last attempt. */
   children?: (fieldErrors: Record<string, string>) => React.ReactNode;
@@ -107,6 +109,7 @@ export function ActionDialog({
   successMessage,
   fields,
   action,
+  encType,
   className,
   children,
 }: ActionDialogProps) {
@@ -137,6 +140,7 @@ export function ActionDialog({
         <fetcher.Form
           method="post"
           action={action}
+          encType={encType}
           onSubmit={() => {
             setSubmitted(true);
             setMessage(successMessage);

@@ -44,5 +44,6 @@ const _$SubmissionStatusEnumMap = {
   SubmissionStatus.pendingReview: 'pending_review',
   SubmissionStatus.published: 'published',
   SubmissionStatus.rejected: 'rejected',
+  SubmissionStatus.changesRequested: 'changes_requested',
   SubmissionStatus.$unknown: r'$unknown',
 };

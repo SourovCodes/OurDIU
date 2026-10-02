@@ -22,6 +22,8 @@ MySubmission _$MySubmissionFromJson(Map<String, dynamic> json) => MySubmission(
   ),
   autoPublished: json['autoPublished'] as bool,
   rejectionReason: json['rejectionReason'] as String?,
+  changesRequested: json['changesRequested'] as String?,
+  unread: (json['unread'] as num).toInt(),
   analysis: json['analysis'] == null
       ? null
       : AnalysisSummary.fromJson(json['analysis'] as Map<String, dynamic>),
@@ -42,6 +44,8 @@ Map<String, dynamic> _$MySubmissionToJson(MySubmission instance) =>
       'classification': instance.classification,
       'autoPublished': instance.autoPublished,
       'rejectionReason': instance.rejectionReason,
+      'changesRequested': instance.changesRequested,
+      'unread': instance.unread,
       'analysis': instance.analysis,
     };
 
@@ -49,5 +53,6 @@ const _$SubmissionStatusEnumMap = {
   SubmissionStatus.pendingReview: 'pending_review',
   SubmissionStatus.published: 'published',
   SubmissionStatus.rejected: 'rejected',
+  SubmissionStatus.changesRequested: 'changes_requested',
   SubmissionStatus.$unknown: r'$unknown',
 };

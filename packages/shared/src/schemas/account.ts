@@ -3,6 +3,7 @@ import { USERNAME_PATTERN, USERNAME_RULES } from "../constants";
 import { analysisSummarySchema, submissionAnalysisSchema } from "./analysis";
 import { nullableRef } from "./common";
 import { contributorSubmissionSchema } from "./contributor";
+import { reviewMessageSchema } from "./review";
 
 /** One of the signed-in user's own submissions, with how its review is going. */
 export const mySubmissionSchema = contributorSubmissionSchema
@@ -11,6 +12,13 @@ export const mySubmissionSchema = contributorSubmissionSchema
     autoPublished: z.boolean(),
     /** The admin's reason; null unless rejected. */
     rejectionReason: z.string().nullable(),
+    /**
+     * What the reviewer asked to change, when the status is `changes_requested`; the
+     * whole conversation is on the detail.
+     */
+    changesRequested: z.string().nullable(),
+    /** Reviewer messages and steps the uploader hasn't seen yet. */
+    unread: z.number().int(),
     /** Null for papers that were never checked. */
     analysis: nullableRef(analysisSummarySchema),
   })
@@ -20,11 +28,26 @@ export type MySubmission = z.infer<typeof mySubmissionSchema>;
 /** The signed-in user's own submissions, in every status. */
 export const mySubmissionListSchema = z
   .object({
-    /** Published first (newest first), then pending review, then rejected. */
+    /**
+     * Those needing changes first, then published, pending review and rejected;
+     * newest first within each.
+     */
     items: z.array(mySubmissionSchema),
   })
   .meta({ id: "MySubmissionList" });
 export type MySubmissionList = z.infer<typeof mySubmissionListSchema>;
+
+/** For the badge on "My submissions". */
+export const reviewActivitySchema = z
+  .object({
+    /**
+     * The user's papers that need them: a reviewer asked for changes, or wrote
+     * something they haven't seen.
+     */
+    needsAttention: z.number().int(),
+  })
+  .meta({ id: "ReviewActivity" });
+export type ReviewActivity = z.infer<typeof reviewActivitySchema>;
 
 /** What the uploader sees of the AI check: its verdict and what it read. */
 export const uploaderAnalysisSchema = submissionAnalysisSchema
@@ -44,6 +67,8 @@ export type UploaderAnalysis = z.infer<typeof uploaderAnalysisSchema>;
 export const mySubmissionDetailSchema = mySubmissionSchema
   .extend({
     analysisDetail: nullableRef(uploaderAnalysisSchema),
+    /** The review conversation, oldest first. Opening the paper marks it read. */
+    messages: z.array(reviewMessageSchema),
   })
   .meta({ id: "MySubmissionDetail" });
 export type MySubmissionDetail = z.infer<typeof mySubmissionDetailSchema>;

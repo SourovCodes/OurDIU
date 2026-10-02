@@ -16,8 +16,11 @@ export const countWhereStatus = (status: SubmissionStatus) =>
 /** Size of the PDF the public downloads: the watermarked copy once it's ready. */
 export const publicFileSize = sql<number>`coalesce(${submissions.watermarkedFileSize}, ${submissions.fileSize})`;
 
-/** Sort order for submission lists: published, then pending review, then rejected. */
-export const submissionStatusOrder = sql`case ${submissions.status} when 'published' then 0 when 'pending_review' then 1 else 2 end`;
+/**
+ * Sort order for submission lists: published, then pending review, waiting for the
+ * uploader's changes, and rejected.
+ */
+export const submissionStatusOrder = sql`case ${submissions.status} when 'published' then 0 when 'pending_review' then 1 when 'changes_requested' then 2 else 3 end`;
 
 /**
  * Newest semester first. Names are a term and a two-digit year ("Fall 25", see

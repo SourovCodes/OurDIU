@@ -1,4 +1,4 @@
-import type { SubmissionCounts, SubmissionStatus } from "@ourdiu/shared";
+import type { AdminSubmissionCounts, SubmissionStatus } from "@ourdiu/shared";
 import { Link } from "react-router";
 import {
   Card,
@@ -13,17 +13,26 @@ import { SubmissionStatusBadge } from "./badges";
 
 const SEGMENTS: {
   status: SubmissionStatus;
-  key: keyof SubmissionCounts;
+  key: keyof AdminSubmissionCounts;
   fill: string;
 }[] = [
   { status: "published", key: "published", fill: "bg-emerald-500" },
   { status: "pending_review", key: "pendingReview", fill: "bg-amber-500" },
+  {
+    status: "changes_requested",
+    key: "changesRequested",
+    fill: "bg-sky-500",
+  },
   { status: "rejected", key: "rejected", fill: "bg-red-500" },
 ];
 
 /** Part-to-whole of submissions by status: one stacked bar plus a labelled list. */
-export function StatusBreakdown({ counts }: { counts: SubmissionCounts }) {
-  const total = counts.published + counts.pendingReview + counts.rejected;
+export function StatusBreakdown({ counts }: { counts: AdminSubmissionCounts }) {
+  const total =
+    counts.published +
+    counts.pendingReview +
+    counts.changesRequested +
+    counts.rejected;
 
   return (
     <Card>

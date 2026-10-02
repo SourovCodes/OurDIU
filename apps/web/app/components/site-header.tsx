@@ -47,6 +47,8 @@ type NavItem = {
   label: string;
   /** Other paths that count as this item's section, e.g. course pages for Browse. */
   section?: string[];
+  /** A count to show next to it, e.g. papers that need the user. */
+  count?: number;
 };
 
 /** Each product's own menu; platform pages (hub, account, legal) have none. */
@@ -90,12 +92,26 @@ function Brand({ product }: { product: Product | null }) {
   );
 }
 
+/** "3", as a small pill next to a menu entry. */
+function CountPill({ count }: { count: number }) {
+  return (
+    <span className="ml-auto rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground tabular-nums">
+      {count}
+    </span>
+  );
+}
+
+const attentionLabel = (count: number) =>
+  `${count} ${count === 1 ? "paper needs" : "papers need"} you`;
+
 function UserMenu({
   user,
   product,
+  needsAttention,
 }: {
   user: SessionUser;
   product: Product | null;
+  needsAttention: number;
 }) {
   const submit = useSubmit();
   const logoutTarget = useLogoutTarget();
@@ -106,10 +122,20 @@ function UserMenu({
         <Button
           variant="ghost"
           size="icon"
-          className="rounded-full"
-          aria-label="Account menu"
+          className="relative rounded-full"
+          aria-label={
+            needsAttention > 0
+              ? `Account menu, ${attentionLabel(needsAttention)}`
+              : "Account menu"
+          }
         >
           <ContributorAvatar name={user.name} image={user.image} size="sm" />
+          {needsAttention > 0 && (
+            <span
+              aria-hidden
+              className="absolute top-0.5 right-0.5 size-2.5 rounded-full bg-primary ring-2 ring-background"
+            />
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60 rounded-lg">
@@ -141,11 +167,19 @@ function UserMenu({
             <DropdownMenuSeparator />
           </>
         )}
-        {product?.id === "questions" && (
+        {(product?.id === "questions" || needsAttention > 0) && (
           <DropdownMenuItem asChild>
             <Link to="/questions/my-submissions">
               <FileText aria-hidden />
               My submissions
+              {needsAttention > 0 && (
+                <>
+                  <CountPill count={needsAttention} />
+                  <span className="sr-only">
+                    , {attentionLabel(needsAttention)}
+                  </span>
+                </>
+              )}
             </Link>
           </DropdownMenuItem>
         )}
@@ -216,9 +250,11 @@ function ThemeSegments() {
 function MobileMenu({
   user,
   product,
+  needsAttention,
 }: {
   user: SessionUser | null;
   product: Product | null;
+  needsAttention: number;
 }) {
   const location = useLocation();
   const logoutTarget = useLogoutTarget();
@@ -231,7 +267,13 @@ function MobileMenu({
           { to: "/questions/saved", label: "Saved" },
           { to: "/questions/contribute", label: "Share a paper" },
           ...(user
-            ? [{ to: "/questions/my-submissions", label: "My submissions" }]
+            ? [
+                {
+                  to: "/questions/my-submissions",
+                  label: "My submissions",
+                  count: needsAttention,
+                },
+              ]
             : []),
         ]
       : []),
@@ -246,10 +288,16 @@ function MobileMenu({
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden"
+          className="relative lg:hidden"
           aria-label="Open menu"
         >
           <Menu aria-hidden />
+          {needsAttention > 0 && product?.id === "questions" && (
+            <span
+              aria-hidden
+              className="absolute top-1.5 right-1.5 size-2.5 rounded-full bg-primary ring-2 ring-background"
+            />
+          )}
         </Button>
       </SheetTrigger>
       <SheetContent
@@ -313,6 +361,14 @@ function MobileMenu({
                       )}
                     >
                       {item.label}
+                      {!!item.count && (
+                        <>
+                          <CountPill count={item.count} />
+                          <span className="sr-only">
+                            , {attentionLabel(item.count)}
+                          </span>
+                        </>
+                      )}
                     </Link>
                   </SheetClose>
                 );
@@ -371,7 +427,14 @@ function MobileMenu({
  * The header of the space the page is in: the switcher, the space's name, and its
  * own menu. Products don't link to each other; the switcher is the way between them.
  */
-export function SiteHeader({ user }: { user: SessionUser | null }) {
+export function SiteHeader({
+  user,
+  needsAttention = 0,
+}: {
+  user: SessionUser | null;
+  /** The user's papers that need them (changes asked for, unread messages). */
+  needsAttention?: number;
+}) {
   const location = useLocation();
   const { pathname } = location;
   const product = useSpace();
@@ -471,7 +534,11 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
             </Link>
           )}
           {user ? (
-            <UserMenu user={user} product={product} />
+            <UserMenu
+              user={user}
+              product={product}
+              needsAttention={needsAttention}
+            />
           ) : (
             // An icon on phones, where the header is narrow.
             <Link
@@ -486,7 +553,11 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
               <span className="max-sm:sr-only">Log in</span>
             </Link>
           )}
-          <MobileMenu user={user} product={product} />
+          <MobileMenu
+            user={user}
+            product={product}
+            needsAttention={needsAttention}
+          />
         </div>
       </div>
     </header>

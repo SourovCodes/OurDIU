@@ -26,6 +26,7 @@ import {
 import { isConstraintError } from "../lib/db-errors";
 import { AppError } from "../lib/errors";
 import { getSubmissionAnalysis } from "./analysis";
+import { addReviewMessage, listReviewMessages, markReviewRead } from "./review";
 import {
   submissionFileKeys,
   watermarkIfMissing,
@@ -56,6 +57,7 @@ async function submissionCountsByStatus(db: Database) {
     published: total("published"),
     pendingReview: total("pending_review"),
     rejected: total("rejected"),
+    changesRequested: total("changes_requested"),
   };
 }
 
@@ -115,14 +117,19 @@ const reporterColumns = {
   image: user.image,
 };
 
+/**
+ * A submission with its reports, AI check and review conversation. Marks the
+ * conversation read for admins; `adminUnread` still says how many entries were new.
+ */
 export async function getAdminSubmission(
   db: Database,
   id: number,
+  { markRead = true }: { markRead?: boolean } = {},
 ): Promise<AdminSubmissionDetail | null> {
   const submission = await findAdminSubmission(db, id);
   if (!submission) return null;
 
-  const [reports, analysisDetail] = await Promise.all([
+  const [reports, analysisDetail, messages] = await Promise.all([
     db
       .select({
         id: submissionReports.id,
@@ -137,11 +144,16 @@ export async function getAdminSubmission(
       .where(eq(submissionReports.submissionId, id))
       .orderBy(desc(submissionReports.createdAt), desc(submissionReports.id)),
     getSubmissionAnalysis(db, id),
+    listReviewMessages(db, id, "admin"),
   ]);
+  if (markRead && submission.adminUnread > 0) {
+    await markReviewRead(db, id, "admin");
+  }
 
   return {
     ...submission,
     analysisDetail,
+    messages,
     reports: reports.map((report) => ({
       ...report,
       createdAt: report.createdAt.toISOString(),
@@ -162,13 +174,24 @@ export async function getAdminSubmissionFile(
   return submission ? bucket.get(submission.fileKey) : null;
 }
 
+/** The conversation entry for each decision. */
+const DECISION_KINDS = {
+  published: "published",
+  rejected: "rejected",
+  changes_requested: "changes_requested",
+  pending_review: "returned_to_review",
+} as const satisfies Record<SubmissionStatus, string>;
+
 /**
- * Publishes, rejects or re-queues a submission. Only submissions filed under a
- * question can be published, so proposals have to be classified first.
+ * Publishes, rejects, asks the uploader for changes or re-queues a submission, and
+ * records the decision (with its reason or note) in the review conversation. Only
+ * submissions filed under a question can be published, so proposals have to be
+ * classified first.
  */
 export async function updateSubmissionStatus(
   db: Database,
   watermarkQueue: Queue<WatermarkJob>,
+  adminId: string | null,
   id: number,
   status: SubmissionStatus,
   reason?: string,
@@ -196,8 +219,36 @@ export async function updateSubmissionStatus(
       .update(submissions)
       .set({ rejectionReason })
       .where(eq(submissions.id, id));
+  } else if (status !== "changes_requested") {
+    // Nothing changed. A repeated request for changes is recorded: it can ask more.
+    return submission;
   }
+  await addReviewMessage(db, {
+    submissionId: id,
+    authorId: adminId,
+    role: "admin",
+    kind: DECISION_KINDS[status],
+    body: reason,
+  });
   return requireAdminSubmission(db, id);
+}
+
+/** An admin writes to the uploader of a submission, in any status. */
+export async function postAdminReviewMessage(
+  db: Database,
+  adminId: string,
+  id: number,
+  body: string,
+): Promise<AdminSubmissionDetail> {
+  await requireAdminSubmission(db, id);
+  await addReviewMessage(db, {
+    submissionId: id,
+    authorId: adminId,
+    role: "admin",
+    kind: "comment",
+    body,
+  });
+  return (await getAdminSubmission(db, id, { markRead: false }))!;
 }
 
 const alreadyExists = (what: string) =>

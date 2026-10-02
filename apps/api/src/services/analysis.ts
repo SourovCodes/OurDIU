@@ -35,6 +35,7 @@ import {
   listExamTypes,
   listSemesters,
 } from "./taxonomy";
+import { changesWereRequested } from "./review";
 import { watermarkIfMissing, type WatermarkJob } from "./watermark";
 
 /** The queue message. A message whose run was superseded by a re-run is ignored. */
@@ -464,8 +465,8 @@ export type AnalysisEnv = {
  * Publishes a paper without an admin when the AI confirms it: exactly one question
  * paper, and the department, course, semester and exam type the AI read are the same
  * existing catalog entries (same id, same name, character for character) as the ones
- * the paper is filed under. Papers with new entries, reports or a status an admin
- * already changed are left for review. A published paper is queued for its
+ * the paper is filed under. Papers with new entries, reports, a status an admin
+ * already changed or a request for changes are left for review. A published paper is queued for its
  * watermarked copy. Returns whether it published.
  */
 export async function publishIfConfirmed(
@@ -497,7 +498,9 @@ export async function publishIfConfirmed(
   if (
     !filed ||
     filed.status !== "pending_review" ||
-    filed.pendingReportCount > 0
+    filed.pendingReportCount > 0 ||
+    // The admin who asked for changes wants to see the paper again.
+    (await changesWereRequested(db, submissionId))
   ) {
     return false;
   }

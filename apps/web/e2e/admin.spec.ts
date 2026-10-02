@@ -252,11 +252,12 @@ test("an admin rejects a paper with a reason the uploader sees", async ({
   await dialog.getByRole("button", { name: "Reject" }).click();
   await expect(admin.getByText("Paper rejected")).toBeVisible();
   await expect(dialog).toBeHidden();
+  // In the notice, and in the conversation with the uploader.
   await expect(
     admin
       .getByRole("main")
       .getByText("Two papers in one file. Please split them."),
-  ).toBeVisible();
+  ).toHaveCount(2);
   await admin.close();
 
   // The uploader reads the reason on their submission.
@@ -288,4 +289,89 @@ test("an admin changes a user's username", async ({ page, browser }) => {
   await dialog.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Username changed")).toBeVisible();
   await expect(row).toContainText(`@${username}`);
+});
+
+test("an admin asks for changes and the uploader fixes and resubmits the paper", async ({
+  page,
+  browser,
+}) => {
+  // A contributor uploads a paper (a new course, so the AI check can't publish it).
+  const courseName = `E2E Changes ${unique()}`;
+  await logInAs(page, NEW_USER, "/questions/contribute");
+  await uploadPaperWithNewCourse(page, courseName);
+  const paperUrl = page.url().replace(/\?.*$/, "");
+  const id = paperUrl.split("/").at(-1)!;
+
+  // The admin, in another browser, asks for a clearer scan.
+  const adminContext = await browser.newContext();
+  const admin = await adminContext.newPage();
+  await logInAs(admin, SEED_ADMIN, `/admin/questions/submissions/${id}`);
+  const ask = admin.getByRole("dialog");
+  await expect(async () => {
+    await admin.getByRole("button", { name: "Request changes" }).click();
+    await expect(ask).toBeVisible({ timeout: 1_000 });
+  }).toPass();
+  await ask.getByRole("button", { name: "Blurry scan" }).click();
+  await ask.getByRole("button", { name: "Send to uploader" }).click();
+  await expect(ask).toBeHidden();
+  await expect(admin.getByText("Changes requested")).toBeVisible();
+  await expect(
+    admin.getByText("Waiting for the uploader’s changes"),
+  ).toBeVisible();
+
+  // The uploader is told, in the header and on their list.
+  await page.goto("/questions/my-submissions");
+  await expect(
+    page.getByRole("button", { name: "Account menu, 1 paper needs you" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("A reviewer asked you to change a paper"),
+  ).toBeVisible();
+  await expect(page.getByText("1 new message")).toBeVisible();
+
+  // They open it, see the request, and ask a question.
+  await page.goto(paperUrl);
+  await expect(page.getByText("The reviewer asked for changes")).toBeVisible();
+  const conversation = page.getByRole("region", { name: "Messages" });
+  await expect(
+    conversation.getByText("Reviewer asked for changes"),
+  ).toBeVisible();
+  await conversation
+    .getByRole("textbox", { name: "Message" })
+    .fill("Which pages are blurry?");
+  await conversation.getByRole("button", { name: "Send" }).click();
+  await expect(page.getByText("Message sent")).toBeVisible();
+  await expect(conversation.getByText("Which pages are blurry?")).toBeVisible();
+
+  // They replace the file and resubmit it with a note.
+  const replace = page.getByRole("dialog");
+  await page.getByRole("button", { name: "Replace file" }).click();
+  await replace.getByLabel("PDF file").setInputFiles({
+    name: "clearer.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-1.7\n%e2e clearer scan\n"),
+  });
+  await replace.getByRole("button", { name: "Replace" }).click();
+  await expect(replace).toBeHidden();
+  await expect(page.getByText("File replaced")).toBeVisible();
+  await expect(conversation.getByText("You replaced the file")).toBeVisible();
+
+  const resubmit = page.getByRole("dialog");
+  await page.getByRole("button", { name: "Resubmit" }).click();
+  await resubmit
+    .getByLabel(/What did you change/)
+    .fill("Uploaded a clearer scan.");
+  await resubmit.getByRole("button", { name: "Resubmit" }).click();
+  await expect(resubmit).toBeHidden();
+  await expect(page.getByText("Sent back for review")).toBeVisible();
+  await expect(page.getByText("Pending review").first()).toBeVisible();
+
+  // Back in the admin's queue, with the uploader's replies.
+  await admin.goto("/admin/questions/submissions");
+  const row = admin.getByRole("row", { name: new RegExp(courseName) });
+  await expect(row.getByText(/new replies/)).toBeVisible();
+  await admin.goto(`/admin/questions/submissions/${id}`);
+  await expect(admin.getByText("Which pages are blurry?")).toBeVisible();
+  await expect(admin.getByText("Uploaded a clearer scan.")).toBeVisible();
+  await adminContext.close();
 });

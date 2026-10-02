@@ -2,6 +2,7 @@
 import "@fontsource-variable/roboto-flex/standard.css";
 // The one subset every page needs; the CSS alone would find it only after it loads.
 import robotoFlexLatin from "@fontsource-variable/roboto-flex/files/roboto-flex-latin-standard-normal.woff2?url";
+import type { ReviewActivity } from "@ourdiu/shared";
 import { FileQuestion, GraduationCap, TriangleAlert } from "lucide-react";
 import {
   isRouteErrorResponse,
@@ -37,7 +38,8 @@ import { AUTHOR } from "~/lib/author";
 import { LEGAL_PAGES } from "~/lib/legal";
 import { PRODUCTS, rememberedSpace } from "~/lib/products";
 import { useRememberSpace, useSpace } from "~/lib/use-space";
-import { getUser } from "~/lib/session.server";
+import { apiFetch, readJson } from "~/lib/api.server";
+import { getUser, hasSessionCookie } from "~/lib/session.server";
 import { THEME_SCRIPT } from "~/lib/theme";
 
 export const links: Route.LinksFunction = () => [
@@ -51,9 +53,22 @@ export const links: Route.LinksFunction = () => [
   },
 ];
 
+/** How many of the signed-in user's papers need them, for the header's badge. */
+async function reviewActivity(request: Request) {
+  if (!hasSessionCookie(request)) return 0;
+  const res = await apiFetch(request, "/api/v1/me/review-activity");
+  if (!res.ok) return 0;
+  return (await readJson<ReviewActivity>(res)).needsAttention;
+}
+
 export async function loader({ request }: Route.LoaderArgs) {
+  const [user, needsAttention] = await Promise.all([
+    getUser(request),
+    reviewActivity(request),
+  ]);
   return {
-    user: await getUser(request),
+    user,
+    needsAttention,
     androidInvite: androidInvite(request),
     space: rememberedSpace(request.headers.get("cookie"))?.id ?? null,
   };
@@ -61,12 +76,19 @@ export async function loader({ request }: Route.LoaderArgs) {
 export type RootLoader = typeof loader;
 
 // The session only changes through form actions (log in, sign up, log out), so
-// plain navigations don't need to re-fetch it.
+// plain navigations don't need to re-fetch it. The review badge also changes when
+// the user opens or leaves their submissions.
 export function shouldRevalidate({
   formMethod,
+  currentUrl,
+  nextUrl,
   defaultShouldRevalidate,
 }: ShouldRevalidateFunctionArgs) {
-  return formMethod ? defaultShouldRevalidate : false;
+  const submissions = (url: URL) =>
+    url.pathname.startsWith("/questions/my-submissions");
+  return formMethod || submissions(currentUrl) || submissions(nextUrl)
+    ? defaultShouldRevalidate
+    : false;
 }
 
 /** Set `handle = { ownShell: true }` on a route that brings its own shell (the admin panel). */
@@ -114,7 +136,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
           children
         ) : (
           <div className="flex min-h-dvh flex-col">
-            <SiteHeader user={data?.user ?? null} />
+            <SiteHeader
+              user={data?.user ?? null}
+              needsAttention={data?.needsAttention ?? 0}
+            />
             <AndroidBetaStrip />
             <PageTransition className="@container/main container flex-1 py-8">
               {children}

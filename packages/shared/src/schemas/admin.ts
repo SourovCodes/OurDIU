@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  MAX_REJECTION_REASON_LENGTH,
+  MAX_REVIEW_MESSAGE_LENGTH,
   normalizeCatalogName,
   USER_ROLES,
   WATERMARK_STATUSES,
@@ -13,6 +13,7 @@ import {
 import { nullableRef, paginatedSchema, paginationQuerySchema } from "./common";
 import { contributorSubmissionSchema } from "./contributor";
 import { reportReasonSchema, reportStatusSchema } from "./engagement";
+import { reviewMessageSchema } from "./review";
 import { submissionCountsSchema, submissionStatusSchema } from "./question";
 import {
   refineSubmissionFields,
@@ -46,8 +47,14 @@ export type AdminUserRef = z.infer<typeof adminUserRefSchema>;
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
 
+/** Submissions per status, as admins see them: with those waiting for changes. */
+export const adminSubmissionCountsSchema = submissionCountsSchema.extend({
+  changesRequested: z.number().int(),
+});
+export type AdminSubmissionCounts = z.infer<typeof adminSubmissionCountsSchema>;
+
 export const adminStatsSchema = z.object({
-  submissions: submissionCountsSchema.extend({
+  submissions: adminSubmissionCountsSchema.extend({
     /** Pending submissions that propose new catalog entries (no question yet). */
     awaitingClassification: z.number().int(),
   }),
@@ -104,6 +111,8 @@ export const adminSubmissionSchema = contributorSubmissionSchema.extend({
   autoPublished: z.boolean(),
   /** Why it was rejected; null unless rejected. */
   rejectionReason: z.string().nullable(),
+  /** Uploader messages and steps no admin has seen yet. */
+  adminUnread: z.number().int(),
   /**
    * The public copy with a credit line. Null when it was never requested; until
    * it's done, the public gets the original.
@@ -125,7 +134,7 @@ export const adminSubmissionListSchema = paginatedSchema(
   adminSubmissionSchema,
 ).extend({
   /** Per-status totals, independent of the status filter. */
-  counts: submissionCountsSchema,
+  counts: adminSubmissionCountsSchema,
 });
 export type AdminSubmissionList = z.infer<typeof adminSubmissionListSchema>;
 
@@ -144,18 +153,27 @@ export const adminSubmissionDetailSchema = adminSubmissionSchema.extend({
   /** Newest first. */
   reports: z.array(adminSubmissionReportSchema),
   analysisDetail: nullableRef(submissionAnalysisSchema),
+  /** The review conversation, oldest first. Opening the paper marks it read. */
+  messages: z.array(reviewMessageSchema),
 });
 export type AdminSubmissionDetail = z.infer<typeof adminSubmissionDetailSchema>;
 
 export const updateSubmissionStatusInputSchema = z
   .object({
     status: submissionStatusSchema,
-    /** Shown to the uploader. Required when rejecting, ignored otherwise. */
-    reason: z.string().trim().max(MAX_REJECTION_REASON_LENGTH).optional(),
+    /**
+     * Shown to the uploader. Required when rejecting or asking for changes; with
+     * another status, an optional note added to the conversation.
+     */
+    reason: z.string().trim().max(MAX_REVIEW_MESSAGE_LENGTH).optional(),
   })
   .refine((input) => input.status !== "rejected" || !!input.reason, {
     path: ["reason"],
     message: "Give a reason for rejecting",
+  })
+  .refine((input) => input.status !== "changes_requested" || !!input.reason, {
+    path: ["reason"],
+    message: "Say what the uploader should change",
   });
 export type UpdateSubmissionStatusInput = z.infer<
   typeof updateSubmissionStatusInputSchema
@@ -284,7 +302,7 @@ export const semesterInputSchema = z.object({ name: semesterNameSchema });
 export const adminUserSchema = adminUserRefSchema.extend({
   role: userRoleSchema,
   createdAt: z.iso.datetime(),
-  submissionCounts: submissionCountsSchema,
+  submissionCounts: adminSubmissionCountsSchema,
 });
 export type AdminUser = z.infer<typeof adminUserSchema>;
 

@@ -21,6 +21,9 @@ function selectUsers(db: Database) {
         "pending_review_count",
       ),
       rejected: countWhereStatus("rejected").as("rejected_count"),
+      changesRequested: countWhereStatus("changes_requested").as(
+        "changes_requested_count",
+      ),
     })
     .from(submissions)
     .where(isNotNull(submissions.uploaderId))
@@ -43,6 +46,7 @@ function selectUsers(db: Database) {
         published: orZero(counts.published),
         pendingReview: orZero(counts.pendingReview),
         rejected: orZero(counts.rejected),
+        changesRequested: orZero(counts.changesRequested),
       },
     })
     .from(user)

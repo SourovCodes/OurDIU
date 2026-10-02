@@ -131,6 +131,13 @@ export const submissions = sqliteTable(
     pendingReportCount: integer().notNull().default(0),
     /** Paper views. Incremented directly, anyone can count a view. */
     viewCount: integer().notNull().default(0),
+    /**
+     * Review conversation entries the other side hasn't seen yet (submission_messages):
+     * written by admins for the uploader, and by the uploader for admins. Zeroed when
+     * that side opens the paper.
+     */
+    uploaderUnread: integer().notNull().default(0),
+    adminUnread: integer().notNull().default(0),
     ...timestamps,
   },
   (t) => [

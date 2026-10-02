@@ -192,6 +192,9 @@ Map<String, Object?> myPaperJson(
   },
   'autoPublished': autoPublished,
   'rejectionReason': null,
+  'changesRequested': null,
+  'unread': 0,
+  'messages': <Object?>[],
   'analysis': analysis == null
       ? null
       : {'status': analysis, 'flag': flag, 'matches': matches},

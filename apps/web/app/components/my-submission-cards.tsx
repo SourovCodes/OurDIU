@@ -1,5 +1,5 @@
 import type { MySubmission } from "@ourdiu/shared";
-import { Eye, ThumbsUp } from "lucide-react";
+import { Eye, MessageCircle, ThumbsUp } from "lucide-react";
 import { Link } from "react-router";
 import {
   CARD_GRID,
@@ -9,6 +9,7 @@ import {
 import { ReviewStageLabel } from "~/components/review-stage";
 import { StatusBadge } from "~/components/status-badge";
 import { ExamBadge } from "~/components/exam-badge";
+import { Badge } from "~/components/ui/badge";
 import { Card, CardTitle } from "~/components/ui/card";
 import { formatDate } from "~/lib/dates";
 import { formatCount } from "~/lib/format";
@@ -55,7 +56,17 @@ function MySubmissionCard({
         {actions && <div className="relative z-10 -mt-1 -mr-2">{actions}</div>}
       </div>
       <div className="grid gap-2 px-5">
-        <StatusBadge status={submission.status} />
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge status={submission.status} />
+          {submission.unread > 0 && (
+            <Badge>
+              <MessageCircle />
+              {submission.unread === 1
+                ? "1 new message"
+                : `${submission.unread} new messages`}
+            </Badge>
+          )}
+        </div>
         <ReviewStageLabel submission={submission} />
       </div>
       <div className="mt-auto flex items-center justify-between gap-3 px-5 text-sm text-muted-foreground">

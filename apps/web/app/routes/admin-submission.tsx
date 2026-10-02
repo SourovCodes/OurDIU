@@ -13,7 +13,9 @@ import {
   EllipsisVertical,
   ExternalLink,
   EyeOff,
+  FilePen,
   Globe,
+  MessagesSquare,
   LoaderCircle,
   Pencil,
   RefreshCw,
@@ -35,7 +37,11 @@ import {
 } from "~/components/actions";
 import { AdminPageHeader } from "~/components/admin/admin-header";
 import { ExamBadge } from "~/components/exam-badge";
-import { RejectDialog } from "~/components/admin/reject-dialog";
+import {
+  RejectDialog,
+  RequestChangesDialog,
+} from "~/components/admin/reject-dialog";
+import { ReviewThread } from "~/components/review-thread";
 import {
   ReportStatusBadge,
   SubmissionFlags,
@@ -141,6 +147,10 @@ export async function action({ request, params }: Route.ActionArgs) {
       invalidateTaxonomy();
       return result;
     }
+    case "message":
+      return adminRequest(request, intent, "POST", `${path}/messages`, {
+        body: form.get("body"),
+      });
     case "analyze":
       return adminRequest(request, intent, "POST", `${path}/analysis`);
     case "watermark":
@@ -168,6 +178,7 @@ const SUCCESS: Record<SubmissionStatus, string> = {
   published: "Paper published",
   rejected: "Paper rejected",
   pending_review: "Moved back to review",
+  changes_requested: "Changes requested",
 };
 
 /** Publish / reject / back-to-review buttons, plus a menu with the rest. */
@@ -178,6 +189,7 @@ function DecisionActions({
 }) {
   const [deleting, setDeleting] = useState(false);
   const [rejecting, setRejecting] = useState<number>();
+  const [requesting, setRequesting] = useState<number>();
   const needsClassification = submission.questionId === null;
   const { status } = submission;
   const { busy, pending, run } = useFormAction();
@@ -212,6 +224,24 @@ function DecisionActions({
         ) : (
           publish
         ))}
+      {status !== "published" && (
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={busy}
+          onClick={() => setRequesting(Date.now())}
+        >
+          <FilePen />
+          {status === "changes_requested" ? "Ask again" : "Request changes"}
+        </Button>
+      )}
+      {requesting !== undefined && (
+        <RequestChangesDialog
+          key={requesting}
+          open
+          onOpenChange={(open) => !open && setRequesting(undefined)}
+        />
+      )}
       {status !== "rejected" && (
         <Button
           size="sm"
@@ -781,6 +811,16 @@ export default function AdminSubmission({ loaderData }: Route.ComponentProps) {
           </AlertDescription>
         </Alert>
       )}
+      {submission.status === "changes_requested" && (
+        <Alert variant="info">
+          <FilePen />
+          <AlertTitle>Waiting for the uploader’s changes</AlertTitle>
+          <AlertDescription>
+            The uploader can edit the details, replace the file and reply below.
+            It comes back to the review queue when they resubmit it.
+          </AlertDescription>
+        </Alert>
+      )}
       {newEntries.length > 0 && (
         <Alert variant="info">
           <Sparkles />
@@ -819,10 +859,33 @@ export default function AdminSubmission({ loaderData }: Route.ComponentProps) {
       )}
 
       <div className="grid items-start gap-4 @5xl/main:grid-cols-[minmax(0,1fr)_22rem]">
-        <PdfViewer
-          src={adminSubmissionFileUrl(submission.id)}
-          title={`${classification.course.name} — ${STATUS_LABELS[submission.status]}`}
-        />
+        <div className="grid gap-4">
+          <PdfViewer
+            src={adminSubmissionFileUrl(submission.id)}
+            title={`${classification.course.name} — ${STATUS_LABELS[submission.status]}`}
+          />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessagesSquare className="size-4" aria-hidden />
+                Conversation with the uploader
+              </CardTitle>
+              <CardDescription>
+                The uploader sees these messages as from “Reviewer”.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ReviewThread
+                messages={submission.messages}
+                viewer="admin"
+                unread={submission.adminUnread}
+                canReply={submission.uploader !== null}
+                placeholder="Ask the uploader something, or tell them what to fix"
+                emptyText="No messages yet. Ask for changes, or write to the uploader below."
+              />
+            </CardContent>
+          </Card>
+        </div>
         <div className="grid gap-4">
           <AnalysisCard submission={submission} taxonomy={taxonomy} />
           <ClassificationCard submission={submission} taxonomy={taxonomy} />

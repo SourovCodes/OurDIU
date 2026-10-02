@@ -16,6 +16,7 @@ import {
   questions,
   semesters,
   submissionAnalyses as analyses,
+  submissionMessages,
   submissions,
   user,
 } from "../db/schema";
@@ -140,6 +141,13 @@ export function selectSubmissionRows(db: Database) {
       },
       autoPublishedAt: submissions.autoPublishedAt,
       rejectionReason: submissions.rejectionReason,
+      // Outside `submission`, which the public view spreads.
+      uploaderUnread: submissions.uploaderUnread,
+      adminUnread: submissions.adminUnread,
+      /** The newest request for changes, whatever the status. */
+      changesRequested: sql<
+        string | null
+      >`(select ${submissionMessages.body} from ${submissionMessages} where ${submissionMessages.submissionId} = ${submissions.id} and ${submissionMessages.kind} = 'changes_requested' order by ${submissionMessages.id} desc limit 1)`,
       publicFileSize: publicFileSize.mapWith(Number),
       watermark: {
         status: submissions.watermarkStatus,
@@ -244,6 +252,7 @@ export function toAdminSubmission(row: SubmissionRowData): AdminSubmission {
     analysis: toAnalysisSummary(row),
     autoPublished: row.autoPublishedAt !== null,
     rejectionReason: row.rejectionReason,
+    adminUnread: row.adminUnread,
     watermark: row.watermark?.status
       ? { ...row.watermark, status: row.watermark.status }
       : null,
@@ -260,6 +269,11 @@ export function toMySubmission(row: SubmissionRowData): MySubmission {
     fileSize: row.submission.fileSize,
     autoPublished: row.autoPublishedAt !== null,
     rejectionReason: row.rejectionReason,
+    changesRequested:
+      row.submission.status === "changes_requested"
+        ? row.changesRequested
+        : null,
+    unread: row.uploaderUnread,
     analysis: toAnalysisSummary(row),
   };
 }

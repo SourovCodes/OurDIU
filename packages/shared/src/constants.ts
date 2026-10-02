@@ -4,6 +4,8 @@ export const SUBMISSION_STATUSES = [
   "pending_review",
   "published",
   "rejected",
+  /** An admin asked the uploader to fix something; it waits for them to resubmit. */
+  "changes_requested",
 ] as const;
 export const MAX_SUBMISSION_FILE_BYTES = 20 * 1024 * 1024;
 
@@ -44,6 +46,48 @@ export const REJECTION_REASON_PRESETS = [
     text: "This paper is already in the question bank.",
   },
 ] as const;
+export const MAX_REVIEW_MESSAGE_LENGTH = 2000;
+
+/**
+ * Entries in a submission's review conversation: messages either side writes, and the
+ * steps of the review (an admin's decision, the uploader's edits and resubmission).
+ */
+export const REVIEW_MESSAGE_KINDS = [
+  "comment",
+  "changes_requested",
+  "rejected",
+  "published",
+  "returned_to_review",
+  "details_edited",
+  "file_replaced",
+  "resubmitted",
+] as const;
+export const REVIEW_AUTHOR_ROLES = ["admin", "uploader"] as const;
+
+/** Common things to ask an uploader to fix, offered to admins as starting points. */
+export const CHANGE_REQUEST_PRESETS = [
+  {
+    label: "Wrong details",
+    text: "The department, course, semester or exam type doesn't match the paper. Please check them and correct what's wrong.",
+  },
+  {
+    label: "Blurry scan",
+    text: "Some pages are hard to read. Please replace the file with a clearer scan.",
+  },
+  {
+    label: "Pages missing",
+    text: "Some pages of the paper seem to be missing. Please replace the file with the complete paper.",
+  },
+  {
+    label: "Multiple papers",
+    text: "This PDF contains more than one question paper. Please replace it with just one paper, and upload the others separately.",
+  },
+  {
+    label: "Section or batch",
+    text: "Please add the section and batch this paper is from.",
+  },
+] as const;
+
 /**
  * Pending reports from different users that move a published submission back to
  * pending review. Enforced by the `submission_reports_after_insert` trigger in

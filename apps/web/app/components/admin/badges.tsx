@@ -9,6 +9,7 @@ import {
   CircleDashed,
   Flag,
   LoaderCircle,
+  MessageCircle,
   Sparkles,
   TriangleAlert,
 } from "lucide-react";
@@ -45,13 +46,22 @@ export function SubmissionFlags({
   pendingReportCount,
   classification,
   autoPublished = false,
+  adminUnread = 0,
 }: {
   pendingReportCount: number;
   classification: SubmissionClassification;
   autoPublished?: boolean;
+  /** Conversation entries from the uploader that no admin has seen. */
+  adminUnread?: number;
 }) {
   return (
     <>
+      {adminUnread > 0 && (
+        <Badge>
+          <MessageCircle />
+          {adminUnread === 1 ? "New reply" : `${adminUnread} new replies`}
+        </Badge>
+      )}
       {autoPublished && (
         <Badge variant="outline" className="text-muted-foreground">
           <Bot />

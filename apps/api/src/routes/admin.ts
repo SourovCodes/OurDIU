@@ -21,6 +21,7 @@ import {
   listAdminSubmissionsQuerySchema,
   listAdminUsersQuerySchema,
   nameInputSchema,
+  postReviewMessageInputSchema,
   semesterInputSchema,
   submissionAnalysisSchema,
   updateReportStatusInputSchema,
@@ -46,6 +47,7 @@ import {
   getAdminSubmissionFile,
   listAdminReports,
   listAdminSubmissions,
+  postAdminReviewMessage,
   updateReportStatus,
   updateSubmissionStatus,
 } from "../services/moderation";
@@ -145,9 +147,11 @@ const updateSubmissionStatusRoute = createRoute({
   method: "patch",
   path: "/submissions/{id}",
   tags: submissionTags,
-  summary: "Publish, reject or re-queue a submission",
+  summary: "Publish, reject, ask for changes to or re-queue a submission",
   description:
-    "A submission that proposes new catalog entries has to be classified before it can be published.",
+    "A submission that proposes new catalog entries has to be classified before it can be published. " +
+    "Asking for changes sends the paper back to its uploader, who can edit it and resubmit. " +
+    "Every decision is added to the submission's review conversation, with its reason.",
   middleware,
   request: {
     params: numericIdParams,
@@ -159,6 +163,24 @@ const updateSubmissionStatusRoute = createRoute({
     404: errorResponse("Submission not found"),
     409: errorResponse("Needs classification before publishing"),
     422: errorResponse("Invalid status"),
+  },
+});
+
+const postSubmissionMessageRoute = createRoute({
+  method: "post",
+  path: "/submissions/{id}/messages",
+  tags: submissionTags,
+  summary: "Write to the uploader in a submission's review conversation",
+  middleware,
+  request: {
+    params: numericIdParams,
+    ...jsonBody(postReviewMessageInputSchema),
+  },
+  responses: {
+    201: jsonResponse(adminSubmissionDetailSchema, "The submission"),
+    ...denied,
+    404: errorResponse("Submission not found"),
+    422: errorResponse("Invalid message"),
   },
 });
 
@@ -488,11 +510,23 @@ export const adminRoutes = new OpenAPIHono<AppEnv>({
       await updateSubmissionStatus(
         c.var.db,
         c.env.WATERMARK_QUEUE,
+        c.var.session!.user.id,
         c.req.valid("param").id,
         c.req.valid("json").status,
         c.req.valid("json").reason,
       ),
       200,
+    ),
+  )
+  .openapi(postSubmissionMessageRoute, async (c) =>
+    c.json(
+      await postAdminReviewMessage(
+        c.var.db,
+        c.var.session!.user.id,
+        c.req.valid("param").id,
+        c.req.valid("json").body,
+      ),
+      201,
     ),
   )
   .openapi(classifySubmissionRoute, async (c) =>

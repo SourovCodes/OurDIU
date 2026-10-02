@@ -72,7 +72,9 @@ export function UploadsChart({ days }: { days: Day[] }) {
               className="flex w-36 @[640px]/card:hidden"
               aria-label="Range"
             >
-              <SelectValue />
+              <SelectValue>
+                {RANGES.find((r) => r.value === range)?.label}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent className="rounded-xl">
               {RANGES.map((r) => (
@@ -128,7 +130,7 @@ export function UploadsChart({ days }: { days: Day[] }) {
             <Bar
               dataKey="count"
               fill="var(--color-count)"
-              radius={[4, 4, 0, 0]}
+              radius={[8, 8, 8, 8]}
               maxBarSize={24}
             />
           </BarChart>

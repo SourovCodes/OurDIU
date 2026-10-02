@@ -43,14 +43,16 @@ export function UrlTabs({
 
   return (
     <Tabs value={value} onValueChange={go} className="gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Select value={value} onValueChange={go}>
           <SelectTrigger
             size="sm"
             className="flex w-fit @3xl/main:hidden"
             aria-label={label}
           >
-            <SelectValue />
+            <SelectValue>
+              {tabs.find((tab) => tab.value === value)?.label}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {tabs.map((tab) => (

@@ -325,7 +325,13 @@ function CatalogSection({
               className="sm:w-56"
               aria-label="Department"
             >
-              <SelectValue />
+              <SelectValue>
+                {department === ALL
+                  ? "All departments"
+                  : (catalog.departments.find(
+                      (d) => String(d.id) === department,
+                    )?.name ?? "All departments")}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL}>All departments</SelectItem>
@@ -375,9 +381,9 @@ function CatalogSection({
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-lg border">
+        <div className="overflow-hidden rounded-2xl bg-surface-low">
           <Table>
-            <TableHeader className="bg-muted">
+            <TableHeader className="bg-surface-high">
               <TableRow>
                 <TableHead>Name</TableHead>
                 {kind === "departments" && <TableHead>Short name</TableHead>}

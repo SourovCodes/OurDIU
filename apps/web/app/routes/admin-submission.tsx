@@ -34,6 +34,7 @@ import {
   useFormAction,
 } from "~/components/actions";
 import { AdminPageHeader } from "~/components/admin/admin-header";
+import { ExamBadge } from "~/components/exam-badge";
 import { RejectDialog } from "~/components/admin/reject-dialog";
 import {
   ReportStatusBadge,
@@ -607,7 +608,7 @@ function DetailsCard({ submission }: { submission: AdminSubmissionDetail }) {
         {uploader ? (
           <Link
             to={contributorUrl(uploader.username)}
-            className="-m-2 flex items-center gap-3 rounded-md p-2 transition-colors hover:bg-muted"
+            className="-m-2 flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-surface-high"
           >
             <UserAvatar name={uploader.name} image={uploader.image} />
             <div className="grid min-w-0 text-sm leading-tight">
@@ -736,19 +737,28 @@ export default function AdminSubmission({ loaderData }: Route.ComponentProps) {
 
   return (
     <>
-      <AdminPageHeader
-        title={classification.course.name}
-        description={`${classification.department.name} · ${classificationLine(classification)}`}
-        actions={<DecisionActions submission={submission} />}
-      >
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <SubmissionStatusBadge status={submission.status} />
-          <SubmissionFlags {...submission} />
+      <div className="flex items-start gap-4">
+        <ExamBadge
+          examType={classification.examType.name}
+          size={56}
+          className="mt-1 max-sm:hidden"
+        />
+        <div className="min-w-0 flex-1">
+          <AdminPageHeader
+            title={classification.course.name}
+            description={`${classification.department.name} · ${classificationLine(classification)}`}
+            actions={<DecisionActions submission={submission} />}
+          >
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <SubmissionStatusBadge status={submission.status} />
+              <SubmissionFlags {...submission} />
+            </div>
+          </AdminPageHeader>
         </div>
-      </AdminPageHeader>
+      </div>
 
       {submission.status === "rejected" && (
-        <Alert>
+        <Alert variant="destructive">
           <CircleX />
           <AlertTitle>Rejected</AlertTitle>
           <AlertDescription className="grid gap-2">
@@ -772,7 +782,7 @@ export default function AdminSubmission({ loaderData }: Route.ComponentProps) {
         </Alert>
       )}
       {newEntries.length > 0 && (
-        <Alert>
+        <Alert variant="info">
           <Sparkles />
           <AlertTitle>This paper proposes new catalog entries</AlertTitle>
           <AlertDescription>
@@ -782,7 +792,7 @@ export default function AdminSubmission({ loaderData }: Route.ComponentProps) {
         </Alert>
       )}
       {analysisFlag && (
-        <Alert>
+        <Alert variant="warning">
           <TriangleAlert />
           <AlertTitle>
             {analysisFlag === "not_a_paper"
@@ -796,7 +806,7 @@ export default function AdminSubmission({ loaderData }: Route.ComponentProps) {
         </Alert>
       )}
       {hiddenByReports && (
-        <Alert>
+        <Alert variant="warning">
           <EyeOff />
           <AlertTitle>
             Hidden after {submission.pendingReportCount} reports

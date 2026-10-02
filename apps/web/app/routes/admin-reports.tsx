@@ -210,9 +210,9 @@ export default function AdminReports({ loaderData }: Route.ComponentProps) {
             }
           />
         ) : (
-          <div className="overflow-hidden rounded-lg border">
+          <div className="overflow-hidden rounded-2xl bg-surface-low">
             <Table>
-              <TableHeader className="bg-muted">
+              <TableHeader className="bg-surface-high">
                 <TableRow>
                   <TableHead>Report</TableHead>
                   <TableHead className="hidden @3xl/main:table-cell">

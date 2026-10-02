@@ -326,7 +326,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
             children: [
               if (_pdf case final pdf?) ...[
-                _FileCard(pdf: pdf, onReplace: _sending ? null : _replace),
+                PdfFileCard(pdf: pdf, onReplace: _sending ? null : _replace),
                 const SizedBox(height: 22),
               ],
               Text('Where does it belong?', style: sectionLabel),
@@ -463,8 +463,9 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
   }
 }
 
-class _FileCard extends ConsumerWidget {
-  const _FileCard({required this.pdf, required this.onReplace});
+/// A picked PDF: its first page, name, where it came from, pages and size.
+class PdfFileCard extends ConsumerWidget {
+  const PdfFileCard({super.key, required this.pdf, required this.onReplace});
 
   final PickedPdf pdf;
   final VoidCallback? onReplace;

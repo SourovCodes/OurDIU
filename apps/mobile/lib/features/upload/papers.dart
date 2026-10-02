@@ -133,11 +133,34 @@ final paperSourcesProvider = Provider<PaperSources>(
   (ref) => DevicePaperSources(),
 );
 
-/// Your papers, in every status, newest first; null when signed out.
+/// Your papers, in every status: those a reviewer sent back first, then newest
+/// first; null when signed out.
 final myPapersProvider = FutureProvider<List<MySubmission>?>((ref) async {
   if (ref.watch(sessionTokenProvider) == null) return null;
   final list = await ref.watch(qbApiProvider).account.getApiV1MeSubmissions();
-  return [...list.items]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  int waiting(MySubmission s) =>
+      s.status == SubmissionStatus.changesRequested ? 0 : 1;
+  return [...list.items]..sort(
+    (a, b) => waiting(a) != waiting(b)
+        ? waiting(a) - waiting(b)
+        : b.createdAt.compareTo(a.createdAt),
+  );
+});
+
+/// How many of your papers need you (a reviewer asked for changes, or wrote
+/// something you haven't read), for the Account tab's badge. 0 when signed
+/// out or offline.
+final reviewActivityProvider = FutureProvider<int>((ref) async {
+  if (ref.watch(sessionTokenProvider) == null) return 0;
+  try {
+    final activity = await ref
+        .watch(qbApiProvider)
+        .account
+        .getApiV1MeReviewActivity();
+    return activity.needsAttention;
+  } catch (_) {
+    return 0;
+  }
 });
 
 final myPaperProvider = FutureProvider.family<MySubmissionDetail, int>(
@@ -250,13 +273,7 @@ Future<CreatedSubmission> uploadPaper(
   final form = FormData.fromMap({
     for (final MapEntry(:key, :value) in details.toFields().entries)
       key: '$value',
-    'file': MultipartFile.fromFileSync(
-      pdf.path,
-      filename: pdf.name.toLowerCase().endsWith('.pdf')
-          ? pdf.name
-          : '${pdf.name}.pdf',
-      contentType: DioMediaType('application', 'pdf'),
-    ),
+    'file': _pdfPart(pdf),
   });
   final res = await dio.post<Map<String, Object?>>(
     '/api/v1/submissions',
@@ -267,6 +284,32 @@ Future<CreatedSubmission> uploadPaper(
   );
   return CreatedSubmission.fromJson(res.data!);
 }
+
+/// Replaces the PDF of one of your papers, reporting progress from 0 to 1.
+Future<MySubmissionDetail> replacePaperFile(
+  Dio dio,
+  int id,
+  PickedPdf pdf, {
+  void Function(double progress)? onProgress,
+}) async {
+  final form = FormData.fromMap({'file': _pdfPart(pdf)});
+  final res = await dio.put<Map<String, Object?>>(
+    '/api/v1/me/submissions/$id/file',
+    data: form,
+    onSendProgress: onProgress == null
+        ? null
+        : (sent, total) => onProgress(sent / (total > 0 ? total : 1)),
+  );
+  return MySubmissionDetail.fromJson(res.data!);
+}
+
+MultipartFile _pdfPart(PickedPdf pdf) => MultipartFile.fromFileSync(
+  pdf.path,
+  filename: pdf.name.toLowerCase().endsWith('.pdf')
+      ? pdf.name
+      : '${pdf.name}.pdf',
+  contentType: DioMediaType('application', 'pdf'),
+);
 
 /// The message an API error carries, if any.
 String? apiErrorMessage(Object error) => switch (error) {

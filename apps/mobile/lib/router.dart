@@ -14,6 +14,7 @@ import 'features/search/search_screen.dart';
 import 'features/upload/my_papers_screen.dart';
 import 'features/upload/paper_screen.dart';
 import 'features/upload/papers.dart';
+import 'features/upload/review_thread.dart';
 import 'features/upload/upload_screen.dart';
 import 'shell/app_shell.dart';
 import 'spaces/choose_screen.dart';
@@ -162,6 +163,12 @@ GoRouter buildRouter({String initialLocation = '/home'}) => GoRouter(
                           builder: (context, state) => UploadScreen(
                             editing: state.extra! as MySubmissionDetail,
                           ),
+                        ),
+                        GoRoute(
+                          parentNavigatorKey: _rootKey,
+                          path: 'messages',
+                          builder: (context, state) =>
+                              MessagesScreen(id: _id(state)),
                         ),
                       ],
                     ),

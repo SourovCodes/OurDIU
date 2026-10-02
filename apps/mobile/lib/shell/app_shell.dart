@@ -24,9 +24,17 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell> {
   StreamSubscription<PickedPdf>? _shared;
 
+  /// Back in the app: a reviewer may have written in the meantime.
+  late final _lifecycle = AppLifecycleListener(
+    onResume: () => ref
+      ..invalidate(reviewActivityProvider)
+      ..invalidate(myPapersProvider),
+  );
+
   @override
   void initState() {
     super.initState();
+    _lifecycle;
     final shared = ref.read(sharedPdfsProvider);
     _shared = shared.incoming.listen(_open);
     // After the first frame, so the sign-in sheet has somewhere to open.
@@ -38,6 +46,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   void dispose() {
     _shared?.cancel();
+    _lifecycle.dispose();
     super.dispose();
   }
 
@@ -59,32 +68,44 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   Widget build(BuildContext context) {
     final shell = widget.shell;
+    final needsYou = ref.watch(reviewActivityProvider).value ?? 0;
     return Scaffold(
       body: shell,
       bottomNavigationBar: NavigationBar(
         selectedIndex: shell.currentIndex,
         onDestinationSelected: (i) =>
             shell.goBranch(i, initialLocation: i == shell.currentIndex),
-        destinations: const [
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home_rounded),
             label: 'Home',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.explore_outlined),
             selectedIcon: Icon(Icons.explore_rounded),
             label: 'Browse',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.bookmarks_outlined),
             selectedIcon: Icon(Icons.bookmarks_rounded),
             label: 'Saved',
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
+            icon: Badge.count(
+              count: needsYou,
+              isLabelVisible: needsYou > 0,
+              child: const Icon(Icons.person_outline_rounded),
+            ),
+            selectedIcon: Badge.count(
+              count: needsYou,
+              isLabelVisible: needsYou > 0,
+              child: const Icon(Icons.person_rounded),
+            ),
             label: 'Account',
+            tooltip: needsYou > 0
+                ? 'Account, ${needsYou == 1 ? '1 paper needs' : '$needsYou papers need'} you'
+                : null,
           ),
         ],
       ),

@@ -17,6 +17,16 @@ void main() {
     expect(shortDate(DateTime(2026, 9, 25, 12)), '25 Sep 2026');
   });
 
+  test('says how long ago, then the date', () {
+    final now = DateTime(2026, 10, 2, 12);
+    String ago(Duration d) => timeAgo(now.subtract(d), now: now);
+    expect(ago(const Duration(seconds: 20)), 'just now');
+    expect(ago(const Duration(minutes: 5)), '5 min');
+    expect(ago(const Duration(hours: 3)), '3 h');
+    expect(ago(const Duration(days: 2)), '2 d');
+    expect(ago(const Duration(days: 9)), '23 Sep 2026');
+  });
+
   test(
     'orders semesters newest first: year, then Fall, Summer, Spring, Short',
     () {

@@ -4,20 +4,24 @@ import 'package:go_router/go_router.dart';
 import '../../api/generated/export.dart';
 import '../../data/format.dart';
 import '../../theme/exam_shape.dart';
+import '../../theme/theme.dart';
 import 'review.dart';
 
 /// The container and content colours for a stage, from the exam palette:
 /// indigo while checking, green when live, yellow while waiting, pink when not
-/// published.
+/// published; sky blue when a reviewer asked for changes.
 (Color, Color) stageColors(BuildContext context, PaperStage stage) =>
-    examColors(context, switch (stage) {
-      PaperStage.checking => ExamKind.finalExam,
-      PaperStage.published => ExamKind.lab,
-      PaperStage.checkDetails || PaperStage.waiting => ExamKind.quiz,
-      PaperStage.rejected => ExamKind.midterm,
-    });
+    stage == PaperStage.needsChanges
+    ? ExamColors.of(context).changes
+    : examColors(context, switch (stage) {
+        PaperStage.checking => ExamKind.finalExam,
+        PaperStage.published => ExamKind.lab,
+        PaperStage.rejected => ExamKind.midterm,
+        _ => ExamKind.quiz,
+      });
 
 String stageLabel(PaperStage stage) => switch (stage) {
+  PaperStage.needsChanges => 'Needs changes',
   PaperStage.checking => 'Checking',
   PaperStage.published => 'Published',
   PaperStage.checkDetails => 'Check details',
@@ -120,17 +124,55 @@ class MyPaperRow extends StatelessWidget {
                 spacing: 4,
                 children: [
                   StatusPill(stage),
-                  Text(
-                    stage == PaperStage.published
-                        ? plural(paper.viewCount, 'view')
-                        : shortDate(paper.createdAt),
-                    style: theme.textTheme.bodySmall?.copyWith(color: muted),
-                  ),
+                  if (paper.unread > 0)
+                    UnreadLabel(paper.unread)
+                  else
+                    Text(
+                      stage == PaperStage.published
+                          ? plural(paper.viewCount, 'view')
+                          : shortDate(paper.createdAt),
+                      style: theme.textTheme.bodySmall?.copyWith(color: muted),
+                    ),
                 ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// "2 new": review messages you haven't read, with a dot.
+class UnreadLabel extends StatelessWidget {
+  const UnreadLabel(this.count, {super.key});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return Semantics(
+      label: plural(count, 'new message'),
+      excludeSemantics: true,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        spacing: 5,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: primary, shape: BoxShape.circle),
+          ),
+          Text(
+            '$count new',
+            style: TextStyle(
+              color: primary,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }

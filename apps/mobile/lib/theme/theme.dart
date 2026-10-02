@@ -80,7 +80,8 @@ const _dark = ColorScheme(
   surfaceTint: Color(0xFFC5BFFF),
 );
 
-/// Container and content colours for each exam type (see `exam_shape.dart`).
+/// Container and content colours for each exam type (see `exam_shape.dart`),
+/// plus [changes], for papers a reviewer sent back (the website's sky blue).
 @immutable
 class ExamColors extends ThemeExtension<ExamColors> {
   const ExamColors({
@@ -88,18 +89,21 @@ class ExamColors extends ThemeExtension<ExamColors> {
     required this.midterm,
     required this.quiz,
     required this.lab,
+    required this.changes,
   });
 
   final (Color, Color) finalExam;
   final (Color, Color) midterm;
   final (Color, Color) quiz;
   final (Color, Color) lab;
+  final (Color, Color) changes;
 
   static const light = ExamColors(
     finalExam: (Color(0xFFE3DFFF), Color(0xFF2A1CA3)),
     midterm: (Color(0xFFFFD9E3), Color(0xFF7A1F41)),
     quiz: (Color(0xFFFFE08F), Color(0xFF5A4200)),
     lab: (Color(0xFFB9F0E3), Color(0xFF00493D)),
+    changes: (Color(0xFFCFE5FF), Color(0xFF003355)),
   );
 
   static const dark = ExamColors(
@@ -107,6 +111,7 @@ class ExamColors extends ThemeExtension<ExamColors> {
     midterm: (Color(0xFF6E2440), Color(0xFFFFD9E3)),
     quiz: (Color(0xFF5A4400), Color(0xFFFFE08F)),
     lab: (Color(0xFF005145), Color(0xFFB9F0E3)),
+    changes: (Color(0xFF004A77), Color(0xFFCFE5FF)),
   );
 
   static ExamColors of(BuildContext context) =>
@@ -125,6 +130,7 @@ class ExamColors extends ThemeExtension<ExamColors> {
       midterm: mix(midterm, other.midterm),
       quiz: mix(quiz, other.quiz),
       lab: mix(lab, other.lab),
+      changes: mix(changes, other.changes),
     );
   }
 }

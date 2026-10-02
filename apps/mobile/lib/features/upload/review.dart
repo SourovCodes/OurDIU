@@ -3,6 +3,9 @@
 import '../../api/generated/export.dart';
 
 enum PaperStage {
+  /// A reviewer asked for changes: it waits for you to fix it and resubmit.
+  needsChanges,
+
   /// The AI check is still running.
   checking,
   published,
@@ -35,6 +38,9 @@ bool proposesNewEntries(SubmissionClassification c) =>
 PaperStage stageOf(PaperState paper) {
   if (paper.status == SubmissionStatus.published) return PaperStage.published;
   if (paper.status == SubmissionStatus.rejected) return PaperStage.rejected;
+  if (paper.status == SubmissionStatus.changesRequested) {
+    return PaperStage.needsChanges;
+  }
   final analysis = paper.analysis;
   if (analysis == null) return PaperStage.waiting;
   return switch (analysis.status) {
@@ -56,6 +62,9 @@ String stageDescription(
 }) {
   final flag = paper.analysis?.flag;
   return switch (stageOf(paper)) {
+    PaperStage.needsChanges =>
+      'Fix what the reviewer asked, or write to them if something is '
+          'unclear. Then resubmit it.',
     PaperStage.checking =>
       'The AI is reading the header to confirm the course, exam and semester. '
           'This usually takes less than a minute; you can leave this page.',
@@ -217,3 +226,8 @@ ApiV1MeSubmissionsIdClassificationRequestBody aiDetails(
     batch: batch,
   );
 }
+
+/// Whether you can still change a paper's details and file.
+bool canEdit(SubmissionStatus status) =>
+    status == SubmissionStatus.pendingReview ||
+    status == SubmissionStatus.changesRequested;

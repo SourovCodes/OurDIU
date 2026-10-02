@@ -118,7 +118,10 @@ Phases (tick as they land):
 - [x] API: `changes_requested` status and `submission_messages` (migrations 0010–0011); `PATCH /admin/submissions/{id}` asks for changes (reason required) and records every decision; `POST /admin/submissions/{id}/messages`; `POST /me/submissions/{id}/messages`, `/resubmit`, `PUT /me/submissions/{id}/file`; details editable while pending or waiting for changes; `GET /me/review-activity` for the badge; `MESSAGE_LIMITER` (namespace 2005, 10 a minute) on messages and resubmits, uploads' limiter on file replacements. Integration tests in `apps/api/test/review.test.ts`.
 - [x] Website: "Request changes" (presets in `CHANGE_REQUEST_PRESETS`) on the review page and in the list's row menu, a "Needs changes" tab, "New reply" badges, the conversation under the PDF; for the uploader, the "reviewer asked for changes" card (Edit details, Replace file, Resubmit), the messages, a banner and tab on My submissions, and a dot on the account menu. Privacy page updated. e2e: the whole loop in `admin.spec.ts`.
 - [x] App's generated client regenerated (the old app shows a paper waiting for changes as "Waiting for review" and can't edit it there).
-- [ ] App: mock up, then build, the paper screen's "Needs changes" state, the messages, replace file and resubmit, and the badge on My papers.
+- [x] Website and API released (PR #8, 2 October 2026; CI applied migrations 0010–0011 to production).
+- [x] App mockups approved (<https://claude.ai/artifact/QL4ymgNWGPLG98uYZu87w3>) and built: a "Needs changes" stage in the website's sky blue (`ExamColors.changes`), the paper screen's "Needs your changes" hero quoting the request with Replace file and Edit details, "Resubmit for review", the newest messages on the paper and a Messages screen (`/account/papers/:id/messages`), Replace file and Resubmit sheets, a banner and filter on My papers, "N new" on paper rows, and a count on the Account tab (refreshed when the app comes back to the foreground). Widget tests in `test/review_flow_test.dart`.
+- [ ] Release it in the next `mobile-v*` tag.
+- [ ] Later, if wanted: push notifications (Firebase Cloud Messaging) when a reviewer writes.
 - [ ] Later, if wanted: email the uploader when a reviewer asks for changes or writes (Cloudflare Email Sending; legal pages to update).
 
 ### Phase 2 – One app

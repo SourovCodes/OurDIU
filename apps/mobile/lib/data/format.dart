@@ -62,6 +62,16 @@ String shortDate(DateTime date) {
   return '${d.day} ${_months[d.month - 1]} ${d.year}';
 }
 
+/// How long ago, shortly: "just now", "5 min", "3 h", "2 d", then the date.
+String timeAgo(DateTime date, {DateTime? now}) {
+  final elapsed = (now ?? DateTime.now()).difference(date);
+  if (elapsed.inMinutes < 1) return 'just now';
+  if (elapsed.inHours < 1) return '${elapsed.inMinutes} min';
+  if (elapsed.inDays < 1) return '${elapsed.inHours} h';
+  if (elapsed.inDays < 7) return '${elapsed.inDays} d';
+  return shortDate(date);
+}
+
 /// 272499 → "266 KB", 2400000 → "2.3 MB".
 String fileSize(int bytes) => bytes < 1024 * 1024
     ? '${(bytes / 1024).round()} KB'

@@ -4,7 +4,6 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { Toaster } from "~/components/ui/sonner";
 import { androidInvite, DISMISSED_COOKIE } from "~/lib/android-app";
 import {
-  AndroidBetaBanner,
   AndroidBetaLink,
   AndroidBetaStrip,
   useDownloadInvite,
@@ -15,10 +14,13 @@ const ANDROID =
 const IPHONE =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
 
+const DESKTOP =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36";
+
 /** Renders under a root route that decides like the real one, from the request. */
 function renderOn(
   userAgent: string,
-  Component: () => React.ReactNode = AndroidBetaBanner,
+  Component: () => React.ReactNode = AndroidBetaStrip,
   path = "/",
 ) {
   const request = new Request("http://localhost/", {
@@ -48,69 +50,49 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-it("invites Android visitors to become testers", async () => {
-  renderOn(ANDROID);
-  expect(
-    await screen.findByRole("link", { name: "Become a tester" }),
-  ).toHaveProperty("pathname", "/app");
-});
-
-it("stays away from other devices", async () => {
-  renderOn(IPHONE);
-  await settle();
-  expect(screen.queryByText("Try the OurDIU Android app early")).toBeNull();
-});
-
-it("stays dismissed for 30 days", async () => {
-  const set = vi.spyOn(document, "cookie", "set");
-  renderOn(ANDROID);
-  (await screen.findByRole("button", { name: "Dismiss" })).click();
-  await vi.waitFor(() =>
-    expect(screen.queryByText("Try the OurDIU Android app early")).toBeNull(),
-  );
-  expect(set).toHaveBeenCalledWith(
-    expect.stringMatching(/^ourdiu_android_invite=dismissed; Max-Age=2592000;/),
-  );
-  set.mockRestore();
+it("invites every visitor, on every page but the app's own", async () => {
+  for (const userAgent of [ANDROID, IPHONE, DESKTOP]) {
+    for (const path of ["/", "/questions/42", "/about"]) {
+      cleanup();
+      renderOn(userAgent, AndroidBetaStrip, path);
+      expect(
+        await screen.findByRole("link", { name: "become a tester" }),
+      ).toHaveProperty("pathname", "/app");
+    }
+  }
 
   cleanup();
-  renderOn(ANDROID);
+  renderOn(DESKTOP, AndroidBetaStrip, "/app");
   await settle();
-  expect(screen.queryByText("Try the OurDIU Android app early")).toBeNull();
+  expect(screen.queryByRole("complementary")).toBeNull();
 });
 
-it("links signed-in Android visitors from the account page", async () => {
-  renderOn(ANDROID, () => <AndroidBetaLink />);
-  expect(
-    await screen.findByRole("link", { name: "Become a tester" }),
-  ).toHaveProperty("pathname", "/app");
-});
-
-it("shows the strip on Question Bank pages, not your papers", async () => {
-  renderOn(ANDROID, AndroidBetaStrip, "/questions/42");
-  expect(
-    await screen.findByRole("link", { name: "become a tester" }),
-  ).toHaveProperty("pathname", "/app");
-
-  for (const path of ["/questions/my-submissions", "/about"]) {
-    cleanup();
-    renderOn(ANDROID, AndroidBetaStrip, path);
-    await settle();
-    expect(screen.queryByRole("complementary")).toBeNull();
-  }
-});
-
-it("closing the strip hides the banner too", async () => {
-  renderOn(ANDROID, AndroidBetaStrip, "/questions/42");
+it("stays closed once closed", async () => {
+  const set = vi.spyOn(document, "cookie", "set");
+  renderOn(DESKTOP, AndroidBetaStrip, "/questions/42");
   (await screen.findByRole("button", { name: "Dismiss" })).click();
   await vi.waitFor(() =>
     expect(screen.queryByRole("complementary")).toBeNull(),
   );
+  expect(set).toHaveBeenCalledWith(
+    expect.stringMatching(
+      /^ourdiu_android_invite=dismissed; Max-Age=34560000;/,
+    ),
+  );
+  set.mockRestore();
 
   cleanup();
-  renderOn(ANDROID);
+  renderOn(DESKTOP, AndroidBetaStrip, "/");
   await settle();
-  expect(screen.queryByText("Try the OurDIU Android app early")).toBeNull();
+  expect(screen.queryByRole("complementary")).toBeNull();
+});
+
+it("still links to the app from the account page after closing", async () => {
+  document.cookie = `${DISMISSED_COOKIE}=dismissed; Path=/`;
+  renderOn(DESKTOP, () => <AndroidBetaLink />);
+  expect(
+    await screen.findByRole("link", { name: "Become a tester" }),
+  ).toHaveProperty("pathname", "/app");
 });
 
 function DownloadButton() {
@@ -138,4 +120,12 @@ it("invites Android readers to the app on their first download of a visit", asyn
   expect(
     screen.getAllByText("Read papers offline in the OurDIU app"),
   ).toHaveLength(1);
+});
+
+it("keeps the download invitation to Android readers", async () => {
+  renderOn(DESKTOP, DownloadButton);
+  (await screen.findByRole("button", { name: "Download" })).click();
+  await settle();
+  // The once-a-visit invitation is still unused.
+  expect(sessionStorage.length).toBe(0);
 });

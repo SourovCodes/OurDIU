@@ -65,7 +65,7 @@ const PREFERENCES: CookieRow[] = [
     names: ["ourdiu_android_invite"],
     purpose:
       "Set if you close the invitation to test the Android app, so it stays closed.",
-    lasts: "30 days",
+    lasts: "400 days",
   },
   {
     names: ["qb_views_q", "qb_views_s"],

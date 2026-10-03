@@ -62,6 +62,7 @@ const NAV_ITEMS: Record<Product["id"], NavItem[]> = {
     { to: "/questions/browse", label: "All papers" },
     { to: "/questions/contributors", label: "Contributors" },
   ],
+  // Its home (/routine) is the section search; sections are found from there.
   routine: [],
   market: [],
 };

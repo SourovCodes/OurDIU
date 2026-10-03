@@ -1,4 +1,6 @@
 import {
+  CalendarClock,
+  FileJson,
   GraduationCap,
   EllipsisVertical,
   ExternalLink,
@@ -219,6 +221,21 @@ export function AdminSidebar({ user, counts, ...props }: AdminSidebarProps) {
               title: "Catalog",
               url: "/admin/questions/catalog",
               icon: FolderTree,
+            },
+          ]}
+        />
+        <NavGroup
+          label="Class Routine"
+          items={[
+            {
+              title: "Versions",
+              url: "/admin/routine/versions",
+              icon: CalendarClock,
+            },
+            {
+              title: "File format",
+              url: "/admin/routine/format",
+              icon: FileJson,
             },
           ]}
         />

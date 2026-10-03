@@ -43,6 +43,19 @@ for (const key of keys) {
   ]);
 }
 
+// The live routine version's uploaded file.
+wrangler([
+  "r2",
+  "object",
+  "put",
+  `${bucket}/routine/versions/seed-cse-4.1.json`,
+  "--file",
+  path.join(import.meta.dirname, "routine-cse-4.1.json"),
+  "--content-type",
+  "application/json",
+  "--local",
+]);
+
 const size = statSync(samplePdf).size;
 wrangler([
   "d1",
@@ -53,4 +66,6 @@ wrangler([
   `UPDATE submissions SET file_size = ${size} WHERE file_key LIKE 'submissions/seed-%'`,
 ]);
 
-console.log(`Seeded local D1 and uploaded ${keys.size} sample PDFs to R2.`);
+console.log(
+  `Seeded local D1 and uploaded ${keys.size} sample PDFs and a routine file to R2.`,
+);

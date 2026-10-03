@@ -1,4 +1,4 @@
--- Sample data for local development only. Re-running replaces all question data.
+-- Sample data for local development only. Re-running replaces all question and routine data.
 -- Applied by `pnpm db:seed` (seeds/seed-local.mjs), which also uploads the PDFs to local R2.
 -- Timestamps are Unix milliseconds.
 
@@ -15,6 +15,10 @@ DELETE FROM courses;
 DELETE FROM departments;
 DELETE FROM semesters;
 DELETE FROM exam_types;
+DELETE FROM routine_classes;
+DELETE FROM routine_versions;
+DELETE FROM routine_courses;
+DELETE FROM routine_teachers;
 DELETE FROM "user" WHERE id LIKE 'seed-user-%';
 -- Accounts created by e2e tests and local previews (sessions and accounts cascade).
 DELETE FROM "user" WHERE email LIKE '%@example.com' OR id LIKE 'e2e-pool-%';
@@ -182,3 +186,34 @@ UPDATE submissions SET view_count = CASE id
   WHEN 4 THEN 152
   ELSE 12 + length(file_key) END
 WHERE status = 'published';
+
+-- The Class Routine: CSE v4.1, live, with two sections (seeds/routine-cse-4.1.json,
+-- which seed-local.mjs uploads as the version's file). Course titles are illustrative.
+INSERT INTO routine_versions (id, department, version, published_on, source, status, file_key, slots, courses, teachers, warnings, section_count, class_count, uploaded_by, live_at, created_at, updated_at) VALUES
+  (1, 'CSE', '4.1', '2026-10-02', 'https://webbackend.daffodilvarsity.edu.bd/noticeFile/cse-class-routine-v41.pdf', 'live', 'routine/versions/seed-cse-4.1.json', '[{"start":"08:30","end":"10:00"},{"start":"10:00","end":"11:30"},{"start":"11:30","end":"13:00"},{"start":"13:00","end":"14:30"},{"start":"14:30","end":"16:00"},{"start":"16:00","end":"17:30"}]', '{"CSE315":"Software Engineering","CSE317":"Microprocessor and Microcontrollers","CSE321":"Computer Networks","CSE322":"Computer Networks Lab","ACT327":"Financial and Managerial Accounting","CSE413":"Compiler Design","CSE431":"Artificial Intelligence","CSE432":"Artificial Intelligence Lab"}', '{}', '[]', 2, 16, 'seed-user-admin', 1791000000000, 1791000000000, 1791000000000);
+INSERT INTO routine_classes (version_id, day, start, "end", course, section, lab_group, room, room_type, teacher) VALUES
+  (1, 'SAT', 780, 870, 'CSE321', '67_B', NULL, 'KT-222', NULL, 'STA'),
+  (1, 'SAT', 870, 960, 'ACT327', '67_B', NULL, 'KT-318(B)', NULL, 'IK'),
+  (1, 'SUN', 600, 690, 'CSE315', '67_B', NULL, 'KT-213', NULL, 'AS'),
+  (1, 'SUN', 690, 780, 'CSE317', '67_B', NULL, 'KT-501(A)', 'lab', 'MRR'),
+  (1, 'MON', 510, 690, 'CSE322', '67_B', 'B2', 'G1-017', 'lab', 'STA'),
+  (1, 'MON', 690, 780, 'CSE315', '67_B', NULL, 'KT-208', NULL, 'AS'),
+  (1, 'MON', 870, 1050, 'CSE322', '67_B', 'B1', 'G1-014', 'lab', 'STA'),
+  (1, 'WED', 690, 780, 'ACT327', '67_B', NULL, 'KT-517(A)', NULL, 'IK'),
+  (1, 'WED', 870, 960, 'CSE317', '67_B', NULL, 'KT-518', NULL, 'MRR'),
+  (1, 'WED', 960, 1050, 'CSE321', '67_B', NULL, 'KT-514', NULL, 'STA'),
+  (1, 'SUN', 600, 690, 'CSE431', '65_A', NULL, 'KT-208', NULL, 'SMAH'),
+  (1, 'SUN', 690, 780, 'CSE432', '65_A', NULL, 'KT-504', 'lab', 'SR'),
+  (1, 'SUN', 870, 960, 'CSE413', '65_A', NULL, 'KT-515', NULL, 'THT'),
+  (1, 'MON', 600, 690, 'CSE431', '65_A', NULL, 'KT-503', 'lab', 'SMAH'),
+  (1, 'MON', 690, 780, 'CSE413', '65_A', NULL, 'KT-515', NULL, 'THT'),
+  (1, 'THU', 690, 780, 'CSE432', '65_A', NULL, 'KT-504', 'lab', 'SR');
+INSERT INTO routine_courses (code, title) VALUES
+  ('CSE315', 'Software Engineering'),
+  ('CSE317', 'Microprocessor and Microcontrollers'),
+  ('CSE321', 'Computer Networks'),
+  ('CSE322', 'Computer Networks Lab'),
+  ('ACT327', 'Financial and Managerial Accounting'),
+  ('CSE413', 'Compiler Design'),
+  ('CSE431', 'Artificial Intelligence'),
+  ('CSE432', 'Artificial Intelligence Lab');

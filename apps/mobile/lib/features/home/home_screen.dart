@@ -28,6 +28,7 @@ class HomeScreen extends ConsumerWidget {
   Future<void> _refresh(WidgetRef ref) async {
     ref
       ..invalidate(taxonomyProvider)
+      ..invalidate(trendingCoursesProvider)
       ..invalidate(questionPageProvider);
     await ref.read(questionPageProvider((newestQuestions, 1)).future);
   }
@@ -38,6 +39,10 @@ class HomeScreen extends ConsumerWidget {
     final popular = ref.watch(questionPageProvider((popularQuestions, 1)));
     final trending = ref.watch(questionPageProvider((trendingQuestions, 1)));
     final newest = ref.watch(questionPageProvider((newestQuestions, 1)));
+    // Optional: on a quiet day, or if it fails, the section is left out.
+    final todaysCourses =
+        ref.watch(trendingCoursesProvider).value?.items ??
+        const <TrendingCourse>[];
 
     final error = [
       taxonomy,
@@ -121,6 +126,12 @@ class HomeScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             _MostViewed(questions: mostViewed, today: today),
+            if (todaysCourses.length >= 4) ...[
+              const SizedBox(height: 20),
+              const SectionHeader('Most viewed courses today'),
+              const SizedBox(height: 8),
+              _CoursesToday(courses: todaysCourses.take(6).toList()),
+            ],
             const SizedBox(height: 20),
             const ShareCard(),
             const SizedBox(height: 20),
@@ -268,6 +279,53 @@ class _MostViewed extends StatelessWidget {
         onTap: (i) => openQuestion(context, items[i]),
         children: [for (final q in items) _CarouselCard(q, today: today)],
       ),
+    );
+  }
+}
+
+/// The courses most viewed today, ranked, as on the website's home.
+class _CoursesToday extends StatelessWidget {
+  const _CoursesToday({required this.courses});
+
+  final List<TrendingCourse> courses;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return RowGroup(
+      children: [
+        for (final (i, course) in courses.indexed)
+          Material(
+            color: scheme.surfaceContainerLow,
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: scheme.primaryContainer,
+                foregroundColor: scheme.onPrimaryContainer,
+                child: Text(
+                  '${i + 1}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ),
+              title: Text(
+                course.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                '${course.department.shortName} · '
+                '${compactCount(course.viewsToday)} views today',
+              ),
+              trailing: Icon(
+                Icons.chevron_right_rounded,
+                color: scheme.onSurfaceVariant,
+              ),
+              onTap: () => context.push('/home/courses/${course.id}'),
+            ),
+          ),
+      ],
     );
   }
 }

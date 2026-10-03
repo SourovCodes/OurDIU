@@ -54,6 +54,21 @@ export const courseListItemSchema = courseSchema
   .meta({ id: "CourseListItem" });
 export type CourseListItem = z.infer<typeof courseListItemSchema>;
 
+/** A course among the most viewed today, with its department's names. */
+export const trendingCourseSchema = courseListItemSchema
+  .extend({
+    department: departmentSchema,
+    /** Views of the course's exam pages in the last 24 hours. */
+    viewsToday: z.number().int(),
+  })
+  .meta({ id: "TrendingCourse" });
+export type TrendingCourse = z.infer<typeof trendingCourseSchema>;
+
+export const trendingCourseListSchema = listSchema(trendingCourseSchema).meta({
+  id: "TrendingCourseList",
+});
+export type TrendingCourseList = z.infer<typeof trendingCourseListSchema>;
+
 export const departmentListSchema = listSchema(departmentListItemSchema).meta({
   id: "DepartmentList",
 });

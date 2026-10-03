@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "ab3f1a6e-9f0c-4389-ac81-4eb345e2b578",
+  "id": "591eb342-7196-4ed9-8424-7a3e62a626fa",
   "prevId": "aa7c7428-2de2-483a-92b0-93b82456dccd",
   "tables": {
     "submission_analyses": {
@@ -1110,6 +1110,52 @@
           "value": "\"submission_votes\".\"value\" in (1, -1)"
         }
       }
+    },
+    "trending_courses": {
+      "name": "trending_courses",
+      "columns": {
+        "course_id": {
+          "name": "course_id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "views": {
+          "name": "views",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "trending_courses_views_idx": {
+          "name": "trending_courses_views_idx",
+          "columns": [
+            "views"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "trending_courses_course_id_courses_id_fk": {
+          "name": "trending_courses_course_id_courses_id_fk",
+          "tableFrom": "trending_courses",
+          "tableTo": "courses",
+          "columnsFrom": [
+            "course_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     },
     "trending_questions": {
       "name": "trending_questions",

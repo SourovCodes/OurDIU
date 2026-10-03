@@ -136,6 +136,73 @@
           "items"
         ]
       },
+      "TrendingCourseList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrendingCourse"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "TrendingCourse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "name": {
+            "type": "string"
+          },
+          "departmentId": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "publishedCount": {
+            "type": "integer"
+          },
+          "department": {
+            "$ref": "#/components/schemas/Department"
+          },
+          "viewsToday": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "departmentId",
+          "publishedCount",
+          "department",
+          "viewsToday"
+        ]
+      },
+      "Department": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "name": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "shortName"
+        ]
+      },
       "CourseList": {
         "type": "object",
         "properties": {
@@ -300,26 +367,6 @@
           "submissionCounts",
           "viewCount",
           "viewsToday"
-        ]
-      },
-      "Department": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "exclusiveMinimum": 0
-          },
-          "name": {
-            "type": "string"
-          },
-          "shortName": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "shortName"
         ]
       },
       "QuestionCourse": {
@@ -1942,6 +1989,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DepartmentList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/courses/trending": {
+      "get": {
+        "tags": [
+          "Taxonomy"
+        ],
+        "summary": "List the courses whose exams were viewed most in the last 24 hours",
+        "description": "Most views first, at most 20; refreshed every 10 minutes. Empty when nothing was viewed.",
+        "responses": {
+          "200": {
+            "description": "Courses viewed most today",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrendingCourseList"
                 }
               }
             }

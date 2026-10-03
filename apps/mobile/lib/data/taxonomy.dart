@@ -3,6 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/api.dart';
 import '../api/generated/export.dart';
 
+/// The courses whose exams were viewed most in the last 24 hours (the server's
+/// top 20, refreshed every 10 minutes).
+final trendingCoursesProvider = FutureProvider<TrendingCourseList>(
+  (ref) => ref.watch(qbApiProvider).taxonomy.getApiV1CoursesTrending(),
+);
+
 /// Departments, courses, semesters and exam types, loaded once per app session
 /// (one request, like the site's `loadTaxonomy`).
 final taxonomyProvider = FutureProvider<Taxonomy>(

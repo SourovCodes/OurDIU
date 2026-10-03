@@ -1,4 +1,4 @@
-import type { QuestionList } from "@ourdiu/shared";
+import type { QuestionList, TrendingCourseList } from "@ourdiu/shared";
 import { createScheduledController } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { asc, eq } from "drizzle-orm";
@@ -8,6 +8,7 @@ import {
   questionViewHours,
   semesters,
   submissions,
+  trendingCourses,
   trendingQuestions,
 } from "../src/db/schema";
 import worker from "../src/index";
@@ -79,6 +80,7 @@ const listTrending = async (query = "") =>
 async function clearViews() {
   await db().delete(questionViewHours);
   await db().delete(trendingQuestions);
+  await db().delete(trendingCourses);
 }
 
 describe("recordQuestionView", () => {
@@ -219,5 +221,55 @@ describe("GET /api/v1/questions?sort=trending", () => {
     const byId = new Map(newest.items.map((q) => [q.id, q.viewsToday]));
     expect(byId.get(first.id)).toBe(7);
     expect(byId.get(unviewed.id)).toBeNull();
+  });
+});
+
+describe("GET /api/v1/courses/trending", () => {
+  it("adds up each course's exams viewed today, most views first", async () => {
+    await clearViews();
+    const algorithmsFinal = await seedExam();
+    const algorithmsMidterm = await seedExam();
+    const circuits = await seedExam({
+      departmentId: t.eee.id,
+      courseId: t.circuits.id,
+    });
+    const pendingOnly = await seedExam({ published: false });
+    await setViews(algorithmsFinal.id, { 0: 2 });
+    await setViews(algorithmsMidterm.id, { 5: 3 });
+    await setViews(circuits.id, { 1: 4, [TRENDING_HOURS]: 100 });
+    // An exam without a published paper doesn't count for its course.
+    await setViews(pendingOnly.id, { 0: 50 });
+    await refreshTrending(db());
+
+    const { items } = await (
+      await api("/api/v1/courses/trending")
+    ).json<TrendingCourseList>();
+    expect(items).toEqual([
+      {
+        id: t.algorithms.id,
+        name: t.algorithms.name,
+        departmentId: t.cse.id,
+        publishedCount: expect.any(Number),
+        department: t.cse,
+        viewsToday: 5,
+      },
+      {
+        id: t.circuits.id,
+        name: t.circuits.name,
+        departmentId: t.eee.id,
+        publishedCount: expect.any(Number),
+        department: t.eee,
+        viewsToday: 4,
+      },
+    ]);
+  });
+
+  it("is empty when nothing was viewed today", async () => {
+    await clearViews();
+    await refreshTrending(db());
+    expect(
+      (await (await api("/api/v1/courses/trending")).json<TrendingCourseList>())
+        .items,
+    ).toEqual([]);
   });
 });

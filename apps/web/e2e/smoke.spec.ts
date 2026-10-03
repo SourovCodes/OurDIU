@@ -1128,3 +1128,21 @@ test("the question bank home shows what was most viewed today", async ({
     page.getByRole("list", { name: "Questions" }).getByRole("link").first(),
   ).toHaveText("Algorithms");
 });
+
+test("the question bank home ranks the courses most viewed today", async ({
+  page,
+}) => {
+  await page.goto("/questions");
+  const courses = page
+    .getByRole("region", { name: "Most viewed courses today" })
+    .getByRole("listitem");
+  await expect(courses).toHaveCount(5);
+  await expect(courses.first()).toContainText("Algorithms");
+  await expect(courses.first()).toContainText("CSE · 40 views today");
+  await expect(async () => {
+    await courses.first().getByRole("link").click();
+    await expect(page).toHaveURL(/\/questions\/courses\/2$/, {
+      timeout: 2_000,
+    });
+  }).toPass();
+});

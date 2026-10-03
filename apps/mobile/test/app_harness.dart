@@ -133,6 +133,7 @@ typedef Lists = Future<QuestionList> Function(QuestionQuery query);
 Future<FakeViewCounter> pumpApp(
   WidgetTester tester, {
   Lists? lists,
+  List<TrendingCourse> trendingCourses = const [],
   Future<QuestionDetail> Function(int id)? questions,
   FakeBackend? backend,
   GoogleAccounts? google,
@@ -160,6 +161,9 @@ Future<FakeViewCounter> pumpApp(
       overrides: [
         prefsProvider.overrideWithValue(preferences),
         taxonomyProvider.overrideWith((ref) async => taxonomy),
+        trendingCoursesProvider.overrideWith(
+          (ref) async => TrendingCourseList(items: trendingCourses),
+        ),
         questionPageProvider.overrideWith(
           (ref, key) => (lists ?? defaultLists)(key.$1),
         ),

@@ -12,6 +12,7 @@ import {
 import { user } from "./auth";
 import { timestamps } from "./columns";
 import { questions, submissions } from "./questions";
+import { courses } from "./taxonomy";
 
 /**
  * One like (1) or dislike (-1) per user per submission. Triggers keep
@@ -125,6 +126,21 @@ export const trendingQuestions = sqliteTable(
     views: integer().notNull(),
   },
   (t) => [index("trending_questions_views_idx").on(t.views)],
+);
+
+/**
+ * The courses whose exams were viewed most in the last 24 hours, with those views,
+ * rebuilt with `trending_questions` by the cron. Never written by anything else.
+ */
+export const trendingCourses = sqliteTable(
+  "trending_courses",
+  {
+    courseId: integer()
+      .primaryKey()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    views: integer().notNull(),
+  },
+  (t) => [index("trending_courses_views_idx").on(t.views)],
 );
 
 export type SubmissionVoteRow = typeof submissionVotes.$inferSelect;

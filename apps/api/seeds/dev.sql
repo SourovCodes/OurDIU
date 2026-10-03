@@ -7,6 +7,7 @@ DELETE FROM submission_votes;
 DELETE FROM submission_analyses;
 DELETE FROM submission_texts;
 DELETE FROM trending_questions;
+DELETE FROM trending_courses;
 DELETE FROM question_view_hours;
 DELETE FROM submissions;
 DELETE FROM questions;
@@ -152,6 +153,9 @@ INSERT INTO question_view_hours (question_id, hour, views) VALUES
   (10, unixepoch() / 3600, 9);
 INSERT INTO trending_questions (question_id, views)
   SELECT question_id, views FROM question_view_hours;
+INSERT INTO trending_courses (course_id, views)
+  SELECT q.course_id, sum(h.views) FROM question_view_hours h
+  JOIN questions q ON q.id = h.question_id GROUP BY q.course_id;
 
 -- Votes; the triggers fill in like_count and dislike_count. Nobody votes on their own paper.
 -- Question 1: #1 scores +2 and stays ranked first, #2 scores 0.

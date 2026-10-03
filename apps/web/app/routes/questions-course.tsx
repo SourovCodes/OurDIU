@@ -15,7 +15,7 @@ import { buttonVariants } from "~/components/ui/button";
 import { apiFetch, readJson } from "~/lib/api.server";
 import { redirectIfMerged } from "~/lib/merged.server";
 import { courseEntries, sameCourses } from "~/lib/courses";
-import { formatCount, formatViews } from "~/lib/format";
+import { formatCount, formatViews, hasLongWord } from "~/lib/format";
 import { plural } from "~/lib/submissions";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
@@ -163,7 +163,14 @@ export default function Course({ loaderData }: Route.ComponentProps) {
           ]}
         />
         <div className="space-y-3">
-          <h1 className="font-display-xl text-5xl text-balance sm:text-7xl">
+          <h1
+            className={cn(
+              "font-display-xl text-balance break-words hyphens-auto",
+              hasLongWord(course.name)
+                ? "text-3xl sm:text-5xl xl:text-7xl"
+                : "text-4xl sm:text-6xl xl:text-7xl",
+            )}
+          >
             {course.name}
           </h1>
           <p className="text-muted-foreground">

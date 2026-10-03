@@ -6,7 +6,7 @@ import { EmptyState } from "~/components/empty-state";
 import { Breadcrumbs } from "~/components/page-header";
 import { byInitial, courseEntries, searchCourses } from "~/lib/courses";
 import { rememberDepartmentCookie } from "~/lib/department-preference";
-import { formatNumber } from "~/lib/format";
+import { formatNumber, hasLongWord } from "~/lib/format";
 import { plural } from "~/lib/submissions";
 import { redirectIfMerged } from "~/lib/merged.server";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
@@ -107,7 +107,14 @@ export default function Department({ loaderData }: Route.ComponentProps) {
 
       <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
         <div className="space-y-3">
-          <h1 className="font-display-xl text-4xl text-balance sm:text-6xl">
+          <h1
+            className={cn(
+              "font-display-xl text-balance break-words hyphens-auto",
+              hasLongWord(department.name)
+                ? "text-3xl sm:text-5xl lg:text-6xl"
+                : "text-4xl sm:text-6xl",
+            )}
+          >
             {department.name}
           </h1>
           <p className="text-muted-foreground">

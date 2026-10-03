@@ -47,3 +47,12 @@ export function niceCeiling(value: number): number {
 export function percent(part: number, total: number): number {
   return total === 0 ? 0 : Math.round((part / total) * 100);
 }
+
+/**
+ * Whether a name has a word too wide for a display heading's usual size on a phone
+ * (14+ letters, like "Microprocessor" or "Entrepreneurship"): such headings step
+ * down a size, so the word fits whole instead of breaking.
+ */
+export function hasLongWord(text: string): boolean {
+  return text.split(/\s+/).some((word) => word.length >= 14);
+}

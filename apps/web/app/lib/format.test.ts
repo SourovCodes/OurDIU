@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatBytes, niceCeiling, percent } from "./format";
+import { formatBytes, hasLongWord, niceCeiling, percent } from "./format";
 
 describe("formatBytes", () => {
   it.each([
@@ -33,5 +33,16 @@ describe("percent", () => {
     expect(percent(1, 3)).toBe(33);
     expect(percent(2, 3)).toBe(67);
     expect(percent(0, 0)).toBe(0);
+  });
+});
+
+describe("hasLongWord", () => {
+  it.each([
+    ["Programming and Problem Solving", false],
+    ["Data Communication", false],
+    ["Microprocessor and Micro-controller", true],
+    ["Entrepreneurship in IT", true],
+  ])("%s: %s", (text, expected) => {
+    expect(hasLongWord(text)).toBe(expected);
   });
 });

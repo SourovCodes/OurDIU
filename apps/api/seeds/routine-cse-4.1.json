@@ -1,0 +1,198 @@
+{
+  "format": 1,
+  "department": "CSE",
+  "version": "4.1",
+  "publishedOn": "2026-10-02",
+  "source": "https://webbackend.daffodilvarsity.edu.bd/noticeFile/cse-class-routine-v41.pdf",
+  "slots": [
+    {
+      "start": "08:30",
+      "end": "10:00"
+    },
+    {
+      "start": "10:00",
+      "end": "11:30"
+    },
+    {
+      "start": "11:30",
+      "end": "13:00"
+    },
+    {
+      "start": "13:00",
+      "end": "14:30"
+    },
+    {
+      "start": "14:30",
+      "end": "16:00"
+    },
+    {
+      "start": "16:00",
+      "end": "17:30"
+    }
+  ],
+  "courses": {
+    "CSE315": "Software Engineering",
+    "CSE317": "Microprocessor and Microcontrollers",
+    "CSE321": "Computer Networks",
+    "CSE322": "Computer Networks Lab",
+    "ACT327": "Financial and Managerial Accounting",
+    "CSE413": "Compiler Design",
+    "CSE431": "Artificial Intelligence",
+    "CSE432": "Artificial Intelligence Lab"
+  },
+  "teachers": {},
+  "classes": [
+    {
+      "day": "SAT",
+      "start": "13:00",
+      "end": "14:30",
+      "course": "CSE321",
+      "section": "67_B",
+      "room": "KT-222",
+      "teacher": "STA"
+    },
+    {
+      "day": "SAT",
+      "start": "14:30",
+      "end": "16:00",
+      "course": "ACT327",
+      "section": "67_B",
+      "room": "KT-318(B)",
+      "teacher": "IK"
+    },
+    {
+      "day": "SUN",
+      "start": "10:00",
+      "end": "11:30",
+      "course": "CSE315",
+      "section": "67_B",
+      "room": "KT-213",
+      "teacher": "AS"
+    },
+    {
+      "day": "SUN",
+      "start": "11:30",
+      "end": "13:00",
+      "course": "CSE317",
+      "section": "67_B",
+      "room": "KT-501(A)",
+      "roomType": "lab",
+      "teacher": "MRR"
+    },
+    {
+      "day": "MON",
+      "start": "08:30",
+      "end": "11:30",
+      "course": "CSE322",
+      "section": "67_B",
+      "labGroup": "B2",
+      "room": "G1-017",
+      "roomType": "lab",
+      "teacher": "STA"
+    },
+    {
+      "day": "MON",
+      "start": "11:30",
+      "end": "13:00",
+      "course": "CSE315",
+      "section": "67_B",
+      "room": "KT-208",
+      "teacher": "AS"
+    },
+    {
+      "day": "MON",
+      "start": "14:30",
+      "end": "17:30",
+      "course": "CSE322",
+      "section": "67_B",
+      "labGroup": "B1",
+      "room": "G1-014",
+      "roomType": "lab",
+      "teacher": "STA"
+    },
+    {
+      "day": "WED",
+      "start": "11:30",
+      "end": "13:00",
+      "course": "ACT327",
+      "section": "67_B",
+      "room": "KT-517(A)",
+      "teacher": "IK"
+    },
+    {
+      "day": "WED",
+      "start": "14:30",
+      "end": "16:00",
+      "course": "CSE317",
+      "section": "67_B",
+      "room": "KT-518",
+      "teacher": "MRR"
+    },
+    {
+      "day": "WED",
+      "start": "16:00",
+      "end": "17:30",
+      "course": "CSE321",
+      "section": "67_B",
+      "room": "KT-514",
+      "teacher": "STA"
+    },
+    {
+      "day": "SUN",
+      "start": "10:00",
+      "end": "11:30",
+      "course": "CSE431",
+      "section": "65_A",
+      "room": "KT-208",
+      "teacher": "SMAH"
+    },
+    {
+      "day": "SUN",
+      "start": "11:30",
+      "end": "13:00",
+      "course": "CSE432",
+      "section": "65_A",
+      "room": "KT-504",
+      "roomType": "lab",
+      "teacher": "SR"
+    },
+    {
+      "day": "SUN",
+      "start": "14:30",
+      "end": "16:00",
+      "course": "CSE413",
+      "section": "65_A",
+      "room": "KT-515",
+      "teacher": "THT"
+    },
+    {
+      "day": "MON",
+      "start": "10:00",
+      "end": "11:30",
+      "course": "CSE431",
+      "section": "65_A",
+      "room": "KT-503",
+      "roomType": "lab",
+      "teacher": "SMAH"
+    },
+    {
+      "day": "MON",
+      "start": "11:30",
+      "end": "13:00",
+      "course": "CSE413",
+      "section": "65_A",
+      "room": "KT-515",
+      "teacher": "THT"
+    },
+    {
+      "day": "THU",
+      "start": "11:30",
+      "end": "13:00",
+      "course": "CSE432",
+      "section": "65_A",
+      "room": "KT-504",
+      "roomType": "lab",
+      "teacher": "SR"
+    }
+  ]
+}

@@ -937,10 +937,10 @@ test("the switcher moves between products", async ({ page }) => {
     }
     await expect(page).toHaveURL(/\/routine$/, { timeout: 2_000 });
   }).toPass();
+  // The seed has a live routine (without one, the page says it's coming soon).
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Class Routine",
+    "Your class routine.",
   );
-  await expect(page.getByText("Class Routine is coming soon")).toBeVisible();
   // The routine's space has no question bank menu.
   await expect(page.getByRole("link", { name: "Share a paper" })).toHaveCount(
     0,

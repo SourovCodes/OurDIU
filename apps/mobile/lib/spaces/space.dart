@@ -115,6 +115,10 @@ enum Space {
         onSecondaryContainer: c.onContainer,
         surfaceTint: c.accent,
       ),
+      // The base theme fixes the tab indicator's colour; a space's tabs take its own.
+      navigationBarTheme: base.navigationBarTheme.copyWith(
+        indicatorColor: c.container,
+      ),
     );
   }
 }

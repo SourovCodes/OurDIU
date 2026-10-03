@@ -2,7 +2,7 @@
 
 pnpm monorepo, one Cloudflare Worker: `apps/web` (React Router SSR) runs `@ourdiu/api` (Hono, a library in `apps/api`) under `/api/*` and its queue handlers. The Worker config (bindings, vars, `.dev.vars`, local state) lives in `apps/web`. See README.md for the architecture and **docs/PLAN.md for the project plan: the decisions, the roadmap and what's in progress. Read it first, and keep it up to date** (tick off steps, record new decisions).
 
-Products: the Question Bank (`/questions`, moved in from diuqbank.com), the Class Routine (`/routine`) and the Marketplace (`/market`), both "coming soon" placeholders for now.
+Products: the Question Bank (`/questions`, moved in from diuqbank.com), the Class Routine (`/routine`: students' routines from uploaded JSON files, docs/PLAN.md decision 29; "coming soon" until a version is live) and the Marketplace (`/market`, a "coming soon" placeholder).
 
 ## Commands
 
@@ -24,7 +24,7 @@ Products: the Question Bank (`/questions`, moved in from diuqbank.com), the Clas
 - API contracts live in `packages/shared` as Zod schemas; browser code imports constants from `@ourdiu/shared/constants` so Zod stays out of the client bundle.
 - API layering: `routes/` (createRoute + validation, thin) → `services/` (logic, DB, R2). Throw `AppError` for expected failures; errors are `{ error: { code, message, details? } }`. Better Auth owns `/api/auth/*`.
 - Bindings are per request: build DB/auth from `c.env` in middleware, never as module-level singletons.
-- Only protected routes look up sessions (`requireAuth` / `requireAdmin`); public reads stay session-free. Admin API routes live in `routes/admin.ts` behind `requireAdmin` (403 for non-admins).
+- Only protected routes look up sessions (`requireAuth` / `requireAdmin`); public reads stay session-free. Admin API routes live in `routes/admin.ts` (a new product's in `routes/admin-<product>.ts`, mounted at `/admin/<product>`) behind `requireAdmin` (403 for non-admins).
 - Counters maintained by triggers, never written by application code: `submissions.like_count`, `dislike_count`, `pending_report_count` (migration 0001); `questions.published_count`, `pending_review_count`, `rejected_count`, `latest_published_at`, `departments.published_count`, `user.published_submission_count`, `published_view_count` (migration 0006); `courses.published_count` (migration 0009). Public lists read these instead of aggregating `submissions`. `question_view_hours` is written only by `recordQuestionView`, and `trending_questions` / `trending_courses` only by the cron's `refreshTrending` (services/trending.ts). View counters are bumped with raw SQL so `updated_at` doesn't change, once per browser per day (the `qb_views_q` / `qb_views_s` cookies, `lib/view-cookie.ts`).
 - Taxonomy for pages comes from `loadTaxonomy` (`app/lib/taxonomy.server.ts`): one `/api/v1/taxonomy` call, cached per isolate for 60s. Admin loaders pass `{ fresh: true }`; admin actions that change the catalog call `invalidateTaxonomy()`.
 - Web: data loading happens in loaders/actions via `apiFetch` (`app/lib/api.server.ts`, an in-process call into the API), never directly against D1/R2. Server-only modules end in `.server.ts`. Admin pages sit under `/admin` (the layout calls `requireAdmin`; loaders use `adminGetJson`, actions `adminRequest`).

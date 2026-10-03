@@ -62,6 +62,12 @@ const PREFERENCES: CookieRow[] = [
     lasts: "1 year",
   },
   {
+    names: ["ourdiu_routine"],
+    purpose:
+      "Set if you make a section of the class routine yours (e.g. 67_B1), so the Class Routine offers it first.",
+    lasts: "1 year",
+  },
+  {
     names: ["ourdiu_android_invite"],
     purpose:
       "Set if you close the invitation to test the Android app, so it stays closed.",

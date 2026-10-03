@@ -1592,6 +1592,775 @@
           "username"
         ]
       },
+      "RoutineSectionList": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "$ref": "#/components/schemas/RoutineVersion"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutineSectionSummary"
+            }
+          }
+        },
+        "required": [
+          "version",
+          "sections"
+        ]
+      },
+      "RoutineVersion": {
+        "type": "object",
+        "properties": {
+          "department": {
+            "$ref": "#/components/schemas/RoutineDepartment"
+          },
+          "version": {
+            "type": "string"
+          },
+          "publishedOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "liveSince": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "department",
+          "version",
+          "publishedOn",
+          "source",
+          "liveSince"
+        ]
+      },
+      "RoutineDepartment": {
+        "type": "string",
+        "enum": [
+          "CSE"
+        ]
+      },
+      "RoutineSectionSummary": {
+        "type": "object",
+        "properties": {
+          "section": {
+            "type": "string"
+          },
+          "labGroups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "classCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "section",
+          "labGroups",
+          "classCount"
+        ]
+      },
+      "RoutineDepartmentSlug": {
+        "type": "string",
+        "enum": [
+          "cse"
+        ]
+      },
+      "RoutineSection": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "$ref": "#/components/schemas/RoutineVersion"
+          },
+          "section": {
+            "type": "string"
+          },
+          "labGroups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutineSlot"
+            }
+          },
+          "classes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutineClass"
+            }
+          }
+        },
+        "required": [
+          "version",
+          "section",
+          "labGroups",
+          "slots",
+          "classes"
+        ]
+      },
+      "RoutineSlot": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+          },
+          "end": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ],
+        "additionalProperties": false
+      },
+      "RoutineClass": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "$ref": "#/components/schemas/RoutineDay"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "course": {
+            "$ref": "#/components/schemas/RoutineCourse"
+          },
+          "labGroup": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "room": {
+            "type": "string"
+          },
+          "roomType": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoutineRoomType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "teacher": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoutineTeacher"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "day",
+          "start",
+          "end",
+          "course",
+          "labGroup",
+          "room",
+          "roomType",
+          "teacher"
+        ]
+      },
+      "RoutineDay": {
+        "type": "string",
+        "enum": [
+          "SAT",
+          "SUN",
+          "MON",
+          "TUE",
+          "WED",
+          "THU",
+          "FRI"
+        ]
+      },
+      "RoutineCourse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "title"
+        ]
+      },
+      "RoutineRoomType": {
+        "type": "string",
+        "enum": [
+          "lab"
+        ]
+      },
+      "RoutineTeacher": {
+        "type": "object",
+        "properties": {
+          "initials": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "initials",
+          "name"
+        ]
+      },
+      "AdminRoutineVersionList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminRoutineVersion"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "AdminRoutineVersion": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "department": {
+            "$ref": "#/components/schemas/RoutineDepartment"
+          },
+          "version": {
+            "type": "string"
+          },
+          "publishedOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/RoutineVersionStatus"
+          },
+          "sectionCount": {
+            "type": "integer"
+          },
+          "classCount": {
+            "type": "integer"
+          },
+          "warningCount": {
+            "type": "integer"
+          },
+          "uploadedBy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminRoutineUploader"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "liveAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "replacedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "department",
+          "version",
+          "publishedOn",
+          "source",
+          "status",
+          "sectionCount",
+          "classCount",
+          "warningCount",
+          "uploadedBy",
+          "createdAt",
+          "liveAt",
+          "replacedAt"
+        ]
+      },
+      "RoutineVersionStatus": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "live",
+          "previous"
+        ]
+      },
+      "AdminRoutineUploader": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "AdminRoutineVersionDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "department": {
+            "$ref": "#/components/schemas/RoutineDepartment"
+          },
+          "version": {
+            "type": "string"
+          },
+          "publishedOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/RoutineVersionStatus"
+          },
+          "sectionCount": {
+            "type": "integer"
+          },
+          "classCount": {
+            "type": "integer"
+          },
+          "warningCount": {
+            "type": "integer"
+          },
+          "uploadedBy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminRoutineUploader"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "liveAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "replacedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutineWarning"
+            }
+          },
+          "comparedWith": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "changes": {
+            "$ref": "#/components/schemas/RoutineChanges"
+          }
+        },
+        "required": [
+          "id",
+          "department",
+          "version",
+          "publishedOn",
+          "source",
+          "status",
+          "sectionCount",
+          "classCount",
+          "warningCount",
+          "uploadedBy",
+          "createdAt",
+          "liveAt",
+          "replacedAt",
+          "sections",
+          "warnings",
+          "comparedWith",
+          "changes"
+        ]
+      },
+      "RoutineWarning": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/RoutineWarningKind"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "message"
+        ]
+      },
+      "RoutineWarningKind": {
+        "type": "string",
+        "enum": [
+          "section_clash",
+          "room_clash",
+          "teacher_clash",
+          "duplicate",
+          "untitled_course"
+        ]
+      },
+      "RoutineChanges": {
+        "type": "object",
+        "properties": {
+          "moved": {
+            "type": "integer"
+          },
+          "room": {
+            "type": "integer"
+          },
+          "teacher": {
+            "type": "integer"
+          },
+          "added": {
+            "type": "integer"
+          },
+          "removed": {
+            "type": "integer"
+          },
+          "sectionsAdded": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sectionsRemoved": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutineChange"
+            }
+          }
+        },
+        "required": [
+          "moved",
+          "room",
+          "teacher",
+          "added",
+          "removed",
+          "sectionsAdded",
+          "sectionsRemoved",
+          "items"
+        ]
+      },
+      "RoutineChange": {
+        "type": "object",
+        "properties": {
+          "section": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RoutineChangeKind"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoutineChangedClass"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "after": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoutineChangedClass"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "section",
+          "kind",
+          "before",
+          "after"
+        ]
+      },
+      "RoutineChangeKind": {
+        "type": "string",
+        "enum": [
+          "moved",
+          "room",
+          "teacher",
+          "added",
+          "removed"
+        ]
+      },
+      "RoutineChangedClass": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "$ref": "#/components/schemas/RoutineDay"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "course": {
+            "type": "string"
+          },
+          "labGroup": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "room": {
+            "type": "string"
+          },
+          "teacher": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "day",
+          "start",
+          "end",
+          "course",
+          "labGroup",
+          "room",
+          "teacher"
+        ]
+      },
+      "RoutineFile": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "department": {
+            "$ref": "#/components/schemas/RoutineDepartment"
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^\\d{1,3}(\\.\\d{1,3}){0,2}$"
+          },
+          "publishedOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500,
+            "format": "uri"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutineSlot"
+            },
+            "minItems": 1,
+            "maxItems": 12
+          },
+          "courses": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            }
+          },
+          "teachers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            }
+          },
+          "classes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutineFileClass"
+            },
+            "minItems": 1,
+            "maxItems": 6000
+          }
+        },
+        "required": [
+          "format",
+          "department",
+          "version",
+          "slots",
+          "classes"
+        ],
+        "additionalProperties": false
+      },
+      "RoutineFileClass": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "$ref": "#/components/schemas/RoutineDay"
+          },
+          "start": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+          },
+          "end": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+          },
+          "course": {
+            "type": "string",
+            "pattern": "^[A-Z]{2,6}\\d{2,4}[A-Z]?$"
+          },
+          "section": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_()-]{0,29}$"
+          },
+          "labGroup": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[A-Z0-9]{1,8}$"
+          },
+          "room": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "roomType": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "lab",
+              null
+            ]
+          },
+          "teacher": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[A-Za-z][A-Za-z.]{0,11}$"
+          }
+        },
+        "required": [
+          "day",
+          "start",
+          "end",
+          "course",
+          "section",
+          "room"
+        ],
+        "additionalProperties": false
+      },
       "ReportReason": {
         "type": "string",
         "enum": [
@@ -3460,6 +4229,595 @@
           },
           "422": {
             "description": "Not a valid username",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/routine/{department}/sections": {
+      "get": {
+        "tags": [
+          "Routine"
+        ],
+        "summary": "Every section in a department's live routine",
+        "description": "With each section's lab groups, for finding your section.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/RoutineDepartmentSlug"
+            },
+            "required": true,
+            "name": "department",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sections",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineSectionList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The department has no live routine",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/routine/{department}/sections/{section}": {
+      "get": {
+        "tags": [
+          "Routine"
+        ],
+        "summary": "A section's week in the live routine",
+        "description": "Every class of the section, including each lab group's labs, in day and time order. The section is matched regardless of case.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/RoutineDepartmentSlug"
+            },
+            "required": true,
+            "name": "department",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_()-]{0,29}$"
+            },
+            "required": true,
+            "name": "section",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The section's week",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineSection"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No live routine, or no such section",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/routine/{department}/sections/{section}/pdf": {
+      "get": {
+        "tags": [
+          "Routine"
+        ],
+        "summary": "A section's week as a PDF",
+        "description": "One A4 page: each day's classes with course, time, room and teacher, the routine's version and a QR code to the section's page. With `group`, only that lab group's labs.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/RoutineDepartmentSlug"
+            },
+            "required": true,
+            "name": "department",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_()-]{0,29}$"
+            },
+            "required": true,
+            "name": "section",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z0-9]{1,8}$"
+            },
+            "required": false,
+            "name": "group",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PDF file",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No live routine, no such section or lab group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/routine/versions": {
+      "get": {
+        "tags": [
+          "Admin: routine"
+        ],
+        "summary": "List routine versions, newest first",
+        "responses": {
+          "200": {
+            "description": "Versions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRoutineVersionList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin: routine"
+        ],
+        "summary": "Upload a routine file as a draft",
+        "description": "The body is the routine file (`RoutineFile`). A file that can't be used is answered with 422 `INVALID_ROUTINE_FILE` and its problems in `details` (`{ path, message }`). Possible slips (clashes, untitled courses) don't stop the upload: they're the draft's `warnings`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoutineFile"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRoutineVersionDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The version is already uploaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The file is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The file can't be used",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/routine/versions/{id}": {
+      "get": {
+        "tags": [
+          "Admin: routine"
+        ],
+        "summary": "A version with its warnings and changes",
+        "description": "Changes are counted against the live version (for a live version, the one it replaced).",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRoutineVersionDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Version not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin: routine"
+        ],
+        "summary": "Delete a version that isn't live, with its uploaded file",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Version not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The version is live",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/routine/versions/{id}/live": {
+      "post": {
+        "tags": [
+          "Admin: routine"
+        ],
+        "summary": "Make a version the one students see",
+        "description": "The department's live version becomes a previous version. A previous version can be made live again.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The live version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRoutineVersionDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Version not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/routine/versions/{id}/sections/{section}": {
+      "get": {
+        "tags": [
+          "Admin: routine"
+        ],
+        "summary": "A section's week in any version, as students would see it",
+        "description": "For checking a draft before making it live.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 30
+            },
+            "required": true,
+            "name": "section",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The section's week",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineSection"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such version or section",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/routine/versions/{id}/file": {
+      "get": {
+        "tags": [
+          "Admin: routine"
+        ],
+        "summary": "Download the file a version was uploaded as",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The routine file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineFile"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Version not found",
             "content": {
               "application/json": {
                 "schema": {

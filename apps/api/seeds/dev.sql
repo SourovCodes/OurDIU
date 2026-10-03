@@ -43,7 +43,8 @@ INSERT INTO courses (id, name, department_id) VALUES
   (4, 'Discrete Mathematics', 1),
   (5, 'Circuit Analysis', 2),
   (6, 'Digital Electronics', 2),
-  (7, 'Principles of Accounting', 3),
+  -- A long name, to check it shortens instead of overflowing.
+  (7, 'Principles of Accounting and Financial Statement Analysis', 3),
   (8, 'Marketing Management', 3),
   -- Same course name in two departments, to show the department suffix.
   (9, 'Discrete Mathematics', 2);

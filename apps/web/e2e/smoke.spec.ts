@@ -1132,6 +1132,17 @@ test("the question bank home ranks the courses most viewed today", async ({
   await expect(courses).toHaveCount(5);
   await expect(courses.first()).toContainText("Algorithms");
   await expect(courses.first()).toContainText("CSE · 40 views today");
+  // A long name shortens to "…" instead of widening its card past the column.
+  for (const card of await courses.getByRole("link").all()) {
+    expect(await card.evaluate((a) => a.scrollWidth <= a.clientWidth)).toBe(
+      true,
+    );
+  }
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
   await expect(async () => {
     await courses.first().getByRole("link").click();
     await expect(page).toHaveURL(/\/questions\/courses\/2$/, {

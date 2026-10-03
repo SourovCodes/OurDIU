@@ -5,6 +5,7 @@
 DELETE FROM submission_reports;
 DELETE FROM submission_votes;
 DELETE FROM submission_analyses;
+DELETE FROM submission_texts;
 DELETE FROM submissions;
 DELETE FROM questions;
 DELETE FROM courses;
@@ -103,6 +104,41 @@ UPDATE submissions SET rejection_reason = 'This file is not a valid exam questio
 INSERT INTO submission_analyses (submission_id, run_id, status, attempts, model, original_bytes, sent_bytes, is_question_paper, paper_count, note, department_id, department_name, department_short_name, course_id, course_name, semester_id, semester_name, exam_type_id, exam_type_name, section, batch, completed_at) VALUES
   (15, 'seed-run-15', 'completed', 1, 'seed', 0, 0, 1, 1, 'A single final exam paper for Operating Systems.', 1, 'Computer Science and Engineering', 'CSE', NULL, 'Operating Systems', 5, 'Summer 25', 2, 'Final', 'B', NULL, 1778544060000),
   (13, 'seed-run-13', 'completed', 1, 'seed', 0, 0, 1, 2, 'The file contains two different midterm papers.', 1, 'Computer Science and Engineering', 'CSE', 1, 'Data Structures', 2, 'Summer 24', 1, 'Midterm', NULL, NULL, 1777939260000);
+
+-- Papers' text as the AI reads it (the FTS index follows by trigger). #13 is pending,
+-- so its text is never shown or found.
+INSERT INTO submission_texts (submission_id, text, model) VALUES
+  (1, 'Daffodil International University
+Department of Computer Science and Engineering
+Midterm Examination, Summer 2024
+Course: CSE 134 Data Structures
+Time: 1 hour 30 minutes    Full marks: 25
+
+1. a) What is a stack? Explain push and pop with an example. [5]
+   b) Convert the infix expression A + B * C to postfix using a stack. [5]
+
+2. a) Write an algorithm to insert a node at the end of a singly linked list. [5]
+   b) Compare arrays and linked lists. [5]
+
+3. Explain a circular queue. Why is it better than a linear queue? [5]', 'seed'),
+  (4, 'Daffodil International University
+Final Examination, Fall 2024
+Course: CSE 214 Algorithms
+Full marks: 40
+
+1. Find the shortest paths from vertex A with Dijkstra''s algorithm. [10]
+[Figure: a weighted directed graph with vertices A to F]
+
+2. Sort 38, 27, 43, 3, 9, 82, 10 with merge sort and show every step. [10]
+
+3. What is dynamic programming? Solve the 0/1 knapsack problem for the items below. [10]
+Item | Weight | Value
+1 | 2 | 12
+2 | 1 | 10
+3 | 3 | 20
+
+4. Prove that the running time of binary search is O(log n). [10]', 'seed'),
+  (13, 'Draft: what is a stack? (pending)', 'seed');
 
 -- Votes; the triggers fill in like_count and dislike_count. Nobody votes on their own paper.
 -- Question 1: #1 scores +2 and stays ranked first, #2 scores 0.

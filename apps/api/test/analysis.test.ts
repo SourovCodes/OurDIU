@@ -11,6 +11,7 @@ import {
   submissionAnalyses,
   submissionReports,
   submissions,
+  submissionTexts,
   type NewSubmissionRow,
 } from "../src/db/schema";
 import {
@@ -164,6 +165,7 @@ const baseReply: AnalysisReply = {
   examType: null,
   section: null,
   batch: null,
+  text: "",
 };
 
 describe("matchToCatalog", () => {
@@ -279,6 +281,7 @@ describe("runAnalysis", () => {
         semester: { existingId: t.sem1.id, name: t.sem1.name },
         examType: { existingId: t.midterm.id, name: t.midterm.name },
         batch: "61",
+        text: "Midterm Exam\n\n1. Define a compiler.  ",
       },
     });
 
@@ -313,6 +316,19 @@ describe("runAnalysis", () => {
       examTypeId: t.midterm.id,
       batch: "61",
     });
+    // The same call read the paper's text.
+    expect(
+      await db().query.submissionTexts.findFirst({
+        where: eq(submissionTexts.submissionId, paper.id),
+      }),
+    ).toMatchObject({
+      text: "Midterm Exam\n\n1. Define a compiler.",
+      error: null,
+      model: "gemini-test",
+    });
+    expect(JSON.parse(gemini[0]!.body!).contents[0].parts[1].text).toContain(
+      "transcribed exactly as printed",
+    );
     // The compressed copy isn't kept.
     expect((await env.BUCKET.get(paper.fileKey))?.size).toBe(1009);
   });

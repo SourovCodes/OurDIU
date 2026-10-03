@@ -97,10 +97,12 @@ export function product(id: Product["id"]): Product {
 
 /**
  * Product pages outside their product's path: /diuqbank tells the question bank's
- * story, but sits at the root because the app opens /questions/* links.
+ * story and /admission guides applicants, but they sit at the root because the app
+ * opens /questions/* links.
  */
 const PRODUCT_PAGES: Record<string, Product["id"]> = {
   "/diuqbank": "questions",
+  "/admission": "questions",
 };
 
 /** The product whose space a path is in, or null for platform pages (hub, account, legal). */

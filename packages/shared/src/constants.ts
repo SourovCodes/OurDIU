@@ -227,3 +227,7 @@ export function parseSemesterName(name: string): string | null {
 
 /** Orders for the questions list: newest papers, most viewed, or by name. */
 export const QUESTION_SORTS = ["newest", "popular", "az"] as const;
+
+/** Paper search (`GET /api/v1/questions/search`): query length, in characters. */
+export const MIN_SEARCH_LENGTH = 2;
+export const MAX_SEARCH_LENGTH = 100;

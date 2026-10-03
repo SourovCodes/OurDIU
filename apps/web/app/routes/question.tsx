@@ -28,6 +28,7 @@ import {
   ReportNotice,
   type PaperViewer,
 } from "~/components/paper-toolbar";
+import { PaperText } from "~/components/paper-text";
 import { PdfViewer } from "~/components/pdf-viewer";
 import { SaveButton } from "~/components/save-button";
 import { ShareButton } from "~/components/share-button";
@@ -378,6 +379,9 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
                 </Button>
               }
             />
+          )}
+          {selected?.text && (
+            <PaperText key={`text-${selected.id}`} text={selected.text} />
           )}
         </section>
 

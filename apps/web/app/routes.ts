@@ -9,6 +9,7 @@ export default [
   route("questions", "routes/questions-home.tsx"),
   route("questions/browse", "routes/questions.tsx"),
   route("questions/search-index", "routes/questions-search-index.ts"),
+  route("questions/search", "routes/questions-search.tsx"),
   route("questions/saved", "routes/questions-saved.tsx"),
   route("questions/exam-papers", "routes/questions-exam-papers.ts"),
   route("questions/departments", "routes/questions-departments.tsx"),
@@ -22,6 +23,8 @@ export default [
   route("questions/my-submissions/:id", "routes/account-submission.tsx"),
   // What became of diuqbank.com. At the root: /questions/* links open the app.
   route("diuqbank", "routes/diuqbank.tsx"),
+  // For students applying to DIU. At the root too, for the same reason.
+  route("admission", "routes/admission.tsx"),
 
   // Coming soon.
   route("routine", "routes/routine.tsx"),

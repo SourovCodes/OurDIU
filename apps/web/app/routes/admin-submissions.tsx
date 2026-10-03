@@ -18,6 +18,7 @@ import {
   FilePen,
   Inbox,
   RefreshCw,
+  ScrollText,
   Stamp,
 } from "lucide-react";
 import { useState } from "react";
@@ -120,6 +121,9 @@ export async function action({ request }: Route.ActionArgs) {
   }
   if (intent === "watermark-all") {
     return adminRequest(request, intent, "POST", "/submissions/watermark/all");
+  }
+  if (intent === "read-texts") {
+    return adminRequest(request, intent, "POST", "/submissions/text");
   }
   if (intent === "check-unchecked") {
     return adminRequest(request, intent, "POST", "/submissions/analysis");
@@ -326,6 +330,19 @@ export default function AdminSubmissions({ loaderData }: Route.ComponentProps) {
               confirmLabel="Check"
               successMessage="AI check started"
               fields={{ intent: "check-unchecked" }}
+            />
+            <ConfirmAction
+              trigger={
+                <Button variant="outline" size="sm">
+                  <ScrollText />
+                  Read missing texts
+                </Button>
+              }
+              title="Read the text of published papers?"
+              description="Published papers whose text was never read (shared before uploads were read), or whose read failed, are read by the AI in the background, so their questions show on their page and can be searched. One AI call per paper."
+              confirmLabel="Read"
+              successMessage="Reading started"
+              fields={{ intent: "read-texts" }}
             />
             <ConfirmAction
               trigger={

@@ -19,6 +19,7 @@ const submission = (id: number, status: Submission["status"]): Submission => ({
   batch: null,
   uploader: null,
   fileUrl: status === "published" ? `/api/v1/submissions/${id}/file` : null,
+  text: null,
 });
 
 const submissions = [

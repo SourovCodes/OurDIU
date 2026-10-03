@@ -24,6 +24,7 @@ import {
   questions,
   semesters,
   submissions,
+  submissionTexts,
   user,
 } from "../db/schema";
 import {
@@ -154,9 +155,11 @@ export async function getQuestion(
         image: user.image,
       },
       watermarkedFileKey: submissions.watermarkedFileKey,
+      text: submissionTexts.text,
     })
     .from(submissions)
     .leftJoin(user, eq(user.id, submissions.uploaderId))
+    .leftJoin(submissionTexts, eq(submissionTexts.submissionId, submissions.id))
     .where(eq(submissions.questionId, id))
     // Ranking within a status: score, then views, then newest.
     .orderBy(
@@ -168,10 +171,12 @@ export async function getQuestion(
 
   return {
     ...question,
-    submissions: rows.map(({ watermarkedFileKey, ...row }) => ({
+    submissions: rows.map(({ watermarkedFileKey, text, ...row }) => ({
       ...row,
       createdAt: row.createdAt.toISOString(),
       fileUrl: publicFileUrl(row, watermarkedFileKey, filesUrl),
+      // Only a published paper's text is public, like its file.
+      text: row.status === "published" ? text : null,
     })),
   };
 }

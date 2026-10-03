@@ -1027,3 +1027,79 @@ test("hover and menu highlights tint the surface in both themes", async ({
     await page.keyboard.press("Escape");
   }
 });
+
+test("the footer leads to the admission guide, in the question bank's space", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await clickUntilUrl(page, "Admission guide", /\/admission$/);
+  await expect(page).toHaveTitle(
+    "DIU Admission Test Guide: Eligibility, Test Schedule and Documents",
+  );
+  await expect(
+    page.getByRole("heading", {
+      level: 1,
+      name: "Getting into DIU: the admission test and how to apply",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("row", { name: /Engineering 2:30 to 3:30 pm/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "Can I apply before my HSC result is published?",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Apply online" }),
+  ).toHaveAttribute("href", "https://admission.daffodilvarsity.edu.bd");
+  await expect(
+    page.getByRole("banner").getByRole("link", { name: "Question Bank" }),
+  ).toBeVisible();
+});
+
+test("a paper's text is on its page, and search finds its words", async ({
+  page,
+}) => {
+  await page.goto("/questions/1");
+  const text = page.getByTestId("paper-text");
+  await text.getByText("Read the questions as text").click();
+  await expect(
+    text.getByText(/What is a stack\? Explain push and pop/),
+  ).toBeVisible();
+
+  // From the course search to the papers' text.
+  await page.waitForLoadState("networkidle");
+  await page.keyboard.press("/");
+  const search = page.getByRole("dialog", { name: "Search courses" });
+  await search.getByRole("combobox").fill("linked list");
+  await search
+    .getByRole("option", { name: "Find “linked list” in papers’ text" })
+    .click();
+  await expect(page).toHaveURL(/\/questions\/search\?q=linked\+list$/);
+
+  const results = page.getByRole("list", { name: "Matching papers" });
+  await expect(results.getByRole("listitem")).toHaveCount(1);
+  await expect(results.locator("mark").first()).toHaveText("linked");
+  await results.getByRole("link", { name: "Data Structures" }).click();
+  await expect(page).toHaveURL(/\/questions\/1\?submission=1$/);
+
+  // Other forms of a word match ("sorting" finds "Sort"), courses whose names match
+  // come first, and a pending paper's text is never found.
+  await page.goto("/questions/search?q=sorting+merge");
+  await expect(
+    page
+      .getByRole("list", { name: "Matching papers" })
+      .getByRole("link", { name: "Algorithms" }),
+  ).toBeVisible();
+  await page.goto("/questions/search?q=draft+pending");
+  await expect(
+    page.getByText("No paper mentions “draft pending”"),
+  ).toBeVisible();
+  await page.goto("/questions/search?q=algorithms");
+  await expect(
+    page.getByRole("region", { name: "Courses" }).getByRole("link", {
+      name: /Algorithms/,
+    }),
+  ).toBeVisible();
+});

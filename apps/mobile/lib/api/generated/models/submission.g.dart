@@ -20,6 +20,7 @@ Submission _$SubmissionFromJson(Map<String, dynamic> json) => Submission(
       ? null
       : Uploader.fromJson(json['uploader'] as Map<String, dynamic>),
   fileUrl: json['fileUrl'] as String?,
+  text: json['text'] as String?,
 );
 
 Map<String, dynamic> _$SubmissionToJson(Submission instance) =>
@@ -35,6 +36,7 @@ Map<String, dynamic> _$SubmissionToJson(Submission instance) =>
       'batch': instance.batch,
       'uploader': instance.uploader,
       'fileUrl': instance.fileUrl,
+      'text': instance.text,
     };
 
 const _$SubmissionStatusEnumMap = {

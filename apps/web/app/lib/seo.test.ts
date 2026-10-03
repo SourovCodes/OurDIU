@@ -25,6 +25,7 @@ describe("sitemapXml", () => {
     expect(xml).toContain(`<url><loc>${SITE}/questions</loc></url>`);
     expect(xml).toContain(`<url><loc>${SITE}/contact</loc></url>`);
     expect(xml).toContain(`<url><loc>${SITE}/diuqbank</loc></url>`);
+    expect(xml).toContain(`<url><loc>${SITE}/admission</loc></url>`);
     expect(xml).toContain(`<url><loc>${SITE}/privacy</loc></url>`);
     expect(xml).toContain(
       `<url><loc>${SITE}/questions/departments/3</loc></url>`,

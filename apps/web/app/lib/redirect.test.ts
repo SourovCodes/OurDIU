@@ -129,10 +129,10 @@ describe("spaceAt", () => {
     ).toBeNull();
     expect(spaceAt({ pathname: "/routine", search: "" })?.id).toBe("routine");
   });
-  it("puts /diuqbank in the question bank, though it sits at the root", () => {
-    expect(spaceAt({ pathname: "/diuqbank", search: "" })?.id).toBe(
-      "questions",
-    );
+  it("puts /diuqbank and /admission in the question bank, though they sit at the root", () => {
+    for (const pathname of ["/diuqbank", "/admission"]) {
+      expect(spaceAt({ pathname, search: "" })?.id).toBe("questions");
+    }
   });
 });
 

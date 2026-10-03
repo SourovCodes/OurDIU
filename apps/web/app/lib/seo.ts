@@ -105,6 +105,7 @@ const STATIC_PATHS = [
   "/questions/browse",
   "/questions/departments",
   "/diuqbank",
+  "/admission",
   "/questions/contributors",
   "/app",
   "/about",

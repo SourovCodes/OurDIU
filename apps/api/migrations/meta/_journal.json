@@ -92,6 +92,20 @@
       "when": 1790987975604,
       "tag": "0012_merged_ids",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1791022853986,
+      "tag": "0013_submission_texts",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1791022858221,
+      "tag": "0014_submission_texts_fts",
+      "breakpoints": true
     }
   ]
 }

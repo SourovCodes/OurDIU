@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { QUESTION_SORTS, SUBMISSION_STATUSES } from "../constants";
+import {
+  MAX_SEARCH_LENGTH,
+  MIN_SEARCH_LENGTH,
+  QUESTION_SORTS,
+  SUBMISSION_STATUSES,
+} from "../constants";
 import { nullableRef, paginatedSchema, paginationQuerySchema } from "./common";
 import {
   courseSchema,
@@ -54,6 +59,12 @@ export const submissionSchema = submissionStatsSchema
      * on the public files domain once that exists, until then the API's file endpoint.
      */
     fileUrl: z.string().nullable(),
+    /**
+     * The paper's text as the AI read it off the PDF (plain text, line by line), for
+     * reading without the PDF and for search engines. Null unless published, and
+     * until it has been read.
+     */
+    text: z.string().nullable(),
   })
   .meta({ id: "Submission" });
 export type Submission = z.infer<typeof submissionSchema>;
@@ -123,3 +134,32 @@ export const questionListSchema = paginatedSchema(questionSchema).meta({
   id: "QuestionList",
 });
 export type QuestionList = z.infer<typeof questionListSchema>;
+
+export const searchPapersQuerySchema = paginationQuerySchema.extend({
+  /** Words to find in papers' text, all of them; the last may be a word's start. */
+  q: z.string().trim().min(MIN_SEARCH_LENGTH).max(MAX_SEARCH_LENGTH),
+});
+export type SearchPapersQuery = z.infer<typeof searchPapersQuerySchema>;
+
+/** A piece of text, and whether it matched the search. */
+export const textPartSchema = z
+  .object({ text: z.string(), match: z.boolean() })
+  .meta({ id: "TextPart" });
+export type TextPart = z.infer<typeof textPartSchema>;
+
+/** An exam whose paper's text matches a search, with the best-matching copy. */
+export const paperSearchHitSchema = z
+  .object({
+    question: questionSummarySchema.meta({ id: "QuestionSummary" }),
+    /** The published paper (copy of the exam) that matched best. */
+    submissionId: z.number().int(),
+    /** Its text around the matches. */
+    snippet: z.array(textPartSchema),
+  })
+  .meta({ id: "PaperSearchHit" });
+export type PaperSearchHit = z.infer<typeof paperSearchHitSchema>;
+
+export const paperSearchListSchema = paginatedSchema(paperSearchHitSchema).meta(
+  { id: "PaperSearchList" },
+);
+export type PaperSearchList = z.infer<typeof paperSearchListSchema>;

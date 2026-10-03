@@ -8798,7 +8798,7 @@
         "tags": [
           "Profile images"
         ],
-        "summary": "A profile image",
+        "summary": "A profile image, or a redirect to its URL on the files domain",
         "parameters": [
           {
             "schema": {
@@ -8821,6 +8821,9 @@
                 }
               }
             }
+          },
+          "301": {
+            "description": "The image's public URL"
           },
           "404": {
             "description": "Image not found",

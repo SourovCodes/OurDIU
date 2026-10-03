@@ -10,9 +10,21 @@ import { AppError } from "../lib/errors";
 
 type AvatarContentType = (typeof AVATAR_CONTENT_TYPES)[number];
 
-/** user.image holds this prefix + the object id for images stored in R2. */
+/** The API route that serves an image stored in R2: this prefix + its id. */
 export const AVATAR_URL_PREFIX = "/api/v1/avatars/";
 const objectKey = (id: string) => `avatars/${id}`;
+
+/**
+ * Where a stored image is served from: the R2 bucket's public domain (FILES_URL),
+ * or the API in local dev, where FILES_URL is empty. user.image holds this URL.
+ */
+export const avatarUrl = (filesUrl: string, id: string) =>
+  filesUrl
+    ? `${filesUrl.replace(/\/$/, "")}/${objectKey(id)}`
+    : `${AVATAR_URL_PREFIX}${id}`;
+
+/** Each upload gets a new id, so a URL's content never changes. */
+export const IMMUTABLE = "public, max-age=31536000, immutable";
 
 const startsWith = (bytes: Uint8Array, signature: number[], offset = 0) =>
   signature.every((byte, i) => bytes[offset + i] === byte);
@@ -33,10 +45,18 @@ function detectImageType(bytes: Uint8Array): AvatarContentType | null {
   return null;
 }
 
-async function deleteStoredAvatar(bucket: R2Bucket, image?: string | null) {
-  if (image?.startsWith(AVATAR_URL_PREFIX)) {
-    await bucket.delete(objectKey(image.slice(AVATAR_URL_PREFIX.length)));
-  }
+/** Deletes the image behind a user.image URL, if it's one we store. */
+async function deleteStoredAvatar(
+  bucket: R2Bucket,
+  filesUrl: string,
+  image?: string | null,
+) {
+  // Images set before FILES_URL existed keep the API's URL.
+  const prefix = [AVATAR_URL_PREFIX, avatarUrl(filesUrl, "")].find((p) =>
+    image?.startsWith(p),
+  );
+  if (image && prefix)
+    await bucket.delete(objectKey(image.slice(prefix.length)));
 }
 
 async function currentImage(db: Database, userId: string) {
@@ -51,6 +71,7 @@ async function currentImage(db: Database, userId: string) {
 export async function setAvatar(
   db: Database,
   bucket: R2Bucket,
+  filesUrl: string,
   userId: string,
   file: File,
 ): Promise<Avatar> {
@@ -70,28 +91,31 @@ export async function setAvatar(
 
   // A fresh id per upload, so the URL can be cached forever.
   const id = crypto.randomUUID();
-  await bucket.put(objectKey(id), file, { httpMetadata: { contentType } });
+  await bucket.put(objectKey(id), file, {
+    httpMetadata: { contentType, cacheControl: IMMUTABLE },
+  });
 
   const previous = await currentImage(db, userId);
-  const image = `${AVATAR_URL_PREFIX}${id}`;
+  const image = avatarUrl(filesUrl, id);
   try {
     await db.update(user).set({ image }).where(eq(user.id, userId));
   } catch (err) {
     await bucket.delete(objectKey(id));
     throw err;
   }
-  await deleteStoredAvatar(bucket, previous);
+  await deleteStoredAvatar(bucket, filesUrl, previous);
   return { image };
 }
 
 export async function removeAvatar(
   db: Database,
   bucket: R2Bucket,
+  filesUrl: string,
   userId: string,
 ) {
   const previous = await currentImage(db, userId);
   await db.update(user).set({ image: null }).where(eq(user.id, userId));
-  await deleteStoredAvatar(bucket, previous);
+  await deleteStoredAvatar(bucket, filesUrl, previous);
 }
 
 export function getAvatarObject(bucket: R2Bucket, id: string) {
@@ -115,6 +139,7 @@ export function fullSizeGooglePhoto(url: string) {
 export async function importGoogleAvatar(
   db: Database,
   bucket: R2Bucket,
+  filesUrl: string,
   userId: string,
   url: string,
 ) {
@@ -126,7 +151,7 @@ export async function importGoogleAvatar(
       });
       if (!res.ok) continue;
       const file = new File([await res.blob()], "google-photo");
-      await setAvatar(db, bucket, userId, file);
+      await setAvatar(db, bucket, filesUrl, userId, file);
       return;
     } catch {
       // Try the next size.

@@ -1,5 +1,6 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { bearer } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import type { Database } from "../db/client";
@@ -85,6 +86,18 @@ export function authOptions(env: Env, db: Database) {
         username: { type: "string", required: false, input: false },
       },
     },
+    hooks: {
+      // Images are set only through /api/v1/me/avatar, which stores them itself.
+      // Through update-user, a user could show any URL on their public profile, or
+      // point at someone else's stored image, which replacing theirs would delete.
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path === "/update-user" && ctx.body?.image !== undefined) {
+          throw new APIError("BAD_REQUEST", {
+            message: "Change your profile image at /api/v1/me/avatar",
+          });
+        }
+      }),
+    },
     databaseHooks: {
       user: {
         create: {
@@ -104,6 +117,7 @@ export function authOptions(env: Env, db: Database) {
               await importGoogleAvatar(
                 db,
                 env.BUCKET,
+                env.FILES_URL,
                 created.id,
                 created.image,
               );

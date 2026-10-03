@@ -28,7 +28,7 @@ abstract class ProfileImagesClient {
   @DELETE('/api/v1/me/avatar')
   Future<void> deleteApiV1MeAvatar();
 
-  /// A profile image
+  /// A profile image, or a redirect to its URL on the files domain
   @GET('/api/v1/avatars/{id}')
   @DioResponseType(ResponseType.stream)
   Stream<String> getApiV1AvatarsId({@Path('id') required String id});

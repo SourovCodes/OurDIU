@@ -4,9 +4,12 @@ import {
   type ContributorDetail,
   type QuestionDetail,
 } from "@ourdiu/shared";
+import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
+import { createApp } from "../src/app";
 import { user } from "../src/db/schema";
+import { removeAvatar, setAvatar } from "../src/services/avatars";
 import {
   api,
   db,
@@ -105,6 +108,82 @@ describe("profile images", () => {
     expect(res.status).toBe(204);
     expect(await imageOf(me.id)).toBeNull();
     expect((await api(image)).status).toBe(404);
+  });
+
+  it("can't be set through Better Auth's update-user", async () => {
+    const me = await signIn();
+    const victim = await signIn();
+    const { image } = await (
+      await upload(new File([PNG], "them.png"), victim.cookie)
+    ).json<Avatar>();
+
+    const updateUser = (body: object) =>
+      api("/api/auth/update-user", {
+        method: "POST",
+        headers: { cookie: me.cookie, "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    for (const value of [image, "https://example.com/x.png", null]) {
+      expect((await updateUser({ image: value })).status).toBe(400);
+    }
+    expect(await imageOf(me.id)).toBeNull();
+    // Replacing their own image then can't delete someone else's.
+    await upload(new File([PNG], "me.png"), me.cookie);
+    expect((await api(image)).status).toBe(200);
+
+    // The name still changes there.
+    expect((await updateUser({ name: "New Name" })).status).toBe(200);
+  });
+
+  it("stores images on the files domain when there is one", async () => {
+    const FILES_URL = "https://files.example.com";
+    const me = await signIn();
+    // Set before there was a files domain.
+    const old = await setAvatar(
+      db(),
+      env.BUCKET,
+      "",
+      me.id,
+      new File([PNG], "me.png"),
+    );
+    const first = await setAvatar(
+      db(),
+      env.BUCKET,
+      FILES_URL,
+      me.id,
+      new File([PNG], "me.png"),
+    );
+    const id = first.image.match(
+      /^https:\/\/files\.example\.com\/avatars\/([0-9a-f-]{36})$/,
+    )?.[1];
+    expect(id).toBeDefined();
+    expect(await env.BUCKET.head(old.image.replace("/api/v1/", ""))).toBeNull();
+    const stored = await env.BUCKET.head(`avatars/${id}`);
+    expect(stored?.httpMetadata?.contentType).toBe("image/png");
+    expect(stored?.httpMetadata?.cacheControl).toContain("immutable");
+
+    // The API's URL, which images set before keep, redirects there.
+    const res = await createApp().request(
+      `/api/v1/avatars/${id}`,
+      {},
+      { ...env, FILES_URL },
+    );
+    expect(res.status).toBe(301);
+    expect(res.headers.get("location")).toBe(first.image);
+
+    // Replacing or removing it deletes the stored object.
+    const second = await setAvatar(
+      db(),
+      env.BUCKET,
+      FILES_URL,
+      me.id,
+      new File([JPEG], "me.jpg"),
+    );
+    expect(await env.BUCKET.head(`avatars/${id}`)).toBeNull();
+    await removeAvatar(db(), env.BUCKET, FILES_URL, me.id);
+    expect(
+      await env.BUCKET.head(second.image.replace(`${FILES_URL}/`, "")),
+    ).toBeNull();
   });
 
   it("shows the image on the user's papers and contributor profile", async () => {

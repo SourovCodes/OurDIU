@@ -78,7 +78,7 @@ export type QuestionInteractions = z.infer<typeof questionInteractionsSchema>;
 
 export const avatarSchema = z
   .object({
-    /** URL of the uploaded image, served by the API. */
+    /** Public URL of the uploaded image, on the files domain (the API's in local dev). */
     image: z.string(),
   })
   .meta({ id: "Avatar" });

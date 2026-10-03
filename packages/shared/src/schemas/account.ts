@@ -93,7 +93,7 @@ export const profileSchema = z
     email: z.string(),
     /** In their contributor page's URL: /contributors/<username>. */
     username: z.string(),
-    /** An avatar URL, relative (`/api/v1/avatars/…`) when it's stored by the API. */
+    /** An avatar URL: the files domain for images we store (relative `/api/v1/avatars/…` locally or when set before that). */
     image: z.string().nullable(),
     publishedCount: z.number().int(),
     /** Views of all their published papers. */

@@ -4,7 +4,13 @@ import { AppError, validationHook } from "../lib/errors";
 import { objectResponse } from "../lib/files";
 import { errorResponse, jsonResponse } from "../lib/openapi";
 import { requireAuth } from "../middleware/require-auth";
-import { getAvatarObject, removeAvatar, setAvatar } from "../services/avatars";
+import {
+  avatarUrl,
+  getAvatarObject,
+  IMMUTABLE,
+  removeAvatar,
+  setAvatar,
+} from "../services/avatars";
 import type { AppEnv } from "../types";
 
 const tags = ["Profile images"];
@@ -53,9 +59,10 @@ const getAvatarRoute = createRoute({
   method: "get",
   path: "/avatars/{id}",
   tags,
-  summary: "A profile image",
+  summary: "A profile image, or a redirect to its URL on the files domain",
   request: { params: z.object({ id: z.uuid() }) },
   responses: {
+    301: { description: "The image's public URL" },
     200: {
       description: "Image",
       content: {
@@ -75,6 +82,7 @@ export const avatarRoutes = new OpenAPIHono<AppEnv>({
       await setAvatar(
         c.var.db,
         c.env.BUCKET,
+        c.env.FILES_URL,
         c.var.session!.user.id,
         c.req.valid("form").file,
       ),
@@ -82,12 +90,22 @@ export const avatarRoutes = new OpenAPIHono<AppEnv>({
     ),
   )
   .openapi(removeAvatarRoute, async (c) => {
-    await removeAvatar(c.var.db, c.env.BUCKET, c.var.session!.user.id);
+    await removeAvatar(
+      c.var.db,
+      c.env.BUCKET,
+      c.env.FILES_URL,
+      c.var.session!.user.id,
+    );
     return c.body(null, 204);
   })
   .openapi(getAvatarRoute, async (c) => {
-    const object = await getAvatarObject(c.env.BUCKET, c.req.valid("param").id);
+    const { id } = c.req.valid("param");
+    // Users who set their image before it moved to the files domain keep this URL.
+    if (c.env.FILES_URL) {
+      c.header("cache-control", IMMUTABLE);
+      return c.redirect(avatarUrl(c.env.FILES_URL, id), 301);
+    }
+    const object = await getAvatarObject(c.env.BUCKET, id);
     if (!object) throw new AppError(404, "NOT_FOUND", "Image not found");
-    // Each upload gets a new id, so a URL's content never changes.
-    return objectResponse(object, "public, max-age=31536000, immutable");
+    return objectResponse(object, IMMUTABLE);
   });

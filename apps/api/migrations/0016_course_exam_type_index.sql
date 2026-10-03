@@ -1,0 +1,1 @@
+CREATE INDEX `questions_course_id_exam_type_id_idx` ON `questions` (`course_id`,`exam_type_id`);

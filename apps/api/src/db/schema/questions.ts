@@ -68,6 +68,9 @@ export const questions = sqliteTable(
     ),
     index("questions_semester_id_idx").on(t.semesterId),
     index("questions_exam_type_id_idx").on(t.examTypeId),
+    // One exam of a course across semesters. Without it SQLite (no ANALYZE stats)
+    // picks the exam type index and scans a fifth of the table.
+    index("questions_course_id_exam_type_id_idx").on(t.courseId, t.examTypeId),
   ],
 );
 

@@ -113,6 +113,13 @@
       "when": 1791027368142,
       "tag": "0015_trending",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1791034740916,
+      "tag": "0016_course_exam_type_index",
+      "breakpoints": true
     }
   ]
 }

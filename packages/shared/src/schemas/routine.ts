@@ -176,6 +176,8 @@ export const routineVersionSchema = z
     version: z.string(),
     /** When DIU published it. */
     publishedOn: z.iso.date().nullable(),
+    /** DIU's own PDF of it, if the file named it. */
+    source: z.string().nullable(),
     /** When it was made live on OurDIU. */
     liveSince: z.iso.datetime(),
   })
@@ -334,6 +336,8 @@ export const routineChangesSchema = z
 
 export const adminRoutineVersionDetailSchema = adminRoutineVersionSchema
   .extend({
+    /** Its sections, for previewing one as students will see it. */
+    sections: z.array(z.string()),
     warnings: z.array(routineWarningSchema),
     /** The version the changes are counted against: the live one, if another is. */
     comparedWith: z.string().nullable(),

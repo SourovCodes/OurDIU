@@ -37,6 +37,9 @@ const at = (c: CheckedClass) =>
   `${dayName(c.day)} at ${routineClockTime(routineTime(c.start))}`;
 const sectionLabel = (c: CheckedClass) =>
   c.labGroup ? `${c.section} (${c.labGroup})` : c.section;
+/** A batch's section ("67_B"), not a retake or other mixed section. */
+export const isRegularSection = (section: string) =>
+  /^\d+_[A-Za-z]+$/.test(section);
 const overlaps = (a: CheckedClass, b: CheckedClass) =>
   a.day === b.day && a.start < b.end && b.start < a.end;
 const sameClass = (a: CheckedClass, b: CheckedClass) =>
@@ -98,9 +101,10 @@ export function routineWarnings(
     } else seen.push(c);
   }
 
-  // A lab group attends its own labs and the whole section's classes.
+  // A lab group attends its own labs and the whole section's classes. Retake
+  // sections ("RE_A(3C)") gather many courses at once by design: not a clash.
   for (const [a, b] of clashes(
-    groupBy(seen, (c) => c.section),
+    groupBy(seen, (c) => (isRegularSection(c.section) ? c.section : null)),
     (a, b) => !a.labGroup || !b.labGroup || a.labGroup === b.labGroup,
   )) {
     warnings.push({
@@ -132,10 +136,13 @@ export function routineWarnings(
   const untitled = [...new Set(seen.map((c) => c.course))]
     .filter((code) => !knownTitles.has(code))
     .sort();
-  for (const code of untitled) {
+  if (untitled.length) {
     warnings.push({
       kind: "untitled_course",
-      message: `${code} has no course title in this file or an earlier version, so students see only the code.`,
+      message:
+        untitled.length === 1
+          ? `${untitled[0]} has no course title in this file or an earlier version, so students see only the code.`
+          : `${untitled.length} courses have no title in this file or an earlier version, so students see only their codes: ${untitled.join(", ")}.`,
     });
   }
   return warnings;

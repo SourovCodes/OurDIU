@@ -48,6 +48,10 @@ export function RoutineStatusBadge({
   );
 }
 
+/** What deleting a version does; the live one can't be deleted. */
+export const DELETE_DESCRIPTION =
+  "Its classes and the uploaded JSON file are deleted for good. Students don’t notice: they only see the live version. You can upload the file again later.";
+
 /** The review page of an uploaded routine version. */
 export const versionUrl = (id: number) => `/admin/routine/versions/${id}`;
 
@@ -70,6 +74,8 @@ export type UploadResult = {
 export function UploadRoutineDialog() {
   const fetcher = useFetcher<UploadResult>();
   const [tooLarge, setTooLarge] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [dragging, setDragging] = useState(false);
   const busy = fetcher.state !== "idle";
   const result = !busy ? fetcher.data : undefined;
 
@@ -103,13 +109,21 @@ export function UploadRoutineDialog() {
           }}
         >
           <input type="hidden" name="intent" value="upload" />
-          <label
-            htmlFor="routine-file"
-            className="grid gap-2 rounded-2xl border-[1.5px] border-dashed border-input p-4 text-sm"
+          {/* The input covers the zone, so a file can be dropped on it too. */}
+          <div
+            className={cn(
+              "relative grid justify-items-center gap-1.5 rounded-2xl border-[1.5px] border-dashed border-input px-4 py-7 text-center text-sm transition-colors focus-within:ring-[3px] focus-within:ring-ring/50 hover:state-layer",
+              dragging && "border-primary bg-primary-container/40",
+            )}
           >
-            <span className="flex items-center gap-2 font-medium">
-              <FileJson className="size-4" aria-hidden />
-              Routine file (.json)
+            <FileJson className="size-7 text-primary" aria-hidden />
+            <span className="font-semibold">
+              {file ? file.name : "Choose or drop the routine file"}
+            </span>
+            <span className="text-muted-foreground">
+              {file
+                ? `${Math.max(1, Math.round(file.size / 1024))} KB · choose another to replace it`
+                : "A .json file, up to 2 MB"}
             </span>
             <input
               id="routine-file"
@@ -117,9 +131,14 @@ export function UploadRoutineDialog() {
               type="file"
               accept="application/json,.json"
               required
-              className="text-sm file:mr-3 file:rounded-full file:border-0 file:bg-primary-container file:px-4 file:py-1.5 file:font-semibold file:text-primary-container-foreground"
+              aria-label="Routine file (.json)"
+              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+              onDragEnter={() => setDragging(true)}
+              onDragLeave={() => setDragging(false)}
+              onDrop={() => setDragging(false)}
+              className="absolute inset-0 cursor-pointer opacity-0"
             />
-          </label>
+          </div>
           {tooLarge && (
             <FormMessage
               message={`The file is larger than ${MAX_ROUTINE_FILE_BYTES / 1024 / 1024} MB.`}

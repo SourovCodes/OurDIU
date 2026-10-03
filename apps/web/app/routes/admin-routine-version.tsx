@@ -2,24 +2,40 @@ import type {
   AdminRoutineVersionDetail,
   RoutineChange,
   RoutineChangedClass,
+  RoutineSection,
 } from "@ourdiu/shared";
 import {
   ROUTINE_DAY_NAMES,
   ROUTINE_DAYS,
   routineClockTime,
 } from "@ourdiu/shared/constants";
-import { Download, Radio, Trash2, TriangleAlert } from "lucide-react";
-import { Link } from "react-router";
+import {
+  Download,
+  ExternalLink,
+  Radio,
+  Trash2,
+  TriangleAlert,
+} from "lucide-react";
+import { Link, useNavigate } from "react-router";
 import { ConfirmAction, useFormAction } from "~/components/actions";
 import { AdminPageHeader } from "~/components/admin/admin-header";
 import { AdminRouteError } from "~/components/admin/route-error";
 import {
   ChangeStat,
+  DELETE_DESCRIPTION,
   RoutineStatusBadge,
   versionFileHref,
 } from "~/components/admin/routine";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { WeekGrid } from "~/components/routine";
 import { Button } from "~/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import {
   Table,
   TableBody,
@@ -31,26 +47,43 @@ import {
 import { adminGetJson } from "~/lib/admin.server";
 import { formatDate } from "~/lib/dates";
 import { formatNumber } from "~/lib/format";
+import { routineHref, weekDays } from "~/lib/routine";
 import { routineAdminAction } from "~/lib/routine-admin.server";
 import type { Route } from "./+types/admin-routine-version";
 
 export const handle = {
   breadcrumb: (data: unknown) =>
-    data ? `v${(data as AdminRoutineVersionDetail).version}` : "Version",
+    data
+      ? `v${(data as { v: AdminRoutineVersionDetail }).v.version}`
+      : "Version",
 };
 
 export const meta: Route.MetaFunction = ({ loaderData }) => [
   {
-    title: `${loaderData ? `v${loaderData.version}` : "Version"} — Routine — Admin — OurDIU`,
+    title: `${loaderData ? `v${loaderData.v.version}` : "Version"} — Routine — Admin — OurDIU`,
   },
   { name: "robots", content: "noindex" },
 ];
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  return adminGetJson<AdminRoutineVersionDetail>(
+  const id = encodeURIComponent(params.id);
+  const v = await adminGetJson<AdminRoutineVersionDetail>(
     request,
-    `/routine/versions/${encodeURIComponent(params.id)}`,
+    `/routine/versions/${id}`,
   );
+  // One section as students would see it: ?preview=, else the first that changed.
+  const asked = new URL(request.url).searchParams.get("preview");
+  const section =
+    (asked && v.sections.includes(asked) ? asked : null) ??
+    v.changes.items[0]?.section ??
+    v.sections[0];
+  const preview = section
+    ? await adminGetJson<RoutineSection>(
+        request,
+        `/routine/versions/${id}/sections/${encodeURIComponent(section)}`,
+      )
+    : null;
+  return { v, preview };
 }
 
 export const action = ({ request }: Route.ActionArgs) =>
@@ -79,9 +112,79 @@ function describe(c: RoutineChangedClass | null) {
   );
 }
 
+/** A section of the version as students will see it, to check before going live. */
+function Preview({
+  v,
+  preview,
+}: {
+  v: AdminRoutineVersionDetail;
+  preview: RoutineSection;
+}) {
+  const navigate = useNavigate();
+  return (
+    <section aria-labelledby="preview" className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 id="preview" className="font-expressive text-xl">
+            Preview a section
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            The week as students will see it in v{v.version}.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Select
+            value={preview.section}
+            onValueChange={(section) =>
+              navigate(`?preview=${encodeURIComponent(section)}`, {
+                preventScrollReset: true,
+                replace: true,
+              })
+            }
+          >
+            <SelectTrigger className="w-44" aria-label="Section to preview">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="max-h-80">
+              {v.sections.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {v.status === "live" && (
+            <Button variant="ghost" size="sm" asChild>
+              <Link
+                to={routineHref({
+                  department: "cse",
+                  section: preview.section,
+                  group: null,
+                })}
+                target="_blank"
+              >
+                Student page
+                <ExternalLink aria-hidden />
+              </Link>
+            </Button>
+          )}
+        </div>
+      </div>
+      <WeekGrid
+        classes={preview.classes}
+        slots={preview.slots}
+        days={weekDays(preview.classes)}
+        today={null}
+        now={null}
+      />
+    </section>
+  );
+}
+
 export default function AdminRoutineVersion({
-  loaderData: v,
+  loaderData,
 }: Route.ComponentProps) {
+  const { v, preview } = loaderData;
   const { changes } = v;
   // Owned by the page: the buttons go once the version is live (or deleted).
   const { run } = useFormAction();
@@ -110,19 +213,19 @@ export default function AdminRoutineVersion({
                 Uploaded file
               </a>
             </Button>
-            {v.status === "draft" && (
+            {v.status !== "live" && (
               <ConfirmAction
                 trigger={
                   <Button variant="outline">
                     <Trash2 aria-hidden />
-                    Delete draft
+                    Delete version
                   </Button>
                 }
-                title={`Delete draft ${name}?`}
-                description="The draft and its uploaded file are deleted. You can upload the file again."
+                title={`Delete ${name}?`}
+                description={DELETE_DESCRIPTION}
                 confirmLabel="Delete"
                 destructive
-                successMessage={`Draft ${name} deleted`}
+                successMessage={`${name} deleted`}
                 fields={{ intent: "delete", id: String(v.id), from: "review" }}
                 run={run}
               />
@@ -207,6 +310,8 @@ export default function AdminRoutineVersion({
         </Alert>
       )}
 
+      {preview && <Preview v={v} preview={preview} />}
+
       {v.comparedWith && (
         <section className="space-y-3">
           <h2 className="font-expressive text-xl">
@@ -229,7 +334,14 @@ export default function AdminRoutineVersion({
                   {changes.items.map((c, i) => (
                     <TableRow key={i}>
                       <TableCell className="font-semibold">
-                        {c.section}
+                        <Link
+                          to={`?preview=${encodeURIComponent(c.section)}#preview`}
+                          preventScrollReset
+                          className="underline-offset-4 hover:underline"
+                          title={`Preview ${c.section}`}
+                        >
+                          {c.section}
+                        </Link>
                       </TableCell>
                       <TableCell>{KIND_LABELS[c.kind]}</TableCell>
                       <TableCell>{describe(c.before)}</TableCell>

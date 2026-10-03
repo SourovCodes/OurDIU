@@ -27,7 +27,7 @@ test("a student finds their section, makes it theirs and downloads it", async ({
 }) => {
   await page.goto("/routine");
   await expect(
-    page.getByRole("heading", { name: "Find your class routine." }),
+    page.getByRole("heading", { name: "Your class routine." }),
   ).toBeVisible();
 
   // "67b1" finds lab group B1 of 67_B; Enter opens it.
@@ -72,16 +72,29 @@ test("a student finds their section, makes it theirs and downloads it", async ({
       page.getByRole("button", { name: "My section", pressed: true }),
     ).toBeVisible({ timeout: 1_000 });
   }).toPass();
+  // The routine's home then opens with that section's day.
   await page.goto("/routine");
-  await page.getByRole("link", { name: /My section\s*67_B1/ }).click();
+  const today = page.getByRole("region", { name: "Today" });
+  await expect(today).toContainText("My section · 67_B1");
+  await today.getByRole("link", { name: "See the week" }).click();
   await expect(page).toHaveURL(/\/routine\/cse\/67_B\?group=B1$/);
 });
 
-test("section addresses are canonical", async ({ page }) => {
+test("section addresses are canonical, and near misses find the section", async ({
+  page,
+}) => {
   await page.goto("/routine/cse/67_b?group=B9");
   await expect(page).toHaveURL(/\/routine\/cse\/67_B$/);
-  const missing = await page.goto("/routine/cse/99_Z");
+  // Written another way, as students type it.
+  await page.goto("/routine/cse/67-b1");
+  await expect(page).toHaveURL(/\/routine\/cse\/67_B\?group=B1$/);
+
+  // A section that isn't there offers the search and look-alikes.
+  const missing = await page.goto("/routine/cse/67_Z");
   expect(missing?.status()).toBe(404);
+  await expect(page.getByText("67_Z isn’t in the routine")).toBeVisible();
+  await page.getByRole("link", { name: "67_B1" }).click();
+  await expect(page).toHaveURL(/\/routine\/cse\/67_B\?group=B1$/);
 });
 
 test("an admin uploads a routine file, reviews it and makes it live", async ({
@@ -144,7 +157,7 @@ test("an admin uploads a routine file, reviews it and makes it live", async ({
   await expect(page.getByText(`v${version} is live`)).toBeVisible();
   await expect(page.getByText("Live", { exact: true })).toBeVisible();
 
-  // It's in the list as the live version, and a draft's menu offers deleting.
+  // It's in the list as the live version, which can't be deleted.
   await page.goto("/admin/routine/versions");
   const row = page.getByRole("row", { name: new RegExp(`CSE v${version}`) });
   await expect(row.getByText("Live", { exact: true })).toBeVisible();
@@ -152,4 +165,17 @@ test("an admin uploads a routine file, reviews it and makes it live", async ({
   await expect(page.getByRole("menuitem", { name: "Make live" })).toHaveCount(
     0,
   );
+  await expect(
+    page.getByRole("menuitem", { name: "Delete version" }),
+  ).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
+  // The version it replaced can be deleted, file and all.
+  const old = page.getByRole("row", { name: /CSE v4\.1/ });
+  await expect(old.getByText("Previous", { exact: true })).toBeVisible();
+  await openMenu(old.getByRole("button", { name: "Actions for v4.1" }));
+  await page.getByRole("menuitem", { name: "Delete version" }).click();
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(page.getByText("v4.1 deleted")).toBeVisible();
+  await expect(old).toHaveCount(0);
 });

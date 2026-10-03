@@ -14,6 +14,7 @@ class RoutineVersion {
     required this.department,
     required this.version,
     required this.publishedOn,
+    required this.source,
     required this.liveSince,
   });
 
@@ -23,6 +24,7 @@ class RoutineVersion {
   final RoutineDepartment department;
   final String version;
   final DateTime? publishedOn;
+  final String? source;
   final DateTime liveSince;
 
   Map<String, Object?> toJson() => _$RoutineVersionToJson(this);

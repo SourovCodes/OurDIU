@@ -28,6 +28,7 @@ class AdminRoutineVersionDetail {
     required this.createdAt,
     required this.liveAt,
     required this.replacedAt,
+    required this.sections,
     required this.warnings,
     required this.comparedWith,
     required this.changes,
@@ -49,6 +50,7 @@ class AdminRoutineVersionDetail {
   final DateTime createdAt;
   final DateTime? liveAt;
   final DateTime? replacedAt;
+  final List<String> sections;
   final List<RoutineWarning> warnings;
   final String? comparedWith;
   final RoutineChanges changes;

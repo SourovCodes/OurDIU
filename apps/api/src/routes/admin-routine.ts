@@ -2,6 +2,7 @@ import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import {
   adminRoutineVersionDetailSchema,
   adminRoutineVersionListSchema,
+  routineSectionSchema,
   idQuerySchema,
   MAX_ROUTINE_FILE_BYTES,
   routineFilePath,
@@ -13,8 +14,10 @@ import { errorBody } from "../lib/errors";
 import { objectResponse } from "../lib/files";
 import { errorResponse, jsonResponse } from "../lib/openapi";
 import { requireAdmin } from "../middleware/require-admin";
+import { sectionOfVersion } from "../services/routine/sections";
 import {
   deleteRoutineVersion,
+  findVersion,
   getRoutineVersion,
   getRoutineVersionFile,
   listRoutineVersions,
@@ -122,14 +125,33 @@ const deleteVersionRoute = createRoute({
   method: "delete",
   path: "/versions/{id}",
   tags,
-  summary: "Delete a draft",
+  summary: "Delete a version that isn't live, with its uploaded file",
   middleware,
   request: { params },
   responses: {
     204: { description: "Deleted" },
     ...denied,
     404: errorResponse("Version not found"),
-    409: errorResponse("Not a draft"),
+    409: errorResponse("The version is live"),
+  },
+});
+
+const previewSectionRoute = createRoute({
+  method: "get",
+  path: "/versions/{id}/sections/{section}",
+  tags,
+  summary: "A section's week in any version, as students would see it",
+  description: "For checking a draft before making it live.",
+  middleware,
+  request: {
+    params: params.extend({
+      section: z.string().min(1).max(30),
+    }),
+  },
+  responses: {
+    200: jsonResponse(routineSectionSchema, "The section's week"),
+    ...denied,
+    404: errorResponse("No such version or section"),
   },
 });
 
@@ -198,6 +220,17 @@ export const adminRoutineRoutes = new OpenAPIHono<AppEnv>()
   .openapi(deleteVersionRoute, async (c) => {
     await deleteRoutineVersion(c.var.db, c.env.BUCKET, c.req.valid("param").id);
     return c.body(null, 204);
+  })
+  .openapi(previewSectionRoute, async (c) => {
+    const { id, section } = c.req.valid("param");
+    return c.json(
+      await sectionOfVersion(
+        c.var.db,
+        await findVersion(c.var.db, id),
+        section,
+      ),
+      200,
+    );
   })
   .openapi(versionFileRoute, async (c) => {
     const { object, filename } = await getRoutineVersionFile(

@@ -13,6 +13,7 @@ RoutineVersion _$RoutineVersionFromJson(Map<String, dynamic> json) =>
       publishedOn: json['publishedOn'] == null
           ? null
           : DateTime.parse(json['publishedOn'] as String),
+      source: json['source'] as String?,
       liveSince: DateTime.parse(json['liveSince'] as String),
     );
 
@@ -21,6 +22,7 @@ Map<String, dynamic> _$RoutineVersionToJson(RoutineVersion instance) =>
       'department': _$RoutineDepartmentEnumMap[instance.department]!,
       'version': instance.version,
       'publishedOn': instance.publishedOn?.toIso8601String(),
+      'source': instance.source,
       'liveSince': instance.liveSince.toIso8601String(),
     };
 

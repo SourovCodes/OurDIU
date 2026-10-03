@@ -52,7 +52,7 @@ async function uploadVersion(request: Request, form: FormData) {
   );
 }
 
-/** The routine admin pages' actions: upload, make live, delete a draft. */
+/** The routine admin pages' actions: upload, make live, delete a version. */
 export async function routineAdminAction(request: Request) {
   const form = await request.formData();
   const intent = String(form.get("intent"));
@@ -74,7 +74,7 @@ export async function routineAdminAction(request: Request) {
         "DELETE",
         `/routine/versions/${id}`,
       );
-      // From its own review page, a deleted draft leads back to the list.
+      // From its own review page, a deleted version leads back to the list.
       return result.data.ok && form.get("from") === "review"
         ? redirect("/admin/routine/versions")
         : result;

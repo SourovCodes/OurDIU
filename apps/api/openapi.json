@@ -1626,6 +1626,12 @@
             ],
             "format": "date"
           },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "liveSince": {
             "type": "string",
             "format": "date-time"
@@ -1635,6 +1641,7 @@
           "department",
           "version",
           "publishedOn",
+          "source",
           "liveSince"
         ]
       },
@@ -2016,6 +2023,12 @@
             ],
             "format": "date-time"
           },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "warnings": {
             "type": "array",
             "items": {
@@ -2046,6 +2059,7 @@
           "createdAt",
           "liveAt",
           "replacedAt",
+          "sections",
           "warnings",
           "comparedWith",
           "changes"
@@ -4561,7 +4575,7 @@
         "tags": [
           "Admin: routine"
         ],
-        "summary": "Delete a draft",
+        "summary": "Delete a version that isn't live, with its uploaded file",
         "parameters": [
           {
             "schema": {
@@ -4608,7 +4622,7 @@
             }
           },
           "409": {
-            "description": "Not a draft",
+            "description": "The version is live",
             "content": {
               "application/json": {
                 "schema": {
@@ -4671,6 +4685,78 @@
           },
           "404": {
             "description": "Version not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/routine/versions/{id}/sections/{section}": {
+      "get": {
+        "tags": [
+          "Admin: routine"
+        ],
+        "summary": "A section's week in any version, as students would see it",
+        "description": "For checking a draft before making it live.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 30
+            },
+            "required": true,
+            "name": "section",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The section's week",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineSection"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such version or section",
             "content": {
               "application/json": {
                 "schema": {

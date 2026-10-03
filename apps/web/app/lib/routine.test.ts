@@ -5,11 +5,15 @@ import {
   classesFor,
   classState,
   dhakaNow,
+  dayWord,
   exactSection,
+  isRegularSection,
   matchSections,
+  nextClass,
   routineHref,
   savedRoutine,
   sectionChoices,
+  weekDates,
   weekDays,
 } from "./routine";
 
@@ -134,5 +138,57 @@ describe("routine helpers", () => {
     expect(
       routineHref({ department: "cse", section: "67_B", group: "B1" }),
     ).toBe("/routine/cse/67_B?group=B1");
+  });
+});
+
+describe("the next class", () => {
+  const week = [
+    cls({ day: "SUN", start: "10:00", end: "11:30" }),
+    cls({ day: "SUN", start: "14:30", end: "16:00" }),
+    cls({ day: "MON", start: "08:30", end: "11:30" }),
+  ];
+  const at = (day: "SUN" | "MON" | "TUE", hhmm: string) => ({
+    day,
+    minutes: Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3)),
+  });
+
+  it("is later today, tomorrow, or next week after the last one", () => {
+    expect(nextClass(week, at("SUN", "10:40"))).toMatchObject({
+      c: { start: "14:30" },
+      daysAhead: 0,
+    });
+    expect(nextClass(week, at("SUN", "17:00"))).toMatchObject({
+      c: { day: "MON" },
+      daysAhead: 1,
+    });
+    expect(nextClass(week, at("TUE", "09:00"))).toMatchObject({
+      c: { day: "SUN", start: "10:00" },
+      daysAhead: 5,
+    });
+    expect(nextClass([], at("SUN", "09:00"))).toBeNull();
+  });
+
+  it("says when in words", () => {
+    expect(dayWord("MON", 0)).toBe("Today");
+    expect(dayWord("MON", 1)).toBe("Tomorrow");
+    expect(dayWord("WED", 3)).toBe("Wednesday");
+  });
+
+  it("dates this university week in Dhaka", () => {
+    // Sunday 4 October 2026 in Dhaka: Saturday the 3rd to Friday the 9th.
+    expect(weekDates(new Date("2026-10-04T05:00:00Z"))).toEqual({
+      SAT: 3,
+      SUN: 4,
+      MON: 5,
+      TUE: 6,
+      WED: 7,
+      THU: 8,
+      FRI: 9,
+    });
+  });
+
+  it("tells a batch's section from a retake section", () => {
+    expect(isRegularSection("67_B")).toBe(true);
+    expect(isRegularSection("RE_A(3C)")).toBe(false);
   });
 });

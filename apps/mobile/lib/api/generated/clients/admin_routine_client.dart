@@ -8,6 +8,7 @@ import 'package:retrofit/retrofit.dart';
 import '../models/admin_routine_version_detail.dart';
 import '../models/admin_routine_version_list.dart';
 import '../models/routine_file.dart';
+import '../models/routine_section.dart';
 
 part 'admin_routine_client.g.dart';
 
@@ -35,7 +36,7 @@ abstract class AdminRoutineClient {
     @Path('id') required int id,
   });
 
-  /// Delete a draft
+  /// Delete a version that isn't live, with its uploaded file
   @DELETE('/api/v1/admin/routine/versions/{id}')
   Future<void> deleteApiV1AdminRoutineVersionsId({@Path('id') required int id});
 
@@ -45,6 +46,15 @@ abstract class AdminRoutineClient {
   @POST('/api/v1/admin/routine/versions/{id}/live')
   Future<AdminRoutineVersionDetail> postApiV1AdminRoutineVersionsIdLive({
     @Path('id') required int id,
+  });
+
+  /// A section's week in any version, as students would see it.
+  ///
+  /// For checking a draft before making it live.
+  @GET('/api/v1/admin/routine/versions/{id}/sections/{section}')
+  Future<RoutineSection> getApiV1AdminRoutineVersionsIdSectionsSection({
+    @Path('id') required int id,
+    @Path('section') required String section,
   });
 
   /// Download the file a version was uploaded as

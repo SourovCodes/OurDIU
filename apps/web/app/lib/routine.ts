@@ -4,6 +4,7 @@ import type {
   RoutineSectionSummary,
 } from "@ourdiu/shared";
 import {
+  ROUTINE_DAY_NAMES,
   ROUTINE_DAYS,
   ROUTINE_DEPARTMENT_SLUGS,
   routineGroupLabel,
@@ -184,3 +185,63 @@ export function exactSection(choices: SectionChoice[], query: string) {
   const q = squash(query);
   return choices.find((c) => squash(c.label) === q) ?? null;
 }
+
+const dayIndex = (day: RoutineDay) => ROUTINE_DAYS.indexOf(day);
+
+/**
+ * The next class to start after `now`, this week or (after the last one) next week,
+ * with how many days ahead it is: 0 today, 1 tomorrow, …
+ */
+export function nextClass(
+  classes: RoutineClass[],
+  now: { day: RoutineDay; minutes: number },
+): { c: RoutineClass; daysAhead: number } | null {
+  const today = dayIndex(now.day);
+  let best: { c: RoutineClass; key: number } | null = null;
+  for (const c of classes) {
+    // Minutes from now to its start, within the coming week.
+    let ahead =
+      ((dayIndex(c.day) - today + 7) % 7) * 1440 +
+      routineMinutes(c.start) -
+      now.minutes;
+    if (ahead <= 0) ahead += 7 * 1440;
+    if (!best || ahead < best.key) best = { c, key: ahead };
+  }
+  if (!best) return null;
+  return {
+    c: best.c,
+    daysAhead: Math.floor((now.minutes + best.key) / 1440),
+  };
+}
+
+/** "Today", "Tomorrow" or the day's name, for a class `daysAhead` days away. */
+export function dayWord(day: RoutineDay, daysAhead: number) {
+  if (daysAhead === 0) return "Today";
+  if (daysAhead === 1) return "Tomorrow";
+  return ROUTINE_DAY_NAMES[dayIndex(day)]!;
+}
+
+/** The day of the month of each day of this university week (Saturday to Friday), in Dhaka. */
+export function weekDates(date = new Date()): Record<RoutineDay, number> {
+  const ymd = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Dhaka",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+  const todayUtc = new Date(`${ymd}T00:00:00Z`);
+  const today = dayIndex(dhakaNow(date).day);
+  return Object.fromEntries(
+    ROUTINE_DAYS.map((d, i) => [
+      d,
+      new Date(todayUtc.getTime() + (i - today) * 86_400_000).getUTCDate(),
+    ]),
+  ) as Record<RoutineDay, number>;
+}
+
+/**
+ * Whether a section is a batch's own ("67_B"). Retake sections ("RE_A(3C)") gather
+ * many courses at the same times; each student attends only some of them.
+ */
+export const isRegularSection = (section: string) =>
+  /^\d+_[A-Za-z]+$/.test(section);

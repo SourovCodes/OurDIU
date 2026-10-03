@@ -16,6 +16,7 @@ import { ConfirmAction, useFormAction } from "~/components/actions";
 import { AdminPageHeader } from "~/components/admin/admin-header";
 import { AdminRouteError } from "~/components/admin/route-error";
 import {
+  DELETE_DESCRIPTION,
   RoutineStatusBadge,
   UploadRoutineDialog,
   versionFileHref,
@@ -115,7 +116,7 @@ function RowActions({
               Download uploaded file
             </a>
           </DropdownMenuItem>
-          {version.status === "draft" && (
+          {version.status !== "live" && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -123,33 +124,37 @@ function RowActions({
                 onSelect={() => setConfirm("delete")}
               >
                 <Trash2 />
-                Delete draft
+                Delete version
               </DropdownMenuItem>
             </>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
-      <ConfirmAction
-        open={confirm === "live"}
-        onOpenChange={(open) => !open && setConfirm(null)}
-        title={`Make ${name} live?`}
-        description={`Students will see ${version.department} routine ${name} straight away. The live version becomes a previous one, which you can make live again.`}
-        confirmLabel="Make live"
-        successMessage={`${name} is live`}
-        fields={{ intent: "live", id: String(version.id) }}
-        run={run}
-      />
-      <ConfirmAction
-        open={confirm === "delete"}
-        onOpenChange={(open) => !open && setConfirm(null)}
-        title={`Delete draft ${name}?`}
-        description="The draft and its uploaded file are deleted. You can upload the file again."
-        confirmLabel="Delete"
-        destructive
-        successMessage={`Draft ${name} deleted`}
-        fields={{ intent: "delete", id: String(version.id) }}
-        run={run}
-      />
+      {/* Dialogs render in a portal, but React still passes their clicks up to the
+          row, which would open the version. */}
+      <div className="contents" onClick={(event) => event.stopPropagation()}>
+        <ConfirmAction
+          open={confirm === "live"}
+          onOpenChange={(open) => !open && setConfirm(null)}
+          title={`Make ${name} live?`}
+          description={`Students will see ${version.department} routine ${name} straight away. The live version becomes a previous one, which you can make live again.`}
+          confirmLabel="Make live"
+          successMessage={`${name} is live`}
+          fields={{ intent: "live", id: String(version.id) }}
+          run={run}
+        />
+        <ConfirmAction
+          open={confirm === "delete"}
+          onOpenChange={(open) => !open && setConfirm(null)}
+          title={`Delete ${name}?`}
+          description={DELETE_DESCRIPTION}
+          confirmLabel="Delete"
+          destructive
+          successMessage={`${name} deleted`}
+          fields={{ intent: "delete", id: String(version.id) }}
+          run={run}
+        />
+      </div>
     </>
   );
 }
@@ -159,7 +164,7 @@ export default function AdminRoutineVersions({
 }: Route.ComponentProps) {
   const { items } = loaderData;
   const navigate = useNavigate();
-  // Owned by the page: a deleted draft takes its row with it.
+  // Owned by the page: a deleted version takes its row with it.
   const { run } = useFormAction();
 
   return (
@@ -180,7 +185,26 @@ export default function AdminRoutineVersions({
         <EmptyState
           icon={CalendarClock}
           title="No routine yet"
-          description="Upload the CSE routine file to start. Until a version is live, the Class Routine says it’s coming soon."
+          description={
+            <ol className="mx-auto mt-1 grid max-w-md list-decimal gap-1 pl-5 text-left">
+              <li>
+                Turn DIU’s routine PDF into a JSON file: the{" "}
+                <Link
+                  to="/admin/routine/format"
+                  className="text-primary underline"
+                >
+                  file format
+                </Link>{" "}
+                page has instructions to paste into an AI chat.
+              </li>
+              <li>Upload it here. It’s checked and kept as a draft.</li>
+              <li>
+                Review it, preview a section, and make it live. Until then the
+                Class Routine says it’s coming soon.
+              </li>
+            </ol>
+          }
+          action={<UploadRoutineDialog />}
         />
       ) : (
         <div className="overflow-hidden rounded-2xl bg-surface-low">

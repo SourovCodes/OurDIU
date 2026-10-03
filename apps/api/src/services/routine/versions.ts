@@ -17,6 +17,7 @@ import {
 import { isConstraintError } from "../../lib/db-errors";
 import { AppError } from "../../lib/errors";
 import {
+  compareSections,
   MAX_STORED_WARNINGS,
   routineChanges,
   routineWarnings,
@@ -71,7 +72,7 @@ export async function listRoutineVersions(
   return rows.map(toAdminVersion);
 }
 
-async function findVersion(db: Database, id: number) {
+export async function findVersion(db: Database, id: number) {
   const [row] = await versionQuery(db).where(eq(routineVersions.id, id));
   if (!row) {
     throw new AppError(404, "NOT_FOUND", "Routine version not found");
@@ -142,10 +143,17 @@ export async function uploadRoutineVersion(
       await db.select({ code: routineCourses.code }).from(routineCourses)
     ).map((r) => r.code),
   ]);
-  const warnings = routineWarnings(classes, knownTitles).slice(
-    0,
-    MAX_STORED_WARNINGS,
-  );
+  const found = routineWarnings(classes, knownTitles);
+  const warnings =
+    found.length > MAX_STORED_WARNINGS
+      ? [
+          ...found.slice(0, MAX_STORED_WARNINGS - 1),
+          {
+            kind: found[MAX_STORED_WARNINGS - 1]!.kind,
+            message: `… and ${found.length - MAX_STORED_WARNINGS + 1} more.`,
+          },
+        ]
+      : found;
 
   const fileKey = newFileKey();
   await bucket.put(fileKey, raw, {
@@ -249,6 +257,7 @@ export async function getRoutineVersion(
   const changes = routineChanges(base ? before : after, after);
   return {
     ...toAdminVersion(row),
+    sections: [...new Set(after.map((c) => c.section))].sort(compareSections),
     warnings: row.warnings,
     comparedWith: base?.version ?? null,
     changes,
@@ -301,18 +310,18 @@ export async function makeRoutineVersionLive(
   return getRoutineVersion(db, id);
 }
 
-/** Deletes a draft with its classes and file. Versions that were live stay. */
+/** Deletes a version that isn't live, with its classes and uploaded file. */
 export async function deleteRoutineVersion(
   db: Database,
   bucket: R2Bucket,
   id: number,
 ) {
   const row = await findVersion(db, id);
-  if (row.status !== "draft") {
+  if (row.status === "live") {
     throw new AppError(
       409,
-      "NOT_A_DRAFT",
-      "Only drafts can be deleted; this version has been live",
+      "LIVE_VERSION",
+      "The live version can't be deleted: make another version live first",
     );
   }
   await db.delete(routineVersions).where(eq(routineVersions.id, id));

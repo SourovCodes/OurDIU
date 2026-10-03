@@ -939,7 +939,7 @@ test("the switcher moves between products", async ({ page }) => {
   }).toPass();
   // The seed has a live routine (without one, the page says it's coming soon).
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Find your class routine.",
+    "Your class routine.",
   );
   // The routine's space has no question bank menu.
   await expect(page.getByRole("link", { name: "Share a paper" })).toHaveCount(

@@ -25,6 +25,7 @@ function toVersion(row: RoutineVersionRow): RoutineVersion {
     department: row.department,
     version: row.version,
     publishedOn: row.publishedOn,
+    source: row.source,
     liveSince: (row.liveAt ?? row.updatedAt).toISOString(),
   };
 }
@@ -82,7 +83,15 @@ export async function getRoutineSection(
   department: RoutineDepartment,
   section: string,
 ): Promise<RoutineSection> {
-  const version = await requireLive(db, department);
+  return sectionOfVersion(db, await requireLive(db, department), section);
+}
+
+/** A section's week in any version, e.g. a draft an admin previews. */
+export async function sectionOfVersion(
+  db: Database,
+  version: RoutineVersionRow,
+  section: string,
+): Promise<RoutineSection> {
   const rows = await db
     .select({
       section: routineClasses.section,
@@ -113,7 +122,7 @@ export async function getRoutineSection(
     throw new AppError(
       404,
       "SECTION_NOT_FOUND",
-      `${section} isn't in the ${department} routine ${version.version}`,
+      `${section} isn't in the ${version.department} routine ${version.version}`,
     );
   }
   // Two sections differing only in case: prefer the exact one.

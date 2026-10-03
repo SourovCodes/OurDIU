@@ -275,6 +275,7 @@ describe("routine versions", () => {
       department: "CSE",
       version: "4.1",
       publishedOn: "2026-10-02",
+      source: null,
     });
     expect(sections.sections).toEqual([
       { section: "65_A", labGroups: [], classCount: 1 },
@@ -410,15 +411,50 @@ describe("routine versions", () => {
     expect(rolledBack.version.version).toBe("4.1");
   });
 
-  it("deletes drafts only", async () => {
-    const draft = await upload(routineFile("5.0"));
-    expect((await adminCall("DELETE", `/versions/${draft.id}`)).status).toBe(
-      204,
-    );
-    expect((await adminCall("GET", `/versions/${draft.id}`)).status).toBe(404);
+  it("previews a draft's section as students would see it", async () => {
+    const file = routineFile("5.0");
+    file.classes[0]!.room = "KT-999";
+    const draft = await upload(file);
+    expect(draft.sections).toEqual(["65_A", "67_B"]);
 
-    const wasLive = await adminCall("DELETE", `/versions/${first.id}`);
-    expect(wasLive.status).toBe(409);
+    const res = await adminCall("GET", `/versions/${draft.id}/sections/67_b`);
+    expect(res.status).toBe(200);
+    const week = await res.json<RoutineSection>();
+    expect(week.version.version).toBe("5.0");
+    expect(week.classes[0]!.room).toBe("KT-999");
+    // Students still see the live version.
+    const live = await (
+      await api("/api/v1/routine/cse/sections/67_B")
+    ).json<RoutineSection>();
+    expect(live.classes[0]!.room).toBe("KT-222");
+
+    expect(
+      (await adminCall("GET", `/versions/${draft.id}/sections/99_Z`)).status,
+    ).toBe(404);
+    const user = await signIn();
+    const denied = await api(
+      `/api/v1/admin/routine/versions/${draft.id}/sections/67_B`,
+      { headers: { cookie: user.cookie } },
+    );
+    expect(denied.status).toBe(403);
+  });
+
+  it("deletes any version but the live one", async () => {
+    const list = await (
+      await adminCall("GET", "/versions")
+    ).json<AdminRoutineVersionList>();
+    const byVersion = new Map(list.items.map((v) => [v.version, v]));
+    // A draft, and 4.2, which was live before the rollback.
+    for (const version of ["5.0", "4.2"]) {
+      const { id } = byVersion.get(version)!;
+      expect((await adminCall("DELETE", `/versions/${id}`)).status).toBe(204);
+      expect((await adminCall("GET", `/versions/${id}`)).status).toBe(404);
+    }
+
+    const live = await adminCall("DELETE", `/versions/${first.id}`);
+    expect(live.status).toBe(409);
+    expect((await live.json<ApiError>()).error.code).toBe("LIVE_VERSION");
+    expect((await api("/api/v1/routine/cse/sections")).status).toBe(200);
   });
 });
 
@@ -446,6 +482,19 @@ describe("routine checks", () => {
         // Lab groups at the same time are fine.
         cls({ section: "70_A", labGroup: "A1", room: "L1", teacher: "P" }),
         cls({ section: "70_A", labGroup: "A2", room: "L2", teacher: "Q" }),
+        // A retake section's courses at the same time are its design.
+        cls({
+          section: "RE_A(3C)",
+          course: "CSE317",
+          room: "R1",
+          teacher: "T1",
+        }),
+        cls({
+          section: "RE_A(3C)",
+          course: "ENG101",
+          room: "R2",
+          teacher: "T2",
+        }),
         // The same course for two sections in one room is a combined class.
         cls({ section: "71_A", room: "R9", teacher: "Z" }),
         cls({ section: "71_B", room: "R9", teacher: "Z" }),

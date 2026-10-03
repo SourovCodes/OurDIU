@@ -16,6 +16,9 @@ export function PaperText({
     <details
       className={cn("group rounded-3xl bg-surface", className)}
       data-testid="paper-text"
+      // Opening it is the browser's job, so it may be open before React hydrates
+      // (a tap on a slow phone); that isn't a mismatch to report.
+      suppressHydrationWarning
     >
       <summary className="flex cursor-pointer list-none items-center gap-3 rounded-3xl px-5 py-4 font-medium transition-colors hover:state-layer focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
         <ScrollText className="size-5 shrink-0 text-primary" aria-hidden />

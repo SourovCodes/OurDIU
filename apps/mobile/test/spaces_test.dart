@@ -5,19 +5,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app_harness.dart';
 
 void main() {
-  testWidgets('first launch asks what you need, then remembers it', (
+  testWidgets('first launch opens the Question Bank, without the chooser', (
     tester,
   ) async {
     await pumpApp(tester, prefs: const {});
 
-    expect(find.text('What do you need?'), findsOneWidget);
-    expect(find.text('Coming soon'), findsNWidgets(2));
-    await tester.tap(find.text('Question papers'));
-    await tester.pumpAndSettle();
-
+    expect(find.text('What do you need?'), findsNothing);
     expect(find.text('Find your paper'), findsOneWidget);
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getString('space'), 'questions');
   });
 
   testWidgets('the product name switches to a coming-soon product and back', (
@@ -44,13 +38,15 @@ void main() {
     expect(prefs.getString('space'), 'questions');
   });
 
-  testWidgets('the app reopens in the product used last', (tester) async {
+  testWidgets('a coming-soon product used last reopens in the Question Bank', (
+    tester,
+  ) async {
     await pumpApp(tester, prefs: const {'space': 'market'});
 
+    expect(find.text('Find your paper'), findsOneWidget);
     expect(
-      find.bySemanticsLabel('Marketplace, switch product'),
+      find.bySemanticsLabel('Question Bank, switch product'),
       findsOneWidget,
     );
-    expect(find.text('Coming soon'), findsOneWidget);
   });
 }

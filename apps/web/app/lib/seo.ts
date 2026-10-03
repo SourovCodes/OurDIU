@@ -1,6 +1,7 @@
 import type { Sitemap } from "@ourdiu/shared";
 import type { MetaDescriptor } from "react-router";
 import { LEGAL_PAGES } from "./legal";
+import { HUB_LIVE } from "./products";
 
 /** The site's name in search results and link previews. */
 export const SITE_NAME = "OurDIU";
@@ -71,8 +72,9 @@ export function breadcrumbJsonLd(origin: string, crumbs: TrailStep[]) {
 }
 
 /**
- * schema.org WebSite for the hub: the name search results show, and the names the
- * site went by, so the question bank's old searches find it.
+ * schema.org WebSite for the hub (for /questions while the hub redirects there,
+ * `HUB_LIVE`): the name search results show, and the names the site went by, so the
+ * question bank's old searches find it.
  */
 export function websiteJsonLd(
   origin: string,
@@ -100,7 +102,8 @@ export function websiteJsonLd(
 
 /** Public pages that always exist, with no data behind them. */
 const STATIC_PATHS = [
-  "/",
+  // Left out while it redirects to /questions.
+  ...(HUB_LIVE ? ["/"] : []),
   "/questions",
   "/questions/browse",
   "/questions/departments",

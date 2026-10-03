@@ -337,7 +337,9 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                 <Link
                   to={courseHref(course.id)}
                   prefetch="intent"
-                  className="flex items-center gap-4 rounded-3xl bg-surface p-4 transition-[background-color,scale] hover:state-layer focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:scale-[0.99]"
+                  // min-w-0: a grid item otherwise grows to its longest name,
+                  // so the name could never shorten to "…".
+                  className="flex min-w-0 items-center gap-4 rounded-3xl bg-surface p-4 transition-[background-color,scale] hover:state-layer focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:scale-[0.99]"
                 >
                   <span
                     className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-container font-expressive text-lg text-primary-container-foreground tabular-nums"

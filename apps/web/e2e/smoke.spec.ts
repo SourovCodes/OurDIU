@@ -51,20 +51,12 @@ test("visitors are invited to test the app", async ({ page }) => {
   await expect(strip).toHaveCount(0);
 });
 
-test("the hub leads to the question bank and its questions", async ({
+test("the site opens in the question bank, and leads to its questions", async ({
   page,
 }) => {
-  await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "What do you need today?",
-  );
-  await expect(async () => {
-    await page
-      .getByRole("main")
-      .getByRole("link", { name: /Question Bank/ })
-      .click();
-    await expect(page).toHaveURL(/\/questions$/, { timeout: 2_000 });
-  }).toPass();
+  // No hub until a second product is live (HUB_LIVE): / redirects, keeping the query.
+  await page.goto("/?utm_source=facebook");
+  await expect(page).toHaveURL(/\/questions\?utm_source=facebook$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Find your paper.",
   );
@@ -237,7 +229,8 @@ test("an unknown URL renders a styled 404 page", async ({ page }) => {
     expect(css.length, href).toBeGreaterThan(0);
   }
 
-  await clickUntilUrl(page, "Back to home", /\/$/);
+  // Home is the question bank while the hub redirects there (HUB_LIVE).
+  await clickUntilUrl(page, "Back to home", /\/questions$/);
 
   // Routes that exist but can't find their record still go through the error boundary.
   const missing = await page.goto("/questions/999999");

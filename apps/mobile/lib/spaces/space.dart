@@ -137,9 +137,19 @@ const _key = 'space';
 Space? _read(SharedPreferences prefs) =>
     Space.values.where((s) => s.name == prefs.getString(_key)).firstOrNull;
 
-/// Where the app opens: the space used last, or the chooser on first launch.
-String startLocation(SharedPreferences prefs) =>
-    _read(prefs)?.home ?? '/choose';
+/// Whether the first launch asks "What do you need?". Not until a second product
+/// is live (like the website's `HUB_LIVE`): until then the app opens in the
+/// Question Bank. Set to true when the Class Routine or the Marketplace launches.
+const showChooser = false;
+
+/// Where the app opens: the space used last, or the chooser on first launch. While
+/// the chooser is off, a coming-soon space picked from the switcher isn't where to
+/// land either: the app opens in the Question Bank.
+String startLocation(SharedPreferences prefs) {
+  final last = _read(prefs);
+  if (showChooser) return last?.home ?? '/choose';
+  return last != null && last.live ? last.home : Space.questions.home;
+}
 
 /// The space used last, remembered so the app reopens there.
 class LastSpace extends Notifier<Space?> {

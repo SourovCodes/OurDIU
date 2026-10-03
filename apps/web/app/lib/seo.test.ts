@@ -21,7 +21,8 @@ describe("sitemapXml", () => {
       { departmentIds: [3], courseIds: [12] },
     );
     expect(xml).toMatch(/^<\?xml version="1.0" encoding="UTF-8"\?>\n<urlset /);
-    expect(xml).toContain(`<url><loc>${SITE}/</loc></url>`);
+    // The hub redirects to /questions until a second product launches (HUB_LIVE).
+    expect(xml).not.toContain(`<url><loc>${SITE}/</loc></url>`);
     expect(xml).toContain(`<url><loc>${SITE}/questions</loc></url>`);
     expect(xml).toContain(`<url><loc>${SITE}/contact</loc></url>`);
     expect(xml).toContain(`<url><loc>${SITE}/diuqbank</loc></url>`);

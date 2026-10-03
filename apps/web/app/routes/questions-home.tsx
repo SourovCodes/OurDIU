@@ -14,7 +14,9 @@ import { getUser } from "~/lib/session.server";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/questions-home";
-import { pageMeta, QB_NAME } from "~/lib/seo";
+import { originOf, pageMeta, QB_NAME, websiteJsonLd } from "~/lib/seo";
+import { AUTHOR } from "~/lib/author";
+import { HUB_LIVE } from "~/lib/products";
 
 /** The first question of each course, so one course doesn't fill a section. */
 function onePerCourse(questions: QuestionList["items"], limit: number) {
@@ -81,12 +83,15 @@ export async function loader({ request }: Route.LoaderArgs) {
   };
 }
 
-export const meta: Route.MetaFunction = () =>
-  pageMeta({
+export const meta: Route.MetaFunction = ({ matches }) => [
+  ...pageMeta({
     title: `${QB_NAME} — DIU past exam question papers | OurDIU`,
     description:
       "The DIU Question Bank, formerly DIU QBank (diuqbank.com): previous final, midterm and quiz questions of Daffodil International University by department, course and semester. Free, no ads.",
-  });
+  }),
+  // The site's name for search results, here while / redirects here (HUB_LIVE).
+  ...(HUB_LIVE ? [] : [websiteJsonLd(originOf(matches), AUTHOR)]),
+];
 
 function SectionHeading({
   id,

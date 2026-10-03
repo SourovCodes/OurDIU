@@ -1,7 +1,7 @@
 import { ArrowRight } from "lucide-react";
-import { Link } from "react-router";
+import { Link, redirect } from "react-router";
 import { SpaceIcon } from "~/components/space-icon";
-import { PRODUCTS, type Product } from "~/lib/products";
+import { HUB_LIVE, PRODUCTS, type Product } from "~/lib/products";
 import { plural } from "~/lib/submissions";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
@@ -81,6 +81,15 @@ function ProductTile({
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
+  if (!HUB_LIVE) {
+    // The visitor's query (e.g. utm_*) goes along; React Router's own `_routes`, on
+    // the data request of a client-side navigation, doesn't.
+    const query = new URL(request.url).searchParams;
+    query.delete("_routes");
+    const search = query.size > 0 ? `?${query}` : "";
+    // Temporary, so it isn't cached: the hub returns with a second product.
+    throw redirect(`/questions${search}`, 302);
+  }
   const { departments } = await loadTaxonomy(request);
   const withPapers = departments.filter((d) => d.publishedCount > 0);
   return {

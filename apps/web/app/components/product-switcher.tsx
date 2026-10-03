@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import { PRODUCTS, type Product } from "~/lib/products";
+import { HUB_LIVE, PRODUCTS, type Product } from "~/lib/products";
 
 /** The way between OurDIU's products: the hub, and each product's space. */
 export function ProductSwitcher({ current }: { current: Product | null }) {
@@ -58,13 +58,17 @@ export function ProductSwitcher({ current }: { current: Product | null }) {
             </DropdownMenuItem>
           );
         })}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to="/">
-            <House aria-hidden />
-            All of OurDIU
-          </Link>
-        </DropdownMenuItem>
+        {HUB_LIVE && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link to="/">
+                <House aria-hidden />
+                All of OurDIU
+              </Link>
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

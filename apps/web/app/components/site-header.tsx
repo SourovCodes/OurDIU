@@ -35,7 +35,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "~/components/ui/sheet";
-import { PRODUCTS, type Product } from "~/lib/products";
+import { HUB_LIVE, PRODUCTS, type Product } from "~/lib/products";
 import { useLogoutTarget, useSpace } from "~/lib/use-space";
 import { loginHref } from "~/lib/redirect";
 import { setTheme, useIsDark } from "~/lib/theme";
@@ -392,7 +392,7 @@ function MobileMenu({
                 </Link>
               </SheetClose>
             ))}
-            {product && (
+            {product && HUB_LIVE && (
               <SheetClose asChild>
                 <Link to="/" className={MENU_LINK}>
                   All of OurDIU

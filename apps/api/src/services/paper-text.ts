@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, isNull, or } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createDb, type Database } from "../db/client";
 import { submissions, submissionTexts } from "../db/schema";
@@ -7,8 +7,11 @@ import { GeminiError, generateJsonFromPdf } from "../lib/gemini";
 import type { Fetcher } from "../lib/pdf-processor";
 
 // Papers' text, read off the PDF by the AI: the upload check reads it in the same call
-// (analysis.ts), and this backfill reads it for papers published before that. Only
-// published papers' text is served (questions.ts) and searched (paper-search.ts).
+// (analysis.ts), and the backfill reads it for papers published before that: a cron
+// reads one paper at a time (`readNextMissingText`), slowly enough to stay inside
+// Gemini's free daily quota, and admins can queue them all at once
+// (`readMissingTexts`). Only published papers' text is served (questions.ts) and
+// searched (paper-search.ts).
 
 /** Longest text kept; a file of several papers can run long. */
 export const MAX_TEXT_LENGTH = 30_000;
@@ -122,7 +125,8 @@ export async function readMissingTexts(
 export type TextEnv = {
   BUCKET: R2Bucket;
   GEMINI_API_KEY: string;
-  GEMINI_MODEL: string;
+  /** A lighter model than the upload check's, with a free quota of its own. */
+  GEMINI_TEXT_MODEL: string;
   COMPRESSOR_API_KEY: string;
   PDF_PROCESSOR_URL: string;
 };
@@ -130,13 +134,15 @@ export type TextEnv = {
 /**
  * Reads one published paper's text. Papers that were unpublished or already have
  * their text (the upload check read it meanwhile) are skipped. Returns "retry" when a
- * later attempt might succeed; the failure is stored after the last attempt.
+ * later attempt might succeed; the failure is stored after the last attempt. `once`
+ * (the cron) stores any failure straight away except Gemini's rate limit, which
+ * leaves the paper for the next try.
  */
 export async function runTextRead(
   db: Database,
   env: TextEnv,
   job: TextJob,
-  options: { attempt?: number; fetch?: Fetcher } = {},
+  options: { attempt?: number; once?: boolean; fetch?: Fetcher } = {},
 ): Promise<"done" | "retry"> {
   const attempt = options.attempt ?? 1;
   const [row] = await db
@@ -160,7 +166,7 @@ export async function runTextRead(
     const { pdf } = await readPdfForAi(env, row.fileKey, options.fetch);
     const { json } = await generateJsonFromPdf({
       apiKey: env.GEMINI_API_KEY,
-      model: env.GEMINI_MODEL,
+      model: env.GEMINI_TEXT_MODEL,
       pdf,
       prompt: TEXT_PROMPT,
       responseJsonSchema: textResponseJsonSchema,
@@ -176,7 +182,7 @@ export async function runTextRead(
     await saveText(db, job.submissionId, {
       text: cleanText(reply.data.text),
       error: null,
-      model: env.GEMINI_MODEL,
+      model: env.GEMINI_TEXT_MODEL,
     });
     return "done";
   } catch (err) {
@@ -184,7 +190,10 @@ export async function runTextRead(
     const retryable =
       !(err instanceof PermanentError) &&
       !(err instanceof GeminiError && !err.retryable);
-    const final = !retryable || attempt >= TEXT_MAX_ATTEMPTS;
+    const rateLimited = err instanceof GeminiError && err.status === 429;
+    const final = options.once
+      ? !rateLimited
+      : !retryable || attempt >= TEXT_MAX_ATTEMPTS;
     console.error(
       `Reading the text of ${job.submissionId} failed (attempt ${attempt})`,
       err,
@@ -193,11 +202,73 @@ export async function runTextRead(
       await saveText(db, job.submissionId, {
         text: null,
         error: message,
-        model: env.GEMINI_MODEL,
+        model: env.GEMINI_TEXT_MODEL,
       });
     }
     return final ? "done" : "retry";
   }
+}
+
+/** How long a failed read waits before the cron tries it again. */
+export const TEXT_RETRY_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * The paper the cron reads next: a published paper whose text was never read, oldest
+ * first, then one whose read failed over a week ago (least recently tried first).
+ */
+export async function nextMissingText(
+  db: Database,
+  now = new Date(),
+): Promise<number | null> {
+  const [row] = await db
+    .select({ id: submissions.id })
+    .from(submissions)
+    .leftJoin(submissionTexts, eq(submissionTexts.submissionId, submissions.id))
+    .where(
+      and(
+        eq(submissions.status, "published"),
+        or(
+          isNull(submissionTexts.submissionId),
+          and(
+            isNotNull(submissionTexts.error),
+            lt(
+              submissionTexts.updatedAt,
+              new Date(now.getTime() - TEXT_RETRY_AFTER_MS),
+            ),
+          ),
+        ),
+      ),
+    )
+    .orderBy(
+      sql`${submissionTexts.submissionId} is not null`,
+      asc(submissionTexts.updatedAt),
+      asc(submissions.id),
+    )
+    .limit(1);
+  return row?.id ?? null;
+}
+
+/**
+ * The cron's backfill: reads one missing text per run, so the schedule
+ * (`TEXT_CRON` in index.ts) sets the pace against Gemini's free daily quota. Does
+ * nothing without an API key (locally, in tests), so no failures are stored.
+ * Returns the paper it tried.
+ */
+export async function readNextMissingText(
+  db: Database,
+  env: TextEnv,
+  options: { fetch?: Fetcher; now?: Date } = {},
+): Promise<number | null> {
+  if (!env.GEMINI_API_KEY) return null;
+  const submissionId = await nextMissingText(db, options.now);
+  if (submissionId === null) return null;
+  await runTextRead(
+    db,
+    env,
+    { kind: "text", submissionId },
+    { once: true, fetch: options.fetch },
+  );
+  return submissionId;
 }
 
 /** Queue consumer for text reads, alongside the analyses (`handleAnalysisBatch`). */

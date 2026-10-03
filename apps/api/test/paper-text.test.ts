@@ -10,10 +10,13 @@ import { semesters, submissions, submissionTexts } from "../src/db/schema";
 import { matchExpression, snippetParts } from "../src/services/paper-search";
 import {
   cleanText,
+  nextMissingText,
   readMissingTexts,
+  readNextMissingText,
   runTextRead,
   saveText,
   TEXT_MAX_ATTEMPTS,
+  TEXT_RETRY_AFTER_MS,
   type TextEnv,
   type TextJob,
 } from "../src/services/paper-text";
@@ -78,7 +81,7 @@ const textRow = (submissionId: number) =>
 const textEnv = {
   BUCKET: env.BUCKET,
   GEMINI_API_KEY: "gemini-test-key",
-  GEMINI_MODEL: "gemini-test",
+  GEMINI_TEXT_MODEL: "gemini-test",
   COMPRESSOR_API_KEY: "",
   PDF_PROCESSOR_URL: "https://pdf-processor.test",
 } satisfies TextEnv;
@@ -230,6 +233,93 @@ describe("readMissingTexts", () => {
     });
     expect(res.status).toBe(202);
     expect((await res.json<TextsQueued>()).queued).toBeGreaterThan(0);
+  });
+});
+
+describe("the cron's backfill", () => {
+  /** Gives every paper still missing its text one, so `nextMissingText` sees only new ones. */
+  async function readEverything() {
+    let id: number | null;
+    while ((id = await nextMissingText(db(), new Date(8.64e15))) !== null) {
+      await saveText(db(), id, { text: "read", error: null, model: "test" });
+    }
+  }
+
+  it("picks never-read papers oldest first, then failures over a week old", async () => {
+    await readEverything();
+    const now = new Date();
+    const failed = await seedPaper();
+    await saveText(db(), failed.paper.id, {
+      text: null,
+      error: "boom",
+      model: "test",
+    });
+    const first = await seedPaper();
+    const second = await seedPaper();
+    await seedPaper("Already read");
+    await seedPaper(undefined, "pending_review");
+
+    expect(await nextMissingText(db(), now)).toBe(first.paper.id);
+    await saveText(db(), first.paper.id, {
+      text: "a",
+      error: null,
+      model: "t",
+    });
+    expect(await nextMissingText(db(), now)).toBe(second.paper.id);
+    await saveText(db(), second.paper.id, {
+      text: "b",
+      error: null,
+      model: "t",
+    });
+    // The failure waits a week.
+    expect(await nextMissingText(db(), now)).toBeNull();
+    const weekLater = new Date(now.getTime() + TEXT_RETRY_AFTER_MS + 60_000);
+    expect(await nextMissingText(db(), weekLater)).toBe(failed.paper.id);
+  });
+
+  it("reads one paper per run", async () => {
+    await readEverything();
+    const first = await seedPaper();
+    const second = await seedPaper();
+    const { fetch, calls } = fakeGemini({ text: "1. Define a tree." });
+    expect(await readNextMissingText(db(), textEnv, { fetch })).toBe(
+      first.paper.id,
+    );
+    expect(calls).toHaveLength(1);
+    expect((await textRow(first.paper.id))?.text).toBe("1. Define a tree.");
+    expect(await textRow(second.paper.id)).toBeUndefined();
+  });
+
+  it("stores a failure straight away, but leaves a rate-limited paper for the next run", async () => {
+    await readEverything();
+    const { paper } = await seedPaper();
+    const limited = fakeGemini(null, () =>
+      Response.json({ error: { message: "quota" } }, { status: 429 }),
+    );
+    await readNextMissingText(db(), textEnv, { fetch: limited.fetch });
+    expect(await textRow(paper.id)).toBeUndefined();
+
+    const broken = fakeGemini(null, () =>
+      Response.json({ error: { message: "overloaded" } }, { status: 503 }),
+    );
+    await readNextMissingText(db(), textEnv, { fetch: broken.fetch });
+    expect((await textRow(paper.id))?.error).toContain("overloaded");
+    expect(await nextMissingText(db())).toBeNull();
+  });
+
+  it("does nothing without an API key", async () => {
+    await readEverything();
+    const { paper } = await seedPaper();
+    const { fetch, calls } = fakeGemini({ text: "x" });
+    expect(
+      await readNextMissingText(
+        db(),
+        { ...textEnv, GEMINI_API_KEY: "" },
+        { fetch },
+      ),
+    ).toBeNull();
+    expect(calls).toHaveLength(0);
+    expect(await textRow(paper.id)).toBeUndefined();
   });
 });
 

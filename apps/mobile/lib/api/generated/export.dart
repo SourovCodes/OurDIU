@@ -22,6 +22,8 @@ export 'models/department_list.dart';
 export 'models/course_list.dart';
 export 'models/semester_list.dart';
 export 'models/exam_type_list.dart';
+export 'models/merged_id.dart';
+export 'models/merged_kind.dart';
 export 'models/question_list.dart';
 export 'models/question.dart';
 export 'models/department.dart';

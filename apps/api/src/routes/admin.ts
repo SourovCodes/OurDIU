@@ -13,6 +13,8 @@ import {
   adminSubmissionSchema,
   adminUserListSchema,
   adminUserSchema,
+  catalogMergeInputSchema,
+  catalogMergeResultSchema,
   classifySubmissionInputSchema,
   createCourseInputSchema,
   departmentInputSchema,
@@ -40,6 +42,7 @@ import { requireAdmin } from "../middleware/require-admin";
 import { getAdminStats } from "../services/admin-stats";
 import { checkUnchecked, rerunAnalysis } from "../services/analysis";
 import * as catalog from "../services/catalog";
+import { mergeCatalogEntries } from "../services/merge";
 import {
   classifySubmission,
   deleteSubmission,
@@ -351,7 +354,7 @@ const getCatalogRoute = createRoute({
   },
 });
 
-/** Create, update and delete routes for one kind of catalog entry. */
+/** Create, update, delete and merge routes for one kind of catalog entry. */
 function catalogRoutes<
   C extends z.ZodType,
   U extends z.ZodType,
@@ -359,6 +362,33 @@ function catalogRoutes<
 >(path: string, label: string, schemas: { create: C; update: U; result: R }) {
   const conflict = errorResponse(`A ${label} with this name already exists`);
   return {
+    merge: createRoute({
+      method: "post",
+      path: `/${path}/merge`,
+      tags: catalogTags,
+      summary: `Merge ${label}s into one`,
+      description:
+        `Moves everything filed under the \`mergeIds\` ${label}s to \`keepId\` and deletes them. ` +
+        "Questions that become the same exam are combined (papers, saves and views move to one). " +
+        (path === "departments"
+          ? "Courses with the same name in the merged departments are combined too. "
+          : path === "courses"
+            ? "The courses must be in the same department. "
+            : "") +
+        "With `dryRun`, only reports what would move.",
+      middleware,
+      request: jsonBody(catalogMergeInputSchema),
+      responses: {
+        200: jsonResponse(catalogMergeResultSchema, "What moved"),
+        ...denied,
+        404: errorResponse(`A ${label} not found`),
+        422: errorResponse(
+          path === "courses"
+            ? "Invalid fields, or courses of different departments"
+            : "Invalid fields",
+        ),
+      },
+    }),
     create: createRoute({
       method: "post",
       path: `/${path}`,
@@ -598,6 +628,30 @@ export const adminRoutes = new OpenAPIHono<AppEnv>({
 
   .openapi(getCatalogRoute, async (c) =>
     c.json(await catalog.getCatalog(c.var.db), 200),
+  )
+  .openapi(departmentRoutes.merge, async (c) =>
+    c.json(
+      await mergeCatalogEntries(c.var.db, "departments", c.req.valid("json")),
+      200,
+    ),
+  )
+  .openapi(courseRoutes.merge, async (c) =>
+    c.json(
+      await mergeCatalogEntries(c.var.db, "courses", c.req.valid("json")),
+      200,
+    ),
+  )
+  .openapi(semesterRoutes.merge, async (c) =>
+    c.json(
+      await mergeCatalogEntries(c.var.db, "semesters", c.req.valid("json")),
+      200,
+    ),
+  )
+  .openapi(examTypeRoutes.merge, async (c) =>
+    c.json(
+      await mergeCatalogEntries(c.var.db, "exam-types", c.req.valid("json")),
+      200,
+    ),
   )
   .openapi(departmentRoutes.create, async (c) =>
     c.json(await catalog.createDepartment(c.var.db, c.req.valid("json")), 201),

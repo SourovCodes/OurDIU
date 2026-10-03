@@ -91,7 +91,7 @@ export function highlightParts(
 }
 
 /** "Data Structures" and "Data Structure" are the same course filed under two names. */
-function sameCourseKey(name: string): string {
+export function sameCourseKey(name: string): string {
   return catalogKey(name)
     .replace(/[^a-z0-9 ]/g, "")
     .replace(/s\b/g, "");

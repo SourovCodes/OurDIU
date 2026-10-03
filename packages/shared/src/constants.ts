@@ -184,6 +184,20 @@ export function catalogKey(name: string): string {
   return normalizeCatalogName(name).toLowerCase();
 }
 
+/**
+ * Kinds of entries an admin merge removes (`merged_ids.kind`): the four catalog kinds,
+ * plus questions (exams), which are combined when a merge makes two of them the same.
+ */
+export const MERGED_KINDS = [
+  "question",
+  "department",
+  "course",
+  "semester",
+  "exam_type",
+] as const;
+/** At most this many entries are merged into one at a time. */
+export const MAX_MERGE_ENTRIES = 20;
+
 /** Semester names are a term and a two-digit year: "Fall 25", "Short 20". */
 export const SEMESTER_TERMS = ["Spring", "Summer", "Fall", "Short"] as const;
 export const MIN_SEMESTER_YEAR = 15;

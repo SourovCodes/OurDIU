@@ -13,6 +13,7 @@ import { ExamBadge, ExamShape, examKind } from "~/components/exam-badge";
 import { Breadcrumbs } from "~/components/page-header";
 import { buttonVariants } from "~/components/ui/button";
 import { apiFetch, readJson } from "~/lib/api.server";
+import { redirectIfMerged } from "~/lib/merged.server";
 import { courseEntries, sameCourses } from "~/lib/courses";
 import { formatCount, formatViews } from "~/lib/format";
 import { plural } from "~/lib/submissions";
@@ -28,7 +29,15 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const taxonomy = await loadTaxonomy(request);
   const entries = courseEntries(taxonomy);
   const course = entries.find((c) => String(c.id) === params.id);
-  if (!course) throw data("Course not found", { status: 404 });
+  if (!course) {
+    await redirectIfMerged(
+      request,
+      "course",
+      params.id,
+      (id) => `/questions/courses/${id}`,
+    );
+    throw data("Course not found", { status: 404 });
+  }
 
   const query = new URLSearchParams({
     courseId: String(course.id),

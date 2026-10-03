@@ -8,6 +8,8 @@ import 'package:retrofit/retrofit.dart';
 import '../models/course_list.dart';
 import '../models/department_list.dart';
 import '../models/exam_type_list.dart';
+import '../models/merged_id.dart';
+import '../models/merged_kind.dart';
 import '../models/semester_list.dart';
 import '../models/taxonomy.dart';
 
@@ -38,4 +40,13 @@ abstract class TaxonomyClient {
   /// List exam types
   @GET('/api/v1/exam-types')
   Future<ExamTypeList> getApiV1ExamTypes();
+
+  /// Where a merged entry went.
+  ///
+  /// When admins merge duplicate catalog entries, the removed ones (and questions combined with another) are deleted. This returns the id of the entry that was kept, so old links can be redirected.
+  @GET('/api/v1/merged/{kind}/{id}')
+  Future<MergedId> getApiV1MergedKindId({
+    @Path('kind') required MergedKind kind,
+    @Path('id') required int id,
+  });
 }

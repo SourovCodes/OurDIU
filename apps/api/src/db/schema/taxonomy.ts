@@ -1,6 +1,9 @@
+import { MERGED_KINDS } from "@ourdiu/shared";
+import { sql } from "drizzle-orm";
 import {
   index,
   integer,
+  primaryKey,
   sqliteTable,
   text,
   unique,
@@ -51,6 +54,30 @@ export const examTypes = sqliteTable("exam_types", {
   id: integer().primaryKey({ autoIncrement: true }),
   name: text().notNull().unique(),
 });
+
+/**
+ * Where entries removed by an admin merge went, so their old pages (indexed by search
+ * engines, saved in the app) can redirect to the entry that was kept. Chains are kept
+ * flat: merging the kept entry again points its old ids at the new one.
+ */
+export const mergedIds = sqliteTable(
+  "merged_ids",
+  {
+    kind: text({ enum: MERGED_KINDS }).notNull(),
+    oldId: integer().notNull(),
+    newId: integer().notNull(),
+    // Under its own key, so a fresh column rather than the shared `timestamps`
+    // builder (reusing one under another name renames it everywhere).
+    mergedAt: integer({ mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`),
+  },
+  (t) => [
+    primaryKey({ columns: [t.kind, t.oldId] }),
+    // Flattening chains looks entries up by where they went.
+    index("merged_ids_kind_new_id_idx").on(t.kind, t.newId),
+  ],
+);
 
 export type DepartmentRow = typeof departments.$inferSelect;
 export type CourseRow = typeof courses.$inferSelect;

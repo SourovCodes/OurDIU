@@ -12,6 +12,7 @@ import {
 import { user } from "./auth";
 import { timestamps } from "./columns";
 import { questions, submissions } from "./questions";
+import { courses } from "./taxonomy";
 
 /**
  * One like (1) or dislike (-1) per user per submission. Triggers keep
@@ -89,6 +90,57 @@ export const savedQuestions = sqliteTable(
     index("saved_questions_user_id_created_at_idx").on(t.userId, t.createdAt),
     index("saved_questions_question_id_idx").on(t.questionId),
   ],
+);
+
+/**
+ * Question page views per hour (`hour` = Unix time / 3600), for "Most viewed today".
+ * Bumped with the all-time counter by `recordQuestionView`; buckets older than the
+ * window are pruned by `refreshTrending` (services/trending.ts).
+ */
+export const questionViewHours = sqliteTable(
+  "question_view_hours",
+  {
+    questionId: integer()
+      .notNull()
+      .references(() => questions.id, { onDelete: "cascade" }),
+    hour: integer().notNull(),
+    views: integer().notNull().default(0),
+  },
+  (t) => [
+    primaryKey({ columns: [t.questionId, t.hour] }),
+    index("question_view_hours_hour_idx").on(t.hour),
+  ],
+);
+
+/**
+ * The most viewed questions of the last 24 hours with their views then, rebuilt every
+ * few minutes by the cron (`refreshTrending`) from `question_view_hours`, so lists
+ * read a few rows instead of summing the window. Never written by anything else.
+ */
+export const trendingQuestions = sqliteTable(
+  "trending_questions",
+  {
+    questionId: integer()
+      .primaryKey()
+      .references(() => questions.id, { onDelete: "cascade" }),
+    views: integer().notNull(),
+  },
+  (t) => [index("trending_questions_views_idx").on(t.views)],
+);
+
+/**
+ * The courses whose exams were viewed most in the last 24 hours, with those views,
+ * rebuilt with `trending_questions` by the cron. Never written by anything else.
+ */
+export const trendingCourses = sqliteTable(
+  "trending_courses",
+  {
+    courseId: integer()
+      .primaryKey()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    views: integer().notNull(),
+  },
+  (t) => [index("trending_courses_views_idx").on(t.views)],
 );
 
 export type SubmissionVoteRow = typeof submissionVotes.$inferSelect;

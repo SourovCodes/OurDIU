@@ -28,6 +28,7 @@ class HomeScreen extends ConsumerWidget {
   Future<void> _refresh(WidgetRef ref) async {
     ref
       ..invalidate(taxonomyProvider)
+      ..invalidate(trendingCoursesProvider)
       ..invalidate(questionPageProvider);
     await ref.read(questionPageProvider((newestQuestions, 1)).future);
   }
@@ -36,7 +37,12 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final taxonomy = ref.watch(taxonomyProvider);
     final popular = ref.watch(questionPageProvider((popularQuestions, 1)));
+    final trending = ref.watch(questionPageProvider((trendingQuestions, 1)));
     final newest = ref.watch(questionPageProvider((newestQuestions, 1)));
+    // Optional: on a quiet day, or if it fails, the section is left out.
+    final todaysCourses =
+        ref.watch(trendingCoursesProvider).value?.items ??
+        const <TrendingCourse>[];
 
     final error = [
       taxonomy,
@@ -77,9 +83,14 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ],
             );
-    } else if (!newest.hasValue || !popular.hasValue) {
+    } else if (!newest.hasValue || !popular.hasValue || trending.isLoading) {
       body = const _HomeSkeleton();
     } else {
+      // Today's most viewed when four courses were viewed enough to fill the row
+      // (as on the website); otherwise, or if it failed, all-time. Never mixed.
+      final todays = trending.value?.items ?? const <Question>[];
+      final today = onePerCourse(todays, 4).length == 4;
+      final mostViewed = today ? todays : popular.requireValue.items;
       body = RefreshIndicator(
         onRefresh: () => _refresh(ref),
         child: ListView(
@@ -109,11 +120,18 @@ class HomeScreen extends ConsumerWidget {
             ],
             const SizedBox(height: 20),
             SectionHeader(
-              'Most viewed',
-              onSeeAll: () => context.push('/home/list/popular'),
+              today ? 'Most viewed today' : 'Most viewed',
+              onSeeAll: () =>
+                  context.push('/home/list/${today ? 'trending' : 'popular'}'),
             ),
             const SizedBox(height: 8),
-            _MostViewed(questions: popular.requireValue.items),
+            _MostViewed(questions: mostViewed, today: today),
+            if (todaysCourses.length >= 4) ...[
+              const SizedBox(height: 20),
+              const SectionHeader('Most viewed courses today'),
+              const SizedBox(height: 8),
+              _CoursesToday(courses: todaysCourses.take(6).toList()),
+            ],
             const SizedBox(height: 20),
             const ShareCard(),
             const SizedBox(height: 20),
@@ -242,9 +260,12 @@ class _DepartmentChips extends ConsumerWidget {
 /// A Material 3 hero carousel: the most viewed paper large, the next ones
 /// narrower, in their exam type's colours.
 class _MostViewed extends StatelessWidget {
-  const _MostViewed({required this.questions});
+  const _MostViewed({required this.questions, required this.today});
 
   final List<Question> questions;
+
+  /// Cards count today's views, not all of them.
+  final bool today;
 
   @override
   Widget build(BuildContext context) {
@@ -256,21 +277,73 @@ class _MostViewed extends StatelessWidget {
         itemSnapping: true,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         onTap: (i) => openQuestion(context, items[i]),
-        children: [for (final q in items) _CarouselCard(q)],
+        children: [for (final q in items) _CarouselCard(q, today: today)],
       ),
     );
   }
 }
 
+/// The courses most viewed today, ranked, as on the website's home.
+class _CoursesToday extends StatelessWidget {
+  const _CoursesToday({required this.courses});
+
+  final List<TrendingCourse> courses;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return RowGroup(
+      children: [
+        for (final (i, course) in courses.indexed)
+          Material(
+            color: scheme.surfaceContainerLow,
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: scheme.primaryContainer,
+                foregroundColor: scheme.onPrimaryContainer,
+                child: Text(
+                  '${i + 1}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ),
+              title: Text(
+                course.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                '${course.department.shortName} · '
+                '${compactCount(course.viewsToday)} views today',
+              ),
+              trailing: Icon(
+                Icons.chevron_right_rounded,
+                color: scheme.onSurfaceVariant,
+              ),
+              onTap: () => context.push('/home/courses/${course.id}'),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _CarouselCard extends StatelessWidget {
-  const _CarouselCard(this.question);
+  const _CarouselCard(this.question, {required this.today});
 
   final Question question;
+  final bool today;
 
   @override
   Widget build(BuildContext context) {
     final kind = examKind(question.examType.name);
     final (container, content) = examColors(context, kind);
+    final todays = today ? question.viewsToday : null;
+    final views = todays != null
+        ? '${compactCount(todays)} today'
+        : compactCount(question.viewCount);
     return ColoredBox(
       color: container,
       child: LayoutBuilder(
@@ -338,8 +411,8 @@ class _CarouselCard extends StatelessWidget {
                           Flexible(
                             child: Text(
                               narrow
-                                  ? compactCount(question.viewCount)
-                                  : '${compactCount(question.viewCount)} views · '
+                                  ? views
+                                  : '${todays != null ? '${compactCount(todays)} views today' : '$views views'} · '
                                         '${question.department.shortName}',
                               maxLines: 1,
                               overflow: TextOverflow.fade,

@@ -25,6 +25,7 @@ import {
   semesters,
   submissions,
   submissionTexts,
+  trendingQuestions,
   user,
 } from "../db/schema";
 import {
@@ -36,13 +37,14 @@ import {
 
 /**
  * Questions joined with their lookup names. The submission counts are columns kept up
- * to date by triggers (migration 0006).
+ * to date by triggers (migration 0006); today's views come from the cron's list.
  */
 function selectQuestions(db: Database) {
   return db
     .select({
       ...questionSummaryColumns,
       viewCount: questions.viewCount,
+      viewsToday: trendingQuestions.views,
       submissionCounts: {
         published: questions.publishedCount,
         pendingReview: questions.pendingReviewCount,
@@ -53,7 +55,11 @@ function selectQuestions(db: Database) {
     .innerJoin(departments, eq(departments.id, questions.departmentId))
     .innerJoin(courses, eq(courses.id, questions.courseId))
     .innerJoin(semesters, eq(semesters.id, questions.semesterId))
-    .innerJoin(examTypes, eq(examTypes.id, questions.examTypeId));
+    .innerJoin(examTypes, eq(examTypes.id, questions.examTypeId))
+    .leftJoin(
+      trendingQuestions,
+      eq(trendingQuestions.questionId, questions.id),
+    );
 }
 
 /** Set exactly when a question has a published paper; indexed, unlike the count. */
@@ -84,6 +90,8 @@ const QUESTION_ORDER = {
   // straight off an index instead of sorting every question.
   newest: [desc(questions.latestPublishedAt)],
   popular: [desc(questions.viewCount)],
+  // Only the questions in the cron's list (see `listQuestions`), most views first.
+  trending: [desc(trendingQuestions.views)],
 } as const;
 
 /**
@@ -94,14 +102,27 @@ export async function listQuestions(
   db: Database,
   query: ListQuestionsQuery,
 ): Promise<QuestionList> {
-  const where = and(questionFilters(query), hasPublished);
+  const where = and(
+    questionFilters(query),
+    hasPublished,
+    // The list holds the top 100 of the last 24 hours; others weren't viewed enough.
+    query.sort === "trending"
+      ? isNotNull(trendingQuestions.questionId)
+      : undefined,
+  );
   const [items, totals] = await Promise.all([
     selectQuestions(db)
       .where(where)
       .orderBy(...QUESTION_ORDER[query.sort], desc(questions.id))
       .limit(query.pageSize)
       .offset((query.page - 1) * query.pageSize),
-    db.select({ total: count() }).from(questions).where(where),
+    query.sort === "trending"
+      ? db
+          .select({ total: count() })
+          .from(trendingQuestions)
+          .innerJoin(questions, eq(questions.id, trendingQuestions.questionId))
+          .where(where)
+      : db.select({ total: count() }).from(questions).where(where),
   ]);
 
   return {

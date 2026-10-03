@@ -1103,3 +1103,46 @@ test("a paper's text is on its page, and search finds its words", async ({
     }),
   ).toBeVisible();
 });
+
+test("the question bank home shows what was most viewed today", async ({
+  page,
+}) => {
+  await page.goto("/questions");
+  const section = page.getByRole("region", { name: "Most viewed today" });
+  const tiles = section.getByRole("link").filter({ hasText: "views today" });
+  await expect(tiles).toHaveCount(4);
+  // Most views first: Algorithms (40), then Circuit Analysis (31).
+  await expect(tiles.first()).toContainText("Algorithms");
+  await expect(tiles.first()).toContainText("40 views today");
+  await expect(tiles.nth(1)).toContainText("Circuit Analysis");
+
+  // The home has a "See all" per section: this one's.
+  await expect(async () => {
+    await section.getByRole("link", { name: "See all" }).click();
+    await expect(page).toHaveURL(/sort=trending$/, { timeout: 2_000 });
+  }).toPass();
+  await expect(page.getByRole("combobox", { name: "Sort exams" })).toHaveText(
+    /Most viewed today/,
+  );
+  await expect(
+    page.getByRole("list", { name: "Questions" }).getByRole("link").first(),
+  ).toHaveText("Algorithms");
+});
+
+test("the question bank home ranks the courses most viewed today", async ({
+  page,
+}) => {
+  await page.goto("/questions");
+  const courses = page
+    .getByRole("region", { name: "Most viewed courses today" })
+    .getByRole("listitem");
+  await expect(courses).toHaveCount(5);
+  await expect(courses.first()).toContainText("Algorithms");
+  await expect(courses.first()).toContainText("CSE · 40 views today");
+  await expect(async () => {
+    await courses.first().getByRole("link").click();
+    await expect(page).toHaveURL(/\/questions\/courses\/2$/, {
+      timeout: 2_000,
+    });
+  }).toPass();
+});

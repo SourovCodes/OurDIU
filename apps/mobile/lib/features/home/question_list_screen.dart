@@ -8,20 +8,36 @@ import '../../widgets/question_row.dart';
 import '../../widgets/skeleton.dart';
 import '../../widgets/state_message.dart';
 
-/// "See all" from Home: every question, most viewed or newest first, loading
-/// pages as the list scrolls.
+/// The lists Home's "See all" opens, by the route's `which`.
+enum HomeList {
+  newest('Recently added', newestQuestions),
+  popular('Most viewed', popularQuestions),
+  trending('Most viewed today', trendingQuestions);
+
+  const HomeList(this.title, this.query);
+
+  final String title;
+  final QuestionQuery query;
+
+  /// `newest` for anything unknown.
+  static HomeList named(String? which) =>
+      values.firstWhere((l) => l.name == which, orElse: () => newest);
+}
+
+/// "See all" from Home: every question, most viewed (today or ever) or newest
+/// first, loading pages as the list scrolls.
 class QuestionListScreen extends ConsumerWidget {
-  const QuestionListScreen({super.key, required this.popular});
+  const QuestionListScreen({super.key, required this.list});
 
-  final bool popular;
+  final HomeList list;
 
-  QuestionQuery get _query => popular ? popularQuestions : newestQuestions;
+  QuestionQuery get _query => list.query;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final first = ref.watch(questionPageProvider((_query, 1)));
     return Scaffold(
-      appBar: AppBar(title: Text(popular ? 'Most viewed' : 'Recently added')),
+      appBar: AppBar(title: Text(list.title)),
       body: switch (first) {
         AsyncData(:final value) => RefreshIndicator(
           onRefresh: () {

@@ -1,14 +1,18 @@
-import type { QuestionList, SavedQuestionList } from "@ourdiu/shared";
-import { Check, Search } from "lucide-react";
+import type {
+  QuestionList,
+  SavedQuestionList,
+  TrendingCourseList,
+} from "@ourdiu/shared";
+import { Check, ChevronRight, Search } from "lucide-react";
 import { Link } from "react-router";
-import { CourseSearchTrigger } from "~/components/course-search";
+import { CourseSearchTrigger, courseHref } from "~/components/course-search";
 import { ExamBadge, ExamShape } from "~/components/exam-badge";
 import { DepartmentTile, ExamTile } from "~/components/qb-tiles";
 import { QuestionCards } from "~/components/question-cards";
 import { buttonVariants } from "~/components/ui/button";
 import { apiGetJson } from "~/lib/api.server";
 import { ANDROID_BETA } from "~/lib/android-app";
-import { formatNumber } from "~/lib/format";
+import { formatCount, formatNumber } from "~/lib/format";
 import { rememberedDepartment } from "~/lib/department-preference";
 import { getUser } from "~/lib/session.server";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
@@ -17,6 +21,38 @@ import type { Route } from "./+types/questions-home";
 import { pageMeta, QB_NAME } from "~/lib/seo";
 
 /** The first question of each course, so one course doesn't fill a section. */
+/** Tiles in "Most viewed". */
+const MOST_VIEWED_TILES = 4;
+
+/** Courses in "Most viewed courses today", shown once at least the minimum were viewed. */
+const TODAYS_COURSES = 6;
+const MIN_TODAYS_COURSES = 4;
+
+/**
+ * Today's most viewed when enough were viewed to fill the row; otherwise (a quiet
+ * night, or a new deploy) the all-time list. Never a mix, so the heading stays true.
+ */
+function mostViewed(
+  trending: QuestionList["items"] | undefined,
+  allTime: QuestionList["items"] | undefined,
+) {
+  const today = onePerCourse(trending ?? [], MOST_VIEWED_TILES);
+  return today.length === MOST_VIEWED_TILES
+    ? { today: true, questions: today }
+    : {
+        today: false,
+        questions: onePerCourse(allTime ?? [], MOST_VIEWED_TILES),
+      };
+}
+
+/** No all-time stand-in: on a quiet day the section is left out. */
+function coursesToday(courses: TrendingCourseList["items"] | undefined) {
+  const items = courses ?? [];
+  return items.length >= MIN_TODAYS_COURSES
+    ? items.slice(0, TODAYS_COURSES)
+    : [];
+}
+
 function onePerCourse(questions: QuestionList["items"], limit: number) {
   const seen = new Set<number>();
   return questions
@@ -34,20 +70,26 @@ function onePerCourse(questions: QuestionList["items"], limit: number) {
  */
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await getUser(request);
-  const [newest, popular, taxonomy, saved] = await Promise.allSettled([
-    apiGetJson<QuestionList>(
-      request,
-      "/api/v1/questions?sort=newest&pageSize=24",
-    ),
-    apiGetJson<QuestionList>(
-      request,
-      "/api/v1/questions?sort=popular&pageSize=24",
-    ),
-    loadTaxonomy(request),
-    user
-      ? apiGetJson<SavedQuestionList>(request, "/api/v1/me/saved")
-      : Promise.resolve(null),
-  ]);
+  const [newest, trending, popular, todaysCourses, taxonomy, saved] =
+    await Promise.allSettled([
+      apiGetJson<QuestionList>(
+        request,
+        "/api/v1/questions?sort=newest&pageSize=24",
+      ),
+      apiGetJson<QuestionList>(
+        request,
+        "/api/v1/questions?sort=trending&pageSize=24",
+      ),
+      apiGetJson<QuestionList>(
+        request,
+        "/api/v1/questions?sort=popular&pageSize=24",
+      ),
+      apiGetJson<TrendingCourseList>(request, "/api/v1/courses/trending"),
+      loadTaxonomy(request),
+      user
+        ? apiGetJson<SavedQuestionList>(request, "/api/v1/me/saved")
+        : Promise.resolve(null),
+    ]);
   const value = <T,>(result: PromiseSettledResult<T>) =>
     result.status === "fulfilled" ? result.value : null;
 
@@ -73,7 +115,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     papers: departments.reduce((sum, d) => sum + d.publishedCount, 0),
     courseTotal: tax?.courses.length ?? 0,
     newest: onePerCourse(value(newest)?.items ?? [], 6),
-    popular: onePerCourse(value(popular)?.items ?? [], 4),
+    popular: mostViewed(value(trending)?.items, value(popular)?.items),
+    todaysCourses: coursesToday(value(todaysCourses)?.items),
     departments,
     myDepartmentId: departments[0]?.id === mine ? mine : null,
     courseCounts: Object.fromEntries(courseCounts),
@@ -95,19 +138,21 @@ function SectionHeading({
 }: {
   id: string;
   title: string;
-  link: { to: string; label: string };
+  link?: { to: string; label: string };
 }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
       <h2 id={id} className="font-expressive text-3xl sm:text-4xl">
         {title}
       </h2>
-      <Link
-        to={link.to}
-        className="shrink-0 text-sm font-semibold text-primary underline-offset-4 hover:underline"
-      >
-        {link.label}
-      </Link>
+      {link && (
+        <Link
+          to={link.to}
+          className="shrink-0 text-sm font-semibold text-primary underline-offset-4 hover:underline"
+        >
+          {link.label}
+        </Link>
+      )}
     </div>
   );
 }
@@ -146,6 +191,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     courseTotal,
     newest,
     popular,
+    todaysCourses,
     departments,
     myDepartmentId,
     courseCounts,
@@ -251,23 +297,69 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         </section>
       )}
 
-      {popular.length > 0 && (
+      {popular.questions.length > 0 && (
         <section aria-labelledby="popular-heading" className="space-y-5">
           <SectionHeading
             id="popular-heading"
-            title="Most viewed"
-            link={{ to: "/questions/browse?sort=popular", label: "See all" }}
+            title={popular.today ? "Most viewed today" : "Most viewed"}
+            link={{
+              to: `/questions/browse?sort=${popular.today ? "trending" : "popular"}`,
+              label: "See all",
+            }}
           />
           <ul className="-mx-4 flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4">
-            {popular.map((question) => (
+            {popular.questions.map((question) => (
               <li
                 key={question.id}
                 className="grid w-[72%] shrink-0 snap-start sm:w-auto"
               >
-                <ExamTile question={question} />
+                <ExamTile question={question} today={popular.today} />
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {todaysCourses.length > 0 && (
+        <section aria-labelledby="courses-today-heading" className="space-y-5">
+          <SectionHeading
+            id="courses-today-heading"
+            title="Most viewed courses today"
+          />
+          <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {todaysCourses.map((course, i) => (
+              <li key={course.id} className="grid">
+                <Link
+                  to={courseHref(course.id)}
+                  prefetch="intent"
+                  className="flex items-center gap-4 rounded-3xl bg-surface p-4 transition-[background-color,scale] hover:state-layer focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:scale-[0.99]"
+                >
+                  <span
+                    className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-container font-expressive text-lg text-primary-container-foreground tabular-nums"
+                    aria-hidden
+                  >
+                    {i + 1}
+                  </span>
+                  <span className="min-w-0 flex-1 space-y-0.5">
+                    <span className="block truncate font-medium">
+                      {course.name}
+                    </span>
+                    <span className="block text-sm text-muted-foreground">
+                      <span title={course.department.name}>
+                        {course.department.shortName}
+                      </span>
+                      {" · "}
+                      {formatCount(course.viewsToday)} views today
+                    </span>
+                  </span>
+                  <ChevronRight
+                    className="size-5 shrink-0 text-muted-foreground"
+                    aria-hidden
+                  />
+                </Link>
+              </li>
+            ))}
+          </ol>
         </section>
       )}
 

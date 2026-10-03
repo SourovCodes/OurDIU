@@ -117,6 +117,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 const SORT_LABELS: Record<QuestionSort, string> = {
   newest: "Newest papers",
+  trending: "Most viewed today",
   popular: "Most viewed",
   az: "A–Z",
 };

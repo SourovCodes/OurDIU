@@ -108,7 +108,7 @@ GoRouter buildRouter({String initialLocation = '/home'}) => GoRouter(
                 GoRoute(
                   path: 'list/:which',
                   builder: (context, state) => QuestionListScreen(
-                    popular: state.pathParameters['which'] == 'popular',
+                    list: HomeList.named(state.pathParameters['which']),
                   ),
                 ),
                 ..._catalogRoutes(),

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:diuqbank/api/generated/export.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'app_harness.dart';
@@ -86,6 +87,100 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Jump back in'), findsOneWidget);
     expect(find.widgetWithText(ActionChip, 'Data Structures'), findsOneWidget);
+  });
+
+  testWidgets("home's most viewed counts today when enough was viewed", (
+    tester,
+  ) async {
+    final today = [
+      for (final (i, course) in [
+        'Algorithms',
+        'Data Structures',
+        'Computer Networks',
+        'Operating Systems',
+      ].indexed)
+        question(
+          40 + i,
+          course: course,
+          courseId: 400 + i,
+          views: 9000,
+          viewsToday: 312 - i * 50,
+        ),
+    ];
+    await pumpApp(
+      tester,
+      lists: (query) => query.sort == QuestionSort.trending
+          ? Future.value(page(today))
+          : defaultLists(query),
+    );
+    expect(find.text('Most viewed today'), findsOneWidget);
+    expect(find.text('312 views today · CSE'), findsOneWidget);
+    expect(find.text('Most viewed'), findsNothing);
+
+    await tester.tap(
+      find.descendant(
+        of: find.ancestor(
+          of: find.text('Most viewed today'),
+          matching: find.byType(Row),
+        ),
+        matching: find.text('See all'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, 'Most viewed today'), findsOneWidget);
+    expect(find.text('Algorithms'), findsOneWidget);
+  });
+
+  testWidgets('home ranks the courses most viewed today', (tester) async {
+    TrendingCourse course(int id, String name, int views) => TrendingCourse(
+      id: id,
+      name: name,
+      departmentId: 5,
+      publishedCount: 10,
+      department: const Department(
+        id: 5,
+        name: 'Computer Science and Engineering',
+        shortName: 'CSE',
+      ),
+      viewsToday: views,
+    );
+    await pumpApp(
+      tester,
+      trendingCourses: [
+        course(198, 'Mathematics I', 1250),
+        course(401, 'Algorithms', 300),
+        course(402, 'Computer Networks', 120),
+        course(403, 'Operating Systems', 80),
+      ],
+    );
+    await scrollTo(tester, find.text('Most viewed courses today'));
+    expect(find.text('CSE · 1.3k views today'), findsOneWidget);
+
+    await tester.tap(find.text('Mathematics I'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('4 papers from 4 exams'), findsOneWidget);
+  });
+
+  testWidgets('home leaves out courses when few were viewed today', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    expect(find.text('Most viewed courses today'), findsNothing);
+  });
+
+  testWidgets('a quiet day falls back to the all-time most viewed', (
+    tester,
+  ) async {
+    // Only one exam was viewed today: not enough for the row.
+    await pumpApp(
+      tester,
+      lists: (query) => query.sort == QuestionSort.trending
+          ? Future.value(page([question(50, viewsToday: 3)]))
+          : defaultLists(query),
+    );
+    expect(find.text('Most viewed'), findsOneWidget);
+    expect(find.text('Most viewed today'), findsNothing);
+    expect(find.text('6.4k views · CSE'), findsOneWidget);
   });
 
   testWidgets('offline, home says so and points to saved papers', (

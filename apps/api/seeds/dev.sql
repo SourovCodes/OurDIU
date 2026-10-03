@@ -6,6 +6,9 @@ DELETE FROM submission_reports;
 DELETE FROM submission_votes;
 DELETE FROM submission_analyses;
 DELETE FROM submission_texts;
+DELETE FROM trending_questions;
+DELETE FROM trending_courses;
+DELETE FROM question_view_hours;
 DELETE FROM submissions;
 DELETE FROM questions;
 DELETE FROM courses;
@@ -139,6 +142,20 @@ Item | Weight | Value
 
 4. Prove that the running time of binary search is O(log n). [10]', 'seed'),
   (13, 'Draft: what is a stack? (pending)', 'seed');
+
+-- Today's views (this hour's bucket), and "Most viewed today" as the cron would build
+-- it from them: five exams of five courses, so the home's row of four fills.
+INSERT INTO question_view_hours (question_id, hour, views) VALUES
+  (3, unixepoch() / 3600, 40),
+  (6, unixepoch() / 3600, 31),
+  (8, unixepoch() / 3600, 22),
+  (1, unixepoch() / 3600, 18),
+  (10, unixepoch() / 3600, 9);
+INSERT INTO trending_questions (question_id, views)
+  SELECT question_id, views FROM question_view_hours;
+INSERT INTO trending_courses (course_id, views)
+  SELECT q.course_id, sum(h.views) FROM question_view_hours h
+  JOIN questions q ON q.id = h.question_id GROUP BY q.course_id;
 
 -- Votes; the triggers fill in like_count and dislike_count. Nobody votes on their own paper.
 -- Question 1: #1 scores +2 and stays ranked first, #2 scores 0.

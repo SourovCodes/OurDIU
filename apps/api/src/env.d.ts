@@ -26,6 +26,7 @@ interface Env {
   FILES_URL: string;
   PDF_PROCESSOR_URL: string;
   GEMINI_MODEL: string;
+  ANDROID_MIN_VERSION: string;
   BETTER_AUTH_SECRET: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
@@ -50,6 +51,7 @@ declare namespace Cloudflare {
     FILES_URL: string;
     PDF_PROCESSOR_URL: string;
     GEMINI_MODEL: string;
+    ANDROID_MIN_VERSION: string;
     BETTER_AUTH_SECRET: string;
     GOOGLE_CLIENT_ID: string;
     GOOGLE_CLIENT_SECRET: string;

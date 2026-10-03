@@ -1706,6 +1706,21 @@
           "sentBytes"
         ]
       },
+      "AndroidApp": {
+        "type": "object",
+        "properties": {
+          "minVersion": {
+            "$ref": "#/components/schemas/AppVersion"
+          }
+        },
+        "required": [
+          "minVersion"
+        ]
+      },
+      "AppVersion": {
+        "type": "string",
+        "pattern": "^\\d+\\.\\d+\\.\\d+$"
+      },
       "VoteResult": {
         "type": "object",
         "properties": {
@@ -8386,6 +8401,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/app/android": {
+      "get": {
+        "tags": [
+          "App"
+        ],
+        "summary": "What the Android app needs to know about itself",
+        "description": "The oldest app version that still works (`ANDROID_MIN_VERSION` in wrangler.jsonc). The app checks it at launch and asks to be updated when it is older.",
+        "responses": {
+          "200": {
+            "description": "The app's settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AndroidApp"
                 }
               }
             }

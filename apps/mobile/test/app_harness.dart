@@ -6,6 +6,7 @@ import 'package:diuqbank/api/api.dart';
 import 'package:diuqbank/api/generated/export.dart';
 import 'package:diuqbank/auth/session.dart';
 import 'package:diuqbank/auth/token.dart';
+import 'package:diuqbank/data/app_update.dart';
 import 'package:diuqbank/data/prefs.dart';
 import 'package:diuqbank/data/questions.dart';
 import 'package:diuqbank/data/taxonomy.dart';
@@ -134,6 +135,9 @@ Future<FakeViewCounter> pumpApp(
   WidgetTester tester, {
   Lists? lists,
   List<TrendingCourse> trendingCourses = const [],
+  PlayUpdates? play,
+  String installedVersion = '1.9.0',
+  String minimumVersion = '1.6.0',
   Future<QuestionDetail> Function(int id)? questions,
   FakeBackend? backend,
   GoogleAccounts? google,
@@ -161,6 +165,9 @@ Future<FakeViewCounter> pumpApp(
       overrides: [
         prefsProvider.overrideWithValue(preferences),
         taxonomyProvider.overrideWith((ref) async => taxonomy),
+        playUpdatesProvider.overrideWithValue(play ?? FakePlayUpdates()),
+        installedVersionProvider.overrideWith((ref) async => installedVersion),
+        minimumVersionProvider.overrideWith((ref) async => minimumVersion),
         trendingCoursesProvider.overrideWith(
           (ref) async => TrendingCourseList(items: trendingCourses),
         ),
@@ -226,4 +233,42 @@ Future<void> scrollTo(WidgetTester tester, Finder finder) async {
             .first;
   await tester.scrollUntilVisible(finder, 200, scrollable: list);
   await tester.pumpAndSettle();
+}
+
+/// Google Play's in-app updates as a test sets them up: no update by default.
+class FakePlayUpdates implements PlayUpdates {
+  FakePlayUpdates({
+    this.state = PlayUpdate.none,
+    this.versionCode = 1010000,
+    this.accept = true,
+  });
+
+  final PlayUpdate state;
+  final int versionCode;
+
+  /// Whether the person taps Update on Play's sheet.
+  final bool accept;
+
+  var asked = 0;
+  var completed = false;
+  final _downloaded = StreamController<void>.broadcast();
+
+  /// The background download finishing.
+  void finishDownload() => _downloaded.add(null);
+
+  @override
+  Future<({PlayUpdate state, int? versionCode})> check() async =>
+      (state: state, versionCode: versionCode);
+
+  @override
+  Future<bool> startFlexible() async {
+    asked++;
+    return accept;
+  }
+
+  @override
+  Stream<void> get downloaded => _downloaded.stream;
+
+  @override
+  Future<void> completeFlexible() async => completed = true;
 }

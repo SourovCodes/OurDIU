@@ -25,6 +25,11 @@
     // Keys are the GEMINI_API_KEY and COMPRESSOR_API_KEY secrets.
     "PDF_PROCESSOR_URL": "https://pdf-processor.diuqbank.com",
     "GEMINI_MODEL": "gemini-3.8-flash",
+    // The oldest Android app version that still works (GET /api/v1/app/android):
+    // older ones show "Time to update". Raise it only for a breaking change or a
+    // serious bug; /api/v1 otherwise stays backward compatible. 1.6.0 is the first
+    // OurDIU build.
+    "ANDROID_MIN_VERSION": "1.6.0",
     // Google sign-in: GOOGLE_CLIENT_ID (a secret) is the ourdiu project's client.
     // Installed copies of the app from before the move get ID tokens for the old
     // question bank client (Google Cloud project diuquestionbank), still accepted.

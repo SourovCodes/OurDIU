@@ -215,6 +215,8 @@ Builds go to the closed testing track (`alpha`) as `completed` releases, so once
 git tag -a mobile-v1.7.0 origin/main -m "Saved papers sync with ourdiu.com" -m "• Contributors and their profiles" && git push origin mobile-v1.7.0
 ```
 
+The app asks to be updated by itself (docs/PLAN.md, decision 26): Google Play's in-app update offers each new release, and an app older than `ANDROID_MIN_VERSION` (`apps/web/wrangler.jsonc`, served at `/api/v1/app/android`) shows only "Time to update". Raise that only when an older app can no longer work, and only after the release that fixes it is out to everyone.
+
 To release somewhere else, set the repository variables `PLAY_TRACK` (`internal`, `alpha`, `beta`, `production`) and `PLAY_RELEASE_STATUS` (`completed`, `draft`, `inProgress`). Each run also keeps the `.aab` as a workflow artifact for 30 days.
 
 The Play Console account is a personal one, so production needs a closed test first: at least 12 testers opted in for 14 days in a row, who actually use the app, before you can apply for production access. Until then, release to the internal and closed tracks.

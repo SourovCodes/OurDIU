@@ -223,6 +223,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       { to: "/about", label: "About" },
                       { to: "/contact", label: "Contact" },
                       { to: "/app", label: "Get the app" },
+                      { to: "/admission", label: "Admission guide" },
                     ]}
                   />
                   <FooterColumn

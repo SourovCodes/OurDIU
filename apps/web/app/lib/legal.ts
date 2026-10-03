@@ -7,7 +7,7 @@ export const LEGAL_PAGES = [
 ] as const;
 
 /** When the legal pages last changed. Update it with any change to their content. */
-export const LEGAL_UPDATED = "2 October 2026";
+export const LEGAL_UPDATED = "3 October 2026";
 
 /** A mailto: link with a subject, and optionally a body to fill in. */
 export function mailto(email: string, subject: string, body?: string) {

@@ -107,6 +107,10 @@ export default function Privacy() {
             details, compress it and publish it.
           </li>
           <li>
+            To read the text of a paper, so a published paper’s questions can be
+            read on its page and found by search.
+          </li>
+          <li>
             To credit contributors, rank papers by likes and views, and hide
             papers that several people report.
           </li>
@@ -123,7 +127,8 @@ export default function Privacy() {
           </li>
           <li>
             Your <strong>published papers</strong>. Their downloadable copies
-            carry a watermark with your name and the site’s address.
+            carry a watermark with your name and the site’s address, and the
+            text read off them is shown on their page and searchable.
           </li>
         </ul>
         <p>
@@ -142,8 +147,8 @@ export default function Privacy() {
           </li>
           <li>
             <strong>Google</strong> handles sign-in, runs Google Analytics, and
-            its Gemini AI reads uploaded PDFs to check them and suggest their
-            details.
+            its Gemini AI reads uploaded PDFs to check them, suggest their
+            details and read their text.
           </li>
           <li>
             <strong>A PDF processing service I run</strong> compresses uploads

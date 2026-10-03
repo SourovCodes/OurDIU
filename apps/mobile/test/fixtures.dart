@@ -25,6 +25,7 @@ Submission submission(
   fileUrl: status == SubmissionStatus.published
       ? 'https://files.example/$id.pdf'
       : null,
+  text: null,
 );
 
 QuestionDetail questionDetail(

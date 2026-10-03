@@ -64,3 +64,23 @@ export const submissionAnalyses = sqliteTable(
 );
 
 export type SubmissionAnalysisRow = typeof submissionAnalyses.$inferSelect;
+
+/**
+ * The text of a paper, read off its PDF by the AI: shown under a published paper and
+ * searched (`submission_texts_fts`, an FTS5 index kept in sync by triggers, migration
+ * 0014). Written by the upload check and by the admin backfill for older papers; a
+ * row exists once a read was tried, with `error` set if it failed. Only published
+ * papers' text is ever served.
+ */
+export const submissionTexts = sqliteTable("submission_texts", {
+  submissionId: integer()
+    .primaryKey()
+    .references(() => submissions.id, { onDelete: "cascade" }),
+  /** Null if the read failed. */
+  text: text(),
+  error: text(),
+  model: text(),
+  ...timestamps,
+});
+
+export type SubmissionTextRow = typeof submissionTexts.$inferSelect;

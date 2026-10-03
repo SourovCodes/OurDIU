@@ -359,6 +359,97 @@
         ],
         "default": "newest"
       },
+      "PaperSearchList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaperSearchHit"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ]
+      },
+      "PaperSearchHit": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "$ref": "#/components/schemas/QuestionSummary"
+          },
+          "submissionId": {
+            "type": "integer"
+          },
+          "snippet": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TextPart"
+            }
+          }
+        },
+        "required": [
+          "question",
+          "submissionId",
+          "snippet"
+        ]
+      },
+      "QuestionSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "department": {
+            "$ref": "#/components/schemas/Department"
+          },
+          "course": {
+            "$ref": "#/components/schemas/QuestionCourse"
+          },
+          "semester": {
+            "$ref": "#/components/schemas/Semester"
+          },
+          "examType": {
+            "$ref": "#/components/schemas/ExamType"
+          }
+        },
+        "required": [
+          "id",
+          "department",
+          "course",
+          "semester",
+          "examType"
+        ]
+      },
+      "TextPart": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "match": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "text",
+          "match"
+        ]
+      },
       "QuestionDetail": {
         "type": "object",
         "properties": {
@@ -458,6 +549,12 @@
               "string",
               "null"
             ]
+          },
+          "text": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -471,7 +568,8 @@
           "section",
           "batch",
           "uploader",
-          "fileUrl"
+          "fileUrl",
+          "text"
         ]
       },
       "SubmissionStatus": {
@@ -2109,6 +2207,70 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/QuestionList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/questions/search": {
+      "get": {
+        "tags": [
+          "Questions"
+        ],
+        "summary": "Search the text of published papers",
+        "description": "Exams whose paper contains every word of `q` (the last word may be a word's start), best match first, with the best-matching copy and its text around the matches. Papers whose text hasn't been read yet aren't found.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100
+            },
+            "required": true,
+            "name": "q",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching exams",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperSearchList"
                 }
               }
             }
@@ -5019,6 +5181,55 @@
         ],
         "summary": "Run the AI check on pending papers that were never checked",
         "description": "Runs the upload check (which publishes papers it confirms) on up to 100 pending papers without an analysis, such as imported ones. Call again for the rest.",
+        "responses": {
+          "202": {
+            "description": "Papers queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "queued": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "queued"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/submissions/text": {
+      "post": {
+        "tags": [
+          "Admin: submissions"
+        ],
+        "summary": "Read the text of every published paper that doesn't have it",
+        "description": "Queues published papers whose text was never read (they were published before the upload check read it) or whose read failed. Each costs one AI call.",
         "responses": {
           "202": {
             "description": "Papers queued",

@@ -33,6 +33,7 @@ import {
   USERNAME_RULES,
   submissionWatermarkSchema,
   checksQueuedSchema,
+  textsQueuedSchema,
   watermarkQueuedSchema,
 } from "@ourdiu/shared";
 import { AppError, validationHook } from "../lib/errors";
@@ -43,6 +44,7 @@ import { getAdminStats } from "../services/admin-stats";
 import { checkUnchecked, rerunAnalysis } from "../services/analysis";
 import * as catalog from "../services/catalog";
 import { mergeCatalogEntries } from "../services/merge";
+import { readMissingTexts } from "../services/paper-text";
 import {
   classifySubmission,
   deleteSubmission,
@@ -236,6 +238,20 @@ const checkUncheckedRoute = createRoute({
   middleware,
   responses: {
     202: jsonResponse(checksQueuedSchema, "Papers queued"),
+    ...denied,
+  },
+});
+
+const readMissingTextsRoute = createRoute({
+  method: "post",
+  path: "/submissions/text",
+  tags: submissionTags,
+  summary: "Read the text of every published paper that doesn't have it",
+  description:
+    "Queues published papers whose text was never read (they were published before the upload check read it) or whose read failed. Each costs one AI call.",
+  middleware,
+  responses: {
+    202: jsonResponse(textsQueuedSchema, "Papers queued"),
     ...denied,
   },
 });
@@ -582,6 +598,12 @@ export const adminRoutes = new OpenAPIHono<AppEnv>({
   .openapi(checkUncheckedRoute, async (c) =>
     c.json(
       { queued: await checkUnchecked(c.var.db, c.env.ANALYSIS_QUEUE) },
+      202,
+    ),
+  )
+  .openapi(readMissingTextsRoute, async (c) =>
+    c.json(
+      { queued: await readMissingTexts(c.var.db, c.env.ANALYSIS_QUEUE) },
       202,
     ),
   )

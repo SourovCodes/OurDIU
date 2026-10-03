@@ -27,8 +27,16 @@ import {
   type SubmissionAnalysisRow,
 } from "../db/schema";
 import { AppError } from "../lib/errors";
+import { PermanentError, readPdfForAi } from "../lib/ai-pdf";
 import { GeminiError, generateJsonFromPdf } from "../lib/gemini";
-import { compressPdf, type Fetcher } from "../lib/pdf-processor";
+import type { Fetcher } from "../lib/pdf-processor";
+import {
+  cleanText,
+  handleTextMessage,
+  saveText,
+  TEXT_INSTRUCTIONS,
+  type TextJob,
+} from "./paper-text";
 import {
   listCourses,
   listDepartments,
@@ -96,6 +104,8 @@ Then read the paper's header (usually at the top of the first page) and extract:
 - examType: the kind of exam (e.g. midterm, final).
 - section and batch: only if printed on the paper (short labels such as "A" or "61"), otherwise null.
 
+Finally, text: ${TEXT_INSTRUCTIONS}
+
 Matching and spelling rules:
 
 - Prefer existing entries. If a value is the same as an existing entry below (ignoring case, abbreviations, word order, "&" versus "and", minor spelling differences), set existingId to that entry's id and name to its exact existing name. Courses must belong to the chosen department.
@@ -141,6 +151,7 @@ export const analysisResponseJsonSchema = {
     examType: value("Exam type"),
     section: nullableString,
     batch: nullableString,
+    text: { type: "string" },
   },
   required: [
     "isQuestionPaper",
@@ -152,6 +163,7 @@ export const analysisResponseJsonSchema = {
     "examType",
     "section",
     "batch",
+    "text",
   ],
 };
 
@@ -175,6 +187,8 @@ export const analysisReplySchema = z.object({
   examType: replyValue,
   section: z.string().nullable(),
   batch: z.string().nullable(),
+  /** The paper's text (`TEXT_INSTRUCTIONS`), stored in `submission_texts`. */
+  text: z.string(),
 });
 export type AnalysisReply = z.infer<typeof analysisReplySchema>;
 
@@ -534,12 +548,9 @@ export async function publishIfConfirmed(
   return true;
 }
 
-/** A failure that retrying won't fix. */
-class PermanentError extends Error {}
-
 /**
  * Runs one analysis: reads the PDF from R2, compresses it, asks Gemini in one call and
- * stores the answer matched against the catalog. Returns "retry" when a later attempt
+ * stores the answer matched against the catalog, and the paper's text. Returns "retry" when a later attempt
  * might succeed; the run is marked failed after the last attempt.
  */
 export async function runAnalysis(
@@ -574,17 +585,11 @@ export async function runAnalysis(
         "AI analysis isn't configured (GEMINI_API_KEY is missing)",
       );
     }
-    const object = await env.BUCKET.get(row.fileKey);
-    if (!object) throw new PermanentError("The PDF is missing from storage");
-    const original = new Uint8Array(await object.arrayBuffer());
-    const compressed = env.COMPRESSOR_API_KEY
-      ? await compressPdf(original, {
-          url: env.PDF_PROCESSOR_URL,
-          apiKey: env.COMPRESSOR_API_KEY,
-          fetch: options.fetch,
-        })
-      : null;
-    const pdf = compressed ?? original;
+    const { original, pdf } = await readPdfForAi(
+      env,
+      row.fileKey,
+      options.fetch,
+    );
 
     const catalog = await loadCatalog(db);
     const { json, text } = await generateJsonFromPdf({
@@ -627,6 +632,12 @@ export async function runAnalysis(
       rawResponse: text,
       completedAt: new Date(),
     });
+    // Before publishing, so a paper the check publishes has its text at once.
+    await saveText(db, job.submissionId, {
+      text: cleanText(reply.data.text),
+      error: null,
+      model: env.GEMINI_MODEL,
+    });
     if (row.autoPublish) {
       await publishIfConfirmed(
         db,
@@ -655,15 +666,23 @@ export async function runAnalysis(
   }
 }
 
-/** Queue consumer: one analysis per message. */
+/**
+ * Queue consumer: one analysis per message. The queue also carries text reads of
+ * published papers (`TextJob`).
+ */
 export async function handleAnalysisBatch(
-  batch: MessageBatch<AnalysisJob>,
+  batch: MessageBatch<AnalysisJob | TextJob>,
   env: Env,
 ) {
   // Per invocation, like the per-request context of the HTTP handler.
   const db = createDb(env.DB);
   for (const message of batch.messages) {
-    const outcome = await runAnalysis(db, env, message.body, {
+    const job = message.body;
+    if ("kind" in job) {
+      await handleTextMessage(message as Message<TextJob>, env);
+      continue;
+    }
+    const outcome = await runAnalysis(db, env, job, {
       attempt: message.attempts,
     });
     if (outcome === "retry") {

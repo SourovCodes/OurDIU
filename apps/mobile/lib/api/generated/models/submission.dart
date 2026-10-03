@@ -23,6 +23,7 @@ class Submission {
     required this.batch,
     required this.uploader,
     required this.fileUrl,
+    required this.text,
   });
 
   factory Submission.fromJson(Map<String, Object?> json) =>
@@ -39,6 +40,7 @@ class Submission {
   final String? batch;
   final Uploader? uploader;
   final String? fileUrl;
+  final String? text;
 
   Map<String, Object?> toJson() => _$SubmissionToJson(this);
 }

@@ -1,10 +1,10 @@
-import { History, Loader2, SearchIcon } from "lucide-react";
+import { MIN_SEARCH_LENGTH } from "@ourdiu/shared/constants";
+import { History, Loader2, ScrollText, SearchIcon } from "lucide-react";
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { Link, useFetcher, useNavigate } from "react-router";
 import { Command as CommandPrimitive } from "cmdk";
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandItem,
   CommandList,
@@ -149,6 +149,12 @@ export function CourseSearch() {
     [recent, courses],
   );
 
+  function searchPapers() {
+    setOpen(false);
+    navigate(`/questions/search?${new URLSearchParams({ q: query.trim() })}`);
+    setQuery("");
+  }
+
   function choose(course: CourseEntry) {
     rememberCourse(course.id);
     setOpen(false);
@@ -158,6 +164,7 @@ export function CourseSearch() {
 
   const loading = !data;
   const typed = query.trim() !== "";
+  const searchable = query.trim().length >= MIN_SEARCH_LENGTH;
 
   return (
     <Dialog
@@ -195,11 +202,12 @@ export function CourseSearch() {
             </kbd>
           </div>
           <CommandList className="max-h-[min(60dvh,26rem)] p-2">
-            {typed && !loading && (
-              <CommandEmpty className="px-4 py-8 text-center text-sm text-muted-foreground">
+            {/* Not cmdk's Empty: the papers' search below is an item too. */}
+            {typed && !loading && results.length === 0 && (
+              <p className="px-4 py-8 text-center text-sm text-muted-foreground">
                 No course matches “{query.trim()}”. Check the spelling, or try
                 fewer words.
-              </CommandEmpty>
+              </p>
             )}
             {typed ? (
               results.length > 0 && (
@@ -232,6 +240,22 @@ export function CourseSearch() {
               <p className="px-4 py-8 text-center text-sm text-muted-foreground">
                 Every course from every department. Type part of its name.
               </p>
+            )}
+            {searchable && (
+              <CommandGroup heading="Inside papers">
+                <CommandItem
+                  value="search-papers"
+                  onSelect={searchPapers}
+                  className="gap-3 rounded-xl px-2.5 py-2.5"
+                >
+                  <span className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg bg-surface-high">
+                    <ScrollText className="size-4 text-primary" aria-hidden />
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-[0.9375rem]">
+                    Find “{query.trim()}” in papers’ text
+                  </span>
+                </CommandItem>
+              </CommandGroup>
             )}
           </CommandList>
           <div className="hidden items-center justify-end gap-3 border-t px-4 py-2.5 text-xs text-muted-foreground sm:flex">

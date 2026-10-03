@@ -216,7 +216,7 @@ Students' routine, first release (branch `routine-student`):
 - [x] Seed: CSE v4.1 live with 67_B and 65_A (`apps/api/seeds/routine-cse-4.1.json`); API, unit and e2e tests; Dart client regenerated.
 - [ ] Owner: make the CSE v4.1 file (AI instructions on `/admin/routine/format`), upload it on production, review and make it live.
 - [ ] Launch: product `status: "live"`, `HUB_LIVE` and the app's `showChooser` on (decision 25), the "Class Routine is new" banner and app hint (Phases 1–2), `/routine` and section pages in the sitemap, `llms.txt`.
-- [ ] The app's Routine space: Today, Week and Find tabs, download/share the PDF (mockups 4–6), offline copy of the saved section.
+- [x] The app's Routine space (`lib/features/routine/`, `lib/data/routine.dart`): Today (the class you're in or next, today's classes), Week (dated day chips, lab group chips, courses) and Find (search like the website's, sections by batch, a section's week with "Make it my section" and a share link) tabs in teal; the PDF sheet picks the lab group and opens the share sheet (save to Files or Drive, send). "My section" and its week are kept in shared preferences, so Today and Week work offline, and the app says once when the routine's version changed. Until a routine is live (the API's 404) the space stays "coming soon"; the app opens there only once `Space.routine.live` is true (launch). Retake sections get a note instead of a "next class". A space's tabs now take its own indicator colour.
 - Later: a teacher's week, rooms and free rooms; other departments.
 
 ### Phase 4 – Marketplace

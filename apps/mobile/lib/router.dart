@@ -9,6 +9,7 @@ import 'features/browse/department_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/home/question_list_screen.dart';
 import 'features/questions/question_screen.dart';
+import 'features/routine/routine_screens.dart';
 import 'features/saved/saved_screen.dart';
 import 'features/search/search_screen.dart';
 import 'features/upload/my_papers_screen.dart';
@@ -71,9 +72,45 @@ GoRouter buildRouter({String initialLocation = '/home'}) => GoRouter(
     // First launch: which product to open.
     GoRoute(path: '/choose', builder: (context, state) => const ChooseScreen()),
     // Products that aren't out yet.
-    GoRoute(
-      path: '/routine',
-      builder: (context, state) => const ComingSoonScreen(Space.routine),
+    // The Class Routine's space: Today, Week and Find (coming soon until a
+    // routine is live).
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, shell) => RoutineShell(shell: shell),
+      branches: [
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/routine',
+              builder: (context, state) => const RoutineTodayScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/routine/week',
+              builder: (context, state) => const RoutineWeekScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/routine/find',
+              builder: (context, state) => const RoutineFindScreen(),
+              routes: [
+                GoRoute(
+                  path: ':section',
+                  builder: (context, state) => RoutineSectionScreen(
+                    section: state.pathParameters['section']!,
+                    group: state.uri.queryParameters['group'],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
     ),
     GoRoute(
       path: '/market',

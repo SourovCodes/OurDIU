@@ -8,6 +8,7 @@ import {
   mergedIdSchema,
   semesterListSchema,
   taxonomySchema,
+  trendingCourseListSchema,
 } from "@ourdiu/shared";
 import { validationHook } from "../lib/errors";
 import { errorResponse, jsonResponse } from "../lib/openapi";
@@ -19,6 +20,7 @@ import {
   listSemesters,
 } from "../services/taxonomy";
 import { findMergedId } from "../services/merge";
+import { listTrendingCourses } from "../services/trending";
 import type { AppEnv } from "../types";
 
 const tags = ["Taxonomy"];
@@ -50,6 +52,18 @@ const listCoursesRoute = createRoute({
   responses: {
     200: jsonResponse(courseListSchema, "Courses"),
     422: errorResponse("Invalid query"),
+  },
+});
+
+const listTrendingCoursesRoute = createRoute({
+  method: "get",
+  path: "/courses/trending",
+  tags,
+  summary: "List the courses whose exams were viewed most in the last 24 hours",
+  description:
+    "Most views first, at most 20; refreshed every 10 minutes. Empty when nothing was viewed.",
+  responses: {
+    200: jsonResponse(trendingCourseListSchema, "Courses viewed most today"),
   },
 });
 
@@ -93,6 +107,9 @@ export const taxonomyRoutes = new OpenAPIHono<AppEnv>({
   )
   .openapi(listDepartmentsRoute, async (c) =>
     c.json({ items: await listDepartments(c.var.db) }, 200),
+  )
+  .openapi(listTrendingCoursesRoute, async (c) =>
+    c.json(await listTrendingCourses(c.var.db), 200),
   )
   .openapi(listCoursesRoute, async (c) => {
     const { departmentId } = c.req.valid("query");

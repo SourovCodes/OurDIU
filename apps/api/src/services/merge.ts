@@ -226,6 +226,12 @@ function reconcileQuestions(
         (list) =>
           sql`update questions set view_count = view_count + (select coalesce(sum(view_count), 0) from questions where id in (${list})) where id = ${survivor.id}`,
       );
+      // Today's views too ("Most viewed today" picks them up at the next refresh).
+      plan.each(
+        ids,
+        (list) =>
+          sql`insert into question_view_hours (question_id, hour, views) select ${survivor.id}, hour, views from question_view_hours where question_id in (${list}) on conflict (question_id, hour) do update set views = question_view_hours.views + excluded.views`,
+      );
       plan.remember("question", ids, survivor.id);
     }
 

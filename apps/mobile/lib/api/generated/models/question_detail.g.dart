@@ -19,6 +19,7 @@ QuestionDetail _$QuestionDetailFromJson(Map<String, dynamic> json) =>
         json['submissionCounts'] as Map<String, dynamic>,
       ),
       viewCount: (json['viewCount'] as num).toInt(),
+      viewsToday: (json['viewsToday'] as num?)?.toInt(),
       submissions: (json['submissions'] as List<dynamic>)
           .map((e) => Submission.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -34,6 +35,7 @@ Map<String, dynamic> _$QuestionDetailToJson(QuestionDetail instance) =>
       'examType': instance.examType,
       'submissionCounts': instance.submissionCounts,
       'viewCount': instance.viewCount,
+      'viewsToday': instance.viewsToday,
       'submissions': instance.submissions,
       'viewToken': instance.viewToken,
     };

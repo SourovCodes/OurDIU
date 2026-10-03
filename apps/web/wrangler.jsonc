@@ -118,4 +118,7 @@
       },
     ],
   },
+  // Rebuilds "Most viewed today" from the last 24 hours' views (the API's scheduled
+  // handler, services/trending.ts).
+  "triggers": { "crons": ["*/10 * * * *"] },
 }

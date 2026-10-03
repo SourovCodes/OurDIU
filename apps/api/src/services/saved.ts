@@ -10,6 +10,7 @@ import {
   questions,
   savedQuestions,
   semesters,
+  trendingQuestions,
 } from "../db/schema";
 import { AppError } from "../lib/errors";
 import { questionSummaryColumns } from "./common";
@@ -23,6 +24,7 @@ export async function listSavedQuestions(
     .select({
       ...questionSummaryColumns,
       viewCount: questions.viewCount,
+      viewsToday: trendingQuestions.views,
       submissionCounts: {
         published: questions.publishedCount,
         pendingReview: questions.pendingReviewCount,
@@ -36,6 +38,7 @@ export async function listSavedQuestions(
     .innerJoin(courses, eq(courses.id, questions.courseId))
     .innerJoin(semesters, eq(semesters.id, questions.semesterId))
     .innerJoin(examTypes, eq(examTypes.id, questions.examTypeId))
+    .leftJoin(trendingQuestions, eq(trendingQuestions.questionId, questions.id))
     .where(eq(savedQuestions.userId, userId))
     .orderBy(desc(savedQuestions.createdAt), desc(questions.id))
     .limit(MAX_SAVED_QUESTIONS);

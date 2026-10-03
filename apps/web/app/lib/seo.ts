@@ -243,7 +243,7 @@ export function llmsTxt(
     "",
     `## ${QB_NAME}`,
     "",
-    `- [${QB_NAME}](${origin}/questions): search a course, see the most viewed and newest papers`,
+    `- [${QB_NAME}](${origin}/questions): search a course, see the papers most viewed today and the newest`,
     `- [All papers](${origin}/questions/browse): every paper, filterable by department, course, semester and exam type`,
     `- [Departments](${origin}/questions/departments): each department's courses`,
     `- [Contributors](${origin}/questions/contributors): the students who share papers`,

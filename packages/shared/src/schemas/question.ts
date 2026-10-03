@@ -95,6 +95,11 @@ export const questionSchema = questionSummarySchema
     submissionCounts: submissionCountsSchema,
     /** Question page views, counted separately from each paper's views. */
     viewCount: z.number().int(),
+    /**
+     * Question page views in the last 24 hours (refreshed every 10 minutes); null
+     * unless the question is among the 100 most viewed then.
+     */
+    viewsToday: z.number().int().nullable(),
   })
   .meta({ id: "Question" });
 export type Question = z.infer<typeof questionSchema>;
@@ -121,7 +126,11 @@ export const questionSortSchema = z
 export type QuestionSort = z.infer<typeof questionSortSchema>;
 
 export const listQuestionsQuerySchema = paginationQuerySchema.extend({
-  /** `newest`: most recently added paper first (default); `popular`: most viewed. */
+  /**
+   * `newest`: most recently added paper first (default); `popular`: most viewed of all
+   * time; `trending`: most viewed in the last 24 hours, only the top 100 questions
+   * viewed then (refreshed every 10 minutes).
+   */
   sort: questionSortSchema.default("newest"),
   departmentId: idQuerySchema.optional(),
   courseId: idQuerySchema.optional(),

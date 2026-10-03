@@ -12,6 +12,7 @@ import '../models/merged_id.dart';
 import '../models/merged_kind.dart';
 import '../models/semester_list.dart';
 import '../models/taxonomy.dart';
+import '../models/trending_course_list.dart';
 
 part 'taxonomy_client.g.dart';
 
@@ -26,6 +27,12 @@ abstract class TaxonomyClient {
   /// List departments
   @GET('/api/v1/departments')
   Future<DepartmentList> getApiV1Departments();
+
+  /// List the courses whose exams were viewed most in the last 24 hours.
+  ///
+  /// Most views first, at most 20; refreshed every 10 minutes. Empty when nothing was viewed.
+  @GET('/api/v1/courses/trending')
+  Future<TrendingCourseList> getApiV1CoursesTrending();
 
   /// List courses, optionally for one department
   @GET('/api/v1/courses')

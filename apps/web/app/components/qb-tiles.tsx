@@ -10,9 +10,12 @@ import { cn } from "~/lib/utils";
  */
 export function ExamTile({
   question,
+  today = false,
   className,
 }: {
   question: Question;
+  /** Count today's views instead of all of them, as in "Most viewed today". */
+  today?: boolean;
   className?: string;
 }) {
   const kind = examKind(question.examType.name);
@@ -39,8 +42,10 @@ export function ExamTile({
           {question.course.name}
         </span>
         <span className="block text-xs font-medium opacity-80">
-          {formatCount(question.viewCount)} views ·{" "}
-          {question.department.shortName}
+          {today && question.viewsToday !== null
+            ? `${formatCount(question.viewsToday)} views today`
+            : `${formatCount(question.viewCount)} views`}{" "}
+          · {question.department.shortName}
         </span>
       </span>
     </Link>

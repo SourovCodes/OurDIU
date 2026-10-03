@@ -23,6 +23,7 @@ class QuestionDetail {
     required this.examType,
     required this.submissionCounts,
     required this.viewCount,
+    required this.viewsToday,
     required this.submissions,
     required this.viewToken,
   });
@@ -37,6 +38,7 @@ class QuestionDetail {
   final ExamType examType;
   final SubmissionCounts submissionCounts;
   final int viewCount;
+  final int? viewsToday;
   final List<Submission> submissions;
   final String viewToken;
 

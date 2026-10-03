@@ -49,6 +49,7 @@ QuestionDetail questionDetail(
     rejected: 0,
   ),
   viewCount: 0,
+  viewsToday: null,
   submissions: submissions,
   viewToken: 'token-7',
 );
@@ -116,6 +117,7 @@ Question question(
   String semester = 'Fall 25',
   int papers = 1,
   int views = 0,
+  int? viewsToday,
 }) => Question(
   id: id,
   department: const Department(
@@ -132,6 +134,7 @@ Question question(
     rejected: 0,
   ),
   viewCount: views,
+  viewsToday: viewsToday,
 );
 
 QuestionList page(List<Question> items) =>

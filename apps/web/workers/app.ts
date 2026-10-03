@@ -20,4 +20,6 @@ export default {
   },
   // Upload analysis and PDF watermarks (queue consumers in wrangler.jsonc).
   queue: api.queue,
+  // "Most viewed today", every 10 minutes (triggers in wrangler.jsonc).
+  scheduled: api.scheduled,
 } satisfies ExportedHandler<Env, QueueJob>;

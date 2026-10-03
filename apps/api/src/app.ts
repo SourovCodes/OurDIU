@@ -5,6 +5,7 @@ import { handleError, handleNotFound, validationHook } from "./lib/errors";
 import { openApiConfig } from "./lib/openapi";
 import { contextMiddleware } from "./middleware/context";
 import { adminRoutes } from "./routes/admin";
+import { appRoutes } from "./routes/app";
 import { avatarRoutes } from "./routes/avatars";
 import { contributorRoutes } from "./routes/contributors";
 import { engagementRoutes } from "./routes/engagement";
@@ -34,6 +35,7 @@ export function createApp() {
     .route("/contributors", contributorRoutes)
     .route("/me", meRoutes)
     .route("/admin", adminRoutes)
+    .route("/app", appRoutes)
     .route("/", engagementRoutes)
     .route("/", avatarRoutes);
   app.route("/api/v1", v1);

@@ -12,6 +12,7 @@ import 'api/api.dart';
 import 'auth/token.dart';
 import 'data/prefs.dart';
 import 'data/settings.dart';
+import 'features/update/update_gate.dart';
 import 'router.dart';
 import 'spaces/space.dart';
 import 'theme/theme.dart';
@@ -58,6 +59,8 @@ class QbApp extends ConsumerWidget {
       darkTheme: buildTheme(Brightness.dark),
       themeMode: ref.watch(appearanceProvider),
       routerConfig: router,
+      scaffoldMessengerKey: rootMessengerKey,
+      builder: (context, child) => UpdateGate(child: child!),
     );
   }
 }

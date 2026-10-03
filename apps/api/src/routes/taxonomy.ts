@@ -4,6 +4,8 @@ import {
   departmentListSchema,
   examTypeListSchema,
   listCoursesQuerySchema,
+  mergedIdParamsSchema,
+  mergedIdSchema,
   semesterListSchema,
   taxonomySchema,
 } from "@ourdiu/shared";
@@ -16,6 +18,7 @@ import {
   listExamTypes,
   listSemesters,
 } from "../services/taxonomy";
+import { findMergedId } from "../services/merge";
 import type { AppEnv } from "../types";
 
 const tags = ["Taxonomy"];
@@ -66,6 +69,22 @@ const listExamTypesRoute = createRoute({
   responses: { 200: jsonResponse(examTypeListSchema, "Exam types") },
 });
 
+const getMergedIdRoute = createRoute({
+  method: "get",
+  path: "/merged/{kind}/{id}",
+  tags,
+  summary: "Where a merged entry went",
+  description:
+    "When admins merge duplicate catalog entries, the removed ones (and questions combined with another) are deleted. " +
+    "This returns the id of the entry that was kept, so old links can be redirected.",
+  request: { params: mergedIdParamsSchema },
+  responses: {
+    200: jsonResponse(mergedIdSchema, "The entry that was kept"),
+    404: errorResponse("Never merged"),
+    422: errorResponse("Invalid kind or id"),
+  },
+});
+
 export const taxonomyRoutes = new OpenAPIHono<AppEnv>({
   defaultHook: validationHook,
 })
@@ -84,4 +103,8 @@ export const taxonomyRoutes = new OpenAPIHono<AppEnv>({
   )
   .openapi(listExamTypesRoute, async (c) =>
     c.json({ items: await listExamTypes(c.var.db) }, 200),
-  );
+  )
+  .openapi(getMergedIdRoute, async (c) => {
+    const { kind, id } = c.req.valid("param");
+    return c.json(await findMergedId(c.var.db, kind, id), 200);
+  });

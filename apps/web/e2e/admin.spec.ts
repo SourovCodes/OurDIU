@@ -184,6 +184,60 @@ test("an admin adds, renames and deletes a semester", async ({
   ).toHaveAttribute("aria-disabled", "true");
 });
 
+test("an admin merges duplicate courses, and the old course page redirects", async ({
+  page,
+}) => {
+  await logInAs(page, SEED_ADMIN, "/admin/questions/catalog?tab=courses");
+  // Two spellings of one course in CSE (seeded as department 1).
+  const name = `E2E Merge ${unique()}`;
+  const created: Record<string, number> = {};
+  for (const spelling of [`${name} Lab`, `${name} Labs`]) {
+    const res = await page.request.post("/api/v1/admin/courses", {
+      data: { name: spelling, departmentId: 1 },
+    });
+    expect(res.status()).toBe(201);
+    created[spelling] = ((await res.json()) as { id: number }).id;
+  }
+  await page.reload();
+
+  // They show up among the likely duplicates.
+  await page.getByRole("searchbox", { name: "Search courses" }).fill(name);
+  await page.getByRole("button", { name: "Likely duplicates" }).click();
+  await expect(page.getByRole("row", { name: new RegExp(name) })).toHaveCount(
+    2,
+  );
+
+  await page
+    .getByRole("checkbox", { name: `Select ${name} Lab`, exact: true })
+    .click();
+  await page.getByRole("checkbox", { name: `Select ${name} Labs` }).click();
+  await page.getByRole("button", { name: "Merge 2" }).click();
+
+  const dialog = page.getByRole("dialog");
+  await dialog
+    .getByRole("radio", { name: new RegExp(`${name} Lab\\b(?!s)`) })
+    .check();
+  await expect(
+    dialog.getByText("No exams are filed under the others."),
+  ).toBeVisible();
+  await dialog
+    .getByRole("button", { name: `Merge into “${name} Lab”` })
+    .click();
+  await expect(page.getByText(`Merged into “${name} Lab”`)).toBeVisible();
+  // No longer a duplicate: it leaves that view, and is the only one left.
+  await expect(page.getByRole("row", { name: new RegExp(name) })).toHaveCount(
+    0,
+  );
+  await page.getByRole("button", { name: "Likely duplicates" }).click();
+  await expect(page.getByRole("row", { name: new RegExp(name) })).toHaveCount(
+    1,
+  );
+
+  // The removed course's page leads to the one kept.
+  await page.goto(`/questions/courses/${created[`${name} Labs`]}`);
+  await expect(page).toHaveURL(`/questions/courses/${created[`${name} Lab`]}`);
+});
+
 test("an admin compares the AI's reading and prefills the form with it", async ({
   page,
 }) => {

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  MAX_MERGE_ENTRIES,
   MAX_REVIEW_MESSAGE_LENGTH,
   normalizeCatalogName,
   USER_ROLES,
@@ -296,6 +297,47 @@ export type NameInput = z.infer<typeof nameInputSchema>;
 
 /** Semesters carry a name in the semester format, e.g. "Fall 25". */
 export const semesterInputSchema = z.object({ name: semesterNameSchema });
+
+/**
+ * Folds `mergeIds` into `keepId`: everything filed under them moves to it and they are
+ * deleted. `dryRun` only reports what would happen (the merge dialog's preview).
+ */
+export const catalogMergeInputSchema = z
+  .object({
+    keepId: idQuerySchema,
+    mergeIds: z
+      .array(idQuerySchema)
+      .min(1, "Pick at least one entry to merge")
+      .max(MAX_MERGE_ENTRIES, `Merge at most ${MAX_MERGE_ENTRIES} at a time`),
+    dryRun: z.boolean().optional().default(false),
+  })
+  .refine((d) => !d.mergeIds.includes(d.keepId), {
+    message: "The kept entry can't also be merged away",
+    path: ["mergeIds"],
+  });
+export type CatalogMergeInput = z.infer<typeof catalogMergeInputSchema>;
+
+export const catalogMergeResultSchema = z.object({
+  /** The entry everything moved to. */
+  keep: z.object({ id: z.number().int(), name: z.string() }),
+  /** Entries deleted, not counting courses combined in a department merge. */
+  removed: z.number().int(),
+  /** Questions (exams) filed under a removed entry, each moved or combined. */
+  questionsMoved: z.number().int(),
+  /** Of those, questions that became the same exam as another and were folded into it. */
+  questionsCombined: z.number().int(),
+  /** Papers of the moved questions. */
+  papersMoved: z.number().int(),
+  /** Papers awaiting review that propose a removed entry directly. */
+  proposalsMoved: z.number().int(),
+  /** Department merges: courses moved to the kept department as they are. */
+  coursesMoved: z.number().int().optional(),
+  /** Department merges: same-named courses combined into one. */
+  coursesCombined: z
+    .array(z.object({ keep: z.string(), removed: z.array(z.string()) }))
+    .optional(),
+});
+export type CatalogMergeResult = z.infer<typeof catalogMergeResultSchema>;
 
 // ── Users ────────────────────────────────────────────────────────────────────
 

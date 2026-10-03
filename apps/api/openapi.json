@@ -202,6 +202,37 @@
           "items"
         ]
       },
+      "MergedId": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/MergedKind"
+          },
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "mergedInto": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "mergedInto"
+        ]
+      },
+      "MergedKind": {
+        "type": "string",
+        "enum": [
+          "question",
+          "department",
+          "course",
+          "semester",
+          "exam_type"
+        ]
+      },
       "QuestionList": {
         "type": "object",
         "properties": {
@@ -1872,6 +1903,66 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ExamTypeList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/merged/{kind}/{id}": {
+      "get": {
+        "tags": [
+          "Taxonomy"
+        ],
+        "summary": "Where a merged entry went",
+        "description": "When admins merge duplicate catalog entries, the removed ones (and questions combined with another) are deleted. This returns the id of the entry that was kept, so old links can be redirected.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/MergedKind"
+            },
+            "required": true,
+            "name": "kind",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The entry that was kept",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergedId"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Never merged",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid kind or id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -5739,6 +5830,638 @@
           },
           "403": {
             "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/departments/merge": {
+      "post": {
+        "tags": [
+          "Admin: catalog"
+        ],
+        "summary": "Merge departments into one",
+        "description": "Moves everything filed under the `mergeIds` departments to `keepId` and deletes them. Questions that become the same exam are combined (papers, saves and views move to one). Courses with the same name in the merged departments are combined too. With `dryRun`, only reports what would move.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "keepId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "mergeIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "minItems": 1,
+                    "maxItems": 20
+                  },
+                  "dryRun": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                },
+                "required": [
+                  "keepId",
+                  "mergeIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "What moved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "keep": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "removed": {
+                      "type": "integer"
+                    },
+                    "questionsMoved": {
+                      "type": "integer"
+                    },
+                    "questionsCombined": {
+                      "type": "integer"
+                    },
+                    "papersMoved": {
+                      "type": "integer"
+                    },
+                    "proposalsMoved": {
+                      "type": "integer"
+                    },
+                    "coursesMoved": {
+                      "type": "integer"
+                    },
+                    "coursesCombined": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "keep": {
+                            "type": "string"
+                          },
+                          "removed": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "keep",
+                          "removed"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "keep",
+                    "removed",
+                    "questionsMoved",
+                    "questionsCombined",
+                    "papersMoved",
+                    "proposalsMoved"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "A department not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/courses/merge": {
+      "post": {
+        "tags": [
+          "Admin: catalog"
+        ],
+        "summary": "Merge courses into one",
+        "description": "Moves everything filed under the `mergeIds` courses to `keepId` and deletes them. Questions that become the same exam are combined (papers, saves and views move to one). The courses must be in the same department. With `dryRun`, only reports what would move.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "keepId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "mergeIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "minItems": 1,
+                    "maxItems": 20
+                  },
+                  "dryRun": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                },
+                "required": [
+                  "keepId",
+                  "mergeIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "What moved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "keep": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "removed": {
+                      "type": "integer"
+                    },
+                    "questionsMoved": {
+                      "type": "integer"
+                    },
+                    "questionsCombined": {
+                      "type": "integer"
+                    },
+                    "papersMoved": {
+                      "type": "integer"
+                    },
+                    "proposalsMoved": {
+                      "type": "integer"
+                    },
+                    "coursesMoved": {
+                      "type": "integer"
+                    },
+                    "coursesCombined": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "keep": {
+                            "type": "string"
+                          },
+                          "removed": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "keep",
+                          "removed"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "keep",
+                    "removed",
+                    "questionsMoved",
+                    "questionsCombined",
+                    "papersMoved",
+                    "proposalsMoved"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "A course not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields, or courses of different departments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/semesters/merge": {
+      "post": {
+        "tags": [
+          "Admin: catalog"
+        ],
+        "summary": "Merge semesters into one",
+        "description": "Moves everything filed under the `mergeIds` semesters to `keepId` and deletes them. Questions that become the same exam are combined (papers, saves and views move to one). With `dryRun`, only reports what would move.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "keepId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "mergeIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "minItems": 1,
+                    "maxItems": 20
+                  },
+                  "dryRun": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                },
+                "required": [
+                  "keepId",
+                  "mergeIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "What moved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "keep": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "removed": {
+                      "type": "integer"
+                    },
+                    "questionsMoved": {
+                      "type": "integer"
+                    },
+                    "questionsCombined": {
+                      "type": "integer"
+                    },
+                    "papersMoved": {
+                      "type": "integer"
+                    },
+                    "proposalsMoved": {
+                      "type": "integer"
+                    },
+                    "coursesMoved": {
+                      "type": "integer"
+                    },
+                    "coursesCombined": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "keep": {
+                            "type": "string"
+                          },
+                          "removed": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "keep",
+                          "removed"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "keep",
+                    "removed",
+                    "questionsMoved",
+                    "questionsCombined",
+                    "papersMoved",
+                    "proposalsMoved"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "A semester not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/exam-types/merge": {
+      "post": {
+        "tags": [
+          "Admin: catalog"
+        ],
+        "summary": "Merge exam types into one",
+        "description": "Moves everything filed under the `mergeIds` exam types to `keepId` and deletes them. Questions that become the same exam are combined (papers, saves and views move to one). With `dryRun`, only reports what would move.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "keepId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "mergeIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "minItems": 1,
+                    "maxItems": 20
+                  },
+                  "dryRun": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                },
+                "required": [
+                  "keepId",
+                  "mergeIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "What moved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "keep": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "removed": {
+                      "type": "integer"
+                    },
+                    "questionsMoved": {
+                      "type": "integer"
+                    },
+                    "questionsCombined": {
+                      "type": "integer"
+                    },
+                    "papersMoved": {
+                      "type": "integer"
+                    },
+                    "proposalsMoved": {
+                      "type": "integer"
+                    },
+                    "coursesMoved": {
+                      "type": "integer"
+                    },
+                    "coursesCombined": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "keep": {
+                            "type": "string"
+                          },
+                          "removed": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "keep",
+                          "removed"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "keep",
+                    "removed",
+                    "questionsMoved",
+                    "questionsCombined",
+                    "papersMoved",
+                    "proposalsMoved"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "A exam type not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
             "content": {
               "application/json": {
                 "schema": {

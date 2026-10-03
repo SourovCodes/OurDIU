@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MERGED_KINDS } from "../constants";
 
 // Lookup tables used to classify questions. They only carry a name
 // (departments also have a short name, e.g. "CSE").
@@ -87,3 +88,19 @@ export const idQuerySchema = z.coerce.number().int().positive();
 export const listCoursesQuerySchema = z.object({
   departmentId: idQuerySchema.optional(),
 });
+
+// ── Merged entries ───────────────────────────────────────────────────────────
+
+export const mergedKindSchema = z.enum(MERGED_KINDS).meta({ id: "MergedKind" });
+export type MergedKind = z.infer<typeof mergedKindSchema>;
+
+export const mergedIdParamsSchema = z.object({
+  kind: mergedKindSchema,
+  id: idQuerySchema,
+});
+
+/** Where an entry an admin merged away went: the id of the entry that was kept. */
+export const mergedIdSchema = z
+  .object({ kind: mergedKindSchema, id: idSchema, mergedInto: idSchema })
+  .meta({ id: "MergedId" });
+export type MergedId = z.infer<typeof mergedIdSchema>;

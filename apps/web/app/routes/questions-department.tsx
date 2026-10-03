@@ -8,6 +8,7 @@ import { byInitial, courseEntries, searchCourses } from "~/lib/courses";
 import { rememberDepartmentCookie } from "~/lib/department-preference";
 import { formatNumber } from "~/lib/format";
 import { plural } from "~/lib/submissions";
+import { redirectIfMerged } from "~/lib/merged.server";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/questions-department";
@@ -18,7 +19,15 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const department = taxonomy.departments.find(
     (d) => String(d.id) === params.id,
   );
-  if (!department) throw data("Department not found", { status: 404 });
+  if (!department) {
+    await redirectIfMerged(
+      request,
+      "department",
+      params.id,
+      (id) => `/questions/departments/${id}`,
+    );
+    throw data("Department not found", { status: 404 });
+  }
   // "Browse" opens on it next time, and so do the question lists.
   const remember = {
     headers: { "set-cookie": rememberDepartmentCookie(String(department.id)) },

@@ -34,6 +34,7 @@ import { ShareButton } from "~/components/share-button";
 import { PaperSwitcher, SubmissionList } from "~/components/submission-list";
 import { Button } from "~/components/ui/button";
 import { apiFetch, readJson } from "~/lib/api.server";
+import { redirectIfMerged } from "~/lib/merged.server";
 import {
   parseVoteValue,
   useCountView,
@@ -63,6 +64,12 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   ]);
   // 422 means a malformed id, which is just as "not found" for a visitor.
   if (res.status === 404 || res.status === 422) {
+    await redirectIfMerged(
+      request,
+      "question",
+      params.id,
+      (id) => `/questions/${id}`,
+    );
     throw data("Question not found", { status: 404 });
   }
   if (!res.ok) throw data("Failed to load question", { status: 502 });

@@ -144,7 +144,7 @@ Done (2 October 2026): Change of Address from diuqbank.com to ourdiu.com is file
 ### Avatars on the files domain (decision 21)
 
 - [x] API: new uploads and imported Google photos store the public URL; the old route redirects; `update-user` rejects `image`; tests in `avatars.test.ts`.
-- [ ] Owner, after deploy: optionally rewrite existing rows so they skip the redirect (production D1, needs the go-ahead): `UPDATE user SET image = 'https://files.ourdiu.com/avatars/' || substr(image, 17) WHERE image LIKE '/api/v1/avatars/%';`
+- [x] Existing rows rewritten in production after the deploy (3 October 2026, owner's go-ahead): 1,023 `/api/v1/avatars/{id}` → `https://files.ourdiu.com/avatars/{id}`, none left; spot-checked images load from the files domain.
 
 ### Catalog merges (3 October 2026, decision 20)
 

@@ -7,6 +7,7 @@ import {
   departments,
   examTypes,
   questions,
+  questionViewHours,
   savedQuestions,
   semesters,
   submissionAnalyses,
@@ -149,6 +150,16 @@ describe("POST /api/v1/admin/courses/merge", () => {
       courseId: duplicate.id,
     });
 
+    // Today's views, in a shared hour and one of the twin's own.
+    const hour = Math.floor(Date.now() / 3_600_000);
+    await db()
+      .insert(questionViewHours)
+      .values([
+        { questionId: kept.id, hour, views: 2 },
+        { questionId: twin.id, hour, views: 3 },
+        { questionId: twin.id, hour: hour - 1, views: 4 },
+      ]);
+
     const body = { keepId: t.algorithms.id, mergeIds: [duplicate.id] };
     const preview = await mergeOk("courses", { ...body, dryRun: true });
     expect(preview).toEqual({
@@ -176,6 +187,18 @@ describe("POST /api/v1/admin/courses/merge", () => {
       pendingReviewCount: 1,
       viewCount: 12,
     });
+    const hoursAfter = await db()
+      .select({
+        questionId: questionViewHours.questionId,
+        hour: questionViewHours.hour,
+        views: questionViewHours.views,
+      })
+      .from(questionViewHours)
+      .where(inArray(questionViewHours.questionId, [kept.id, twin.id]));
+    expect(hoursAfter.sort((a, b) => a.hour - b.hour)).toEqual([
+      { questionId: kept.id, hour: hour - 1, views: 4 },
+      { questionId: kept.id, hour, views: 5 },
+    ]);
     expect(await findQuestion(onlyDuplicate.id)).toMatchObject({
       courseId: t.algorithms.id,
     });

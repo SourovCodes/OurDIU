@@ -19,6 +19,7 @@ SavedQuestion _$SavedQuestionFromJson(Map<String, dynamic> json) =>
         json['submissionCounts'] as Map<String, dynamic>,
       ),
       viewCount: (json['viewCount'] as num).toInt(),
+      viewsToday: (json['viewsToday'] as num?)?.toInt(),
       savedAt: DateTime.parse(json['savedAt'] as String),
     );
 
@@ -31,5 +32,6 @@ Map<String, dynamic> _$SavedQuestionToJson(SavedQuestion instance) =>
       'examType': instance.examType,
       'submissionCounts': instance.submissionCounts,
       'viewCount': instance.viewCount,
+      'viewsToday': instance.viewsToday,
       'savedAt': instance.savedAt.toIso8601String(),
     };

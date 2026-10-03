@@ -22,6 +22,7 @@ class SavedQuestion {
     required this.examType,
     required this.submissionCounts,
     required this.viewCount,
+    required this.viewsToday,
     required this.savedAt,
   });
 
@@ -35,6 +36,7 @@ class SavedQuestion {
   final ExamType examType;
   final SubmissionCounts submissionCounts;
   final int viewCount;
+  final int? viewsToday;
   final DateTime savedAt;
 
   Map<String, Object?> toJson() => _$SavedQuestionToJson(this);

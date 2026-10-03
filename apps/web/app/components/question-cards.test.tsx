@@ -18,6 +18,7 @@ const question: Question = {
   examType: { id: 1, name: "Midterm" },
   submissionCounts: { published: 2, pendingReview: 1, rejected: 0 },
   viewCount: 1234,
+  viewsToday: null,
 };
 
 async function renderCard(q: Question) {

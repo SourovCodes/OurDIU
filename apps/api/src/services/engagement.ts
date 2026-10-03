@@ -14,12 +14,26 @@ import { AppError } from "../lib/errors";
 // View counters are bumped with plain SQL: an ORM update would also touch `updated_at`,
 // which should only change when the row's content changes.
 
-/** Counts a question page view. Returns false when the question doesn't exist. */
+/**
+ * Counts a question page view: the all-time counter, and this hour's bucket for
+ * "Most viewed today" (services/trending.ts), in one batch. Returns false when the
+ * question doesn't exist.
+ */
 export async function recordQuestionView(db: Database, questionId: number) {
-  const result = await db.run(
-    sql`update questions set view_count = view_count + 1 where id = ${questionId}`,
-  );
-  return result.meta.changes > 0;
+  // D1 statements, as Drizzle's batch can't bind raw SQL parameters.
+  const [counted] = await db.$client.batch([
+    db.$client
+      .prepare("update questions set view_count = view_count + 1 where id = ?")
+      .bind(questionId),
+    db.$client
+      .prepare(
+        `insert into question_view_hours (question_id, hour, views)
+        select id, unixepoch() / 3600, 1 from questions where id = ?
+        on conflict (question_id, hour) do update set views = views + 1`,
+      )
+      .bind(questionId),
+  ]);
+  return counted!.meta.changes > 0;
 }
 
 /** Counts a view of a published paper. Returns false for unknown or unpublished ones. */

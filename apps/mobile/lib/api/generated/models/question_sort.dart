@@ -12,6 +12,8 @@ enum QuestionSort {
   popular('popular'),
   @JsonValue('az')
   az('az'),
+  @JsonValue('trending')
+  trending('trending'),
 
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);

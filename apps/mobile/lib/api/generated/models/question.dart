@@ -22,6 +22,7 @@ class Question {
     required this.examType,
     required this.submissionCounts,
     required this.viewCount,
+    required this.viewsToday,
   });
 
   factory Question.fromJson(Map<String, Object?> json) =>
@@ -34,6 +35,7 @@ class Question {
   final ExamType examType;
   final SubmissionCounts submissionCounts;
   final int viewCount;
+  final int? viewsToday;
 
   Map<String, Object?> toJson() => _$QuestionToJson(this);
 }

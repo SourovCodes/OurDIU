@@ -17,6 +17,14 @@ const popularQuestions = (
   pageSize: 20,
 );
 
+/// The most viewed in the last 24 hours (the server's top 100, refreshed every
+/// 10 minutes).
+const trendingQuestions = (
+  sort: QuestionSort.trending,
+  courseId: null,
+  pageSize: 20,
+);
+
 /// Every exam of a course in one request (the API allows 100 per page; no course
 /// comes close).
 QuestionQuery courseQuestions(int courseId) =>

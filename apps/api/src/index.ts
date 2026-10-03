@@ -1,6 +1,8 @@
 import { createApp } from "./app";
+import { createDb } from "./db/client";
 import { handleAnalysisBatch, type AnalysisJob } from "./services/analysis";
 import type { TextJob } from "./services/paper-text";
+import { refreshTrending } from "./services/trending";
 import { handleWatermarkBatch, type WatermarkJob } from "./services/watermark";
 
 const app = createApp();
@@ -9,7 +11,8 @@ const app = createApp();
 export type QueueJob = AnalysisJob | TextJob | WatermarkJob;
 
 // Not a Worker of its own: apps/web's Worker serves this under /api/* and runs the
-// queue handler (apps/web/workers/app.ts, which also holds the wrangler config).
+// queue and cron handlers (apps/web/workers/app.ts, which also holds the wrangler
+// config).
 export default {
   fetch: app.fetch,
   // One consumer per queue in wrangler.jsonc.
@@ -22,5 +25,9 @@ export default {
         env,
       );
     }
+  },
+  // The cron in wrangler.jsonc: rebuilds "Most viewed today".
+  async scheduled(_controller, env) {
+    await refreshTrending(createDb(env.DB));
   },
 } satisfies ExportedHandler<Env, QueueJob>;

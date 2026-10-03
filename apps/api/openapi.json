@@ -283,6 +283,12 @@
           },
           "viewCount": {
             "type": "integer"
+          },
+          "viewsToday": {
+            "type": [
+              "integer",
+              "null"
+            ]
           }
         },
         "required": [
@@ -292,7 +298,8 @@
           "semester",
           "examType",
           "submissionCounts",
-          "viewCount"
+          "viewCount",
+          "viewsToday"
         ]
       },
       "Department": {
@@ -355,7 +362,8 @@
         "enum": [
           "newest",
           "popular",
-          "az"
+          "az",
+          "trending"
         ],
         "default": "newest"
       },
@@ -475,6 +483,12 @@
           "viewCount": {
             "type": "integer"
           },
+          "viewsToday": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "submissions": {
             "type": "array",
             "items": {
@@ -493,6 +507,7 @@
           "examType",
           "submissionCounts",
           "viewCount",
+          "viewsToday",
           "submissions",
           "viewToken"
         ]
@@ -1809,6 +1824,12 @@
           "viewCount": {
             "type": "integer"
           },
+          "viewsToday": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "savedAt": {
             "type": "string",
             "format": "date-time"
@@ -1822,6 +1843,7 @@
           "examType",
           "submissionCounts",
           "viewCount",
+          "viewsToday",
           "savedAt"
         ]
       },

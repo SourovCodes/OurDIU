@@ -124,6 +124,8 @@ Question _summary(SavedQuestion s) => Question(
   examType: s.examType,
   submissionCounts: s.submissionCounts,
   viewCount: s.viewCount,
+  // Kept on the phone, where today's count would go stale.
+  viewsToday: null,
 );
 
 final savedQuestionsProvider = NotifierProvider<SavedQuestions, List<Question>>(
@@ -139,4 +141,5 @@ Question summaryOf(QuestionDetail q) => Question(
   examType: q.examType,
   submissionCounts: q.submissionCounts,
   viewCount: q.viewCount,
+  viewsToday: null,
 );

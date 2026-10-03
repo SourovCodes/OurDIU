@@ -225,8 +225,11 @@ export function parseSemesterName(name: string): string | null {
   return `${term} ${match[2]}`;
 }
 
-/** Orders for the questions list: newest papers, most viewed, or by name. */
-export const QUESTION_SORTS = ["newest", "popular", "az"] as const;
+/**
+ * Orders for the questions list: newest papers, most viewed (all time), by name, or
+ * most viewed in the last 24 hours.
+ */
+export const QUESTION_SORTS = ["newest", "popular", "az", "trending"] as const;
 
 /** Paper search (`GET /api/v1/questions/search`): query length, in characters. */
 export const MIN_SEARCH_LENGTH = 2;

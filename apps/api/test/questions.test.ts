@@ -76,6 +76,7 @@ describe("GET /api/v1/questions", () => {
         examType: t.midterm,
         submissionCounts: { published: 2, pendingReview: 0, rejected: 1 },
         viewCount: 0,
+        viewsToday: null,
       },
     ]);
   });

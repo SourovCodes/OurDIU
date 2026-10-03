@@ -8,6 +8,8 @@ export class GeminiError extends Error {
   constructor(
     message: string,
     readonly retryable: boolean,
+    /** Gemini's HTTP status, when it answered with an error. */
+    readonly status?: number,
   ) {
     super(message);
     this.name = "GeminiError";
@@ -94,6 +96,7 @@ export async function generateJsonFromPdf(options: {
         ? `Gemini couldn't process the file: ${detail}`
         : `Gemini returned ${res.status}: ${detail}`,
       res.status === 429 || res.status >= 500,
+      res.status,
     );
   }
 

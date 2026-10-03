@@ -25,6 +25,9 @@
     // Keys are the GEMINI_API_KEY and COMPRESSOR_API_KEY secrets.
     "PDF_PROCESSOR_URL": "https://pdf-processor.diuqbank.com",
     "GEMINI_MODEL": "gemini-3.8-flash",
+    // Reads published papers' text (the cron backfill and the admin's "read all"):
+    // a lighter model with a free quota of its own, separate from the upload check's.
+    "GEMINI_TEXT_MODEL": "gemini-3.5-flash-lite",
     // The oldest Android app version that still works (GET /api/v1/app/android):
     // older ones show "Time to update". Raise it only for a breaking change or a
     // serious bug; /api/v1 otherwise stays backward compatible. 1.6.0 is the first
@@ -123,7 +126,8 @@
       },
     ],
   },
-  // Rebuilds "Most viewed today" from the last 24 hours' views (the API's scheduled
-  // handler, services/trending.ts).
-  "triggers": { "crons": ["*/10 * * * *"] },
+  // The API's scheduled handler: every 10 minutes rebuilds "Most viewed today" from
+  // the last 24 hours' views (services/trending.ts); every 5 reads one missing paper
+  // text (TEXT_CRON, services/paper-text.ts).
+  "triggers": { "crons": ["*/10 * * * *", "*/5 * * * *"] },
 }

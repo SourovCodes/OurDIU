@@ -68,6 +68,17 @@ function courseText(c: Class) {
   return `${c.course}(${c.section}${group})`;
 }
 
+/**
+ * The PDF's bytes, the same each time it's made: pdf-lib stamps the current time,
+ * so a test comparing a stored PDF with a fresh one fails across a second.
+ */
+export function savedSameEachTime(doc: PDFDocument) {
+  const fixed = new Date("2026-10-02T00:00:00Z");
+  doc.setCreationDate(fixed);
+  doc.setModificationDate(fixed);
+  return doc.save();
+}
+
 export async function cseRoutinePdf(routine: {
   version: string;
   publishedOn?: string | null;
@@ -141,12 +152,12 @@ export async function cseRoutinePdf(routine: {
       y -= tall ? 24 : 13;
     }
   }
-  return doc.save();
+  return savedSameEachTime(doc);
 }
 
 /** A one-line PDF, e.g. another department's routine that no reader knows. */
 export async function onePagePdf(text: string): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.addPage().drawText(text);
-  return doc.save();
+  return savedSameEachTime(doc);
 }

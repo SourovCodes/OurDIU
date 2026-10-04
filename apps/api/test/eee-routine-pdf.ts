@@ -4,6 +4,7 @@ import {
   type PDFFont,
   type PDFPage,
 } from "pdf-lib";
+import { savedSameEachTime } from "./cse-routine-pdf";
 
 // A small routine PDF laid out like EEE's (fall 2026, version 4.0): a page per day,
 // each a grid of rooms by one-hour slots with the labs under a second header, then
@@ -203,5 +204,5 @@ export async function eeeRoutinePdf(version = "4.0"): Promise<Uint8Array> {
     tw(`${initials!.toLowerCase()}@example.com`, 450, y);
   });
 
-  return doc.save();
+  return savedSameEachTime(doc);
 }

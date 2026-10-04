@@ -18,11 +18,25 @@ describe("sitemapXml", () => {
         questions: [{ id: 7, lastModified: "2026-01-02T03:04:05.000Z" }],
         contributors: [{ username: "a&b" }],
       },
-      { departmentIds: [3], courseIds: [12] },
+      {
+        departmentIds: [3],
+        courseIds: [12],
+        routine: [
+          { department: "eee", sections: ["1-2 B"], teachers: ["ShA"] },
+        ],
+      },
     );
     expect(xml).toMatch(/^<\?xml version="1.0" encoding="UTF-8"\?>\n<urlset /);
-    // The hub redirects to /questions until a second product launches (HUB_LIVE).
-    expect(xml).not.toContain(`<url><loc>${SITE}/</loc></url>`);
+    // The hub, since the Class Routine launched (HUB_LIVE).
+    expect(xml).toContain(`<url><loc>${SITE}/</loc></url>`);
+    // A live routine's home, teachers, sections and teachers' weeks.
+    expect(xml).toContain(`<url><loc>${SITE}/routine</loc></url>`);
+    expect(xml).toContain(`<url><loc>${SITE}/routine/eee</loc></url>`);
+    expect(xml).toContain(`<url><loc>${SITE}/routine/eee/teachers</loc></url>`);
+    expect(xml).toContain(`<url><loc>${SITE}/routine/eee/1-2_B</loc></url>`);
+    expect(xml).toContain(
+      `<url><loc>${SITE}/routine/eee/teachers/ShA</loc></url>`,
+    );
     expect(xml).toContain(`<url><loc>${SITE}/questions</loc></url>`);
     expect(xml).toContain(`<url><loc>${SITE}/contact</loc></url>`);
     expect(xml).toContain(`<url><loc>${SITE}/diuqbank</loc></url>`);
@@ -133,5 +147,27 @@ describe("llmsTxt", () => {
     expect(txt).not.toContain("Nothing yet");
     expect(txt).toContain("### Why?\n\nBecause.");
     expect(txt).toContain(`(${SITE}/diuqbank)`);
+    // Without a live routine, it's still coming.
+    expect(txt).toContain(
+      "A class routine and a student marketplace are coming.",
+    );
+  });
+
+  it("lists the live class routines", () => {
+    const txt = llmsTxt(
+      SITE,
+      { departments: [], courses: [] },
+      { path: "/diuqbank", date: "1 October 2026", faq: [] },
+      [{ department: "cse", sections: ["67_B", "67_C"], teachers: ["STA"] }],
+    );
+    expect(txt).toContain("and the Class Routine");
+    expect(txt).toContain(`- The Class Routine is at ${SITE}/routine:`);
+    expect(txt).toContain(
+      `- [DIU CSE class routine](${SITE}/routine/cse): 2 sections, by batch or level and term`,
+    );
+    expect(txt).toContain(
+      `- [DIU CSE teachers' routines](${SITE}/routine/cse/teachers): 1 teacher, by initials or name`,
+    );
+    expect(txt).not.toContain("A class routine and");
   });
 });

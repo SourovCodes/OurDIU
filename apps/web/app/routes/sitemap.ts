@@ -2,6 +2,7 @@ import type { Sitemap } from "@ourdiu/shared";
 import { waitUntil } from "cloudflare:workers";
 import { apiGetJson } from "~/lib/api.server";
 import { sitemapXml } from "~/lib/seo";
+import { routineSitemap } from "~/lib/routine.server";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
 import type { Route } from "./+types/sitemap";
 
@@ -17,9 +18,10 @@ export async function loader({ request }: Route.LoaderArgs) {
   const hit = await cache.match(key);
   if (hit) return hit;
 
-  const [sitemap, taxonomy] = await Promise.all([
+  const [sitemap, taxonomy, routine] = await Promise.all([
     apiGetJson<Sitemap>(request, "/api/v1/sitemap"),
     loadTaxonomy(request),
+    routineSitemap(request),
   ]);
   const departmentIds = taxonomy.departments
     .filter((d) => d.publishedCount > 0)
@@ -28,7 +30,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     .filter((c) => c.publishedCount > 0)
     .map((c) => c.id);
   const response = new Response(
-    sitemapXml(origin, sitemap, { departmentIds, courseIds }),
+    sitemapXml(origin, sitemap, { departmentIds, courseIds, routine }),
     {
       headers: {
         "content-type": "application/xml; charset=utf-8",

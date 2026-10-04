@@ -222,14 +222,17 @@ Students' routine, first release (branch `routine-student`):
 - [x] Admin API (`/api/v1/admin/routine/versions`: list, upload, review, make live, delete drafts, download the uploaded file) and pages (`/admin/routine/versions`, `/admin/routine/versions/{id}`, `/admin/routine/format`).
 - [x] Public API (`/api/v1/routine/{department}/sections`, `…/{section}`, `…/{section}/pdf`) and pages (`/routine`, `/routine/cse/{section}`), the `ourdiu_routine` cookie on /cookies.
 - [x] Seed: CSE v4.1 live with 67_B and 65_A (`apps/api/seeds/routine-cse-4.1.json`); API, unit and e2e tests; Dart client regenerated.
-- [ ] Launch: product `status: "live"`, `HUB_LIVE` and the app's `showChooser` on (decision 25), the "Class Routine is new" banner and app hint (Phases 1–2), `/routine` and section pages in the sitemap, `llms.txt`.
+- [x] Launch (5 October 2026, PR #21): the product shows as live once a routine is (decision 36, no `status` to flip), `HUB_LIVE` and the app's `showChooser` on (decision 25; a coming-soon space used last opens the chooser), `/routine`, departments, sections and teachers' weeks in the sitemap, the Class Routine in `llms.txt`.
+- [ ] Not done yet: the "Class Routine is new" banner and app hint (Phases 1–2).
 - [x] The app's Routine space (`lib/features/routine/`, `lib/data/routine.dart`): Today (the class you're in or next, today's classes), Week (dated day chips, lab group chips, courses) and Find (search like the website's, sections by batch, a section's week with "Make it my section" and a share link) tabs in teal; the PDF sheet picks the lab group and opens the share sheet (save to Files or Drive, send). "My section" and its week are kept in shared preferences, so Today and Week work offline, and the app says once when the routine's version changed. Until a routine is live (the API's 404) the space stays "coming soon"; the app opens there only once `Space.routine.live` is true (launch). Retake sections get a note instead of a "next class". A space's tabs now take its own indicator colour.
 - [x] EEE from its PDF (decision 30): the reader for EEE's layout, `POST /api/v1/admin/routine/versions/pdf` and `GET …/{id}/pdf`, PDF or JSON in the admin's upload, per-department titles and teachers (migration 0018), department homes `/routine/{department}` with a switch, sections like `1-2 B`; tests on a made-up PDF in EEE's layout (`apps/api/test/eee-routine-pdf.ts`; the real one has teachers' phone numbers, so it isn't in the repo). Checked against EEE's real v4.0: 564 classes in 40 sections, 50 teachers, four guesses listed and one real clash (2-2 G1 on Wednesday at 8:30).
 - [x] CSE from its PDF too, and no more JSON (decision 31): CSE's reader, PDF-only uploads, `/admin/routine/courses` and `/admin/routine/teachers` (migration 0019), teachers' room, email and phone on section pages.
-- [ ] Owner: apply migrations 0017–0019 on production; upload CSE's v4.1 and EEE's v4.0 PDFs, review their notes, add course titles and teachers' names, make them live.
-- [ ] The app: a department choice in Find (mockup first), so EEE students can use it.
+- [x] Released (PR #20, 5 October 2026): CI applied migrations 0017–0019 to production; the owner uploaded CSE v4.1, EEE v4.0 and SWE v4 and made them live. CSE's course titles (57 of 58) and teachers (168 of 193, with phone, email and room) came from routine.zohirrayhan.me with its owner's permission, as one SQL import that fills only what's empty. App `mobile-v1.11.0` (Today, Students, Teachers, the widget).
+- [ ] Still to add: CSE491's title and 25 CSE teachers; SWE's titles and teachers; EEE's titles.
+- [x] The app: a department choice on Students and Teachers (decision 34).
 - [x] Delete the live version too; set a version's number at upload or later (decision 32). The app: a section's teachers, and a sheet for a class or a teacher with the teacher's room, email and phone.
-- Later: a teacher's week, rooms and free rooms; other departments.
+- [x] A teacher's week (decision 33); SWE (decision 37).
+- Later: rooms and free rooms; other departments.
 
 ### Phase 4 – Marketplace
 

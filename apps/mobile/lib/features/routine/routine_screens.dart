@@ -467,22 +467,13 @@ class _SectionBody extends StatelessWidget {
         SectionWeek(routine: routine, group: group),
         const SizedBox(height: 8),
         Text(
-          'Courses',
+          'Courses and teachers',
           style: Theme.of(context).textTheme.titleMedium
               ?.copyWith(fontWeight: FontWeight.w700),
         ),
-        _CourseList(classes),
-        if (teachersWithDetails(classes).isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text(
-            'Teachers',
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          _TeacherList(classes),
-        ],
+        _CourseList(classes, section: routine.section),
         Text(
-          'DIU’s CSE class routine, version ${routine.version.version}. When a new one comes out, the app follows it.',
+          'DIU’s ${routine.version.department.json} class routine, version ${routine.version.version}. When a new one comes out, the app follows it.',
           style: Theme.of(context).textTheme.bodySmall
               ?.copyWith(color: scheme.onSurfaceVariant),
         ),
@@ -491,14 +482,18 @@ class _SectionBody extends StatelessWidget {
   }
 }
 
+/// A section's courses, each with its teachers: which lab group a teacher has when
+/// they teach one group's labs, where they sit, and a tap for how to reach them.
 class _CourseList extends StatelessWidget {
-  const _CourseList(this.classes);
+  const _CourseList(this.classes, {required this.section});
 
   final List<RoutineClass> classes;
+  final String section;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final codes = {for (final c in classes) c.course.code};
     return RowGroup(
       children: [
@@ -509,20 +504,40 @@ class _CourseList extends StatelessWidget {
                 for (final c in classes)
                   if (c.course.code == code) c,
               ];
+              final course = of.first.course;
               final teachers = {
-                for (final c in of)
-                  if (c.teacher case final t?) t.name ?? t.initials,
-              };
+                for (final t in of.map((c) => c.teacher).nonNulls)
+                  t.initials: t,
+              }.values;
               return Material(
                 color: scheme.surfaceContainer,
-                child: ListTile(
-                  title: Text(of.first.course.title ?? code),
-                  subtitle: Text(
-                    [
-                      if (of.first.course.title != null) code,
-                      if (teachers.isNotEmpty) teachers.join(', '),
-                      '${of.length} a week',
-                    ].join(' · '),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ListTile(
+                        title: Text(
+                          course.title ?? code,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        subtitle: Text(
+                          [
+                            if (course.title != null) code,
+                            '${of.length} a week',
+                          ].join(' · '),
+                        ),
+                      ),
+                      for (final t in teachers)
+                        _TeacherRow(
+                          teacher: t,
+                          group: _onlyGroup(of, t),
+                          section: section,
+                          courses: coursesOf(t, classes),
+                        ),
+                    ],
                   ),
                 ),
               );
@@ -531,43 +546,58 @@ class _CourseList extends StatelessWidget {
       ],
     );
   }
+
+  /// The lab group a teacher has in a course, when they teach only that group.
+  static String? _onlyGroup(List<RoutineClass> of, RoutineTeacher t) {
+    final groups = {
+      for (final c in of)
+        if (c.teacher?.initials == t.initials) c.labGroup,
+    };
+    return groups.length == 1 ? groups.first : null;
+  }
 }
 
-/// A section's teachers: tap one for where they sit and how to reach them.
-class _TeacherList extends StatelessWidget {
-  const _TeacherList(this.classes);
+/// A course's teacher: tap for where they sit and how to reach them.
+class _TeacherRow extends StatelessWidget {
+  const _TeacherRow({
+    required this.teacher,
+    required this.group,
+    required this.section,
+    required this.courses,
+  });
 
-  final List<RoutineClass> classes;
+  final RoutineTeacher teacher;
+  final String? group;
+  final String section;
+  final List<String> courses;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final teachers = teachersWithDetails(classes);
-    return RowGroup(
-      children: [
-        for (final t in teachers)
-          Material(
-            color: scheme.surfaceContainer,
-            child: ListTile(
-              title: Text(t.name ?? t.initials),
-              subtitle: Text(
-                [
-                  if (t.name != null) t.initials,
-                  coursesOf(t, classes).join(', '),
-                  if (t.room case final room?) 'Sits in $room',
-                ].join(' · '),
-              ),
-              trailing: t.email != null || t.phone != null
-                  ? Icon(Icons.contact_mail_outlined, color: scheme.primary)
-                  : const Icon(Icons.chevron_right_rounded),
-              onTap: () => showTeacherSheet(
-                context,
-                teacher: t,
-                courses: coursesOf(t, classes),
-              ),
-            ),
-          ),
-      ],
+    final t = teacher;
+    final contact = t.email != null || t.phone != null;
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      leading: Icon(
+        Icons.person_outline_rounded,
+        color: scheme.onSurfaceVariant,
+      ),
+      minLeadingWidth: 20,
+      title: Text(
+        [
+          t.name ?? t.initials,
+          if (t.name != null) t.initials,
+          if (group case final g?) '${groupLabel(section, g)} lab',
+        ].join(' · '),
+      ),
+      subtitle: t.room == null ? null : Text('Sits in ${t.room}'),
+      trailing: contact
+          ? Icon(Icons.contact_mail_outlined, color: scheme.primary)
+          : null,
+      onTap: t.name == null && t.room == null && !contact
+          ? null
+          : () => showTeacherSheet(context, teacher: t, courses: courses),
     );
   }
 }

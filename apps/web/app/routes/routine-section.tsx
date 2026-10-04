@@ -17,8 +17,6 @@ import {
   DayTabs,
   GroupChips,
   SectionSearch,
-  TeacherList,
-  teachersOf,
   TodayCard,
   useDhakaNow,
   WeekGrid,
@@ -124,6 +122,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     saved: savedRoutine(request.headers.get("cookie")),
     // The day in Dhaka as the server sees it; the time comes after hydration.
     serverDay: dhakaNow().day,
+    serverMinute: Math.floor(Date.now() / 60_000),
     dates: weekDates(),
   };
 }
@@ -200,7 +199,9 @@ function MissingSection({ department, asked, sections, version }: Missing) {
 export default function RoutineSectionPage({
   loaderData,
 }: Route.ComponentProps) {
-  const now = useDhakaNow();
+  const now = useDhakaNow(
+    loaderData.kind === "section" ? loaderData.serverMinute : undefined,
+  );
   if (loaderData.kind === "missing") return <MissingSection {...loaderData} />;
 
   const { routine, pick, saved, serverDay, dates } = loaderData;
@@ -212,52 +213,62 @@ export default function RoutineSectionPage({
   const courseCount = new Set(classes.map((c) => c.course.code)).size;
 
   return (
-    <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-12">
-      <div className="min-w-0 space-y-7">
-        <Breadcrumbs
-          crumbs={[
-            {
-              label: `${version.department} Class Routine`,
-              to: `/routine/${pick.department}`,
-            },
-            { label: pickLabel(pick) },
-          ]}
-        />
-        <div className="space-y-3">
-          <h1 className="font-display-xl text-6xl break-words sm:text-7xl">
-            {pickLabel(pick)}
-          </h1>
-          <p className="text-muted-foreground">
-            {[
-              `${version.department}${group ? ` ${group.name}, section ${group.letter}` : ""}`,
-              pick.group ? `lab group ${pick.group}` : null,
-              `${courseCount} courses`,
-              `${classes.length} classes a week`,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <MySectionButton key={pickLabel(pick)} pick={pick} saved={saved} />
-          <a href={routinePdfHref(pick)} download className={buttonVariants()}>
-            <Download aria-hidden />
-            Download PDF
-          </a>
-          <ShareButton title={`${pickLabel(pick)} class routine`} />
-        </div>
-
-        {routine.labGroups.length > 0 && (
-          <div className="space-y-2">
-            <GroupChips routine={routine} pick={pick} />
-            {!pick.group && (
-              <p className="text-sm text-muted-foreground">
-                {routine.section} has lab groups. Pick yours to see only your
-                own labs, here and in the PDF.
-              </p>
-            )}
+    // Wide screens: who and today side by side, then the week across the page, then
+    // the courses with their teachers. Phones: the same, one under another.
+    <div className="space-y-12">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-end lg:gap-12">
+        <div className="min-w-0 space-y-6">
+          <Breadcrumbs
+            crumbs={[
+              {
+                label: `${version.department} Class Routine`,
+                to: `/routine/${pick.department}`,
+              },
+              { label: pickLabel(pick) },
+            ]}
+          />
+          <div className="space-y-3">
+            <h1 className="font-display-xl text-6xl break-words sm:text-7xl">
+              {pickLabel(pick)}
+            </h1>
+            <p className="text-muted-foreground">
+              {[
+                `${version.department}${group ? ` ${group.name}, section ${group.letter}` : ""}`,
+                pick.group ? `lab group ${pick.group}` : null,
+                `${courseCount} courses`,
+                `${classes.length} classes a week`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
           </div>
-        )}
+          <div className="flex flex-wrap items-center gap-2">
+            <MySectionButton key={pickLabel(pick)} pick={pick} saved={saved} />
+            <a
+              href={routinePdfHref(pick)}
+              download
+              aria-label="Download PDF"
+              className={buttonVariants()}
+            >
+              <Download aria-hidden />
+              {/* One row on a phone: "PDF" says enough beside the icon. */}
+              <span className="sm:hidden">PDF</span>
+              <span className="max-sm:hidden">Download PDF</span>
+            </a>
+            <ShareButton title={`${pickLabel(pick)} class routine`} />
+          </div>
+          {routine.labGroups.length > 0 && (
+            <div className="space-y-2">
+              <GroupChips routine={routine} pick={pick} />
+              {!pick.group && (
+                <p className="text-sm text-muted-foreground">
+                  {routine.section} has lab groups. Pick yours to see only your
+                  own labs, here and in the PDF.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
 
         {isRegularSection(routine.section) ? (
           <TodayCard
@@ -278,51 +289,17 @@ export default function RoutineSectionPage({
         )}
       </div>
 
-      <aside className="space-y-6 max-lg:order-last lg:pt-10">
-        <section aria-labelledby="courses" className="space-y-3">
-          <h2 id="courses" className="font-expressive text-xl">
-            Courses
-          </h2>
-          <CourseList classes={classes} />
-        </section>
-        <section className="space-y-2 rounded-3xl bg-surface p-5 text-sm">
-          <h2 className="font-semibold">About this routine</h2>
-          <p className="text-muted-foreground">
-            DIU’s {version.department} class routine, version {version.version}
-            {version.publishedOn &&
-              `, published ${formatDate(version.publishedOn)}`}
-            . Routines change during the semester; when a new one comes out,
-            this page follows it.
-          </p>
-          {version.source && (
-            <a
-              href={version.source}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 font-semibold text-primary underline-offset-4 hover:underline"
-            >
-              DIU’s original PDF
-              <ExternalLink className="size-3.5" aria-hidden />
-            </a>
-          )}
-          <p className="text-muted-foreground">
-            Something looks wrong?{" "}
-            <Link
-              to="/contact"
-              className="font-semibold text-primary underline-offset-4 hover:underline"
-            >
-              Tell us
-            </Link>
-            .
-          </p>
-        </section>
-      </aside>
-
-      <section aria-labelledby="week" className="space-y-4 lg:col-span-2">
+      <section aria-labelledby="week" className="space-y-4">
         <h2 id="week" className="font-expressive text-3xl">
           The week
         </h2>
-        <div className="max-md:hidden">
+        <div
+          // A routine with many slots (EEE's nine hours) needs a wide screen for its
+          // grid; narrower ones show a day at a time.
+          className={
+            routine.slots.length > 6 ? "max-xl:hidden" : "max-md:hidden"
+          }
+        >
           <WeekGrid
             classes={classes}
             slots={routine.slots}
@@ -331,7 +308,7 @@ export default function RoutineSectionPage({
             now={now}
           />
         </div>
-        <div className="md:hidden">
+        <div className={routine.slots.length > 6 ? "xl:hidden" : "md:hidden"}>
           <DayTabs
             key={pickLabel(pick)}
             classes={classes}
@@ -344,14 +321,41 @@ export default function RoutineSectionPage({
         </div>
       </section>
 
-      {teachersOf(classes).length > 0 && (
-        <section aria-labelledby="teachers" className="space-y-4 lg:col-span-2">
-          <h2 id="teachers" className="font-expressive text-3xl">
-            Teachers
-          </h2>
-          <TeacherList classes={classes} />
-        </section>
-      )}
+      <section aria-labelledby="courses" className="space-y-4">
+        <h2 id="courses" className="font-expressive text-3xl">
+          Courses and teachers
+        </h2>
+        <CourseList classes={classes} section={routine.section} />
+        <p className="max-w-3xl text-sm text-pretty text-muted-foreground">
+          DIU’s {version.department} class routine, version {version.version}
+          {version.publishedOn &&
+            `, published ${formatDate(version.publishedOn)}`}
+          . Routines change during the semester; when a new one comes out, this
+          page follows it.{" "}
+          {version.source && (
+            <>
+              <a
+                href={version.source}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 font-semibold text-primary underline-offset-4 hover:underline"
+              >
+                DIU’s original PDF
+                <ExternalLink className="size-3.5" aria-hidden />
+              </a>
+              .{" "}
+            </>
+          )}
+          Something looks wrong?{" "}
+          <Link
+            to="/contact"
+            className="font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            Tell us
+          </Link>
+          .
+        </p>
+      </section>
     </div>
   );
 }

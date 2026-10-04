@@ -94,6 +94,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     list,
     mine: mine?.routine ? { pick: mine.pick, routine: mine.routine } : null,
     serverDay: dhakaNow().day,
+    serverMinute: Math.floor(Date.now() / 60_000),
   };
 }
 
@@ -160,9 +161,9 @@ function ShapeCluster() {
 
 /** /routine: your section's day, or find it in your department's routine. */
 export default function Routine({ loaderData }: Route.ComponentProps) {
-  const now = useDhakaNow();
   const { department, anyLive, departments, list, mine, serverDay } =
     loaderData;
+  const now = useDhakaNow(loaderData.serverMinute);
   if (!anyLive) return <ComingSoon product={product} />;
 
   const name = department.toUpperCase();
@@ -182,7 +183,7 @@ export default function Routine({ loaderData }: Route.ComponentProps) {
             )}
           </div>
           <div className="space-y-5">
-            <h1 className="font-display-xl text-6xl sm:text-7xl xl:text-8xl">
+            <h1 className="font-display-xl text-5xl sm:text-7xl xl:text-8xl">
               Your class routine.
             </h1>
             <p className="max-w-xl text-lg text-pretty text-muted-foreground">

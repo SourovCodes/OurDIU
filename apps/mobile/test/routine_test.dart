@@ -232,7 +232,8 @@ void main() {
     await tester.tap(find.text('67_B').last);
     await tester.pumpAndSettle();
 
-    final teacher = find.textContaining('Sits in KT-712');
+    // Under each of their courses, with where they sit.
+    final teacher = find.textContaining('Sits in KT-712').first;
     await tester.ensureVisible(teacher);
     await tester.pumpAndSettle();
     await tester.tap(teacher);

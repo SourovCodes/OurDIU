@@ -10,17 +10,6 @@ import '../../widgets/question_row.dart';
 // A class's and a teacher's details in a sheet: where the teacher sits and how to
 // reach them, as the department's routine or the site's admins give them.
 
-/// A section's teachers there's more to say about than their initials (the course
-/// list has those): a name, the room where they sit, email, phone.
-List<RoutineTeacher> teachersWithDetails(List<RoutineClass> classes) => [
-  ...{
-    for (final t in classes.map((c) => c.teacher).nonNulls) t.initials: t,
-  }.values.where(
-    (t) =>
-        t.name != null || t.room != null || t.email != null || t.phone != null,
-  ),
-];
-
 /// The courses a teacher teaches among [classes].
 List<String> coursesOf(RoutineTeacher t, List<RoutineClass> classes) => {
   for (final c in classes)

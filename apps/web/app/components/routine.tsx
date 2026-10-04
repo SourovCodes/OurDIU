@@ -58,11 +58,13 @@ function subscribeToMinutes(onChange: () => void) {
  * the visitor's "now" when the page is cached or rendered a minute earlier, so
  * "Now" and "Next" only appear after hydration. Updated every minute.
  */
-export function useDhakaNow() {
+export function useDhakaNow(serverMinute?: number) {
   const minute = useSyncExternalStore(
     subscribeToMinutes,
     currentMinute,
-    () => null,
+    // The server's minute when it rendered the page, so the first render here
+    // matches it (no flash from "3 classes today" to "Done for today").
+    () => serverMinute ?? null,
   );
   return useMemo(
     () => (minute === null ? null : dhakaNow(new Date(minute * 60_000))),
@@ -163,6 +165,9 @@ export function ClassCard({
         )}
         {state === "next" && (
           <Tag className="bg-surface-highest text-foreground">Next</Tag>
+        )}
+        {state === "over" && (
+          <Tag className="bg-surface-highest text-muted-foreground">Over</Tag>
         )}
         <span className={cn(state === "now" && "opacity-85")}>
           {routineTimeRange(c.start, c.end)}
@@ -557,14 +562,22 @@ export function DayTabs({
 }: {
   classes: RoutineClass[];
   days: RoutineDay[];
-  /** Each day's date this week. */
-  dates: Record<RoutineDay, number>;
+  /** Each day's date this week; none for a version not live (an admin's preview). */
+  dates: Record<RoutineDay, number> | null;
   section: string;
   today: RoutineDay | null;
   now: Now | null;
 }) {
   const [picked, setPicked] = useState<RoutineDay | null>(null);
-  const day = picked ?? today ?? days[0]!;
+  // Today while it has a class to come; once they're over (or on a day off), the
+  // day of the next one. Today keeps its ring either way.
+  const upcoming = now ? nextClass(classes, now) : null;
+  const todayLeft =
+    !!now &&
+    classes.some((c) => c.day === now.day && classState(c, now) !== "over");
+  const opening =
+    today && (todayLeft || !upcoming) ? today : (upcoming?.c.day ?? today);
+  const day = picked ?? opening ?? days[0]!;
   const onDay = classes.filter((c) => c.day === day);
   return (
     <div className="grid gap-3">
@@ -587,15 +600,17 @@ export function DayTabs({
               )}
             >
               <span>{dayName(d).slice(0, 3)}</span>
-              <span
-                className={cn(
-                  "font-expressive text-lg tabular-nums",
-                  !on && "text-foreground",
-                )}
-                suppressHydrationWarning
-              >
-                {dates[d]}
-              </span>
+              {dates && (
+                <span
+                  className={cn(
+                    "font-expressive text-lg tabular-nums",
+                    !on && "text-foreground",
+                  )}
+                  suppressHydrationWarning
+                >
+                  {dates[d]}
+                </span>
+              )}
               <span
                 aria-hidden
                 className={cn(
@@ -762,131 +777,121 @@ export function SectionSearch({
   );
 }
 
-/** A section's courses, with their teachers and classes a week. */
-export function CourseList({ classes }: { classes: RoutineClass[] }) {
-  const courses = [
-    ...new Map(classes.map((c) => [c.course.code, c.course])).values(),
-  ].map((course) => {
-    const of = classes.filter((c) => c.course.code === course.code);
-    return {
-      ...course,
-      teachers: [
-        ...new Set(
-          of.flatMap((c) =>
-            c.teacher ? [c.teacher.name ?? c.teacher.initials] : [],
-          ),
-        ),
-      ],
-      count: of.length,
-    };
-  });
+/** How to reach a teacher, where it's known: the room where they sit, email, phone. */
+function TeacherContact({ t }: { t: NonNullable<RoutineClass["teacher"]> }) {
+  if (!t.room && !t.email && !t.phone) return null;
   return (
-    <ul className="grid gap-0.5">
-      {courses.map((c, i) => (
-        <li
-          key={c.code}
-          className={cn(
-            "flex items-center gap-3 bg-surface px-4 py-3",
-            i === 0 && "rounded-t-2xl",
-            i === courses.length - 1 && "rounded-b-2xl",
-          )}
+    <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+      {t.room && (
+        <span className="inline-flex items-center gap-1 text-muted-foreground">
+          <MapPin className="size-3.5" aria-hidden />
+          Sits in {t.room}
+        </span>
+      )}
+      {t.email && (
+        <a
+          href={`mailto:${t.email}`}
+          className="inline-flex min-w-0 items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
         >
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm leading-snug font-semibold">
-              {c.title ?? c.code}
-            </span>
-            <span className="block text-xs text-muted-foreground">
-              {[
-                c.title ? c.code : null,
-                c.teachers.join(", "),
-                `${c.count} a week`,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </span>
-          </span>
-        </li>
-      ))}
-    </ul>
+          <Mail className="size-3.5 shrink-0" aria-hidden />
+          <span className="truncate">{t.email}</span>
+        </a>
+      )}
+      {t.phone && (
+        <a
+          href={`tel:${t.phone.replace(/[\s-]/g, "")}`}
+          className="inline-flex items-center gap-1 font-medium text-primary tabular-nums underline-offset-4 hover:underline"
+        >
+          <Phone className="size-3.5" aria-hidden />
+          {t.phone}
+        </a>
+      )}
+    </span>
   );
 }
 
 /**
- * A section's teachers that there's more to say about than their initials (the
- * course list already has those): a name, the room where they sit, email, phone.
+ * A section's courses, each with its teachers and how to reach them, and which lab
+ * group a teacher has when they teach only one group's labs.
  */
-export function teachersOf(classes: RoutineClass[]) {
-  return [
-    ...new Map(
-      classes.flatMap((c) =>
-        c.teacher ? [[c.teacher.initials, c.teacher] as const] : [],
-      ),
-    ).values(),
-  ].filter((t) => t.name || t.room || t.email || t.phone);
-}
-
-/** A section's teachers, with how to reach them where it's known. */
-export function TeacherList({ classes }: { classes: RoutineClass[] }) {
-  const teachers = teachersOf(classes).map((t) => ({
-    ...t,
-    courses: [
-      ...new Set(
-        classes
+export function CourseList({
+  classes,
+  section,
+}: {
+  classes: RoutineClass[];
+  section: string;
+}) {
+  const courses = [
+    ...new Map(classes.map((c) => [c.course.code, c.course])).values(),
+  ].map((course) => {
+    const of = classes.filter((c) => c.course.code === course.code);
+    const teachers = [
+      ...new Map(
+        of.flatMap((c) =>
+          c.teacher ? [[c.teacher.initials, c.teacher] as const] : [],
+        ),
+      ).values(),
+    ].map((t) => {
+      const groups = new Set(
+        of
           .filter((c) => c.teacher?.initials === t.initials)
-          .map((c) => c.course.code),
-      ),
-    ],
-  }));
-  if (!teachers.length) return null;
+          .map((c) => c.labGroup),
+      );
+      const [only] = groups;
+      return { ...t, group: groups.size === 1 && only ? only : null };
+    });
+    return { ...course, teachers, count: of.length };
+  });
   return (
-    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {teachers.map((t) => (
+    <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {courses.map((c) => (
         <li
-          key={t.initials}
-          className="grid content-start gap-1 rounded-2xl bg-surface px-4 py-3.5 text-sm"
+          key={c.code}
+          className="grid content-start gap-3 rounded-2xl bg-surface px-4 py-4"
         >
-          <span className="leading-snug font-semibold">
-            {t.name ?? t.initials}
-            {t.name && (
-              <span className="font-normal text-muted-foreground">
-                {" "}
-                · {t.initials}
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="min-w-0">
+              <span className="block leading-snug font-semibold">
+                {c.title ?? c.code}
               </span>
-            )}
-          </span>
-          <span className="text-xs text-muted-foreground">
-            {t.courses.join(", ")}
-          </span>
-          {(t.room || t.email || t.phone) && (
-            <span className="flex flex-wrap gap-x-3 gap-y-1 pt-0.5 text-xs">
-              {t.room && (
-                <span className="inline-flex items-center gap-1">
-                  <MapPin
-                    className="size-3.5 text-muted-foreground"
-                    aria-hidden
-                  />
-                  Sits in {t.room}
+              {c.title && (
+                <span className="block text-xs text-muted-foreground">
+                  {c.code}
                 </span>
               )}
-              {t.email && (
-                <a
-                  href={`mailto:${t.email}`}
-                  className="inline-flex min-w-0 items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
-                >
-                  <Mail className="size-3.5 shrink-0" aria-hidden />
-                  <span className="truncate">{t.email}</span>
-                </a>
-              )}
-              {t.phone && (
-                <a
-                  href={`tel:${t.phone.replace(/[\s-]/g, "")}`}
-                  className="inline-flex items-center gap-1 font-medium text-primary tabular-nums underline-offset-4 hover:underline"
-                >
-                  <Phone className="size-3.5" aria-hidden />
-                  {t.phone}
-                </a>
-              )}
             </span>
+            <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+              {c.count} a week
+            </span>
+          </div>
+          {c.teachers.length > 0 && (
+            <ul className="grid gap-2">
+              {c.teachers.map((t) => (
+                <li key={t.initials} className="grid gap-1 text-sm">
+                  <span className="flex flex-wrap items-baseline gap-x-1.5">
+                    <UserRound
+                      className="size-3.5 self-center text-muted-foreground"
+                      aria-hidden
+                    />
+                    <span className="font-medium">{t.name ?? t.initials}</span>
+                    <span className="text-muted-foreground">
+                      {[
+                        t.name ? t.initials : null,
+                        t.group
+                          ? `${routineGroupLabel(section, t.group)} lab`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .map((part) => `· ${part}`)
+                        .join(" ")}
+                    </span>
+                  </span>
+                  <span className="pl-5">
+                    <TeacherContact t={t} />
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
         </li>
       ))}

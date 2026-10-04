@@ -482,7 +482,16 @@ class _SectionWeekState extends ConsumerState<SectionWeek> {
     final classes = classesFor(widget.routine.classes, widget.group);
     final days = weekDays(classes);
     final today = days.contains(now.day) ? now.day : null;
-    final day = _picked ?? today ?? days.first;
+    // Today while it has a class to come; once they're over (or on a day off), the
+    // day of the next one.
+    final upcoming = nextClass(classes, now);
+    final todayLeft = classes.any(
+      (c) => c.day == now.day && classState(c, now) != ClassState.over,
+    );
+    final opening = today != null && (todayLeft || upcoming == null)
+        ? today
+        : upcoming?.c.day ?? today;
+    final day = _picked ?? opening ?? days.first;
     final onDay = [
       for (final c in classes)
         if (c.day == day) c,

@@ -283,6 +283,7 @@ function Teachers({
           preventScrollReset
           className={cn(
             buttonVariants({ variant: "outline", size: "sm" }),
+            "self-start",
             view.missing &&
               "border-transparent bg-primary-container text-primary-container-foreground",
           )}
@@ -292,7 +293,7 @@ function Teachers({
         <TeacherDialog
           department={department}
           trigger={
-            <Button size="sm" className="sm:ml-auto">
+            <Button size="sm" className="self-start sm:ml-auto">
               <Plus />
               Add teacher
             </Button>
@@ -369,7 +370,7 @@ function Teachers({
                     aria-label="Select every teacher on this page"
                   />
                 </TableHead>
-                <TableHead className="w-24">Initials</TableHead>
+                <TableHead className="w-20">Initials</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead
                   className="hidden @xl/main:table-cell"
@@ -418,7 +419,7 @@ function Teachers({
                     />
                   </TableCell>
                   <TableCell className="font-semibold">{t.initials}</TableCell>
-                  <TableCell className="min-w-52">
+                  <TableCell className="w-full min-w-36 py-1">
                     <InlineEdit
                       label={`Name of ${t.initials}`}
                       defaultValue={t.name ?? ""}

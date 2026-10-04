@@ -103,6 +103,7 @@ function Courses({
           preventScrollReset
           className={cn(
             buttonVariants({ variant: "outline", size: "sm" }),
+            "self-start",
             view.missing &&
               "border-transparent bg-primary-container text-primary-container-foreground",
           )}
@@ -178,7 +179,7 @@ function Courses({
                     aria-label="Select every course on this page"
                   />
                 </TableHead>
-                <TableHead className="w-28">Code</TableHead>
+                <TableHead className="w-24">Code</TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead
                   className="hidden text-right @xl/main:table-cell"
@@ -208,7 +209,7 @@ function Courses({
                   <TableCell className="font-semibold tabular-nums">
                     {c.code}
                   </TableCell>
-                  <TableCell className="min-w-56">
+                  <TableCell className="w-full min-w-36 py-1">
                     <InlineEdit
                       label={`Title of ${c.code}`}
                       defaultValue={c.title ?? ""}

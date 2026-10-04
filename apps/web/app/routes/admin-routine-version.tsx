@@ -33,7 +33,7 @@ import {
   versionPdfHref,
 } from "~/components/admin/routine";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
-import { WeekGrid } from "~/components/routine";
+import { DayTabs, WeekGrid } from "~/components/routine";
 import { Button } from "~/components/ui/button";
 import {
   Select,
@@ -171,12 +171,13 @@ function NamesCount({
           All set
         </span>
       ) : (
-        <Button variant="link" className="h-auto justify-start p-0" asChild>
-          <Link to={to}>
-            {action}
-            <ArrowRight aria-hidden />
-          </Link>
-        </Button>
+        <Link
+          to={to}
+          className="inline-flex items-center gap-1.5 justify-self-start text-sm font-semibold text-primary underline-offset-4 hover:underline"
+        >
+          {action}
+          <ArrowRight className="size-4" aria-hidden />
+        </Link>
       )}
     </div>
   );
@@ -292,13 +293,31 @@ function Preview({
           )}
         </div>
       </div>
-      <WeekGrid
-        classes={preview.classes}
-        slots={preview.slots}
-        days={weekDays(preview.classes)}
-        today={null}
-        now={null}
-      />
+      {/* As on the students' page: the grid on wide screens, a day at a time on phones. */}
+      <div
+        // A routine with many slots (EEE's nine hours) needs a wide screen for its
+        // grid; narrower ones show a day at a time.
+        className={preview.slots.length > 6 ? "max-xl:hidden" : "max-md:hidden"}
+      >
+        <WeekGrid
+          classes={preview.classes}
+          slots={preview.slots}
+          days={weekDays(preview.classes)}
+          today={null}
+          now={null}
+        />
+      </div>
+      <div className={preview.slots.length > 6 ? "xl:hidden" : "md:hidden"}>
+        <DayTabs
+          key={preview.section}
+          classes={preview.classes}
+          days={weekDays(preview.classes)}
+          dates={null}
+          section={preview.section}
+          today={null}
+          now={null}
+        />
+      </div>
     </section>
   );
 }

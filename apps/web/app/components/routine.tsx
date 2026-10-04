@@ -1,9 +1,4 @@
-import type {
-  RoutineClass,
-  RoutineDay,
-  RoutineSection,
-  RoutineTeacherSummary,
-} from "@ourdiu/shared";
+import type { RoutineClass, RoutineDay, RoutineSection } from "@ourdiu/shared";
 import {
   ROUTINE_DAY_NAMES,
   ROUTINE_DAYS,
@@ -49,9 +44,7 @@ import {
   dayWord,
   dhakaNow,
   exactSection,
-  exactTeacher,
   matchSections,
-  matchTeachers,
   nextClass,
   routineHref,
   samePick,
@@ -971,14 +964,11 @@ export function DayTabs({
 export function SectionSearch({
   department,
   choices,
-  teachers,
   autoFocus,
   size = "default",
 }: {
   department: RoutineDepartmentSlug;
   choices: SectionChoice[];
-  /** Teachers to find too, by initials or name. */
-  teachers?: RoutineTeacherSummary[];
   autoFocus?: boolean;
   /** "lg": the home's search, with a Search button, like the question bank's. */
   size?: "default" | "lg";
@@ -987,31 +977,16 @@ export function SectionSearch({
   const id = useId();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
-  const sectionMatches = matchSections(choices, query, teachers ? 6 : 8);
-  const teacherMatches = teachers ? matchTeachers(teachers, query) : [];
-  // One list for the keyboard: sections, then teachers.
-  const matches = [
-    ...sectionMatches.map((c) => ({
-      key: c.label,
-      href: routineHref({ department, section: c.section, group: c.group }),
-      label: c.label,
-      note: c.group
-        ? `Lab group ${c.group} of ${c.section}`
-        : `${c.classCount} class${c.classCount === 1 ? "" : "es"} a week`,
-    })),
-    ...teacherMatches.map((t) => ({
-      key: `@${t.initials}`,
-      href: teacherHref({ department, teacher: t.initials }),
-      label: teacherName(t),
-      note: [t.name ? t.initials : null, t.courses.join(", ")]
-        .filter(Boolean)
-        .join(" · "),
-    })),
-  ];
+  const matches = matchSections(choices, query).map((c) => ({
+    key: c.label,
+    href: routineHref({ department, section: c.section, group: c.group }),
+    label: c.label,
+    note: c.group
+      ? `Lab group ${c.group} of ${c.section}`
+      : `${c.classCount} class${c.classCount === 1 ? "" : "es"} a week`,
+  }));
   const example = ROUTINE_SECTION_EXAMPLES[department];
-  const hint = teachers
-    ? `Your section (e.g. ${example.section}) or a teacher`
-    : `Your section, e.g. ${example.section} or ${example.group}`;
+  const hint = `Your section, e.g. ${example.section} or ${example.group}`;
 
   return (
     <form
@@ -1020,12 +995,9 @@ export function SectionSearch({
       onSubmit={(event) => {
         event.preventDefault();
         const section = exactSection(choices, query);
-        const teacher = teachers && exactTeacher(teachers, query);
         const href = section
           ? routineHref({ department, ...section })
-          : teacher
-            ? teacherHref({ department, teacher: teacher.initials })
-            : (matches[active] ?? matches[0])?.href;
+          : (matches[active] ?? matches[0])?.href;
         if (href) navigate(href);
       }}
     >
@@ -1083,15 +1055,13 @@ export function SectionSearch({
         <ul
           id={`${id}-list`}
           role="listbox"
-          aria-label={teachers ? "Sections and teachers" : "Sections"}
+          aria-label="Sections"
           className="absolute inset-x-0 top-full z-20 mt-2 grid max-h-80 overflow-y-auto rounded-3xl bg-popover p-1.5 text-left shadow-lg"
         >
           {matches.length === 0 ? (
             <li className="px-4 py-3 text-sm text-muted-foreground">
-              No {teachers ? "section or teacher" : "section"} matches “{query}
-              ”. Sections look like {example.section}; lab groups like{" "}
-              {example.group}
-              {teachers ? "; teachers by initials or name." : "."}
+              No section matches “{query}”. Sections look like {example.section}
+              ; lab groups like {example.group}.
             </li>
           ) : (
             matches.map((m, i) => (
@@ -1101,17 +1071,6 @@ export function SectionSearch({
                 role="option"
                 aria-selected={i === active}
               >
-                {teachers &&
-                  (i === 0 || i === sectionMatches.length) &&
-                  sectionMatches.length > 0 &&
-                  teacherMatches.length > 0 && (
-                    <p
-                      aria-hidden
-                      className="px-4 pt-2 pb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-                    >
-                      {i === 0 ? "Sections" : "Teachers"}
-                    </p>
-                  )}
                 <Link
                   to={m.href}
                   className={cn(
@@ -1348,5 +1307,45 @@ export function TeacherCourseList({ classes }: { classes: ShownClass[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+/** The departments, CSE and EEE, as links to their routines. */
+export function DepartmentSwitch({
+  departments,
+  current,
+  hrefFor,
+}: {
+  departments: { department: RoutineDepartmentSlug; version: string | null }[];
+  current: RoutineDepartmentSlug;
+  /** Where each department leads: its sections, or its teachers. */
+  hrefFor: (department: RoutineDepartmentSlug) => string;
+}) {
+  return (
+    <nav aria-label="Departments">
+      <ul className="inline-flex gap-1 rounded-full bg-surface p-1">
+        {departments.map(({ department, version }) => (
+          <li key={department}>
+            <Link
+              to={hrefFor(department)}
+              aria-current={department === current ? "page" : undefined}
+              prefetch="intent"
+              preventScrollReset
+              className={cn(
+                "flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors",
+                department === current
+                  ? "bg-primary-container text-primary-container-foreground"
+                  : "text-muted-foreground hover:state-layer",
+              )}
+            >
+              {department.toUpperCase()}
+              <span className="text-xs font-medium opacity-80">
+                {version ? `v${version}` : "soon"}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }

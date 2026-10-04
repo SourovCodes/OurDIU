@@ -1,6 +1,5 @@
 import type {
   ApiError,
-  RoutineSectionList,
   RoutineTeacherList,
   RoutineTeacherWeek,
 } from "@ourdiu/shared";
@@ -12,7 +11,6 @@ import {
   DayTabs,
   MyRoutineButton,
   RoutineLinks,
-  SectionSearch,
   TeacherContact,
   TeacherCourseList,
   TodayCard,
@@ -28,11 +26,11 @@ import {
   isRoutineDepartment,
   matchTeachers,
   savedRoutine,
-  sectionChoices,
   teacherClass,
   teacherHref,
   teacherName,
   teacherPdfHref,
+  teachersHref,
   weekDates,
   weekDays,
   type TeacherPick,
@@ -71,23 +69,16 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     const code = (await readJson<ApiError>(res).catch(() => null))?.error.code;
     if (code === "NO_ROUTINE") throw redirect(`/routine/${department}`);
     // Not a teacher in the routine: the search, and teachers like it.
-    const [teachers, sections] = await Promise.all([
-      apiGetJson<RoutineTeacherList>(
-        request,
-        `/api/v1/routine/${department}/teachers`,
-      ),
-      apiGetJson<RoutineSectionList>(
-        request,
-        `/api/v1/routine/${department}/sections`,
-      ),
-    ]);
+    const teachers = await apiGetJson<RoutineTeacherList>(
+      request,
+      `/api/v1/routine/${department}/teachers`,
+    );
     return data(
       {
         kind: "missing" as const,
         department,
         asked: initials,
         teachers: teachers.teachers,
-        sections: sections.sections,
         version: teachers.version,
       },
       { status: 404 },
@@ -117,13 +108,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 type Missing = Extract<Route.ComponentProps["loaderData"], { kind: "missing" }>;
 
 /** Initials that aren't in the routine: the search, and teachers like them. */
-function MissingTeacher({
-  department,
-  asked,
-  teachers,
-  sections,
-  version,
-}: Missing) {
+function MissingTeacher({ department, asked, teachers, version }: Missing) {
   const alike = [
     ...matchTeachers(teachers, asked, 6),
     ...matchTeachers(teachers, asked.slice(0, 2), 6),
@@ -140,11 +125,12 @@ function MissingTeacher({
         title={`${asked} isn’t in the routine`}
         description={`No teacher in DIU’s ${version.department} routine v${version.version} has the initials ${asked}. Search by initials as printed in the routine (like ${teachers[0]?.initials ?? "STA"}) or by name.`}
       />
-      <SectionSearch
-        department={department}
-        choices={sectionChoices(sections)}
-        teachers={teachers}
-      />
+      <Link
+        to={teachersHref(department)}
+        className={buttonVariants({ variant: "secondary" })}
+      >
+        Every {version.department} teacher
+      </Link>
       {alike.length > 0 && (
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">Did you mean</p>
@@ -200,8 +186,8 @@ export default function RoutineTeacherPage({
             <Breadcrumbs
               crumbs={[
                 {
-                  label: `${version.department} Class Routine`,
-                  to: `/routine/${pick.department}`,
+                  label: `${version.department} teachers`,
+                  to: teachersHref(pick.department),
                 },
                 { label: name },
               ]}

@@ -23,6 +23,7 @@ import "./app.css";
 import { EmptyState } from "~/components/empty-state";
 import { PageTransition, SkipLink } from "~/components/page-transition";
 import { AndroidBetaStrip } from "~/components/android-beta";
+import { RoutineBottomBar } from "~/components/routine-nav";
 import { SiteHeader } from "~/components/site-header";
 import { SocialIcon } from "~/components/social-icons";
 import { buttonVariants } from "~/components/ui/button";
@@ -37,7 +38,7 @@ import {
 import { androidInvite } from "~/lib/android-app";
 import { AUTHOR } from "~/lib/author";
 import { LEGAL_PAGES } from "~/lib/legal";
-import { PRODUCTS, rememberedSpace } from "~/lib/products";
+import { PRODUCTS, productAt, rememberedSpace } from "~/lib/products";
 import { canonicalUrl, OG_IMAGE, SITE_NAME } from "~/lib/seo";
 import { useRememberSpace, useSpace } from "~/lib/use-space";
 import { apiFetch, readJson } from "~/lib/api.server";
@@ -127,6 +128,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const error = useRouteError();
   const matches = useMatches();
   const space = useSpace()?.id;
+  const { pathname } = useLocation();
   const ownShell =
     !error &&
     matches.some(
@@ -236,6 +238,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </div>
               </div>
             </footer>
+            {productAt(pathname)?.id === "routine" && <RoutineBottomBar />}
           </div>
         )}
         <Toaster position="top-center" />

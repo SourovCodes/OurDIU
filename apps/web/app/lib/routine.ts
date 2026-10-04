@@ -59,6 +59,70 @@ export function routinePdfHref({ department, section, group }: RoutinePick) {
   }`;
 }
 
+/** The department a routine page is in: "cse" of /routine/cse/67_B, else null. */
+export function routineDepartmentAt(pathname: string) {
+  const slug = /^\/routine\/([^/]+)/.exec(pathname)?.[1];
+  return isRoutineDepartment(slug) ? slug : null;
+}
+
+/**
+ * The department the visitor last looked at, so Sections and Teachers in the menu
+ * open it again.
+ */
+export const ROUTINE_DEPARTMENT_COOKIE = "ourdiu_routine_department";
+
+/** The remembered department: the last one looked at, else the saved routine's. */
+export function rememberedDepartment(
+  cookie: string | null | undefined,
+): RoutineDepartmentSlug | null {
+  const last = cookie?.match(
+    new RegExp(`(?:^|;\\s*)${ROUTINE_DEPARTMENT_COOKIE}=([^;]+)`),
+  )?.[1];
+  if (isRoutineDepartment(last)) return last;
+  return savedRoutine(cookie)?.department ?? null;
+}
+
+export function rememberDepartment(department: RoutineDepartmentSlug) {
+  document.cookie = `${ROUTINE_DEPARTMENT_COOKIE}=${department}; Path=/; Max-Age=31536000; SameSite=Lax`;
+}
+
+/** /routine/cse/teachers: a department's teachers. */
+export const teachersHref = (department: RoutineDepartmentSlug) =>
+  `/routine/${department}/teachers`;
+
+/**
+ * The Class Routine's own places: today's classes, a department's sections and its
+ * teachers. Sections covers the section pages, Teachers the teachers' pages.
+ */
+export function routinePlaces(
+  pathname: string,
+  department: RoutineDepartmentSlug,
+) {
+  const at = routineDepartmentAt(pathname);
+  const teachers =
+    at !== null && pathname.startsWith(`/routine/${at}/teachers`);
+  return [
+    {
+      id: "today",
+      to: "/routine",
+      label: "Today",
+      active: pathname === "/routine",
+    },
+    {
+      id: "sections",
+      to: `/routine/${department}`,
+      label: "Sections",
+      active: at !== null && !teachers,
+    },
+    {
+      id: "teachers",
+      to: teachersHref(department),
+      label: "Teachers",
+      active: teachers,
+    },
+  ] as const;
+}
+
 /** A teacher's week to open: their department and initials as printed. */
 export type TeacherPick = {
   department: RoutineDepartmentSlug;
@@ -412,3 +476,12 @@ export function sectionGroups(sections: string[]) {
       : Number(b.key) - Number(a.key);
   });
 }
+
+/** Today's date in Dhaka in words: "Sunday, 4 October". */
+export const dhakaDateLabel = (date = new Date()) =>
+  date.toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "Asia/Dhaka",
+  });

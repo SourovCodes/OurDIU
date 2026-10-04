@@ -28,9 +28,8 @@ export default [
 
   // Class Routine.
   route("routine", "routes/routine.tsx"),
-  route("routine/:department", "routes/routine.tsx", {
-    id: "routes/routine-department",
-  }),
+  route("routine/:department", "routes/routine-sections.tsx"),
+  route("routine/:department/teachers", "routes/routine-teachers.tsx"),
   route("routine/:department/teachers/:initials", "routes/routine-teacher.tsx"),
   route("routine/:department/:section", "routes/routine-section.tsx"),
 

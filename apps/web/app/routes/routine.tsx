@@ -1,372 +1,225 @@
-import type {
-  RoutineSection,
-  RoutineSectionList,
-  RoutineTeacherList,
-  RoutineTeacherWeek,
-} from "@ourdiu/shared";
-import { ROUTINE_DEPARTMENT_SLUGS } from "@ourdiu/shared/constants";
-import { CalendarClock, Download, Star } from "lucide-react";
-import { data, Link } from "react-router";
+import { ArrowRight, LayoutGrid, UsersRound } from "lucide-react";
+import { Link } from "react-router";
 import { ComingSoon } from "~/components/coming-soon";
 import { ExamShape } from "~/components/exam-badge";
 import {
+  DayTabs,
   RoutineLinks,
-  SectionSearch,
   TodayCard,
   useDhakaNow,
 } from "~/components/routine";
-import { apiFetch, apiGetJson, readJson } from "~/lib/api.server";
-import { formatDate } from "~/lib/dates";
 import { product as findProduct } from "~/lib/products";
 import {
-  classesFor,
+  dhakaDateLabel,
   dhakaNow,
-  isRoutineDepartment,
-  isTeacherPick,
-  pickLabel,
-  routineHref,
+  rememberedDepartment,
   savedRoutine,
-  sectionChoices,
-  sectionGroup,
-  sectionGroups,
-  teacherClass,
-  teacherHref,
-  type RoutineDepartmentSlug,
+  teachersHref,
+  weekDates,
+  weekDays,
 } from "~/lib/routine";
+import { myRoutine, routineLists } from "~/lib/routine.server";
 import { pageMeta } from "~/lib/seo";
-import { cn } from "~/lib/utils";
 import type { Route } from "./+types/routine";
 
 const product = findProduct("routine");
 
-export const meta: Route.MetaFunction = ({ loaderData, params }) => {
-  const name = loaderData?.department.toUpperCase();
-  return pageMeta({
-    title: params.department
-      ? `DIU ${name} Class Routine — your section's classes | OurDIU`
-      : "DIU Class Routine — your section's classes | OurDIU",
-    description: params.department
-      ? `The DIU ${name} class routine by section or teacher: today's classes, the week with lab groups, rooms and teachers, and a PDF to download.`
-      : "DIU's class routines by section or teacher (CSE and EEE): today's classes, the week with lab groups, rooms and teachers, and a PDF to download.",
+export const meta: Route.MetaFunction = () =>
+  pageMeta({
+    title: "DIU Class Routine — your section's or a teacher's week | OurDIU",
+    description:
+      "DIU's class routines (CSE and EEE) by section or teacher: today's classes, the week with lab groups, rooms and teachers, and a PDF to download.",
   });
-};
 
 /**
- * /routine and /routine/:department. Each department's live routine; /routine shows
- * the department of the visitor's saved section, else the first with a routine.
+ * /routine, the routine's Today: the visitor's own routine (a section, or a
+ * teacher's week, they made theirs), else the two ways to find one.
  */
-export async function loader({ request, params }: Route.LoaderArgs) {
-  if (
-    params.department !== undefined &&
-    !isRoutineDepartment(params.department)
-  ) {
-    throw data("Not found", { status: 404 });
-  }
-  const lists = await Promise.all(
-    ROUTINE_DEPARTMENT_SLUGS.map(async (department) => {
-      const res = await apiFetch(
-        request,
-        `/api/v1/routine/${department}/sections`,
-      );
-      // Not live yet: that department is "coming soon".
-      if (res.status === 404) return { department, list: null };
-      if (!res.ok) throw data("API request failed", { status: 502 });
-      return { department, list: await readJson<RoutineSectionList>(res) };
-    }),
-  );
-  const live = lists.flatMap((l) => (l.list ? [l.department] : []));
-  const saved = savedRoutine(request.headers.get("cookie"));
-  const department: RoutineDepartmentSlug =
-    params.department ??
-    (saved && live.includes(saved.department) ? saved.department : live[0]) ??
-    "cse";
-  const list = lists.find((l) => l.department === department)!.list;
-
-  // For the search: the department's teachers, by initials or name.
-  const teachers = list
-    ? await apiGetJson<RoutineTeacherList>(
-        request,
-        `/api/v1/routine/${department}/teachers`,
-      )
-        .then((t) => t.teachers)
-        .catch(() => [])
-    : [];
-
-  // "My section" (or a teacher's "My routine"), with its week for the Today card.
-  // Gone from a new version, it's just left out.
-  const savedList =
-    saved && lists.find((l) => l.department === saved.department)?.list;
-  let mine: Mine | null = null;
-  if (saved && savedList && isTeacherPick(saved)) {
-    const week = await apiGetJson<RoutineTeacherWeek>(
-      request,
-      `/api/v1/routine/${saved.department}/teachers/${encodeURIComponent(saved.teacher)}`,
-    ).catch(() => null);
-    if (week) {
-      mine = {
-        department: saved.department,
-        label: `My routine · ${saved.department.toUpperCase()} ${week.teacher.name ?? week.teacher.initials}`,
-        href: teacherHref(saved),
-        classes: week.classes.map(teacherClass),
-        section: null,
-      };
-    }
-  } else if (
-    saved &&
-    !isTeacherPick(saved) &&
-    savedList?.sections.some((s) => s.section === saved.section)
-  ) {
-    const routine = await apiGetJson<RoutineSection>(
-      request,
-      `/api/v1/routine/${saved.department}/sections/${encodeURIComponent(saved.section)}`,
-    ).catch(() => null);
-    if (routine) {
-      mine = {
-        department: saved.department,
-        label: `My section · ${saved.department.toUpperCase()} ${pickLabel(saved)}`,
-        href: routineHref(saved),
-        classes: classesFor(routine.classes, saved.group),
-        section: routine.section,
-        pick: saved,
-      };
-    }
-  }
+export async function loader({ request }: Route.LoaderArgs) {
+  const { live, departments } = await routineLists(request);
+  const cookie = request.headers.get("cookie");
+  const remembered = rememberedDepartment(cookie);
   return {
-    department,
     // Until any routine is live, the space stays "coming soon".
     anyLive: live.length > 0,
-    departments: lists.map((l) => ({
-      department: l.department,
-      version: l.list?.version.version ?? null,
-    })),
-    list,
-    teachers,
-    mine,
+    departments,
+    // Where "Find your section" and "Find a teacher" lead.
+    department:
+      remembered && live.includes(remembered) ? remembered : (live[0] ?? "cse"),
+    mine: await myRoutine(request, savedRoutine(cookie), live),
     serverDay: dhakaNow().day,
     serverMinute: Math.floor(Date.now() / 60_000),
+    dates: weekDates(),
   };
 }
 
-/** The routine a visitor made theirs, for the Today card. */
-type Mine = {
-  department: RoutineDepartmentSlug;
-  label: string;
-  href: string;
-  classes: ReturnType<typeof teacherClass>[];
-  /** The saved section's name; null for a teacher's routine. */
-  section: string | null;
-  /** The saved section, to highlight it among the department's sections. */
-  pick?: { department: RoutineDepartmentSlug; section: string };
-};
-
-/** The departments, CSE and EEE, as links to their routines. */
-function DepartmentSwitch({
-  departments,
-  current,
-}: {
-  departments: { department: RoutineDepartmentSlug; version: string | null }[];
-  current: RoutineDepartmentSlug;
-}) {
-  return (
-    <nav aria-label="Departments">
-      <ul className="inline-flex gap-1 rounded-full bg-surface p-1">
-        {departments.map(({ department, version }) => (
-          <li key={department}>
-            <Link
-              to={`/routine/${department}`}
-              aria-current={department === current ? "page" : undefined}
-              prefetch="intent"
-              preventScrollReset
-              className={cn(
-                "flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors",
-                department === current
-                  ? "bg-primary-container text-primary-container-foreground"
-                  : "text-muted-foreground hover:state-layer",
-              )}
-            >
-              {department.toUpperCase()}
-              <span className="text-xs font-medium opacity-80">
-                {version ? `v${version}` : "soon"}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </nav>
-  );
-}
-
-/** The routine's shape, large, beside the title on wide screens. */
+/** The routine's shapes, large, beside the welcome on wide screens. */
 function ShapeCluster() {
   return (
-    <div aria-hidden className="relative hidden h-80 lg:block">
+    <div aria-hidden className="relative hidden h-64 lg:block">
       <ExamShape
         kind="midterm"
         colored={false}
-        className="absolute top-0 left-12 size-56 text-primary-container"
+        className="absolute top-0 left-12 size-52 text-primary-container"
       />
       <ExamShape
         kind="final"
         colored={false}
-        className="absolute top-10 right-0 size-36 rotate-12 text-primary/70"
+        className="absolute top-8 right-6 size-32 rotate-12 text-primary/70"
       />
       <ExamShape
         kind="quiz"
         colored={false}
-        className="absolute bottom-0 left-0 size-28 text-exam-lab"
+        className="absolute bottom-0 left-0 size-24 text-exam-lab"
       />
-      <CalendarClock className="absolute top-24 left-32 size-20 text-primary-container-foreground" />
     </div>
   );
 }
 
-/** /routine: your section's day, or find it in your department's routine. */
-export default function Routine({ loaderData }: Route.ComponentProps) {
-  const { department, anyLive, departments, list, teachers, mine, serverDay } =
+/** A way in: find your section, or a teacher's week. */
+function WayIn({
+  to,
+  icon: Icon,
+  eyebrow,
+  title,
+  description,
+}: {
+  to: string;
+  icon: typeof LayoutGrid;
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Link
+      to={to}
+      prefetch="intent"
+      className="group grid content-start gap-4 rounded-[1.75rem] bg-surface p-6 transition-colors hover:state-layer sm:p-7"
+    >
+      <span className="flex size-12 items-center justify-center rounded-2xl bg-primary-container text-primary-container-foreground">
+        <Icon className="size-6" aria-hidden />
+      </span>
+      <span className="grid gap-1.5">
+        <span className="text-sm font-semibold text-muted-foreground">
+          {eyebrow}
+        </span>
+        <span className="flex items-center gap-2 font-expressive text-3xl">
+          {title}
+          <ArrowRight
+            className="size-6 transition-transform group-hover:translate-x-1"
+            aria-hidden
+          />
+        </span>
+        <span className="text-pretty text-muted-foreground">{description}</span>
+      </span>
+    </Link>
+  );
+}
+
+export default function RoutineToday({ loaderData }: Route.ComponentProps) {
+  const { anyLive, departments, department, mine, serverDay, dates } =
     loaderData;
   const now = useDhakaNow(loaderData.serverMinute);
   if (!anyLive) return <ComingSoon product={product} />;
+  const today = now?.day ?? serverDay;
 
-  const name = department.toUpperCase();
-  const groups = list ? sectionGroups(list.sections.map((s) => s.section)) : [];
-
-  return (
-    <div className="space-y-16 pt-2 sm:pt-6">
-      <section className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-        <div className="space-y-7">
-          <div className="flex flex-wrap items-center gap-3">
-            <DepartmentSwitch departments={departments} current={department} />
-            {list?.version.publishedOn && (
-              <p className="text-sm text-muted-foreground">
-                {name} v{list.version.version} · published{" "}
-                {formatDate(list.version.publishedOn)}
-              </p>
-            )}
-          </div>
+  if (!mine) {
+    const live = departments
+      .filter((d) => d.version)
+      .map((d) => `${d.department.toUpperCase()} v${d.version}`)
+      .join(" · ");
+    return (
+      <div className="space-y-10 pt-2 sm:pt-6">
+        <section className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
           <div className="space-y-5">
+            <p className="text-sm font-semibold text-muted-foreground">
+              DIU’s class routines · {live}
+            </p>
             <h1 className="font-display-xl text-5xl sm:text-7xl xl:text-8xl">
               Your class routine.
             </h1>
             <p className="max-w-xl text-lg text-pretty text-muted-foreground">
-              {list
-                ? `Find your section, or a teacher, in DIU’s ${name} routine: today’s classes, the week with rooms and teachers, and a PDF to keep.`
-                : `DIU’s ${name} routine is coming soon. Until then, pick another department above.`}
+              Today’s classes, the week with rooms and teachers, and a PDF to
+              keep. Find your section or your week, make it yours, and it opens
+              here every day.
             </p>
           </div>
-          {list && (
-            <div className="max-w-xl">
-              <SectionSearch
-                key={department}
-                department={department}
-                choices={sectionChoices(list.sections)}
-                teachers={teachers}
-                size="lg"
-              />
-            </div>
-          )}
-        </div>
-        {mine ? (
-          // A returning student's day comes first on phones.
-          <div className="max-lg:order-first">
-            <RoutineLinks value={mine.department}>
-              <TodayCard
-                classes={mine.classes}
-                section={mine.section ?? ""}
-                today={now?.day ?? serverDay}
-                now={now}
-                label={mine.label}
-                href={mine.href}
-              />
-            </RoutineLinks>
-          </div>
-        ) : (
           <ShapeCluster />
-        )}
-      </section>
-
-      {list && (
-        <section aria-labelledby="batches-heading" className="space-y-5">
-          <h2
-            id="batches-heading"
-            className="font-expressive text-3xl sm:text-4xl"
-          >
-            Every {name} section
-          </h2>
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {groups.map((group) => (
-              <li
-                key={group.key}
-                className="flex flex-col gap-4 rounded-[1.75rem] bg-surface p-5"
-              >
-                <div className="flex items-baseline justify-between gap-3">
-                  <h3 className="font-display-xl text-5xl">{group.title}</h3>
-                  <span className="text-sm text-muted-foreground first-letter:uppercase">
-                    {group.name ?? "and others"} · {group.sections.length}{" "}
-                    section{group.sections.length === 1 ? "" : "s"}
-                  </span>
-                </div>
-                <ul className="flex flex-wrap gap-1.5">
-                  {group.sections.map((section) => (
-                    <li key={section}>
-                      <Link
-                        to={routineHref({ department, section, group: null })}
-                        prefetch="intent"
-                        className={cn(
-                          "inline-flex h-10 items-center rounded-xl border px-3.5 text-sm font-semibold transition-colors",
-                          mine?.pick?.department === department &&
-                            mine.pick.section === section
-                            ? "border-primary-container bg-primary-container text-primary-container-foreground"
-                            : "border-input bg-background hover:state-layer",
-                        )}
-                      >
-                        {group.name
-                          ? (sectionGroup(section)?.letter ?? section)
-                          : section}
-                        <span className="sr-only"> ({section})</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
         </section>
-      )}
+        <div className="grid gap-3 md:grid-cols-2">
+          <WayIn
+            to={`/routine/${department}`}
+            icon={LayoutGrid}
+            eyebrow="For students"
+            title="Find your section"
+            description="Your batch’s week and your lab group’s labs, with rooms, teachers and where they sit."
+          />
+          <WayIn
+            to={teachersHref(department)}
+            icon={UsersRound}
+            eyebrow="For teachers, or to find one"
+            title="Find a teacher"
+            description="A teacher’s week: every class with its room and the sections attending."
+          />
+        </div>
+      </div>
+    );
+  }
 
-      <section className="grid gap-3 md:grid-cols-2">
-        <div className="relative flex flex-col items-start gap-4 overflow-hidden rounded-[1.75rem] bg-surface p-7 sm:p-9">
-          <ExamShape
-            kind="quiz"
-            className="absolute -top-4 -right-4 size-24 rotate-12 text-exam-lab"
-            colored={false}
-          />
-          <Star className="size-7 text-primary" aria-hidden />
-          <h2 className="pr-16 font-expressive text-3xl sm:text-4xl">
-            Make it yours.
-          </h2>
-          <p className="max-w-sm text-pretty text-muted-foreground">
-            Open your section, pick your lab group and tap{" "}
-            <b>Make it my section</b>. This page then opens with your day: the
-            class you’re in, the next one, and where.
+  const days = weekDays(mine.classes);
+  return (
+    <RoutineLinks value={mine.department}>
+      <div className="space-y-10 pt-2 sm:pt-6">
+        <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+          <div className="space-y-2">
+            <p
+              className="text-sm font-semibold text-muted-foreground"
+              suppressHydrationWarning
+            >
+              {dhakaDateLabel()}
+            </p>
+            <h1 className="font-display-xl text-5xl sm:text-7xl">Today</h1>
+          </div>
+          <p className="text-muted-foreground">
+            {mine.kind === "section" ? "My section" : "My routine"}:{" "}
+            <Link
+              to={mine.href}
+              className="font-semibold text-primary underline-offset-4 hover:underline"
+            >
+              {mine.department.toUpperCase()} {mine.name}
+            </Link>
           </p>
-        </div>
-        <div className="relative flex flex-col items-start gap-4 overflow-hidden rounded-[1.75rem] bg-primary p-7 text-primary-foreground sm:p-9">
-          <ExamShape
-            kind="midterm"
-            colored={false}
-            className="absolute -right-10 -bottom-12 size-56 text-primary-foreground/15"
+        </header>
+
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
+          <TodayCard
+            classes={mine.classes}
+            section={mine.section}
+            today={today}
+            now={now}
           />
-          <Download className="relative size-7" aria-hidden />
-          <h2 className="relative font-expressive text-3xl sm:text-4xl">
-            A PDF for the wall.
-          </h2>
-          <p className="relative max-w-sm text-pretty opacity-90">
-            Every section’s week is one page to download, print or send to your
-            group, with the routine’s version and a code that opens the latest
-            one.
-          </p>
+          <section aria-labelledby="week" className="space-y-4">
+            <h2 id="week" className="font-expressive text-3xl">
+              This week
+            </h2>
+            <DayTabs
+              classes={mine.classes}
+              days={days}
+              dates={dates}
+              section={mine.section}
+              today={days.includes(today) ? today : null}
+              now={now}
+            />
+            <Link
+              to={mine.href}
+              className="inline-flex items-center gap-1 text-sm font-semibold text-primary underline-offset-4 hover:underline"
+            >
+              The whole week, courses and PDF
+              <ArrowRight className="size-4" aria-hidden />
+            </Link>
+          </section>
         </div>
-      </section>
-    </div>
+      </div>
+    </RoutineLinks>
   );
 }

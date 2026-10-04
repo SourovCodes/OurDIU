@@ -33,10 +33,12 @@ const uniqueVersion = () =>
 test("a student finds their section, makes it theirs and downloads it", async ({
   page,
 }) => {
+  // Nothing saved yet, Today offers the two ways in.
   await page.goto("/routine");
   await expect(
     page.getByRole("heading", { name: "Your class routine." }),
   ).toBeVisible();
+  await clickUntilUrl(page, "Find your section", /\/routine\/cse$/);
 
   // "67b1" finds lab group B1 of 67_B; Enter opens it.
   const search = page.getByRole("combobox", { name: /Your section/ });
@@ -93,9 +95,10 @@ test("a student finds their section, makes it theirs and downloads it", async ({
   }).toPass();
   // The routine's home then opens with that section's day.
   await page.goto("/routine");
-  const today = page.getByRole("region", { name: "Today" });
-  await expect(today).toContainText("My section · CSE 67_B1");
-  await clickUntilUrl(page, "See the week", /\/routine\/cse\/67_B\?group=B1$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Today");
+  await expect(page.getByText("My section:")).toContainText("CSE 67_B1");
+  await expect(page.getByRole("region", { name: "Today" })).toBeVisible();
+  await clickUntilUrl(page, "CSE 67_B1", /\/routine\/cse\/67_B\?group=B1$/);
 });
 
 test("anyone finds a teacher's week, and a teacher makes it theirs", async ({
@@ -103,14 +106,23 @@ test("anyone finds a teacher's week, and a teacher makes it theirs", async ({
 }) => {
   // In the seed STA is "Dr. Sample Teacher" (MRR and IK are "Sample" too), teaching
   // 67_B, which tests keep.
+  // Teachers, from the routine's menu: the department's teachers, filtered as
+  // you type.
   await page.goto("/routine/cse");
-  const search = page.getByRole("combobox", { name: /or a teacher/ });
+  // In the header on wide screens, the bottom bar on phones.
+  await expect(async () => {
+    await page.getByRole("link", { name: "Teachers", exact: true }).click();
+    await expect(page).toHaveURL(/\/routine\/cse\/teachers$/, {
+      timeout: 2_000,
+    });
+  }).toPass();
+  const search = page.getByRole("searchbox", { name: /initials or name/ });
   await expect(async () => {
     await search.fill("");
     await search.fill("sample teacher");
-    await expect(
-      page.getByRole("option", { name: /Dr\. Sample Teacher/ }),
-    ).toBeVisible({ timeout: 1_000 });
+    await expect(page.getByText(/^1 of \d+ teachers$/)).toBeVisible({
+      timeout: 1_000,
+    });
   }).toPass();
   await search.press("Enter");
   await expect(page).toHaveURL(/\/routine\/cse\/teachers\/STA$/);
@@ -148,8 +160,8 @@ test("anyone finds a teacher's week, and a teacher makes it theirs", async ({
     ).toBeVisible({ timeout: 1_000 });
   }).toPass();
   await page.goto("/routine");
-  await expect(page.getByRole("region", { name: "Today" })).toContainText(
-    "My routine · CSE Dr. Sample Teacher",
+  await expect(page.getByText("My routine:")).toContainText(
+    "CSE Dr. Sample Teacher",
   );
 
   // A section's page links its teachers to their weeks; initials in any case work.
@@ -164,6 +176,9 @@ test("anyone finds a teacher's week, and a teacher makes it theirs", async ({
       timeout: 2_000,
     });
   }).toPass();
+  // Searched before the page is interactive, initials still open the week.
+  await page.goto("/routine/cse/teachers?q=sta");
+  await expect(page).toHaveURL(/\/routine\/cse\/teachers\/STA$/);
   await page.goto("/routine/cse/teachers/sta");
   await expect(page).toHaveURL(/\/routine\/cse\/teachers\/STA$/);
   const missing = await page.goto("/routine/cse/teachers/ZZZ");
@@ -353,15 +368,15 @@ test("an admin uploads EEE's routine PDF, and EEE students find their section", 
   await expect(page.getByText("MW saved")).toBeVisible();
 
   // Students switch to EEE and find 1-2 B1 as they write it.
-  await page.goto("/routine");
-  await page
-    .getByRole("navigation", { name: "Departments" })
-    .getByRole("link", { name: /EEE/ })
-    .click();
-  await expect(page).toHaveURL(/\/routine\/eee$/);
-  await expect(
-    page.getByRole("heading", { name: "Every EEE section" }),
-  ).toBeVisible();
+  await page.goto("/routine/cse");
+  await expect(async () => {
+    await page
+      .getByRole("navigation", { name: "Departments" })
+      .getByRole("link", { name: /EEE/ })
+      .click();
+    await expect(page).toHaveURL(/\/routine\/eee$/, { timeout: 2_000 });
+  }).toPass();
+  await expect(page.getByRole("heading", { name: "Sections" })).toBeVisible();
   const search = page.getByRole("combobox", { name: /Your section/ });
   await expect(async () => {
     await search.fill("");

@@ -18,6 +18,7 @@ import {
   GroupChips,
   SectionSearch,
   TeacherList,
+  teachersOf,
   TodayCard,
   useDhakaNow,
   WeekGrid,
@@ -284,14 +285,6 @@ export default function RoutineSectionPage({
           </h2>
           <CourseList classes={classes} />
         </section>
-        {classes.some((c) => c.teacher) && (
-          <section aria-labelledby="teachers" className="space-y-3">
-            <h2 id="teachers" className="font-expressive text-xl">
-              Teachers
-            </h2>
-            <TeacherList classes={classes} />
-          </section>
-        )}
         <section className="space-y-2 rounded-3xl bg-surface p-5 text-sm">
           <h2 className="font-semibold">About this routine</h2>
           <p className="text-muted-foreground">
@@ -350,6 +343,15 @@ export default function RoutineSectionPage({
           />
         </div>
       </section>
+
+      {teachersOf(classes).length > 0 && (
+        <section aria-labelledby="teachers" className="space-y-4 lg:col-span-2">
+          <h2 id="teachers" className="font-expressive text-3xl">
+            Teachers
+          </h2>
+          <TeacherList classes={classes} />
+        </section>
+      )}
     </div>
   );
 }

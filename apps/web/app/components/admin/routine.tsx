@@ -8,10 +8,13 @@ import {
   MAX_ROUTINE_PDF_BYTES,
   ROUTINE_DEPARTMENTS,
 } from "@ourdiu/shared/constants";
-import { FileUp, Upload } from "lucide-react";
+import { Check, FileUp, LoaderCircle, Upload, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useFetcher } from "react-router";
-import { FormMessage } from "~/components/form";
+import { ActionDialog } from "~/components/actions";
+import { Input } from "~/components/ui/input";
+import type { ActionResult } from "~/lib/action-result";
+import { FormField, FormMessage } from "~/components/form";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -52,9 +55,63 @@ export function RoutineStatusBadge({
   );
 }
 
-/** What deleting a version does; the live one can't be deleted. */
-export const DELETE_DESCRIPTION =
-  "Its classes and its PDF are deleted for good. Students don’t notice: they only see the live version. You can upload the PDF again later.";
+/** What deleting a version does; the live one takes the department's routine away. */
+export function deleteDescription(
+  v: Pick<AdminRoutineVersion, "status" | "department">,
+) {
+  return v.status === "live"
+    ? `It’s the live version: students will see no ${v.department} routine (“coming soon”) until you make another version live. Its classes and its PDF are deleted for good.`
+    : "Its classes and its PDF are deleted for good. Students don’t notice: they only see the live version. You can upload the PDF again later.";
+}
+
+/** Gives a version another number, e.g. when DIU's PDF has a wrong one. */
+export function RenumberDialog({
+  version,
+  open,
+  onOpenChange,
+  trigger,
+}: {
+  version: Pick<
+    AdminRoutineVersion,
+    "id" | "version" | "department" | "status"
+  >;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  trigger?: React.ReactElement;
+}) {
+  return (
+    <ActionDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      trigger={trigger}
+      title={`Change v${version.version}’s number`}
+      description={
+        version.status === "live"
+          ? "Students see the new number straight away, on the routine and its PDFs."
+          : "Each number is used once per department."
+      }
+      submitLabel="Save"
+      pendingLabel="Saving…"
+      successMessage="Version number changed"
+      fields={{ intent: "renumber", id: String(version.id) }}
+    >
+      {(fieldErrors) => (
+        <FormField
+          label="Version"
+          name="version"
+          defaultValue={version.version}
+          placeholder="e.g. 4.1"
+          required
+          pattern="\d{1,3}(\.\d{1,3}){0,2}"
+          title="Numbers and dots, like 4.1"
+          inputMode="decimal"
+          autoFocus
+          error={fieldErrors.version}
+        />
+      )}
+    </ActionDialog>
+  );
+}
 
 /** The review page of an uploaded routine version. */
 export const versionUrl = (id: number) => `/admin/routine/versions/${id}`;
@@ -148,6 +205,18 @@ export function UploadRoutineDialog() {
           {tooLarge && (
             <FormMessage message={`The PDF is larger than ${MAX_MB} MB.`} />
           )}
+          <FormField
+            label="Version (optional)"
+            name="version"
+            placeholder="As printed on the PDF, e.g. 4.1"
+            pattern="\d{1,3}(\.\d{1,3}){0,2}"
+            title="Numbers and dots, like 4.1"
+            inputMode="decimal"
+          />
+          <p className="-mt-2 text-sm text-muted-foreground">
+            Leave it empty to use the number printed on the PDF. You can change
+            it later too.
+          </p>
           {result && !result.ok && (
             <Alert variant="destructive" role="alert">
               <AlertTitle>{result.error}</AlertTitle>
@@ -242,3 +311,182 @@ export const departmentTabs = ROUTINE_DEPARTMENTS.map((d, i) => ({
   label: d,
   search: i === 0 ? "" : `?department=${d}`,
 }));
+
+/** What the course titles' and teachers' lists show: a department's page. */
+export type CatalogView = {
+  department: RoutineDepartment;
+  q: string;
+  missing: boolean;
+  page: number;
+};
+
+/** The view a list's URL asks for. */
+export function catalogViewOf(request: Request): CatalogView {
+  const params = new URL(request.url).searchParams;
+  return {
+    department: routineDepartmentOf(request),
+    q: params.get("q")?.trim() ?? "",
+    missing: params.get("missing") === "true",
+    page: Math.max(1, Number(params.get("page")) || 1),
+  };
+}
+
+/** The search string of a view, leaving out what's the default. */
+export function catalogSearch(view: Partial<CatalogView>) {
+  const params = new URLSearchParams();
+  if (view.department && view.department !== ROUTINE_DEPARTMENTS[0]) {
+    params.set("department", view.department);
+  }
+  if (view.q) params.set("q", view.q);
+  if (view.missing) params.set("missing", "true");
+  if (view.page && view.page > 1) params.set("page", String(view.page));
+  const search = params.toString();
+  return search ? `?${search}` : "";
+}
+
+/** The API query for a view's page. */
+export const catalogApiQuery = (view: CatalogView, pageSize: number) =>
+  new URLSearchParams({
+    department: view.department,
+    page: String(view.page),
+    pageSize: String(pageSize),
+    ...(view.q ? { q: view.q } : {}),
+    ...(view.missing ? { missing: "true" } : {}),
+  });
+
+/** Above a list with rows selected: how many, what to do with them, and Clear. */
+export function SelectionBar({
+  count,
+  onClear,
+  children,
+}: {
+  count: number;
+  onClear: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-primary-container px-4 py-2 text-primary-container-foreground">
+      <span className="mr-auto text-sm font-medium">{count} selected</span>
+      {children}
+      <Button size="sm" variant="ghost" onClick={onClear}>
+        <X />
+        Clear
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * A cell edited where it is, for filling in many rows quickly: Enter saves and moves
+ * to the next row's cell, leaving the cell saves too, Escape undoes. Each save is
+ * its own fetcher, so typing on doesn't wait for it.
+ */
+export function InlineEdit({
+  label,
+  defaultValue,
+  placeholder,
+  fields,
+  name,
+  emptyFields,
+  minLength = 2,
+  maxLength,
+}: {
+  /** What the input is for, e.g. "Title of CSE321". */
+  label: string;
+  defaultValue: string;
+  placeholder: string;
+  /** Sent with the value. */
+  fields: Record<string, string>;
+  name: string;
+  /** Sent instead when the cell is emptied (e.g. to remove a title); none: kept. */
+  emptyFields?: Record<string, string>;
+  minLength?: number;
+  maxLength: number;
+}) {
+  const fetcher = useFetcher<ActionResult>();
+  const [error, setError] = useState<string | null>(null);
+  const saving = fetcher.state !== "idle";
+  const result = fetcher.state === "idle" ? fetcher.data : undefined;
+  const failed =
+    result && !result.ok ? (result.fieldErrors[name] ?? result.error) : null;
+
+  const save = (input: HTMLInputElement) => {
+    const value = input.value.trim();
+    if (value === defaultValue) return true;
+    if (!value) {
+      if (emptyFields) fetcher.submit(emptyFields, { method: "post" });
+      else {
+        input.value = defaultValue;
+        return true;
+      }
+      setError(null);
+      return true;
+    }
+    if (value.length < minLength) {
+      setError(`At least ${minLength} characters`);
+      return false;
+    }
+    setError(null);
+    fetcher.submit({ ...fields, [name]: value }, { method: "post" });
+    return true;
+  };
+
+  const message = error ?? failed;
+  return (
+    <div className="grid gap-0.5">
+      <div className="relative">
+        <Input
+          // A new value from the server (saved here or elsewhere) starts afresh.
+          key={defaultValue}
+          defaultValue={defaultValue}
+          placeholder={placeholder}
+          aria-label={label}
+          aria-invalid={message ? true : undefined}
+          maxLength={maxLength}
+          data-inline-edit
+          onBlur={(event) => save(event.currentTarget)}
+          onKeyDown={(event) => {
+            const input = event.currentTarget;
+            if (event.key === "Escape") {
+              input.value = defaultValue;
+              setError(null);
+              input.blur();
+            } else if (event.key === "Enter") {
+              event.preventDefault();
+              if (!save(input)) return;
+              // On to the next row's cell, as in a spreadsheet.
+              const cells = [
+                ...document.querySelectorAll<HTMLInputElement>(
+                  "input[data-inline-edit]",
+                ),
+              ];
+              const next = cells[cells.indexOf(input) + 1];
+              if (next) next.focus();
+              else input.blur();
+            }
+          }}
+          className={cn(
+            "h-8 border-transparent bg-transparent pr-7 shadow-none hover:border-input focus-visible:bg-background",
+            !defaultValue && "placeholder:text-muted-foreground/70",
+          )}
+        />
+        {saving ? (
+          <LoaderCircle
+            className="absolute top-1/2 right-2 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground"
+            aria-label="Saving"
+          />
+        ) : result?.ok ? (
+          <Check
+            className="absolute top-1/2 right-2 size-3.5 -translate-y-1/2 text-primary"
+            aria-label="Saved"
+          />
+        ) : null}
+      </div>
+      {message && (
+        <p role="alert" className="px-3 text-xs text-destructive">
+          {message}
+        </p>
+      )}
+    </div>
+  );
+}

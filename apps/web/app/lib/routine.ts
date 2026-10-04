@@ -1,6 +1,7 @@
 import type {
   RoutineClass,
   RoutineDay,
+  RoutineDepartment,
   RoutineSectionSummary,
 } from "@ourdiu/shared";
 import {
@@ -23,6 +24,10 @@ export type RoutinePick = {
   section: string;
   group: string | null;
 };
+
+/** "cse" for CSE, as the department is in addresses. */
+export const departmentSlug = (department: RoutineDepartment) =>
+  department.toLowerCase() as RoutineDepartmentSlug;
 
 export function isRoutineDepartment(
   slug: string | undefined,

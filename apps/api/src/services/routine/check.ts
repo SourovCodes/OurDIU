@@ -83,13 +83,10 @@ function* clashes(
 
 /**
  * What may be wrong with a routine: a class listed twice, a section (or a lab group)
- * in two places at once, a room or a teacher booked twice, a course without a title.
+ * in two places at once, a room or a teacher booked twice.
  * Returns every warning; the caller keeps the first `MAX_STORED_WARNINGS`.
  */
-export function routineWarnings(
-  classes: CheckedClass[],
-  knownTitles: ReadonlySet<string>,
-): RoutineWarning[] {
+export function routineWarnings(classes: CheckedClass[]): RoutineWarning[] {
   const warnings: RoutineWarning[] = [];
 
   const seen: CheckedClass[] = [];
@@ -134,18 +131,6 @@ export function routineWarnings(
     });
   }
 
-  const untitled = [...new Set(seen.map((c) => c.course))]
-    .filter((code) => !knownTitles.has(code))
-    .sort();
-  if (untitled.length) {
-    warnings.push({
-      kind: "untitled_course",
-      message:
-        untitled.length === 1
-          ? `${untitled[0]} has no course title yet, so students see only the code. Add it on Course titles.`
-          : `${untitled.length} courses have no title yet, so students see only their codes: ${untitled.join(", ")}. Add them on Course titles.`,
-    });
-  }
   return warnings;
 }
 

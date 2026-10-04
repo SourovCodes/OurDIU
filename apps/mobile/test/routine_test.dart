@@ -203,6 +203,47 @@ void main() {
     expect(find.text('LAB · 67_B2'), findsOneWidget);
   });
 
+  testWidgets('a section lists its teachers, with where they sit', (
+    tester,
+  ) async {
+    final week = section67b();
+    final classes = [
+      for (final c in week['classes']! as List)
+        {
+          ...c as Map<String, Object?>,
+          'teacher': {
+            'initials': 'STA',
+            'name': 'Dr. Test Teacher',
+            'phone': '01712345678',
+            'email': 'sta@example.com',
+            'room': 'KT-712',
+          },
+        },
+    ];
+    await pumpApp(
+      tester,
+      backend: routineBackend(week: {...week, 'classes': classes}),
+    );
+    await _openRoutine(tester);
+    await tester.tap(find.text('Find your section'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(SearchBar), '67b');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('67_B').last);
+    await tester.pumpAndSettle();
+
+    final teacher = find.textContaining('Sits in KT-712');
+    await tester.ensureVisible(teacher);
+    await tester.pumpAndSettle();
+    await tester.tap(teacher);
+    await tester.pumpAndSettle();
+    // The sheet: how to reach them.
+    expect(find.text('Dr. Test Teacher'), findsWidgets);
+    expect(find.text('sta@example.com'), findsOneWidget);
+    expect(find.text('01712345678'), findsOneWidget);
+    expect(find.text('Sits in'), findsOneWidget);
+  });
+
   testWidgets('offline, Today shows the routine kept on the phone', (
     tester,
   ) async {

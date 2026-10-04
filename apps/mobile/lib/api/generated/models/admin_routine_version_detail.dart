@@ -7,6 +7,7 @@ import 'package:json_annotation/json_annotation.dart';
 import 'admin_routine_uploader.dart';
 import 'routine_changes.dart';
 import 'routine_department.dart';
+import 'routine_version_catalog.dart';
 import 'routine_version_status.dart';
 import 'routine_warning.dart';
 
@@ -29,6 +30,7 @@ class AdminRoutineVersionDetail {
     required this.liveAt,
     required this.replacedAt,
     required this.sections,
+    required this.catalog,
     required this.warnings,
     required this.comparedWith,
     required this.changes,
@@ -51,6 +53,7 @@ class AdminRoutineVersionDetail {
   final DateTime? liveAt;
   final DateTime? replacedAt;
   final List<String> sections;
+  final RoutineVersionCatalog catalog;
   final List<RoutineWarning> warnings;
   final String? comparedWith;
   final RoutineChanges changes;

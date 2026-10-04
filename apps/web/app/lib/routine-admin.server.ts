@@ -26,6 +26,8 @@ async function uploadVersion(request: Request, form: FormData) {
   }
   const body = new FormData();
   body.set("file", file);
+  const version = String(form.get("version") ?? "").trim();
+  if (version) body.set("version", version);
   const res = await apiFetch(request, "/api/v1/admin/routine/versions", {
     method: "POST",
     body,
@@ -45,7 +47,7 @@ async function uploadVersion(request: Request, form: FormData) {
   );
 }
 
-/** The routine admin pages' actions: upload, make live, delete a version. */
+/** The routine admin pages' actions: upload, renumber, make live, delete a version. */
 export async function routineAdminAction(request: Request) {
   const form = await request.formData();
   const intent = String(form.get("intent"));
@@ -60,6 +62,10 @@ export async function routineAdminAction(request: Request) {
         "POST",
         `/routine/versions/${id}/live`,
       );
+    case "renumber":
+      return adminRequest(request, intent, "PATCH", `/routine/versions/${id}`, {
+        version: String(form.get("version") ?? "").trim(),
+      });
     case "delete": {
       const result = await adminRequest(
         request,
@@ -79,7 +85,7 @@ export async function routineAdminAction(request: Request) {
 
 /**
  * The course titles' and teachers' pages' actions: give a course its title (or take
- * it away), set a teacher's details (or forget them).
+ * it away), set a teacher's details (or forget them), one or several at once.
  */
 export async function routineCatalogAction(request: Request) {
   const form = await request.formData();
@@ -117,6 +123,22 @@ export async function routineCatalogAction(request: Request) {
             formObject(form, "intent", "department", "initials"),
           )
         : adminRequest(request, intent, "DELETE", path);
+    }
+    case "remove-titles":
+    case "forget-teachers": {
+      // Several at once: one per line.
+      const list = String(form.get("list") ?? "")
+        .split("\n")
+        .filter(Boolean);
+      return intent === "remove-titles"
+        ? adminRequest(request, intent, "POST", "/routine/courses/remove", {
+            department: form.get("department"),
+            codes: list,
+          })
+        : adminRequest(request, intent, "POST", "/routine/teachers/remove", {
+            department: form.get("department"),
+            initials: list,
+          });
     }
     default:
       throw data("Unknown intent", { status: 400 });

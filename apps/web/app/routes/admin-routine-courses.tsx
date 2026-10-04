@@ -1,36 +1,23 @@
-import type {
-  AdminRoutineCourse,
-  AdminRoutineCourseList,
-  RoutineDepartment,
-} from "@ourdiu/shared";
-import {
-  BookOpenText,
-  EllipsisVertical,
-  Pencil,
-  Search,
-  Trash2,
-} from "lucide-react";
+import type { AdminRoutineCourseList } from "@ourdiu/shared";
+import { BookOpenText, Search, Trash2 } from "lucide-react";
 import { useState } from "react";
-import {
-  ActionDialog,
-  ConfirmAction,
-  useFormAction,
-} from "~/components/actions";
+import { Form, Link } from "react-router";
+import { ConfirmAction, useFormAction } from "~/components/actions";
 import { AdminPageHeader } from "~/components/admin/admin-header";
 import {
+  catalogApiQuery,
+  catalogSearch,
+  catalogViewOf,
   departmentTabs,
-  routineDepartmentOf,
+  InlineEdit,
+  SelectionBar,
+  type CatalogView,
 } from "~/components/admin/routine";
 import { AdminRouteError } from "~/components/admin/route-error";
 import { EmptyState } from "~/components/empty-state";
-import { FormField } from "~/components/form";
-import { Button } from "~/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
+import { TablePagination } from "~/components/table-pagination";
+import { Button, buttonVariants } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
 import { Input } from "~/components/ui/input";
 import {
   Table,
@@ -53,13 +40,15 @@ export const meta: Route.MetaFunction = () => [
   { name: "robots", content: "noindex" },
 ];
 
+const PAGE_SIZE = 25;
+
 export async function loader({ request }: Route.LoaderArgs) {
-  const department = routineDepartmentOf(request);
-  const { items } = await adminGetJson<AdminRoutineCourseList>(
+  const view = catalogViewOf(request);
+  const list = await adminGetJson<AdminRoutineCourseList>(
     request,
-    `/routine/courses?department=${department}`,
+    `/routine/courses?${catalogApiQuery(view, PAGE_SIZE)}`,
   );
-  return { department, items };
+  return { view, list };
 }
 
 export const action = ({ request }: Route.ActionArgs) =>
@@ -67,175 +56,106 @@ export const action = ({ request }: Route.ActionArgs) =>
 
 export { AdminRouteError as ErrorBoundary };
 
-function TitleDialog({
-  course,
-  open,
-  onOpenChange,
-  trigger,
-}: {
-  course: AdminRoutineCourse;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  trigger?: React.ReactElement;
-}) {
-  return (
-    <ActionDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      trigger={trigger}
-      title={
-        course.title ? `Edit ${course.code}’s title` : `Title ${course.code}`
-      }
-      description="Students see it beside the code right away, in every version of the routine."
-      submitLabel="Save"
-      pendingLabel="Saving…"
-      successMessage={`${course.code} is titled`}
-      fields={{
-        intent: "title",
-        department: course.department,
-        code: course.code,
-      }}
-    >
-      {(fieldErrors) => (
-        <FormField
-          label="Course title"
-          name="title"
-          defaultValue={course.title ?? ""}
-          placeholder="e.g. Computer Networks"
-          required
-          minLength={2}
-          maxLength={200}
-          autoFocus
-          error={fieldErrors.title}
-        />
-      )}
-    </ActionDialog>
-  );
-}
-
-function RowActions({
-  course,
-  run,
-}: {
-  course: AdminRoutineCourse;
-  run: ReturnType<typeof useFormAction>["run"];
-}) {
-  const [dialog, setDialog] = useState<"edit" | "remove" | null>(null);
-  const onOpenChange = (open: boolean) => !open && setDialog(null);
-  return (
-    <>
-      <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8 text-muted-foreground data-[state=open]:state-layer"
-            aria-label={`Actions for ${course.code}`}
-          >
-            <EllipsisVertical />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem onSelect={() => setDialog("edit")}>
-            <Pencil />
-            {course.title ? "Edit title" : "Add title"}
-          </DropdownMenuItem>
-          {course.title && (
-            <DropdownMenuItem
-              variant="destructive"
-              onSelect={() => setDialog("remove")}
-            >
-              <Trash2 />
-              Remove title
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <TitleDialog
-        course={course}
-        open={dialog === "edit"}
-        onOpenChange={onOpenChange}
-      />
-      <ConfirmAction
-        open={dialog === "remove"}
-        onOpenChange={onOpenChange}
-        title={`Remove ${course.code}’s title?`}
-        description="Students see only the code again."
-        confirmLabel="Remove"
-        destructive
-        successMessage={`${course.code}’s title removed`}
-        fields={{
-          intent: "remove-title",
-          department: course.department,
-          code: course.code,
-        }}
-        run={run}
-      />
-    </>
-  );
-}
-
 function Courses({
-  department,
-  items,
+  view,
+  list,
 }: {
-  department: RoutineDepartment;
-  items: AdminRoutineCourse[];
+  view: CatalogView;
+  list: AdminRoutineCourseList;
 }) {
-  // Owned by the list: a course with only a title goes when it's removed.
+  // Owned by the list: rows go when their titles are removed, with the selection.
   const { run } = useFormAction();
-  const [query, setQuery] = useState("");
-  const [missingOnly, setMissingOnly] = useState(false);
-  const needle = query.trim().toLowerCase();
-  const rows = items.filter(
-    (c) =>
-      (!needle ||
-        c.code.toLowerCase().includes(needle) ||
-        c.title?.toLowerCase().includes(needle)) &&
-      (!missingOnly || !c.title),
-  );
-  const titled = items.filter((c) => c.title).length;
+  const [selected, setSelected] = useState<string[]>([]);
+  const [removing, setRemoving] = useState(false);
+  const { department } = view;
+  const { items } = list;
+  // Selected rows on this page; ones gone after a removal drop out on their own.
+  const picked = selected.filter((code) => items.some((c) => c.code === code));
+  const allPicked = items.length > 0 && picked.length === items.length;
+  const toggle = (code: string, on: boolean) =>
+    setSelected((codes) =>
+      on ? [...codes, code] : codes.filter((other) => other !== code),
+    );
+  const filtered = view.q !== "" || view.missing;
 
   return (
     <div className="grid min-w-0 grid-cols-1 gap-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="relative sm:w-72">
+        <Form role="search" className="relative sm:w-72">
+          {department !== "CSE" && (
+            <input type="hidden" name="department" value={department} />
+          )}
+          {view.missing && <input type="hidden" name="missing" value="true" />}
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            key={view.q}
             type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            name="q"
+            defaultValue={view.q}
             placeholder="Search codes and titles…"
             aria-label="Search courses"
             className="h-8 pl-8"
           />
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          aria-pressed={missingOnly}
-          onClick={() => setMissingOnly((on) => !on)}
+        </Form>
+        <Link
+          to={catalogSearch({ ...view, missing: !view.missing, page: 1 })}
+          aria-pressed={view.missing}
+          preventScrollReset
           className={cn(
-            missingOnly &&
+            buttonVariants({ variant: "outline", size: "sm" }),
+            view.missing &&
               "border-transparent bg-primary-container text-primary-container-foreground",
           )}
         >
           Without a title
-        </Button>
+        </Link>
       </div>
 
-      {rows.length === 0 ? (
+      {picked.length > 0 && (
+        <SelectionBar count={picked.length} onClear={() => setSelected([])}>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => setRemoving(true)}
+          >
+            <Trash2 />
+            Remove titles
+          </Button>
+        </SelectionBar>
+      )}
+      <ConfirmAction
+        open={removing}
+        onOpenChange={setRemoving}
+        title={`Remove ${picked.length === 1 ? "1 title" : `${picked.length} titles`}?`}
+        description={`Students see only the codes again: ${picked.join(", ")}.`}
+        confirmLabel="Remove"
+        destructive
+        successMessage={
+          picked.length === 1
+            ? "Title removed"
+            : `${picked.length} titles removed`
+        }
+        fields={{
+          intent: "remove-titles",
+          department,
+          list: picked.join("\n"),
+        }}
+        run={(fields, message, to) => {
+          run(fields, message, to);
+          setSelected([]);
+        }}
+      />
+
+      {items.length === 0 ? (
         <EmptyState
           icon={BookOpenText}
           title={
-            items.length === 0
-              ? `No ${department} courses yet`
-              : "No matching courses"
+            filtered ? "No matching courses" : `No ${department} courses yet`
           }
           description={
-            items.length === 0
-              ? `Courses appear here once a ${department} routine PDF is uploaded.`
-              : undefined
+            filtered
+              ? undefined
+              : `Courses appear here once a ${department} routine PDF is uploaded.`
           }
         />
       ) : (
@@ -243,44 +163,68 @@ function Courses({
           <Table>
             <TableHeader className="bg-surface-high">
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={
+                      allPicked
+                        ? true
+                        : picked.length > 0
+                          ? "indeterminate"
+                          : false
+                    }
+                    onCheckedChange={(on) =>
+                      setSelected(on === true ? items.map((c) => c.code) : [])
+                    }
+                    aria-label="Select every course on this page"
+                  />
+                </TableHead>
                 <TableHead className="w-28">Code</TableHead>
                 <TableHead>Title</TableHead>
-                <TableHead className="hidden text-right @xl/main:table-cell">
-                  Live sections
-                </TableHead>
-                <TableHead className="w-10">
-                  <span className="sr-only">Actions</span>
+                <TableHead
+                  className="hidden text-right @xl/main:table-cell"
+                  title={
+                    list.version
+                      ? `Sections taking it in v${list.version}`
+                      : undefined
+                  }
+                >
+                  Sections
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((c) => (
-                <TableRow key={c.code}>
+              {items.map((c) => (
+                <TableRow
+                  key={c.code}
+                  data-state={picked.includes(c.code) ? "selected" : undefined}
+                >
+                  <TableCell>
+                    <Checkbox
+                      checked={picked.includes(c.code)}
+                      onCheckedChange={(on) => toggle(c.code, on === true)}
+                      aria-label={`Select ${c.code}`}
+                    />
+                  </TableCell>
                   <TableCell className="font-semibold tabular-nums">
                     {c.code}
                   </TableCell>
-                  <TableCell className="max-w-96 truncate">
-                    {c.title ?? (
-                      <TitleDialog
-                        course={c}
-                        trigger={
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="-ml-2 h-7 text-muted-foreground"
-                          >
-                            <Pencil />
-                            Add title
-                          </Button>
-                        }
-                      />
-                    )}
+                  <TableCell className="min-w-56">
+                    <InlineEdit
+                      label={`Title of ${c.code}`}
+                      defaultValue={c.title ?? ""}
+                      placeholder="Add a title"
+                      name="title"
+                      maxLength={200}
+                      fields={{ intent: "title", department, code: c.code }}
+                      emptyFields={{
+                        intent: "remove-title",
+                        department,
+                        code: c.code,
+                      }}
+                    />
                   </TableCell>
                   <TableCell className="hidden text-right text-muted-foreground tabular-nums @xl/main:table-cell">
-                    {c.liveSections || "—"}
-                  </TableCell>
-                  <TableCell>
-                    <RowActions course={c} run={run} />
+                    {c.sections || "—"}
                   </TableCell>
                 </TableRow>
               ))}
@@ -288,8 +232,15 @@ function Courses({
           </Table>
         </div>
       )}
+      <TablePagination
+        page={list.page}
+        pageSize={list.pageSize}
+        total={list.total}
+        noun="course"
+        hrefFor={(page) => catalogSearch({ ...view, page }) || "?"}
+      />
       <p className="px-1 text-sm text-muted-foreground">
-        {titled} of {items.length} courses have a title
+        {list.titled} of {list.all} {department} courses have a title
       </p>
     </div>
   );
@@ -298,15 +249,19 @@ function Courses({
 export default function AdminRoutineCourses({
   loaderData,
 }: Route.ComponentProps) {
-  const { department, items } = loaderData;
+  const { view, list } = loaderData;
   return (
     <>
       <AdminPageHeader
         title="Course titles"
-        description="DIU’s routine PDFs give course codes only. A title added here shows beside its code for students right away, in every version of the department’s routine."
+        description="DIU’s routine PDFs give course codes only. Type a course’s title and press Enter to save it and go on to the next; clear it to take it away. Students see titles right away, in every version of the department’s routine."
       />
-      <UrlTabs label="Departments" tabs={departmentTabs} value={department}>
-        <Courses key={department} department={department} items={items} />
+      <UrlTabs
+        label="Departments"
+        tabs={departmentTabs}
+        value={view.department}
+      >
+        <Courses key={view.department} view={view} list={list} />
       </UrlTabs>
     </>
   );

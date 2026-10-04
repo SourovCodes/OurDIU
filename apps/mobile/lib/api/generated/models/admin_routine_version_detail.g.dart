@@ -35,6 +35,9 @@ AdminRoutineVersionDetail _$AdminRoutineVersionDetailFromJson(
   sections: (json['sections'] as List<dynamic>)
       .map((e) => e as String)
       .toList(),
+  catalog: RoutineVersionCatalog.fromJson(
+    json['catalog'] as Map<String, dynamic>,
+  ),
   warnings: (json['warnings'] as List<dynamic>)
       .map((e) => RoutineWarning.fromJson(e as Map<String, dynamic>))
       .toList(),
@@ -59,6 +62,7 @@ Map<String, dynamic> _$AdminRoutineVersionDetailToJson(
   'liveAt': instance.liveAt?.toIso8601String(),
   'replacedAt': instance.replacedAt?.toIso8601String(),
   'sections': instance.sections,
+  'catalog': instance.catalog,
   'warnings': instance.warnings,
   'comparedWith': instance.comparedWith,
   'changes': instance.changes,

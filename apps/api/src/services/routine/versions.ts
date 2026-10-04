@@ -6,11 +6,10 @@ import {
   type RoutineFile,
   type RoutineWarning,
 } from "@ourdiu/shared";
-import { and, asc, desc, eq, getTableColumns } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, sql } from "drizzle-orm";
 import type { Database } from "../../db/client";
 import {
   routineClasses,
-  routineCourses,
   routineVersions,
   user,
   type RoutineVersionRow,
@@ -49,7 +48,7 @@ function toAdminVersion(
     status: row.status,
     sectionCount: row.sectionCount,
     classCount: row.classCount,
-    warningCount: row.warnings.length,
+    warningCount: shownWarnings(row.warnings).length,
     uploadedBy: row.uploaderName === null ? null : { name: row.uploaderName },
     createdAt: row.createdAt.toISOString(),
     liveAt: iso(row.liveAt),
@@ -141,20 +140,12 @@ export async function uploadRoutineVersion(
   }
 
   const classes = checkedClasses(file);
-  const knownTitles = new Set(
-    (
-      await db
-        .select({ code: routineCourses.code })
-        .from(routineCourses)
-        .where(eq(routineCourses.department, file.department))
-    ).map((r) => r.code),
-  );
   const found: RoutineWarning[] = [
     ...notes.map((message) => ({
       kind: "unreadable" as const,
       message,
     })),
-    ...routineWarnings(classes, knownTitles),
+    ...routineWarnings(classes),
   ];
   const warnings =
     found.length > MAX_STORED_WARNINGS
@@ -233,6 +224,30 @@ export async function uploadRoutineVersion(
   return getRoutineVersion(db, versionId);
 }
 
+/**
+ * Warnings to show. Courses without a title were once a warning stored with the
+ * version; they're counted when it's shown now (`versionCatalog`), so stay current.
+ */
+const shownWarnings = (warnings: RoutineWarning[]) =>
+  warnings.filter((w) => w.kind !== "untitled_course");
+
+/** How many of a version's courses have a title, and of its teachers a name. */
+async function versionCatalog(db: Database, row: RoutineVersionRow) {
+  const [counts] = await db.all<AdminRoutineVersionDetail["catalog"]>(sql`
+    select
+      count(distinct c.course) as courses,
+      count(distinct case when rc.title is not null then c.course end) as titled,
+      count(distinct c.teacher) as teachers,
+      count(distinct case when t.name is not null then c.teacher end) as named
+    from routine_classes c
+    left join routine_courses rc
+      on rc.department = ${row.department} and rc.code = c.course
+    left join routine_teachers t
+      on t.department = ${row.department} and t.initials = c.teacher
+    where c.version_id = ${row.id}`);
+  return counts ?? { courses: 0, titled: 0, teachers: 0, named: 0 };
+}
+
 /** The version to compare a version with: the live one, or the one it replaced. */
 async function baseline(db: Database, row: RoutineVersionRow) {
   const [base] = await db
@@ -269,7 +284,8 @@ export async function getRoutineVersion(
   return {
     ...toAdminVersion(row),
     sections: [...new Set(after.map((c) => c.section))].sort(compareSections),
-    warnings: row.warnings,
+    catalog: await versionCatalog(db, row),
+    warnings: shownWarnings(row.warnings),
     comparedWith: base?.version ?? null,
     changes,
   };
@@ -318,22 +334,45 @@ export async function makeRoutineVersionLive(
   return getRoutineVersion(db, id);
 }
 
-/** Deletes a version that isn't live, with its classes and its PDF. */
+/**
+ * Deletes a version with its classes and its PDF. Deleting the live one leaves the
+ * department without a routine ("coming soon") until another is made live.
+ */
 export async function deleteRoutineVersion(
   db: Database,
   bucket: R2Bucket,
   id: number,
 ) {
   const row = await findVersion(db, id);
-  if (row.status === "live") {
-    throw new AppError(
-      409,
-      "LIVE_VERSION",
-      "The live version can't be deleted: make another version live first",
-    );
-  }
   await db.delete(routineVersions).where(eq(routineVersions.id, id));
   await bucket.delete(row.fileKey);
+}
+
+/** Gives a version another number; each number is used once per department. */
+export async function renumberRoutineVersion(
+  db: Database,
+  id: number,
+  version: string,
+): Promise<AdminRoutineVersionDetail> {
+  const row = await findVersion(db, id);
+  if (row.version !== version) {
+    try {
+      await db
+        .update(routineVersions)
+        .set({ version, updatedAt: new Date() })
+        .where(eq(routineVersions.id, id));
+    } catch (err) {
+      if (isConstraintError(err, "UNIQUE")) {
+        throw new AppError(
+          409,
+          "VERSION_EXISTS",
+          `${row.department} already has a version ${version}`,
+        );
+      }
+      throw err;
+    }
+  }
+  return getRoutineVersion(db, id);
 }
 
 /** DIU's PDF a version was read from. */

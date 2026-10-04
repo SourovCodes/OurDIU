@@ -11,6 +11,7 @@ import '../../theme/exam_shape.dart';
 import '../../theme/theme.dart';
 import '../../widgets/question_row.dart';
 import '../questions/paper_actions.dart';
+import 'teacher_sheet.dart';
 
 /// The time in Dhaka, ticking every 15 seconds so "Now" and "Next" stay true.
 final dhakaClockProvider = StreamProvider<DhakaNow>((ref) async* {
@@ -149,49 +150,55 @@ class ClassTile extends StatelessWidget {
       opacity: state == ClassState.over ? 0.55 : 1,
       child: Material(
         color: on ? scheme.primaryContainer : scheme.surfaceContainer,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: 4,
-            children: [
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  if (on)
-                    _Tag(
-                      'Now',
-                      background: scheme.primary,
-                      foreground: scheme.onPrimary,
-                    )
-                  else if (isNext)
-                    _Tag(
-                      'Next',
-                      background: scheme.surfaceContainerHighest,
-                      foreground: scheme.onSurface,
+        // Its details: the room, and the teacher with how to reach them.
+        child: InkWell(
+          onTap: () => showClassSheet(context, c: c, section: section),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 4,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (on)
+                      _Tag(
+                        'Now',
+                        background: scheme.primary,
+                        foreground: scheme.onPrimary,
+                      )
+                    else if (isNext)
+                      _Tag(
+                        'Next',
+                        background: scheme.surfaceContainerHighest,
+                        foreground: scheme.onSurface,
+                      ),
+                    Text(
+                      [
+                        timeRange(c.start, c.end),
+                        if (left != null)
+                          on ? '$left min left' : 'in ${_wait(left)}',
+                      ].join(' · '),
+                      style: Theme.of(context).textTheme.bodyMedium
+                          ?.copyWith(color: muted),
                     ),
-                  Text(
-                    [
-                      timeRange(c.start, c.end),
-                      if (left != null)
-                        on ? '$left min left' : 'in ${_wait(left)}',
-                    ].join(' · '),
-                    style: Theme.of(context).textTheme.bodyMedium
-                        ?.copyWith(color: muted),
+                    if (isLab(c)) LabTag(section: section, group: c.labGroup),
+                  ],
+                ),
+                Text(
+                  c.course.title ?? c.course.code,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: foreground,
                   ),
-                  if (isLab(c)) LabTag(section: section, group: c.labGroup),
-                ],
-              ),
-              Text(
-                c.course.title ?? c.course.code,
-                style: Theme.of(context).textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700, color: foreground),
-              ),
-              ClassPlace(c, color: muted),
-            ],
+                ),
+                ClassPlace(c, color: muted),
+              ],
+            ),
           ),
         ),
       ),

@@ -7,6 +7,7 @@ import {
   Download,
   EllipsisVertical,
   Eye,
+  Pencil,
   Radio,
   Trash2,
 } from "lucide-react";
@@ -16,7 +17,8 @@ import { ConfirmAction, useFormAction } from "~/components/actions";
 import { AdminPageHeader } from "~/components/admin/admin-header";
 import { AdminRouteError } from "~/components/admin/route-error";
 import {
-  DELETE_DESCRIPTION,
+  deleteDescription,
+  RenumberDialog,
   RoutineStatusBadge,
   UploadRoutineDialog,
   versionPdfHref,
@@ -77,7 +79,9 @@ function RowActions({
   version: AdminRoutineVersion;
   run: ReturnType<typeof useFormAction>["run"];
 }) {
-  const [confirm, setConfirm] = useState<"live" | "delete" | null>(null);
+  const [confirm, setConfirm] = useState<"live" | "delete" | "renumber" | null>(
+    null,
+  );
   const name = `v${version.version}`;
   return (
     <>
@@ -110,24 +114,24 @@ function RowActions({
               Make live
             </DropdownMenuItem>
           )}
+          <DropdownMenuItem onSelect={() => setConfirm("renumber")}>
+            <Pencil />
+            Change number
+          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <a href={versionPdfHref(version)} download>
               <Download />
               Download DIU’s PDF
             </a>
           </DropdownMenuItem>
-          {version.status !== "live" && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                variant="destructive"
-                onSelect={() => setConfirm("delete")}
-              >
-                <Trash2 />
-                Delete version
-              </DropdownMenuItem>
-            </>
-          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={() => setConfirm("delete")}
+          >
+            <Trash2 />
+            Delete version
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       {/* Dialogs render in a portal, but React still passes their clicks up to the
@@ -147,12 +151,17 @@ function RowActions({
           open={confirm === "delete"}
           onOpenChange={(open) => !open && setConfirm(null)}
           title={`Delete ${name}?`}
-          description={DELETE_DESCRIPTION}
+          description={deleteDescription(version)}
           confirmLabel="Delete"
           destructive
           successMessage={`${name} deleted`}
           fields={{ intent: "delete", id: String(version.id) }}
           run={run}
+        />
+        <RenumberDialog
+          version={version}
+          open={confirm === "renumber"}
+          onOpenChange={(open) => !open && setConfirm(null)}
         />
       </div>
     </>

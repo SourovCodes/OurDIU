@@ -2,7 +2,7 @@ import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import {
   adminRoutineCourseListSchema,
   adminRoutineCourseSchema,
-  adminRoutineDepartmentQuerySchema,
+  adminRoutineCatalogQuerySchema,
   adminRoutineTeacherListSchema,
   adminRoutineTeacherSchema,
   adminRoutineVersionDetailSchema,
@@ -11,9 +11,13 @@ import {
   MAX_ROUTINE_PDF_BYTES,
   routineCourseInputSchema,
   routineCourseParamsSchema,
+  routineCoursesRemoveInputSchema,
+  routineRemovedSchema,
   routineSectionSchema,
   routineTeacherInputSchema,
   routineTeacherParamsSchema,
+  routineTeachersRemoveInputSchema,
+  routineVersionInputSchema,
 } from "@ourdiu/shared";
 import { bodyLimit } from "hono/body-limit";
 import { errorBody } from "../lib/errors";
@@ -23,8 +27,10 @@ import { requireAdmin } from "../middleware/require-admin";
 import {
   deleteRoutineCourseTitle,
   deleteRoutineTeacher,
-  listRoutineCourses,
-  listRoutineTeachers,
+  pageRoutineCourses,
+  pageRoutineTeachers,
+  removeRoutineCourseTitles,
+  removeRoutineTeachers,
   setRoutineCourseTitle,
   setRoutineTeacher,
 } from "../services/routine/catalog";
@@ -37,6 +43,7 @@ import {
   getRoutineVersionPdf,
   listRoutineVersions,
   makeRoutineVersionLive,
+  renumberRoutineVersion,
   uploadRoutineVersion,
 } from "../services/routine/versions";
 import type { AppEnv } from "../types";
@@ -95,6 +102,8 @@ const uploadVersionRoute = createRoute({
             file: z
               .instanceof(File, { error: "Choose the routine PDF" })
               .openapi({ type: "string", format: "binary" }),
+            /** The version number to use instead of the one printed on the PDF. */
+            version: routineVersionInputSchema.shape.version.optional(),
           }),
         },
       },
@@ -146,14 +155,39 @@ const deleteVersionRoute = createRoute({
   method: "delete",
   path: "/versions/{id}",
   tags,
-  summary: "Delete a version that isn't live, with its PDF",
+  summary: "Delete a version, with its PDF",
+  description:
+    "Deleting the live version leaves the department without a routine until another version is made live.",
   middleware,
   request: { params },
   responses: {
     204: { description: "Deleted" },
     ...denied,
     404: errorResponse("Version not found"),
-    409: errorResponse("The version is live"),
+  },
+});
+
+const renumberVersionRoute = createRoute({
+  method: "patch",
+  path: "/versions/{id}",
+  tags,
+  summary: "Change a version's number",
+  description:
+    "Students see the new number right away if it's live. A department's numbers are each used once.",
+  middleware,
+  request: {
+    params,
+    body: {
+      required: true,
+      content: { "application/json": { schema: routineVersionInputSchema } },
+    },
+  },
+  responses: {
+    200: jsonResponse(adminRoutineVersionDetailSchema, "The version"),
+    ...denied,
+    404: errorResponse("Version not found"),
+    409: errorResponse("The department has a version with that number"),
+    422: errorResponse("Invalid number"),
   },
 });
 
@@ -201,11 +235,11 @@ const listCoursesRoute = createRoute({
   method: "get",
   path: "/courses",
   tags,
-  summary: "A department's courses and their titles",
+  summary: "A department's courses and their titles, a page at a time",
   description:
-    "The codes in any of the department's versions, and any given a title, by code.",
+    "The codes in any of the department's versions, and any given a title, by code. `q` searches codes and titles; `missing=true` keeps those without a title.",
   middleware,
-  request: { query: adminRoutineDepartmentQuerySchema },
+  request: { query: adminRoutineCatalogQuerySchema },
   responses: {
     200: jsonResponse(adminRoutineCourseListSchema, "Courses"),
     ...denied,
@@ -246,15 +280,57 @@ const deleteCourseRoute = createRoute({
   },
 });
 
+const removeCoursesRoute = createRoute({
+  method: "post",
+  path: "/courses/remove",
+  tags,
+  summary: "Take several courses' titles away",
+  middleware,
+  request: {
+    body: {
+      required: true,
+      content: {
+        "application/json": { schema: routineCoursesRemoveInputSchema },
+      },
+    },
+  },
+  responses: {
+    200: jsonResponse(routineRemovedSchema, "How many were removed"),
+    ...denied,
+    422: errorResponse("Invalid list"),
+  },
+});
+
+const removeTeachersRoute = createRoute({
+  method: "post",
+  path: "/teachers/remove",
+  tags,
+  summary: "Forget several teachers' details",
+  middleware,
+  request: {
+    body: {
+      required: true,
+      content: {
+        "application/json": { schema: routineTeachersRemoveInputSchema },
+      },
+    },
+  },
+  responses: {
+    200: jsonResponse(routineRemovedSchema, "How many were removed"),
+    ...denied,
+    422: errorResponse("Invalid list"),
+  },
+});
+
 const listTeachersRoute = createRoute({
   method: "get",
   path: "/teachers",
   tags,
-  summary: "A department's teachers and their details",
+  summary: "A department's teachers and their details, a page at a time",
   description:
-    "The initials in any of the department's versions, and any added by hand, by initials.",
+    "The initials in any of the department's versions, and any added by hand, by initials. `q` searches initials, names, rooms, emails, phones and course codes; `missing=true` keeps those without a name.",
   middleware,
-  request: { query: adminRoutineDepartmentQuerySchema },
+  request: { query: adminRoutineCatalogQuerySchema },
   responses: {
     200: jsonResponse(adminRoutineTeacherListSchema, "Teachers"),
     ...denied,
@@ -301,13 +377,14 @@ export const adminRoutineRoutes = new OpenAPIHono<AppEnv>()
     c.json({ items: await listRoutineVersions(c.var.db) }, 200),
   )
   .openapi(uploadVersionRoute, async (c) => {
-    const pdf = new Uint8Array(await c.req.valid("form").file.arrayBuffer());
+    const { file, version } = c.req.valid("form");
+    const pdf = new Uint8Array(await file.arrayBuffer());
     return c.json(
       await uploadRoutineVersion(
         c.var.db,
         c.env.BUCKET,
         c.var.session!.user.id,
-        await readRoutinePdf(pdf),
+        await readRoutinePdf(pdf, { version }),
         pdf,
       ),
       201,
@@ -319,6 +396,16 @@ export const adminRoutineRoutes = new OpenAPIHono<AppEnv>()
   .openapi(makeLiveRoute, async (c) =>
     c.json(
       await makeRoutineVersionLive(c.var.db, c.req.valid("param").id),
+      200,
+    ),
+  )
+  .openapi(renumberVersionRoute, async (c) =>
+    c.json(
+      await renumberRoutineVersion(
+        c.var.db,
+        c.req.valid("param").id,
+        c.req.valid("json").version,
+      ),
       200,
     ),
   )
@@ -352,16 +439,15 @@ export const adminRoutineRoutes = new OpenAPIHono<AppEnv>()
     return res as never;
   })
   .openapi(listCoursesRoute, async (c) =>
-    c.json(
-      {
-        items: await listRoutineCourses(
-          c.var.db,
-          c.req.valid("query").department,
-        ),
-      },
-      200,
-    ),
+    c.json(await pageRoutineCourses(c.var.db, c.req.valid("query")), 200),
   )
+  .openapi(removeCoursesRoute, async (c) => {
+    const { department, codes } = c.req.valid("json");
+    return c.json(
+      { removed: await removeRoutineCourseTitles(c.var.db, department, codes) },
+      200,
+    );
+  })
   .openapi(setCourseRoute, async (c) => {
     const { department, code } = c.req.valid("param");
     return c.json(
@@ -380,16 +466,15 @@ export const adminRoutineRoutes = new OpenAPIHono<AppEnv>()
     return c.body(null, 204);
   })
   .openapi(listTeachersRoute, async (c) =>
-    c.json(
-      {
-        items: await listRoutineTeachers(
-          c.var.db,
-          c.req.valid("query").department,
-        ),
-      },
-      200,
-    ),
+    c.json(await pageRoutineTeachers(c.var.db, c.req.valid("query")), 200),
   )
+  .openapi(removeTeachersRoute, async (c) => {
+    const { department, initials } = c.req.valid("json");
+    return c.json(
+      { removed: await removeRoutineTeachers(c.var.db, department, initials) },
+      200,
+    );
+  })
   .openapi(setTeacherRoute, async (c) => {
     const { department, initials } = c.req.valid("param");
     return c.json(

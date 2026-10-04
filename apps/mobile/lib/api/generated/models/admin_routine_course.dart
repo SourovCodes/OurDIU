@@ -14,7 +14,7 @@ class AdminRoutineCourse {
     required this.department,
     required this.code,
     required this.title,
-    required this.liveSections,
+    required this.sections,
   });
 
   factory AdminRoutineCourse.fromJson(Map<String, Object?> json) =>
@@ -23,7 +23,7 @@ class AdminRoutineCourse {
   final RoutineDepartment department;
   final String code;
   final String? title;
-  final int liveSections;
+  final int sections;
 
   Map<String, Object?> toJson() => _$AdminRoutineCourseToJson(this);
 }

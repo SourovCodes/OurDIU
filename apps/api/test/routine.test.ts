@@ -164,12 +164,17 @@ const adminCall = (method: string, path: string, body?: unknown) =>
       : jsonRequest(method, body, admin.cookie),
   );
 
-function postPdf(pdf: Uint8Array, cookie = admin.cookie) {
+function postPdf(
+  pdf: Uint8Array,
+  cookie = admin.cookie,
+  fields: Record<string, string> = {},
+) {
   const form = new FormData();
   form.set(
     "file",
     new File([pdf], "cse-routine.pdf", { type: "application/pdf" }),
   );
+  for (const [name, value] of Object.entries(fields)) form.set(name, value);
   return api("/api/v1/admin/routine/versions", {
     method: "POST",
     headers: { cookie },
@@ -240,13 +245,15 @@ describe("routine versions", () => {
       comparedWith: null,
       uploadedBy: { name: "Test User" },
     });
-    // No course has a title yet; KT-208 isn't booked twice (Sunday 10:00 vs Monday).
-    expect(first.warnings).toEqual([
-      {
-        kind: "untitled_course",
-        message: expect.stringContaining("6 courses have no title yet"),
-      },
-    ]);
+    // KT-208 isn't booked twice (Sunday 10:00 vs Monday): no warnings. No course
+    // has a title yet, nor any teacher a name.
+    expect(first.warnings).toEqual([]);
+    expect(first.catalog).toEqual({
+      courses: 6,
+      titled: 0,
+      teachers: 5,
+      named: 0,
+    });
 
     const again = await postPdf(await cseRoutinePdf(routineFile("4.1")));
     expect(again.status).toBe(409);
@@ -275,12 +282,12 @@ describe("routine versions", () => {
       "CSE322",
       "CSE431",
     ]);
-    // Not live yet: no section takes them.
+    // Counted in the newest version, a draft until one is live.
     expect(courses.items[0]).toEqual({
       department: "CSE",
       code: "ACT327",
       title: null,
-      liveSections: 0,
+      sections: 1,
     });
 
     for (const [code, title] of Object.entries(TITLES)) {
@@ -314,7 +321,8 @@ describe("routine versions", () => {
       phone: "01712-345678",
       email: "sta@diu.edu.bd",
       room: "KT-712",
-      liveClasses: 0,
+      classes: 4,
+      courses: ["CSE321", "CSE322"],
     });
     const bad = await adminCall("PUT", "/teachers/CSE/STA", {
       name: "Test Teacher",
@@ -326,6 +334,17 @@ describe("routine versions", () => {
       (await adminCall("PUT", "/teachers/CSE/NT-1", { name: "New Teacher" }))
         .status,
     ).toBe(200);
+
+    // The version's review counts them as they're added.
+    const reviewed = await (
+      await adminCall("GET", `/versions/${first.id}`)
+    ).json<AdminRoutineVersionDetail>();
+    expect(reviewed.catalog).toEqual({
+      courses: 6,
+      titled: 5,
+      teachers: 5,
+      named: 1,
+    });
 
     const user = await signIn();
     const denied = await api("/api/v1/admin/routine/courses?department=CSE", {
@@ -410,6 +429,55 @@ describe("routine versions", () => {
     expect((await missing.json<ApiError>()).error.code).toBe(
       "SECTION_NOT_FOUND",
     );
+  });
+
+  it("pages and searches courses and teachers, and removes them in bulk", async () => {
+    const page = await (
+      await adminCall("GET", "/courses?department=CSE&pageSize=2&page=2")
+    ).json<AdminRoutineCourseList>();
+    expect(page).toMatchObject({
+      page: 2,
+      pageSize: 2,
+      total: 6,
+      all: 6,
+      titled: 5,
+      version: "4.1",
+    });
+    expect(page.items.map((c) => c.code)).toEqual(["CSE317", "CSE321"]);
+    const codes = async (query: string) =>
+      (
+        await (
+          await adminCall("GET", `/courses?department=CSE&${query}`)
+        ).json<AdminRoutineCourseList>()
+      ).items.map((c) => c.code);
+    expect(await codes("missing=true")).toEqual(["CSE431"]);
+    expect(await codes("q=networks")).toEqual(["CSE321", "CSE322"]);
+
+    const removed = await adminCall("POST", "/courses/remove", {
+      department: "CSE",
+      codes: ["ACT327", "CSE315", "CSE431"],
+    });
+    expect(await removed.json()).toEqual({ removed: 2 });
+    expect(await codes("missing=true")).toEqual(["ACT327", "CSE315", "CSE431"]);
+    expect(
+      (
+        await adminCall("POST", "/courses/remove", {
+          department: "CSE",
+          codes: [],
+        })
+      ).status,
+    ).toBe(422);
+
+    // NT-1 was only added by hand: forgetting them takes them off the list.
+    const forgot = await adminCall("POST", "/teachers/remove", {
+      department: "CSE",
+      initials: ["NT-1"],
+    });
+    expect(await forgot.json()).toEqual({ removed: 1 });
+    const teachers = await (
+      await adminCall("GET", "/teachers?department=CSE&q=sta")
+    ).json<AdminRoutineTeacherList>();
+    expect(teachers).toMatchObject({ total: 1, all: 5, named: 1 });
   });
 
   it("downloads a section's week as a PDF", async () => {
@@ -525,7 +593,62 @@ describe("routine versions", () => {
     expect(denied.status).toBe(403);
   });
 
-  it("deletes any version but the live one", async () => {
+  it("numbers a version at upload, and renumbers it later", async () => {
+    // A PDF without a version is read with the one given.
+    const res = await postPdf(
+      await cseRoutinePdf(routineFile("")),
+      admin.cookie,
+      { version: "3.9" },
+    );
+    expect(res.status).toBe(201);
+    const draft = await res.json<AdminRoutineVersionDetail>();
+    expect(draft.version).toBe("3.9");
+    // The one given wins over the one printed.
+    const printed = await postPdf(
+      await cseRoutinePdf(routineFile("9.1")),
+      admin.cookie,
+      { version: "9.2" },
+    );
+    const second = await printed.json<AdminRoutineVersionDetail>();
+    expect(second.version).toBe("9.2");
+    const badField = await postPdf(
+      await cseRoutinePdf(routineFile("9.3")),
+      admin.cookie,
+      { version: "v9" },
+    );
+    expect(badField.status).toBe(422);
+
+    const renumbered = await adminCall("PATCH", `/versions/${draft.id}`, {
+      version: "3.9.1",
+    });
+    expect(renumbered.status).toBe(200);
+    expect((await renumbered.json<AdminRoutineVersionDetail>()).version).toBe(
+      "3.9.1",
+    );
+    const taken = await adminCall("PATCH", `/versions/${draft.id}`, {
+      version: "4.1",
+    });
+    expect(taken.status).toBe(409);
+    expect((await taken.json<ApiError>()).error.code).toBe("VERSION_EXISTS");
+    expect(
+      (await adminCall("PATCH", `/versions/${draft.id}`, { version: "four" }))
+        .status,
+    ).toBe(422);
+
+    // The live version's new number is what students see.
+    await adminCall("PATCH", `/versions/${first.id}`, { version: "4.1.1" });
+    const list = await (
+      await api("/api/v1/routine/cse/sections")
+    ).json<RoutineSectionList>();
+    expect(list.version.version).toBe("4.1.1");
+    await adminCall("PATCH", `/versions/${first.id}`, { version: "4.1" });
+
+    for (const { id } of [draft, second]) {
+      await adminCall("DELETE", `/versions/${id}`);
+    }
+  });
+
+  it("deletes any version, the live one too", async () => {
     const list = await (
       await adminCall("GET", "/versions")
     ).json<AdminRoutineVersionList>();
@@ -537,10 +660,12 @@ describe("routine versions", () => {
       expect((await adminCall("GET", `/versions/${id}`)).status).toBe(404);
     }
 
+    // Without its live version, CSE has no routine until another goes live.
     const live = await adminCall("DELETE", `/versions/${first.id}`);
-    expect(live.status).toBe(409);
-    expect((await live.json<ApiError>()).error.code).toBe("LIVE_VERSION");
-    expect((await api("/api/v1/routine/cse/sections")).status).toBe(200);
+    expect(live.status).toBe(204);
+    const none = await api("/api/v1/routine/cse/sections");
+    expect(none.status).toBe(404);
+    expect((await none.json<ApiError>()).error.code).toBe("NO_ROUTINE");
   });
 });
 
@@ -558,41 +683,37 @@ describe("routine checks", () => {
   });
 
   it("warns about clashes, but not lab groups or combined classes", () => {
-    const warnings = routineWarnings(
-      [
-        cls({}),
-        cls({}), // listed twice
-        cls({ course: "CSE317", room: "KT-214", teacher: "MRR" }), // 67_B twice at once
-        cls({ section: "67_C", course: "CSE999", teacher: "X" }), // KT-213 twice
-        cls({ section: "68_A", room: "KT-300" }), // AS in two rooms
-        // Lab groups at the same time are fine.
-        cls({ section: "70_A", labGroup: "A1", room: "L1", teacher: "P" }),
-        cls({ section: "70_A", labGroup: "A2", room: "L2", teacher: "Q" }),
-        // A retake section's courses at the same time are its design.
-        cls({
-          section: "RE_A(3C)",
-          course: "CSE317",
-          room: "R1",
-          teacher: "T1",
-        }),
-        cls({
-          section: "RE_A(3C)",
-          course: "ENG101",
-          room: "R2",
-          teacher: "T2",
-        }),
-        // The same course for two sections in one room is a combined class.
-        cls({ section: "71_A", room: "R9", teacher: "Z" }),
-        cls({ section: "71_B", room: "R9", teacher: "Z" }),
-      ],
-      new Set(["CSE315", "CSE317"]),
-    );
+    const warnings = routineWarnings([
+      cls({}),
+      cls({}), // listed twice
+      cls({ course: "CSE317", room: "KT-214", teacher: "MRR" }), // 67_B twice at once
+      cls({ section: "67_C", course: "CSE999", teacher: "X" }), // KT-213 twice
+      cls({ section: "68_A", room: "KT-300" }), // AS in two rooms
+      // Lab groups at the same time are fine.
+      cls({ section: "70_A", labGroup: "A1", room: "L1", teacher: "P" }),
+      cls({ section: "70_A", labGroup: "A2", room: "L2", teacher: "Q" }),
+      // A retake section's courses at the same time are its design.
+      cls({
+        section: "RE_A(3C)",
+        course: "CSE317",
+        room: "R1",
+        teacher: "T1",
+      }),
+      cls({
+        section: "RE_A(3C)",
+        course: "ENG101",
+        room: "R2",
+        teacher: "T2",
+      }),
+      // The same course for two sections in one room is a combined class.
+      cls({ section: "71_A", room: "R9", teacher: "Z" }),
+      cls({ section: "71_B", room: "R9", teacher: "Z" }),
+    ]);
     expect(warnings.map((w) => w.kind).sort()).toEqual([
       "duplicate",
       "room_clash",
       "section_clash",
       "teacher_clash",
-      "untitled_course",
     ]);
   });
 

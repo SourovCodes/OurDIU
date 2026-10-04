@@ -10,9 +10,12 @@ import {
   routineClockTime,
 } from "@ourdiu/shared/constants";
 import {
+  ArrowRight,
+  CircleCheck,
   Download,
   ExternalLink,
   FileWarning,
+  Pencil,
   Radio,
   Trash2,
   TriangleAlert,
@@ -22,8 +25,10 @@ import { ConfirmAction, useFormAction } from "~/components/actions";
 import { AdminPageHeader } from "~/components/admin/admin-header";
 import { AdminRouteError } from "~/components/admin/route-error";
 import {
+  catalogSearch,
   ChangeStat,
-  DELETE_DESCRIPTION,
+  deleteDescription,
+  RenumberDialog,
   RoutineStatusBadge,
   versionPdfHref,
 } from "~/components/admin/routine";
@@ -33,7 +38,9 @@ import { Button } from "~/components/ui/button";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
@@ -48,7 +55,12 @@ import {
 import { adminGetJson } from "~/lib/admin.server";
 import { formatDate } from "~/lib/dates";
 import { formatNumber } from "~/lib/format";
-import { routineHref, weekDays } from "~/lib/routine";
+import {
+  departmentSlug,
+  routineHref,
+  sectionGroups,
+  weekDays,
+} from "~/lib/routine";
 import { routineAdminAction } from "~/lib/routine-admin.server";
 import type { Route } from "./+types/admin-routine-version";
 
@@ -72,12 +84,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     request,
     `/routine/versions/${id}`,
   );
-  // One section as students would see it: ?preview=, else the first that changed.
+  // One section as students would see it: ?preview=, else the first that changed,
+  // else the newest batch's first section (a batch's own, not a retake).
   const asked = new URL(request.url).searchParams.get("preview");
   const section =
     (asked && v.sections.includes(asked) ? asked : null) ??
     v.changes.items[0]?.section ??
-    v.sections[0];
+    sectionGroups(v.sections)[0]?.sections[0];
   const preview = section
     ? await adminGetJson<RoutineSection>(
         request,
@@ -114,6 +127,106 @@ function describe(c: RoutineChangedClass | null) {
 }
 
 /** A section of the version as students will see it, to check before going live. */
+/** One count of the card below: titles or names, how many, and where to add more. */
+function NamesCount({
+  label,
+  done,
+  of,
+  noun,
+  to,
+  action,
+}: {
+  label: string;
+  done: number;
+  of: number;
+  noun: string;
+  to: string;
+  action: string;
+}) {
+  const complete = done >= of;
+  return (
+    <div className="grid content-start gap-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-sm font-medium">{label}</span>
+        <span className="text-sm text-muted-foreground tabular-nums">
+          {formatNumber(done)} of {formatNumber(of)} {noun}
+        </span>
+      </div>
+      <div
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={of}
+        aria-valuenow={done}
+        className="h-2 overflow-hidden rounded-full bg-surface-highest"
+      >
+        <div
+          className="h-full rounded-full bg-primary transition-[width]"
+          style={{ width: `${of ? (done / of) * 100 : 100}%` }}
+        />
+      </div>
+      {complete ? (
+        <span className="inline-flex items-center gap-1.5 text-sm text-primary">
+          <CircleCheck className="size-4" aria-hidden />
+          All set
+        </span>
+      ) : (
+        <Button variant="link" className="h-auto justify-start p-0" asChild>
+          <Link to={to}>
+            {action}
+            <ArrowRight aria-hidden />
+          </Link>
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * What students see besides codes and initials: the department's course titles and
+ * teachers' names, kept across versions, counted for this version's.
+ */
+function NamesCard({ v }: { v: AdminRoutineVersionDetail }) {
+  const { catalog } = v;
+  if (!catalog.courses) return null;
+  const missing = (page: string) =>
+    `/admin/routine/${page}${catalogSearch({ department: v.department, missing: true })}`;
+  return (
+    <section
+      aria-labelledby="names"
+      className="grid gap-4 rounded-2xl bg-surface-low p-5"
+    >
+      <div className="space-y-1">
+        <h2 id="names" className="font-expressive text-xl">
+          Course titles and teachers
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          DIU’s PDF gives codes and initials. Students see titles and names
+          wherever they’re added, in every {v.department} version.
+        </p>
+      </div>
+      <div className="grid gap-6 sm:grid-cols-2">
+        <NamesCount
+          label="Course titles"
+          done={catalog.titled}
+          of={catalog.courses}
+          noun="courses"
+          to={missing("courses")}
+          action="Add titles"
+        />
+        <NamesCount
+          label="Teachers’ names"
+          done={catalog.named}
+          of={catalog.teachers}
+          noun="teachers"
+          to={missing("teachers")}
+          action="Add names"
+        />
+      </div>
+    </section>
+  );
+}
+
 function Preview({
   v,
   preview,
@@ -144,13 +257,21 @@ function Preview({
             }
           >
             <SelectTrigger className="w-44" aria-label="Section to preview">
-              <SelectValue />
+              {/* Named here: the items aren't there to name it before it opens. */}
+              <SelectValue>{preview.section}</SelectValue>
             </SelectTrigger>
             <SelectContent className="max-h-80">
-              {v.sections.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s}
-                </SelectItem>
+              {sectionGroups(v.sections).map((group) => (
+                <SelectGroup key={group.key}>
+                  <SelectLabel className="first-letter:uppercase">
+                    {group.name ?? group.title}
+                  </SelectLabel>
+                  {group.sections.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               ))}
             </SelectContent>
           </Select>
@@ -158,7 +279,7 @@ function Preview({
             <Button variant="ghost" size="sm" asChild>
               <Link
                 to={routineHref({
-                  department: "cse",
+                  department: departmentSlug(v.department),
                   section: preview.section,
                   group: null,
                 })}
@@ -216,23 +337,21 @@ export default function AdminRoutineVersion({
                 DIU’s PDF
               </a>
             </Button>
-            {v.status !== "live" && (
-              <ConfirmAction
-                trigger={
-                  <Button variant="outline">
-                    <Trash2 aria-hidden />
-                    Delete version
-                  </Button>
-                }
-                title={`Delete ${name}?`}
-                description={DELETE_DESCRIPTION}
-                confirmLabel="Delete"
-                destructive
-                successMessage={`${name} deleted`}
-                fields={{ intent: "delete", id: String(v.id), from: "review" }}
-                run={run}
-              />
-            )}
+            <ConfirmAction
+              trigger={
+                <Button variant="outline">
+                  <Trash2 aria-hidden />
+                  Delete version
+                </Button>
+              }
+              title={`Delete ${name}?`}
+              description={deleteDescription(v)}
+              confirmLabel="Delete"
+              destructive
+              successMessage={`${name} deleted`}
+              fields={{ intent: "delete", id: String(v.id), from: "review" }}
+              run={run}
+            />
             {v.status !== "live" && (
               <ConfirmAction
                 trigger={
@@ -254,6 +373,19 @@ export default function AdminRoutineVersion({
       >
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <RoutineStatusBadge status={v.status} />
+          <RenumberDialog
+            version={v}
+            trigger={
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-muted-foreground"
+              >
+                <Pencil aria-hidden />
+                Change number
+              </Button>
+            }
+          />
           <span>
             {formatNumber(v.sectionCount)} sections ·{" "}
             {formatNumber(v.classCount)} classes · uploaded{" "}
@@ -327,20 +459,12 @@ export default function AdminRoutineVersion({
                 <li key={i}>{w.message}</li>
               ))}
             </ul>
-            <p className="mt-2">
-              These are usually in DIU’s routine itself. Course titles can be
-              added on{" "}
-              <Link
-                to="/admin/routine/courses"
-                className="font-medium underline"
-              >
-                Course titles
-              </Link>
-              .
-            </p>
+            <p className="mt-2">These are usually in DIU’s routine itself.</p>
           </AlertDescription>
         </Alert>
       )}
+
+      <NamesCard v={v} />
 
       {preview && <Preview v={v} preview={preview} />}
 

@@ -163,17 +163,30 @@ test("an admin uploads CSE's routine PDF, reviews it and makes it live", async (
   await expect(page.getByText(`v${version} is live`)).toBeVisible();
   await expect(page.getByText("Live", { exact: true })).toBeVisible();
 
-  // It's in the list as the live version, which can't be deleted.
+  // Its number can be changed, live or not.
+  const renumbered = uniqueVersion();
+  await page.getByRole("button", { name: "Change number" }).click();
+  const numberDialog = page.getByRole("dialog");
+  await numberDialog.getByLabel("Version").fill(renumbered);
+  await numberDialog.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    `CSE v${renumbered}`,
+  );
+
+  // It's in the list as the live version, which can be deleted too (not here:
+  // students' tests need a CSE routine).
   await page.goto("/admin/routine/versions");
-  const row = page.getByRole("row", { name: new RegExp(`CSE v${version}`) });
+  const row = page.getByRole("row", { name: new RegExp(`CSE v${renumbered}`) });
   await expect(row.getByText("Live", { exact: true })).toBeVisible();
-  await openMenu(row.getByRole("button", { name: `Actions for v${version}` }));
+  await openMenu(
+    row.getByRole("button", { name: `Actions for v${renumbered}` }),
+  );
   await expect(page.getByRole("menuitem", { name: "Make live" })).toHaveCount(
     0,
   );
   await expect(
     page.getByRole("menuitem", { name: "Delete version" }),
-  ).toHaveCount(0);
+  ).toBeVisible();
   await page.keyboard.press("Escape");
 
   // The version it replaced can be deleted, file and all.
@@ -220,22 +233,20 @@ test("an admin uploads EEE's routine PDF, and EEE students find their section", 
   await expect(page.getByText(`v${version} is live`)).toBeVisible();
 
   // The PDF has no course titles: one is added. A teacher gets the room they sit in.
-  await page.goto("/admin/routine/courses?department=EEE");
-  await openMenu(
-    page
-      .getByRole("row", { name: /0713-121/ })
-      .getByRole("button", { name: "Actions for 0713-121" }),
-  );
-  await page.getByRole("menuitem", { name: /^(Edit|Add) title$/ }).click();
-  const titleDialog = page.getByRole("dialog");
-  await titleDialog.getByLabel("Course title").fill("Electrical Circuits I");
-  await titleDialog.getByRole("button", { name: "Save" }).click();
-  await expect(page.getByText("0713-121 is titled")).toBeVisible();
-  await expect(
-    page
-      .getByRole("row", { name: /0713-121/ })
-      .getByText("Electrical Circuits I"),
-  ).toBeVisible();
+  await page.goto("/admin/routine/courses?department=EEE&missing=true");
+  // Typed where it is: Enter saves and goes on to the next course.
+  const title = page.getByLabel("Title of 0713-121");
+  await expect(async () => {
+    await title.fill("Electrical Circuits I");
+    await title.press("Enter");
+    await expect(
+      page.getByText(/^1 of \d+ EEE courses have a title$/),
+    ).toBeVisible({
+      timeout: 2_000,
+    });
+  }).toPass();
+  // Without a title any more, it's left the list.
+  await expect(page.getByLabel("Title of 0713-121")).toHaveCount(0);
 
   await page.goto("/admin/routine/teachers?department=EEE");
   await openMenu(
@@ -243,7 +254,7 @@ test("an admin uploads EEE's routine PDF, and EEE students find their section", 
       .getByRole("row", { name: /\bMW\b/ })
       .getByRole("button", { name: "Actions for MW" }),
   );
-  await page.getByRole("menuitem", { name: /^(Edit|Add) details$/ }).click();
+  await page.getByRole("menuitem", { name: "Room, email and phone" }).click();
   const teacherDialog = page.getByRole("dialog");
   // From the PDF's list of teachers.
   await expect(teacherDialog.getByLabel("Name")).toHaveValue("Test Wahid");
@@ -288,4 +299,28 @@ test("an admin uploads EEE's routine PDF, and EEE students find their section", 
   await expect(
     teachers.getByRole("link", { name: "mw@example.com" }),
   ).toHaveAttribute("href", "mailto:mw@example.com");
+
+  // Titles go in bulk: select, then remove.
+  await page.goto("/admin/routine/courses?department=EEE");
+  await page.getByRole("checkbox", { name: "Select 0713-121" }).check();
+  await expect(page.getByText("1 selected")).toBeVisible();
+  await page.getByRole("button", { name: "Remove titles" }).click();
+  await page.getByRole("button", { name: "Remove", exact: true }).click();
+  await expect(page.getByText("Title removed")).toBeVisible();
+  await expect(page.getByLabel("Title of 0713-121")).toHaveValue("");
+
+  // Deleting the live version takes EEE's routine away until another is live.
+  await page.goto("/admin/routine/versions");
+  const eee = page.getByRole("row", { name: new RegExp(`EEE v${version}`) });
+  await openMenu(eee.getByRole("button", { name: `Actions for v${version}` }));
+  await page.getByRole("menuitem", { name: "Delete version" }).click();
+  await expect(page.getByRole("alertdialog")).toContainText(
+    "students will see no EEE routine",
+  );
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(page.getByText(`v${version} deleted`)).toBeVisible();
+  await page.goto("/routine/eee");
+  await expect(
+    page.getByText("DIU’s EEE routine is coming soon", { exact: false }),
+  ).toBeVisible();
 });

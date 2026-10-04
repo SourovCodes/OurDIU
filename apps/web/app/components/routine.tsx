@@ -812,17 +812,22 @@ export function CourseList({ classes }: { classes: RoutineClass[] }) {
 }
 
 /**
- * A section's teachers, with how to reach them where it's known: the room where they
- * sit, their email and phone.
+ * A section's teachers that there's more to say about than their initials (the
+ * course list already has those): a name, the room where they sit, email, phone.
  */
-export function TeacherList({ classes }: { classes: RoutineClass[] }) {
-  const teachers = [
+export function teachersOf(classes: RoutineClass[]) {
+  return [
     ...new Map(
       classes.flatMap((c) =>
         c.teacher ? [[c.teacher.initials, c.teacher] as const] : [],
       ),
     ).values(),
-  ].map((t) => ({
+  ].filter((t) => t.name || t.room || t.email || t.phone);
+}
+
+/** A section's teachers, with how to reach them where it's known. */
+export function TeacherList({ classes }: { classes: RoutineClass[] }) {
+  const teachers = teachersOf(classes).map((t) => ({
     ...t,
     courses: [
       ...new Set(
@@ -834,15 +839,11 @@ export function TeacherList({ classes }: { classes: RoutineClass[] }) {
   }));
   if (!teachers.length) return null;
   return (
-    <ul className="grid gap-0.5">
-      {teachers.map((t, i) => (
+    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {teachers.map((t) => (
         <li
           key={t.initials}
-          className={cn(
-            "grid gap-1 bg-surface px-4 py-3 text-sm",
-            i === 0 && "rounded-t-2xl",
-            i === teachers.length - 1 && "rounded-b-2xl",
-          )}
+          className="grid content-start gap-1 rounded-2xl bg-surface px-4 py-3.5 text-sm"
         >
           <span className="leading-snug font-semibold">
             {t.name ?? t.initials}

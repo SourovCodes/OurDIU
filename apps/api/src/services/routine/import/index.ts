@@ -22,9 +22,13 @@ const PDF_MAGIC = "%PDF-";
 /** At most this many problems are listed when what was read can't be used. */
 const MAX_PROBLEMS = 50;
 
-/** The routine in a department's PDF, checked like an uploaded file. */
+/**
+ * The routine in a department's PDF, checked. `version`, when given, is the version
+ * number to use instead of the one printed on it.
+ */
 export async function readRoutinePdf(
   bytes: Uint8Array,
+  { version }: { version?: string } = {},
 ): Promise<RoutineImport> {
   if (new TextDecoder().decode(bytes.subarray(0, 5)) !== PDF_MAGIC) {
     throw new AppError(422, "NOT_A_PDF", "This file isn't a PDF");
@@ -50,6 +54,7 @@ export async function readRoutinePdf(
     );
   }
   const read = reader.read(pages);
+  if (version) read.file.version = version;
 
   const checked = routineFileSchema.safeParse(read.file);
   if (!checked.success) {

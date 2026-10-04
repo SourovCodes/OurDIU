@@ -174,7 +174,9 @@ describe("reading CSE's routine PDF", () => {
       version: "4.1",
       publishedOn: "2026-10-03",
     });
-    expect(file.classes).toHaveLength(63);
+    // Retake sections are left out; the wrapped one is read whole, so no note.
+    expect(file.classes).toHaveLength(61);
+    expect(file.classes.some((c) => c.section.startsWith("RE_"))).toBe(false);
     expect(file.classes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -184,23 +186,10 @@ describe("reading CSE's routine PDF", () => {
           room: "G1-017",
           roomType: "lab",
         }),
-        expect.objectContaining({
-          ...at("SAT", "08:30", "10:00"),
-          section: "RE_A(3C)(DMML)",
-          teacher: "MHIM",
-          roomType: null,
-        }),
-        expect.objectContaining({
-          ...at("SUN", "10:00", "11:30"),
-          section: "RE_A(3C)",
-          teacher: "EEE_1",
-        }),
       ]),
     );
-    expect(file.classes.filter((c) => c.day === "SAT")).toHaveLength(62);
-    expect(notes).toEqual([
-      "Sunday 10:00 am, KT-216: section “RE_A (3C.)” read as RE_A(3C), here and wherever else it’s written so.",
-    ]);
+    expect(file.classes.filter((c) => c.day === "SAT")).toHaveLength(61);
+    expect(notes).toEqual([]);
   });
 });
 
@@ -233,7 +222,6 @@ describe("uploading a routine PDF", () => {
     expect(draft.warnings.map((w) => w.kind)).toEqual([
       "unreadable",
       "unreadable",
-      "untitled_course",
     ]);
     expect(draft.warnings[0]!.message).toContain("read as 1-3 A");
 
@@ -331,7 +319,7 @@ describe("uploading a routine PDF", () => {
     expect(csWeek.classes[0]!.teacher?.name).toBe("A CSE Teacher");
   });
 
-  it("deletes a version with its PDF", async () => {
+  it("deletes a version with its PDF, the live one too", async () => {
     const files = async () =>
       (await env.BUCKET.list({ prefix: "routine/versions/" })).objects.length;
     const before = await files();
@@ -342,9 +330,10 @@ describe("uploading a routine PDF", () => {
 
     expect((await adminCall("DELETE", `/versions/${id}`)).status).toBe(204);
     expect(await files()).toBe(before);
-    // The live one can't be.
+    // The live one can be too: EEE has no routine then.
     expect((await adminCall("DELETE", `/versions/${draft.id}`)).status).toBe(
-      409,
+      204,
     );
+    expect((await api("/api/v1/routine/eee/sections")).status).toBe(404);
   });
 });

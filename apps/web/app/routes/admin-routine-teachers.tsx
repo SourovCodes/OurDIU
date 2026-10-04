@@ -14,6 +14,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
+import { Form, Link } from "react-router";
 import {
   ActionDialog,
   ConfirmAction,
@@ -22,12 +23,19 @@ import {
 import { AdminPageHeader } from "~/components/admin/admin-header";
 import { AdminRouteError } from "~/components/admin/route-error";
 import {
+  catalogApiQuery,
+  catalogSearch,
+  catalogViewOf,
   departmentTabs,
-  routineDepartmentOf,
+  InlineEdit,
+  SelectionBar,
+  type CatalogView,
 } from "~/components/admin/routine";
 import { EmptyState } from "~/components/empty-state";
 import { FormField } from "~/components/form";
-import { Button } from "~/components/ui/button";
+import { TablePagination } from "~/components/table-pagination";
+import { Button, buttonVariants } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,13 +64,15 @@ export const meta: Route.MetaFunction = () => [
   { name: "robots", content: "noindex" },
 ];
 
+const PAGE_SIZE = 25;
+
 export async function loader({ request }: Route.LoaderArgs) {
-  const department = routineDepartmentOf(request);
-  const { items } = await adminGetJson<AdminRoutineTeacherList>(
+  const view = catalogViewOf(request);
+  const list = await adminGetJson<AdminRoutineTeacherList>(
     request,
-    `/routine/teachers?department=${department}`,
+    `/routine/teachers?${catalogApiQuery(view, PAGE_SIZE)}`,
   );
-  return { department, items };
+  return { view, list };
 }
 
 export const action = ({ request }: Route.ActionArgs) =>
@@ -188,9 +198,9 @@ function RowActions({
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem onSelect={() => setDialog("edit")}>
             <Pencil />
-            {teacher.name ? "Edit details" : "Add details"}
+            Room, email and phone
           </DropdownMenuItem>
-          {teacher.name && (
+          {(teacher.name || teacher.room || teacher.email || teacher.phone) && (
             <DropdownMenuItem
               variant="destructive"
               onSelect={() => setDialog("forget")}
@@ -227,53 +237,58 @@ function RowActions({
 }
 
 function Teachers({
-  department,
-  items,
+  view,
+  list,
 }: {
-  department: RoutineDepartment;
-  items: AdminRoutineTeacher[];
+  view: CatalogView;
+  list: AdminRoutineTeacherList;
 }) {
-  // Owned by the list: a teacher added by hand goes when their details are removed.
+  // Owned by the list: teachers added by hand go when their details are removed.
   const { run } = useFormAction();
-  const [query, setQuery] = useState("");
-  const [missingOnly, setMissingOnly] = useState(false);
-  const needle = query.trim().toLowerCase();
-  const rows = items.filter(
-    (t) =>
-      (!needle ||
-        [t.initials, t.name, t.room, t.email].some((v) =>
-          v?.toLowerCase().includes(needle),
-        )) &&
-      (!missingOnly || !t.name),
-  );
-  const named = items.filter((t) => t.name).length;
+  const [selected, setSelected] = useState<string[]>([]);
+  const [removing, setRemoving] = useState(false);
+  const { department } = view;
+  const { items } = list;
+  // Selected rows on this page; ones gone after a removal drop out on their own.
+  const picked = selected.filter((i) => items.some((t) => t.initials === i));
+  const allPicked = items.length > 0 && picked.length === items.length;
+  const toggle = (initials: string, on: boolean) =>
+    setSelected((all) =>
+      on ? [...all, initials] : all.filter((other) => other !== initials),
+    );
+  const filtered = view.q !== "" || view.missing;
 
   return (
     <div className="grid min-w-0 grid-cols-1 gap-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="relative sm:w-72">
+        <Form role="search" className="relative sm:w-72">
+          {department !== "CSE" && (
+            <input type="hidden" name="department" value={department} />
+          )}
+          {view.missing && <input type="hidden" name="missing" value="true" />}
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            key={view.q}
             type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            name="q"
+            defaultValue={view.q}
             placeholder="Search initials, names, rooms…"
             aria-label="Search teachers"
             className="h-8 pl-8"
           />
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          aria-pressed={missingOnly}
-          onClick={() => setMissingOnly((on) => !on)}
+        </Form>
+        <Link
+          to={catalogSearch({ ...view, missing: !view.missing, page: 1 })}
+          aria-pressed={view.missing}
+          preventScrollReset
           className={cn(
-            missingOnly &&
+            buttonVariants({ variant: "outline", size: "sm" }),
+            view.missing &&
               "border-transparent bg-primary-container text-primary-container-foreground",
           )}
         >
           Without a name
-        </Button>
+        </Link>
         <TeacherDialog
           department={department}
           trigger={
@@ -285,18 +300,51 @@ function Teachers({
         />
       </div>
 
-      {rows.length === 0 ? (
+      {picked.length > 0 && (
+        <SelectionBar count={picked.length} onClear={() => setSelected([])}>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => setRemoving(true)}
+          >
+            <Trash2 />
+            Remove details
+          </Button>
+        </SelectionBar>
+      )}
+      <ConfirmAction
+        open={removing}
+        onOpenChange={setRemoving}
+        title={`Remove ${picked.length === 1 ? "1 teacher’s" : `${picked.length} teachers’`} details?`}
+        description={`Their names, rooms, emails and phones are removed; students see only the initials: ${picked.join(", ")}.`}
+        confirmLabel="Remove"
+        destructive
+        successMessage={
+          picked.length === 1
+            ? "Details removed"
+            : `${picked.length} teachers’ details removed`
+        }
+        fields={{
+          intent: "forget-teachers",
+          department,
+          list: picked.join("\n"),
+        }}
+        run={(fields, message, to) => {
+          run(fields, message, to);
+          setSelected([]);
+        }}
+      />
+
+      {items.length === 0 ? (
         <EmptyState
           icon={Contact}
           title={
-            items.length === 0
-              ? `No ${department} teachers yet`
-              : "No matching teachers"
+            filtered ? "No matching teachers" : `No ${department} teachers yet`
           }
           description={
-            items.length === 0
-              ? `Teachers appear here once a ${department} routine PDF is uploaded, or add one.`
-              : undefined
+            filtered
+              ? undefined
+              : `Teachers appear here once a ${department} routine PDF is uploaded, or add one.`
           }
         />
       ) : (
@@ -304,16 +352,50 @@ function Teachers({
           <Table>
             <TableHeader className="bg-surface-high">
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={
+                      allPicked
+                        ? true
+                        : picked.length > 0
+                          ? "indeterminate"
+                          : false
+                    }
+                    onCheckedChange={(on) =>
+                      setSelected(
+                        on === true ? items.map((t) => t.initials) : [],
+                      )
+                    }
+                    aria-label="Select every teacher on this page"
+                  />
+                </TableHead>
                 <TableHead className="w-24">Initials</TableHead>
                 <TableHead>Name</TableHead>
-                <TableHead className="hidden @xl/main:table-cell">
-                  Sits in
+                <TableHead
+                  className="hidden @xl/main:table-cell"
+                  title={
+                    list.version
+                      ? `Their courses in v${list.version}`
+                      : undefined
+                  }
+                >
+                  Teaches
                 </TableHead>
                 <TableHead className="hidden @3xl/main:table-cell">
+                  Sits in
+                </TableHead>
+                <TableHead className="hidden @5xl/main:table-cell">
                   Contact
                 </TableHead>
-                <TableHead className="hidden text-right @3xl/main:table-cell">
-                  Classes a week
+                <TableHead
+                  className="hidden text-right @5xl/main:table-cell"
+                  title={
+                    list.version
+                      ? `Classes a week in v${list.version}`
+                      : undefined
+                  }
+                >
+                  Classes
                 </TableHead>
                 <TableHead className="w-10">
                   <span className="sr-only">Actions</span>
@@ -321,31 +403,46 @@ function Teachers({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((t) => (
-                <TableRow key={t.initials}>
-                  <TableCell className="font-semibold">{t.initials}</TableCell>
-                  <TableCell className="max-w-72 truncate">
-                    {t.name ?? (
-                      <TeacherDialog
-                        department={department}
-                        teacher={t}
-                        trigger={
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="-ml-2 h-7 text-muted-foreground"
-                          >
-                            <Pencil />
-                            Add details
-                          </Button>
-                        }
-                      />
-                    )}
+              {items.map((t) => (
+                <TableRow
+                  key={t.initials}
+                  data-state={
+                    picked.includes(t.initials) ? "selected" : undefined
+                  }
+                >
+                  <TableCell>
+                    <Checkbox
+                      checked={picked.includes(t.initials)}
+                      onCheckedChange={(on) => toggle(t.initials, on === true)}
+                      aria-label={`Select ${t.initials}`}
+                    />
                   </TableCell>
-                  <TableCell className="hidden text-muted-foreground @xl/main:table-cell">
+                  <TableCell className="font-semibold">{t.initials}</TableCell>
+                  <TableCell className="min-w-52">
+                    <InlineEdit
+                      label={`Name of ${t.initials}`}
+                      defaultValue={t.name ?? ""}
+                      placeholder="Add a name"
+                      name="name"
+                      maxLength={120}
+                      // The other details go along, so saving a name keeps them.
+                      fields={{
+                        intent: "teacher",
+                        department,
+                        initials: t.initials,
+                        room: t.room ?? "",
+                        email: t.email ?? "",
+                        phone: t.phone ?? "",
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell className="hidden max-w-56 text-sm leading-snug whitespace-normal text-muted-foreground @xl/main:table-cell">
+                    {t.courses.join(", ") || "—"}
+                  </TableCell>
+                  <TableCell className="hidden text-muted-foreground @3xl/main:table-cell">
                     {t.room ?? "—"}
                   </TableCell>
-                  <TableCell className="hidden @3xl/main:table-cell">
+                  <TableCell className="hidden @5xl/main:table-cell">
                     <span className="grid gap-0.5 text-sm text-muted-foreground">
                       {t.email && (
                         <span className="flex items-center gap-1.5">
@@ -362,8 +459,8 @@ function Teachers({
                       {!t.email && !t.phone && "—"}
                     </span>
                   </TableCell>
-                  <TableCell className="hidden text-right text-muted-foreground tabular-nums @3xl/main:table-cell">
-                    {t.liveClasses || "—"}
+                  <TableCell className="hidden text-right text-muted-foreground tabular-nums @5xl/main:table-cell">
+                    {t.classes || "—"}
                   </TableCell>
                   <TableCell>
                     <RowActions teacher={t} run={run} />
@@ -374,8 +471,15 @@ function Teachers({
           </Table>
         </div>
       )}
+      <TablePagination
+        page={list.page}
+        pageSize={list.pageSize}
+        total={list.total}
+        noun="teacher"
+        hrefFor={(page) => catalogSearch({ ...view, page }) || "?"}
+      />
       <p className="px-1 text-sm text-muted-foreground">
-        {named} of {items.length} teachers have a name
+        {list.named} of {list.all} {department} teachers have a name
       </p>
     </div>
   );
@@ -384,15 +488,19 @@ function Teachers({
 export default function AdminRoutineTeachers({
   loaderData,
 }: Route.ComponentProps) {
-  const { department, items } = loaderData;
+  const { view, list } = loaderData;
   return (
     <>
       <AdminPageHeader
         title="Teachers"
-        description="DIU’s routine PDFs give teachers’ initials (EEE’s also lists names, phones and emails). Names, the room where a teacher sits, emails and phones added here show with their classes for students right away."
+        description="DIU’s routine PDFs give teachers’ initials (EEE’s also lists names, phones and emails). Type a name and press Enter to save it and go on to the next; the room where a teacher sits, their email and phone are in each row’s menu. Students see them right away."
       />
-      <UrlTabs label="Departments" tabs={departmentTabs} value={department}>
-        <Teachers key={department} department={department} items={items} />
+      <UrlTabs
+        label="Departments"
+        tabs={departmentTabs}
+        value={view.department}
+      >
+        <Teachers key={view.department} view={view} list={list} />
       </UrlTabs>
     </>
   );

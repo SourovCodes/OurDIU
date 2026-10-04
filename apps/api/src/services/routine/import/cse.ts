@@ -28,6 +28,7 @@ import type { RoutineImport } from "./types";
 // in every cell ("KT-208", or "G1-003" over "(COM LAB)" for a lab), the course with
 // its section ("CSE315(67_I)", lab group "CSE322(67_J1)"), the teacher's initials. A
 // lab fills two cells in a row. Course titles and teachers' names aren't in it.
+// Retake sections ("RE_A(3C)") are left out: OurDIU shows batches' own sections.
 
 export const CSE_HEADING = "Class Routine for CSE Program";
 
@@ -39,6 +40,8 @@ const COURSE_SECTION = /^([A-Z]{2,6}\d{2,4}[A-Z]?)\((.+)\)$/;
 const COURSE_LIKE = /^[A-Z]{2,6}\d{3}/;
 /** A room's name as the first line of its cell: KT-318(A), G1-003, CTBA-01. */
 const ROOM = /^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+(?:\([A-Z0-9]{1,3}\))?$/;
+/** A retake section: RE_A(3C), RE_A1(1.5C), 63_RE_B. They're left out. */
+const RETAKE = /(?:^|_)RE_/;
 /** A regular section's lab group: 67_J1 is group J1 of 67_J. */
 const LAB_GROUP = /^(\d+_([A-Z]+))(\d+)$/;
 /** A room's name is at most this far above its cell's course, over several lines… */
@@ -249,6 +252,8 @@ export function readCseRoutine(pages: PdfText[][]): RoutineImport {
       }
 
       const { section, labGroup } = sectionOf(course[2]!);
+      // Retake sections aren't part of OurDIU's routine.
+      if (RETAKE.test(section)) continue;
       if (tidySection(course[2]!) !== course[2] && !tidied.has(course[2]!)) {
         tidied.add(course[2]!);
         notes.push(

@@ -15,6 +15,7 @@ import '../../widgets/question_row.dart';
 import '../../widgets/skeleton.dart';
 import '../../widgets/state_message.dart';
 import 'routine_widgets.dart';
+import 'teacher_sheet.dart';
 
 // The Class Routine's space (docs/PLAN.md, decision 29): Today, Week and Find tabs
 // in the routine's teal, like the Question Bank's own tabs.
@@ -471,6 +472,15 @@ class _SectionBody extends StatelessWidget {
               ?.copyWith(fontWeight: FontWeight.w700),
         ),
         _CourseList(classes),
+        if (teachersWithDetails(classes).isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Teachers',
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          _TeacherList(classes),
+        ],
         Text(
           'DIU’s CSE class routine, version ${routine.version.version}. When a new one comes out, the app follows it.',
           style: Theme.of(context).textTheme.bodySmall
@@ -517,6 +527,45 @@ class _CourseList extends StatelessWidget {
                 ),
               );
             },
+          ),
+      ],
+    );
+  }
+}
+
+/// A section's teachers: tap one for where they sit and how to reach them.
+class _TeacherList extends StatelessWidget {
+  const _TeacherList(this.classes);
+
+  final List<RoutineClass> classes;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final teachers = teachersWithDetails(classes);
+    return RowGroup(
+      children: [
+        for (final t in teachers)
+          Material(
+            color: scheme.surfaceContainer,
+            child: ListTile(
+              title: Text(t.name ?? t.initials),
+              subtitle: Text(
+                [
+                  if (t.name != null) t.initials,
+                  coursesOf(t, classes).join(', '),
+                  if (t.room case final room?) 'Sits in $room',
+                ].join(' · '),
+              ),
+              trailing: t.email != null || t.phone != null
+                  ? Icon(Icons.contact_mail_outlined, color: scheme.primary)
+                  : const Icon(Icons.chevron_right_rounded),
+              onTap: () => showTeacherSheet(
+                context,
+                teacher: t,
+                courses: coursesOf(t, classes),
+              ),
+            ),
           ),
       ],
     );

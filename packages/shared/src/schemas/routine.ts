@@ -13,7 +13,7 @@ import {
   ROUTINE_WARNING_KINDS,
   routineMinutes,
 } from "../constants";
-import { nullableRef } from "./common";
+import { nullableRef, paginatedSchema, paginationQuerySchema } from "./common";
 
 // ── The routine file ─────────────────────────────────────────────────────────
 // DIU publishes each department's routine as a PDF; an admin uploads it and OurDIU's
@@ -44,6 +44,11 @@ const teacherInitialsSchema = z.string().regex(ROUTINE_TEACHER_PATTERN, {
   error: 'Use the teacher\'s initials as printed: "STA"',
 });
 const nameSchema = z.string().trim().min(1).max(120);
+
+/** A routine's version as DIU numbers it: "4.1". */
+const versionNumberSchema = z.string().regex(/^\d{1,3}(\.\d{1,3}){0,2}$/, {
+  error: 'Use numbers and dots, like "4.1"',
+});
 
 /** A time slot of the routine: "13:00" to "14:30". */
 export const routineSlotSchema = z
@@ -87,9 +92,7 @@ export const routineFileSchema = z
     }),
     department: routineDepartmentSchema,
     /** As printed on DIU's PDF: "4.1". */
-    version: z.string().regex(/^\d{1,3}(\.\d{1,3}){0,2}$/, {
-      error: 'Use the version as printed on the routine: "4.1"',
-    }),
+    version: versionNumberSchema,
     /** When DIU published it. */
     publishedOn: z.iso
       .date({ error: 'Use a date like "2026-10-04"' })
@@ -350,6 +353,18 @@ export const adminRoutineVersionDetailSchema = adminRoutineVersionSchema
   .extend({
     /** Its sections, for previewing one as students will see it. */
     sections: z.array(z.string()),
+    /**
+     * Its courses and teachers, and how many have a title or a name (kept per
+     * department, so this changes as admins add them).
+     */
+    catalog: z
+      .object({
+        courses: z.number().int(),
+        titled: z.number().int(),
+        teachers: z.number().int(),
+        named: z.number().int(),
+      })
+      .meta({ id: "RoutineVersionCatalog" }),
     warnings: z.array(routineWarningSchema),
     /** The version the changes are counted against: the live one, if another is. */
     comparedWith: z.string().nullable(),
@@ -381,8 +396,13 @@ export function routineFilePath(path: readonly PropertyKey[]): string {
 // Kept per department across versions; DIU's PDFs don't have titles (and CSE's no
 // teachers' names), so admins add them.
 
-export const adminRoutineDepartmentQuerySchema = z.object({
+/** A page of a department's courses or teachers, maybe searched or only those missing a title or name. */
+export const adminRoutineCatalogQuerySchema = paginationQuerySchema.extend({
   department: routineDepartmentSchema,
+  /** Part of a code, initials, title or name. */
+  q: z.string().trim().max(100).optional(),
+  /** Only those without a title (courses) or a name (teachers). */
+  missing: z.enum(["true", "false"]).optional(),
 });
 
 export const adminRoutineCourseSchema = z
@@ -390,14 +410,22 @@ export const adminRoutineCourseSchema = z
     department: routineDepartmentSchema,
     code: z.string(),
     title: z.string().nullable(),
-    /** Sections taking it in the live version; 0 if it's not in it. */
-    liveSections: z.number().int(),
+    /** Sections taking it in the current version (the live one, else the newest); 0 if it's not in it. */
+    sections: z.number().int(),
   })
   .meta({ id: "AdminRoutineCourse" });
 export type AdminRoutineCourse = z.infer<typeof adminRoutineCourseSchema>;
 
-export const adminRoutineCourseListSchema = z
-  .object({ items: z.array(adminRoutineCourseSchema) })
+export const adminRoutineCourseListSchema = paginatedSchema(
+  adminRoutineCourseSchema,
+)
+  .extend({
+    /** All the department's courses, whatever the search, and how many have a title. */
+    all: z.number().int(),
+    titled: z.number().int(),
+    /** The version counted in: the live one, else the newest; null before any. */
+    version: z.string().nullable(),
+  })
   .meta({ id: "AdminRoutineCourseList" });
 export type AdminRoutineCourseList = z.infer<
   typeof adminRoutineCourseListSchema
@@ -407,6 +435,27 @@ export const routineCourseParamsSchema = z.object({
   department: routineDepartmentSchema,
   code: courseCodeSchema,
 });
+
+/** Several courses' titles to take away at once. */
+export const routineCoursesRemoveInputSchema = z
+  .object({
+    department: routineDepartmentSchema,
+    codes: z.array(courseCodeSchema).min(1).max(500),
+  })
+  .meta({ id: "RoutineCoursesRemoveInput" });
+
+/** Several teachers' details to forget at once. */
+export const routineTeachersRemoveInputSchema = z
+  .object({
+    department: routineDepartmentSchema,
+    initials: z.array(teacherInitialsSchema).min(1).max(500),
+  })
+  .meta({ id: "RoutineTeachersRemoveInput" });
+
+/** How many a bulk removal removed. */
+export const routineRemovedSchema = z
+  .object({ removed: z.number().int() })
+  .meta({ id: "RoutineRemoved" });
 
 export const routineCourseInputSchema = z
   .object({ title: z.string().trim().min(2).max(200) })
@@ -421,14 +470,24 @@ export const adminRoutineTeacherSchema = z
     phone: z.string().nullable(),
     email: z.string().nullable(),
     room: z.string().nullable(),
-    /** Classes a week in the live version; 0 if not in it. */
-    liveClasses: z.number().int(),
+    /** Classes a week in the current version (the live one, else the newest); 0 if not in it. */
+    classes: z.number().int(),
+    /** The courses they teach in the current version, by code. */
+    courses: z.array(z.string()),
   })
   .meta({ id: "AdminRoutineTeacher" });
 export type AdminRoutineTeacher = z.infer<typeof adminRoutineTeacherSchema>;
 
-export const adminRoutineTeacherListSchema = z
-  .object({ items: z.array(adminRoutineTeacherSchema) })
+export const adminRoutineTeacherListSchema = paginatedSchema(
+  adminRoutineTeacherSchema,
+)
+  .extend({
+    /** All the department's teachers, whatever the search, and how many have a name. */
+    all: z.number().int(),
+    named: z.number().int(),
+    /** The version counted in: the live one, else the newest; null before any. */
+    version: z.string().nullable(),
+  })
   .meta({ id: "AdminRoutineTeacherList" });
 export type AdminRoutineTeacherList = z.infer<
   typeof adminRoutineTeacherListSchema
@@ -462,3 +521,9 @@ export const routineTeacherInputSchema = z
   })
   .meta({ id: "RoutineTeacherInput" });
 export type RoutineTeacherInput = z.infer<typeof routineTeacherInputSchema>;
+
+/** A version's number, set by an admin when DIU's PDF has none or another. */
+export const routineVersionInputSchema = z
+  .object({ version: versionNumberSchema })
+  .meta({ id: "RoutineVersionInput" });
+export type RoutineVersionInput = z.infer<typeof routineVersionInputSchema>;

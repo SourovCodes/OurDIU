@@ -11,7 +11,7 @@ AdminRoutineCourse _$AdminRoutineCourseFromJson(Map<String, dynamic> json) =>
       department: RoutineDepartment.fromJson(json['department'] as String),
       code: json['code'] as String,
       title: json['title'] as String?,
-      liveSections: (json['liveSections'] as num).toInt(),
+      sections: (json['sections'] as num).toInt(),
     );
 
 Map<String, dynamic> _$AdminRoutineCourseToJson(AdminRoutineCourse instance) =>
@@ -19,7 +19,7 @@ Map<String, dynamic> _$AdminRoutineCourseToJson(AdminRoutineCourse instance) =>
       'department': _$RoutineDepartmentEnumMap[instance.department]!,
       'code': instance.code,
       'title': instance.title,
-      'liveSections': instance.liveSections,
+      'sections': instance.sections,
     };
 
 const _$RoutineDepartmentEnumMap = {

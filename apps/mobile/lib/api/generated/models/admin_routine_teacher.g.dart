@@ -14,7 +14,10 @@ AdminRoutineTeacher _$AdminRoutineTeacherFromJson(Map<String, dynamic> json) =>
       phone: json['phone'] as String?,
       email: json['email'] as String?,
       room: json['room'] as String?,
-      liveClasses: (json['liveClasses'] as num).toInt(),
+      classes: (json['classes'] as num).toInt(),
+      courses: (json['courses'] as List<dynamic>)
+          .map((e) => e as String)
+          .toList(),
     );
 
 Map<String, dynamic> _$AdminRoutineTeacherToJson(
@@ -26,7 +29,8 @@ Map<String, dynamic> _$AdminRoutineTeacherToJson(
   'phone': instance.phone,
   'email': instance.email,
   'room': instance.room,
-  'liveClasses': instance.liveClasses,
+  'classes': instance.classes,
+  'courses': instance.courses,
 };
 
 const _$RoutineDepartmentEnumMap = {

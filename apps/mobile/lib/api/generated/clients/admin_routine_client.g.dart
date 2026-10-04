@@ -50,9 +50,11 @@ class _AdminRoutineClient implements AdminRoutineClient {
   @override
   Future<AdminRoutineVersionDetail> postApiV1AdminRoutineVersions({
     required File file,
+    String? version,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
     final _data = FormData();
     _data.files.add(
@@ -64,6 +66,9 @@ class _AdminRoutineClient implements AdminRoutineClient {
         ),
       ),
     );
+    if (version != null) {
+      _data.fields.add(MapEntry('version', version));
+    }
     final _options = _setStreamType<AdminRoutineVersionDetail>(
       Options(
             method: 'POST',
@@ -100,6 +105,37 @@ class _AdminRoutineClient implements AdminRoutineClient {
     const Map<String, dynamic>? _data = null;
     final _options = _setStreamType<AdminRoutineVersionDetail>(
       Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/api/v1/admin/routine/versions/${id}',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, Object?>>(_options);
+    late AdminRoutineVersionDetail _value;
+    try {
+      _value = AdminRoutineVersionDetail.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<AdminRoutineVersionDetail> patchApiV1AdminRoutineVersionsId({
+    required int id,
+    required RoutineVersionInput body,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = <String, dynamic>{};
+    _data.addAll(body.toJson());
+    final _options = _setStreamType<AdminRoutineVersionDetail>(
+      Options(method: 'PATCH', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
             '/api/v1/admin/routine/versions/${id}',
@@ -228,9 +264,20 @@ class _AdminRoutineClient implements AdminRoutineClient {
   @override
   Future<AdminRoutineCourseList> getApiV1AdminRoutineCourses({
     required RoutineDepartment department,
+    String? q,
+    Missing? missing,
+    int? page = 1,
+    int? pageSize = 20,
   }) async {
     final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{r'department': department};
+    final queryParameters = <String, dynamic>{
+      r'department': department,
+      r'q': q,
+      r'missing': missing,
+      r'page': page,
+      r'pageSize': pageSize,
+    };
+    queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
     final _options = _setStreamType<AdminRoutineCourseList>(
@@ -247,6 +294,36 @@ class _AdminRoutineClient implements AdminRoutineClient {
     late AdminRoutineCourseList _value;
     try {
       _value = AdminRoutineCourseList.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<RoutineRemoved> postApiV1AdminRoutineCoursesRemove({
+    required RoutineCoursesRemoveInput body,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = <String, dynamic>{};
+    _data.addAll(body.toJson());
+    final _options = _setStreamType<RoutineRemoved>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/api/v1/admin/routine/courses/remove',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, Object?>>(_options);
+    late RoutineRemoved _value;
+    try {
+      _value = RoutineRemoved.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;
@@ -311,9 +388,20 @@ class _AdminRoutineClient implements AdminRoutineClient {
   @override
   Future<AdminRoutineTeacherList> getApiV1AdminRoutineTeachers({
     required RoutineDepartment department,
+    String? q,
+    Missing? missing,
+    int? page = 1,
+    int? pageSize = 20,
   }) async {
     final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{r'department': department};
+    final queryParameters = <String, dynamic>{
+      r'department': department,
+      r'q': q,
+      r'missing': missing,
+      r'page': page,
+      r'pageSize': pageSize,
+    };
+    queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
     final _options = _setStreamType<AdminRoutineTeacherList>(
@@ -330,6 +418,36 @@ class _AdminRoutineClient implements AdminRoutineClient {
     late AdminRoutineTeacherList _value;
     try {
       _value = AdminRoutineTeacherList.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<RoutineRemoved> postApiV1AdminRoutineTeachersRemove({
+    required RoutineTeachersRemoveInput body,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = <String, dynamic>{};
+    _data.addAll(body.toJson());
+    final _options = _setStreamType<RoutineRemoved>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/api/v1/admin/routine/teachers/remove',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, Object?>>(_options);
+    late RoutineRemoved _value;
+    try {
+      _value = RoutineRemoved.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;

@@ -16,10 +16,15 @@ import '../models/admin_routine_teacher.dart';
 import '../models/admin_routine_teacher_list.dart';
 import '../models/admin_routine_version_detail.dart';
 import '../models/admin_routine_version_list.dart';
+import '../models/missing.dart';
 import '../models/routine_course_input.dart';
+import '../models/routine_courses_remove_input.dart';
 import '../models/routine_department.dart';
+import '../models/routine_removed.dart';
 import '../models/routine_section.dart';
 import '../models/routine_teacher_input.dart';
+import '../models/routine_teachers_remove_input.dart';
+import '../models/routine_version_input.dart';
 
 part 'admin_routine_client.g.dart';
 
@@ -38,6 +43,7 @@ abstract class AdminRoutineClient {
   @POST('/api/v1/admin/routine/versions')
   Future<AdminRoutineVersionDetail> postApiV1AdminRoutineVersions({
     @Part(name: 'file') required File file,
+    @Part(name: 'version') String? version,
   });
 
   /// A version with its warnings and changes.
@@ -48,7 +54,18 @@ abstract class AdminRoutineClient {
     @Path('id') required int id,
   });
 
-  /// Delete a version that isn't live, with its PDF
+  /// Change a version's number.
+  ///
+  /// Students see the new number right away if it's live. A department's numbers are each used once.
+  @PATCH('/api/v1/admin/routine/versions/{id}')
+  Future<AdminRoutineVersionDetail> patchApiV1AdminRoutineVersionsId({
+    @Path('id') required int id,
+    @Body() required RoutineVersionInput body,
+  });
+
+  /// Delete a version, with its PDF.
+  ///
+  /// Deleting the live version leaves the department without a routine until another version is made live.
   @DELETE('/api/v1/admin/routine/versions/{id}')
   Future<void> deleteApiV1AdminRoutineVersionsId({@Path('id') required int id});
 
@@ -76,12 +93,22 @@ abstract class AdminRoutineClient {
     @Path('id') required int id,
   });
 
-  /// A department's courses and their titles.
+  /// A department's courses and their titles, a page at a time.
   ///
-  /// The codes in any of the department's versions, and any given a title, by code.
+  /// The codes in any of the department's versions, and any given a title, by code. `q` searches codes and titles; `missing=true` keeps those without a title.
   @GET('/api/v1/admin/routine/courses')
   Future<AdminRoutineCourseList> getApiV1AdminRoutineCourses({
     @Query('department') required RoutineDepartment department,
+    @Query('q') String? q,
+    @Query('missing') Missing? missing,
+    @Query('page') int? page = 1,
+    @Query('pageSize') int? pageSize = 20,
+  });
+
+  /// Take several courses' titles away
+  @POST('/api/v1/admin/routine/courses/remove')
+  Future<RoutineRemoved> postApiV1AdminRoutineCoursesRemove({
+    @Body() required RoutineCoursesRemoveInput body,
   });
 
   /// Give a course its title.
@@ -101,12 +128,22 @@ abstract class AdminRoutineClient {
     @Path('code') required String code,
   });
 
-  /// A department's teachers and their details.
+  /// A department's teachers and their details, a page at a time.
   ///
-  /// The initials in any of the department's versions, and any added by hand, by initials.
+  /// The initials in any of the department's versions, and any added by hand, by initials. `q` searches initials, names, rooms, emails, phones and course codes; `missing=true` keeps those without a name.
   @GET('/api/v1/admin/routine/teachers')
   Future<AdminRoutineTeacherList> getApiV1AdminRoutineTeachers({
     @Query('department') required RoutineDepartment department,
+    @Query('q') String? q,
+    @Query('missing') Missing? missing,
+    @Query('page') int? page = 1,
+    @Query('pageSize') int? pageSize = 20,
+  });
+
+  /// Forget several teachers' details
+  @POST('/api/v1/admin/routine/teachers/remove')
+  Future<RoutineRemoved> postApiV1AdminRoutineTeachersRemove({
+    @Body() required RoutineTeachersRemoveInput body,
   });
 
   /// Set a teacher's name, phone, email and room.

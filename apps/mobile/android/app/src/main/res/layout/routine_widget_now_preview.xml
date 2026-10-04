@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The small widget's preview in the widget picker. -->
+<!-- The widget's preview in the widget picker. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/routine_widget_root"
     android:layout_width="match_parent"
@@ -47,7 +47,7 @@
 
         <TextView
             android:id="@+id/routine_widget_line"
-            android:text="KT-208 · Lab"
+            android:text="KT-208 · AS"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"

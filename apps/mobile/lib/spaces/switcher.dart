@@ -148,6 +148,7 @@ class _SwitcherSheet extends ConsumerWidget {
               _SwitcherTile(
                 space: space,
                 current: space == current,
+                soon: ref.watch(spaceSoonProvider(space)),
                 onTap: () {
                   Navigator.of(context).pop();
                   if (space != current) openSpace(outer, ref, space);
@@ -174,11 +175,13 @@ class _SwitcherTile extends StatelessWidget {
   const _SwitcherTile({
     required this.space,
     required this.current,
+    required this.soon,
     required this.onTap,
   });
 
   final Space space;
   final bool current;
+  final bool soon;
   final VoidCallback onTap;
 
   @override
@@ -226,7 +229,7 @@ class _SwitcherTile extends StatelessWidget {
                 ),
                 if (current)
                   Icon(Icons.check_circle_rounded, color: colors.accent)
-                else if (!space.live)
+                else if (soon)
                   SpaceBadge('Coming soon', colors: colors),
               ],
             ),

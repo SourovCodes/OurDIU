@@ -394,6 +394,65 @@ export function dayWord(day: RoutineDay, daysAhead: number) {
   return ROUTINE_DAY_NAMES[dayIndex(day)]!;
 }
 
+/**
+ * What Today shows: the class in its card (the one on now, else the next one
+ * today) and the list under it (the rest of today; once today's are over, or on
+ * a day off, the next class day's). Nothing appears in both. Before the clock is
+ * known (`now` null, while hydrating): no card class, and the whole of `today`.
+ */
+export function todayPlan<C extends RoutineClass>(
+  classes: C[],
+  today: RoutineDay,
+  now: { day: RoutineDay; minutes: number } | null,
+): {
+  focus: { c: C; state: "now" | "next" } | null;
+  /** "Done for today" or "No classes today" when there's no class to show. */
+  over: "done" | "off" | null;
+  list: { heading: string; classes: C[] } | null;
+} {
+  if (!now) {
+    const todays = classes.filter((c) => c.day === today);
+    return {
+      focus: null,
+      over: null,
+      list: todays.length ? { heading: "Today", classes: todays } : null,
+    };
+  }
+  const todays = classes.filter((c) => c.day === now.day);
+  const current = todays.find((c) => classState(c, now) === "now");
+  const later = todays.filter((c) => classState(c, now) === "later");
+  const focus = current
+    ? { c: current, state: "now" as const }
+    : later[0]
+      ? { c: later[0], state: "next" as const }
+      : null;
+  if (focus) {
+    const rest = later.filter((c) => c !== focus.c);
+    return {
+      focus,
+      over: null,
+      list: rest.length ? { heading: "Later today", classes: rest } : null,
+    };
+  }
+  const next = nextClass(classes, now);
+  const name = next ? ROUTINE_DAY_NAMES[dayIndex(next.c.day)]! : "";
+  return {
+    focus: null,
+    over: todays.length ? "done" : "off",
+    list: next
+      ? {
+          heading:
+            next.daysAhead === 1
+              ? `Tomorrow, ${name}`
+              : dayWord(next.c.day, next.daysAhead),
+          classes: classes.filter((c) => c.day === next.c.day),
+        }
+      : null,
+  };
+}
+
+export type TodayPlan = ReturnType<typeof todayPlan<ShownClass>>;
+
 /** The day of the month of each day of this university week (Saturday to Friday), in Dhaka. */
 export function weekDates(date = new Date()): Record<RoutineDay, number> {
   const ymd = new Intl.DateTimeFormat("en-CA", {

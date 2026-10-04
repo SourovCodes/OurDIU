@@ -8,9 +8,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/routine.dart';
 
-// The Class Routine's home-screen widgets (Android, docs/PLAN.md decision 35): the
-// app hands them the saved routine's week, and a tap on one opens Today. The
-// widgets themselves (android/…/RoutineWidgets.kt) work out "now" and "next".
+// The Class Routine's home-screen widget (Android, docs/PLAN.md decisions 35-36): the
+// app hands it the saved routine's week, and a tap on it opens Today. The
+// widget itself (android/…/RoutineWidgets.kt) works out "now" and "next".
 
 const _channel = MethodChannel('ourdiu/routine_widget');
 

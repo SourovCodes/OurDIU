@@ -799,11 +799,6 @@ class _PaperOption extends StatelessWidget {
                             fg,
                           ),
                           _Stat(
-                            Icons.visibility_outlined,
-                            compactCount(paper.viewCount),
-                            fg,
-                          ),
-                          _Stat(
                             Icons.picture_as_pdf_outlined,
                             fileSize(paper.fileSize),
                             fg,

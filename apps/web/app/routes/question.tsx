@@ -43,7 +43,6 @@ import {
 } from "~/lib/engagement";
 import { hasSessionCookie, requireUser } from "~/lib/session.server";
 import { paperTitles, plural, pickSubmission } from "~/lib/submissions";
-import { formatViews } from "~/lib/format";
 import type { RootLoader } from "~/root";
 import type { Route } from "./+types/question";
 import { breadcrumbJsonLd, originOf, pageMeta, QB_NAME } from "~/lib/seo";
@@ -310,8 +309,7 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
             >
               {question.department.shortName} ·{" "}
             </Link>
-            {question.examType.name} · {question.semester.name} ·{" "}
-            {formatViews(question.viewCount)}
+            {question.examType.name} · {question.semester.name}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2 max-sm:w-full">

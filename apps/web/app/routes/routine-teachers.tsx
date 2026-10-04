@@ -83,14 +83,7 @@ export default function RoutineTeachers({ loaderData }: Route.ComponentProps) {
   return (
     <div className="space-y-10 pt-2 sm:pt-6">
       <header className="space-y-6">
-        <div className="space-y-2">
-          <p className="text-sm font-semibold text-muted-foreground">
-            {teachers
-              ? `DIU’s ${name} routine v${teachers.version.version} · ${all.length} teachers`
-              : `DIU’s ${name} routine`}
-          </p>
-          <h1 className="font-display-xl text-5xl sm:text-7xl">Teachers</h1>
-        </div>
+        <h1 className="font-display-xl text-5xl sm:text-7xl">Teachers</h1>
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <DepartmentSwitch
             departments={departments}
@@ -166,21 +159,11 @@ export default function RoutineTeachers({ loaderData }: Route.ComponentProps) {
                   to={teacherHref({ department, teacher: t.initials })}
                   prefetch="intent"
                   className={cn(
-                    "flex items-center gap-3.5 rounded-2xl bg-surface px-4 py-3 transition-colors hover:state-layer",
+                    "flex items-center rounded-2xl bg-surface px-4 py-3 transition-colors hover:state-layer",
                     mine === t.initials &&
                       "bg-primary-container text-primary-container-foreground",
                   )}
                 >
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "flex size-12 shrink-0 items-center justify-center rounded-2xl bg-surface-highest text-sm font-bold",
-                      mine === t.initials &&
-                        "bg-primary text-primary-foreground",
-                    )}
-                  >
-                    {t.initials}
-                  </span>
                   <span className="grid min-w-0">
                     <span className="truncate font-semibold">
                       {teacherName(t)}
@@ -196,9 +179,6 @@ export default function RoutineTeachers({ loaderData }: Route.ComponentProps) {
                         .filter(Boolean)
                         .join(" · ")}
                     </span>
-                  </span>
-                  <span className="ml-auto shrink-0 text-xs tabular-nums opacity-75">
-                    {t.classCount} a week
                   </span>
                 </Link>
               </li>

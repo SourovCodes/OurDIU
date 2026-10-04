@@ -252,25 +252,18 @@ class DayClasses extends StatelessWidget {
   }
 }
 
-/// A class in a few words: "CSE321, KT-222", with the sections in a teacher's
-/// week.
-String _briefly(RoutineClass c) => [
-  c.course.title ?? c.course.code,
-  if (c case AttendedClass(:final sections)) attendingLabel(sections),
-  c.room,
-].join(', ');
-
 /// The one thing to know now, as a tile in the space's colour: the class you're
-/// in, the next one today, or (after the last, or on a day off) the next class.
+/// in or the next one today (from [todayPlan]), else "Done for today" or "No
+/// classes today". What comes after is the list under it, never repeated here.
 class TodayCard extends StatelessWidget {
   const TodayCard({
     super.key,
-    required this.classes,
+    required this.plan,
     required this.section,
     required this.now,
   });
 
-  final List<RoutineClass> classes;
+  final TodayPlan plan;
   final String section;
   final DhakaNow now;
 
@@ -279,105 +272,82 @@ class TodayCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final on = scheme.onPrimaryContainer;
     final muted = on.withValues(alpha: 0.85);
-    final todays = [
-      for (final c in classes)
-        if (c.day == now.day) c,
-    ];
-    final current = todays
-        .where((c) => classState(c, now) == ClassState.now)
-        .firstOrNull;
-    final next = nextClass(classes, now);
-
-    String eyebrow;
-    String headline;
-    RoutineClass? focus;
-    String? detail;
-    String? after;
-    if (current != null) {
-      eyebrow = 'In class now · until ${clockTime(current.end)}';
-      headline = current.course.title ?? current.course.code;
-      focus = current;
-      detail = '${minutesOf(current.end) - now.minutes} min left';
-      if (next != null && next.daysAhead == 0) {
-        after = 'Next at ${clockTime(next.c.start)}: ${_briefly(next.c)}';
-      }
-    } else if (next != null && next.daysAhead == 0) {
-      eyebrow =
-          'Next class · in ${_wait(minutesOf(next.c.start) - now.minutes)}';
-      headline = next.c.course.title ?? next.c.course.code;
-      focus = next.c;
-      detail = timeRange(next.c.start, next.c.end);
-    } else {
-      eyebrow = dayName(now.day);
-      headline = todays.isEmpty ? 'No classes today' : 'Done for today';
-      if (next != null) {
-        after =
-            '${dayWord(next.c.day, next.daysAhead)} at ${clockTime(next.c.start)}: ${_briefly(next.c)}';
-      }
-    }
+    final focus = plan.focus;
+    final eyebrow = switch (focus) {
+      (c: final c, on: true) => 'Now · until ${clockTime(c.end)}',
+      (c: final c, on: false) =>
+        'Next · in ${_wait(minutesOf(c.start) - now.minutes)}',
+      null => null,
+    };
+    final headline = focus != null
+        ? focus.c.course.title ?? focus.c.course.code
+        : plan.done == true
+        ? 'Done for today'
+        : 'No classes today';
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(28),
       child: ColoredBox(
         color: scheme.primaryContainer,
-        child: Stack(
-          children: [
-            Positioned(
-              right: -36,
-              bottom: -48,
-              child: Transform.rotate(
-                angle: 0.2,
-                child: ExamShape(
-                  ExamKind.midterm,
-                  color: scheme.primary.withValues(alpha: 0.15),
-                  size: 180,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 120),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -36,
+                bottom: -48,
+                child: Transform.rotate(
+                  angle: 0.2,
+                  child: ExamShape(
+                    ExamKind.midterm,
+                    color: scheme.primary.withValues(alpha: 0.15),
+                    size: 180,
+                  ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(22, 20, 22, 22),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: 10,
-                children: [
-                  Text(
-                    eyebrow,
-                    style: Theme.of(context).textTheme.labelLarge
-                        ?.copyWith(color: muted, fontWeight: FontWeight.w600),
-                  ),
-                  Text(
-                    headline,
-                    style: expressive(30, color: on).copyWith(height: 1.08),
-                  ),
-                  if (focus != null)
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        if (detail != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(22, 20, 22, 22),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 10,
+                  children: [
+                    if (eyebrow != null)
+                      Text(
+                        eyebrow,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: muted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    Text(
+                      headline,
+                      style: expressive(30, color: on).copyWith(height: 1.08),
+                    ),
+                    if (focus != null)
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
                           Text(
-                            detail,
+                            focus.on
+                                ? '${minutesOf(focus.c.end) - now.minutes} min left'
+                                : timeRange(focus.c.start, focus.c.end),
                             style: TextStyle(
                               color: on,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                        if (isLab(focus))
-                          LabTag(section: section, group: focus.labGroup),
-                        ClassPlace(focus, color: muted),
-                      ],
-                    ),
-                  if (after != null)
-                    Text(
-                      after,
-                      style: Theme.of(context).textTheme.bodyMedium
-                          ?.copyWith(color: muted),
-                    ),
-                ],
+                          if (isLab(focus.c))
+                            LabTag(section: section, group: focus.c.labGroup),
+                          ClassPlace(focus.c, color: muted),
+                        ],
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

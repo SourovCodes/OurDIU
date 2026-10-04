@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { ComingSoon } from "~/components/coming-soon";
 import { ExamShape } from "~/components/exam-badge";
 import {
-  DayTabs,
+  DayClasses,
   RoutineLinks,
   TodayCard,
   useDhakaNow,
@@ -15,8 +15,7 @@ import {
   rememberedDepartment,
   savedRoutine,
   teachersHref,
-  weekDates,
-  weekDays,
+  todayPlan,
 } from "~/lib/routine";
 import { myRoutine, routineLists } from "~/lib/routine.server";
 import { pageMeta } from "~/lib/seo";
@@ -36,20 +35,18 @@ export const meta: Route.MetaFunction = () =>
  * teacher's week, they made theirs), else the two ways to find one.
  */
 export async function loader({ request }: Route.LoaderArgs) {
-  const { live, departments } = await routineLists(request);
+  const { live } = await routineLists(request);
   const cookie = request.headers.get("cookie");
   const remembered = rememberedDepartment(cookie);
   return {
     // Until any routine is live, the space stays "coming soon".
     anyLive: live.length > 0,
-    departments,
     // Where "Find your section" and "Find a teacher" lead.
     department:
       remembered && live.includes(remembered) ? remembered : (live[0] ?? "cse"),
     mine: await myRoutine(request, savedRoutine(cookie), live),
     serverDay: dhakaNow().day,
     serverMinute: Math.floor(Date.now() / 60_000),
-    dates: weekDates(),
   };
 }
 
@@ -117,24 +114,16 @@ function WayIn({
 }
 
 export default function RoutineToday({ loaderData }: Route.ComponentProps) {
-  const { anyLive, departments, department, mine, serverDay, dates } =
-    loaderData;
+  const { anyLive, department, mine, serverDay } = loaderData;
   const now = useDhakaNow(loaderData.serverMinute);
   if (!anyLive) return <ComingSoon product={product} />;
   const today = now?.day ?? serverDay;
 
   if (!mine) {
-    const live = departments
-      .filter((d) => d.version)
-      .map((d) => `${d.department.toUpperCase()} v${d.version}`)
-      .join(" · ");
     return (
       <div className="space-y-10 pt-2 sm:pt-6">
         <section className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
           <div className="space-y-5">
-            <p className="text-sm font-semibold text-muted-foreground">
-              DIU’s class routines · {live}
-            </p>
             <h1 className="font-display-xl text-5xl sm:text-7xl xl:text-8xl">
               Your class routine.
             </h1>
@@ -166,7 +155,7 @@ export default function RoutineToday({ loaderData }: Route.ComponentProps) {
     );
   }
 
-  const days = weekDays(mine.classes);
+  const plan = todayPlan(mine.classes, today, now);
   return (
     <RoutineLinks value={mine.department}>
       <div className="space-y-10 pt-2 sm:pt-6">
@@ -191,30 +180,37 @@ export default function RoutineToday({ loaderData }: Route.ComponentProps) {
           </p>
         </header>
 
+        {/* The card is now (or next); the list is what comes after it. The week,
+            courses and PDF are on the section's (or teacher's) own page. */}
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
           <TodayCard
+            plan={plan}
             classes={mine.classes}
             section={mine.section}
-            today={today}
             now={now}
           />
-          <section aria-labelledby="week" className="space-y-4">
-            <h2 id="week" className="font-expressive text-3xl">
-              This week
-            </h2>
-            <DayTabs
-              classes={mine.classes}
-              days={days}
-              dates={dates}
-              section={mine.section}
-              today={days.includes(today) ? today : null}
-              now={now}
-            />
+          <section
+            aria-labelledby={plan.list ? "after" : undefined}
+            className="space-y-4"
+          >
+            {plan.list && (
+              <>
+                <h2 id="after" className="font-expressive text-3xl">
+                  {plan.list.heading}
+                </h2>
+                <DayClasses
+                  classes={plan.list.classes}
+                  week={mine.classes}
+                  section={mine.section}
+                  now={null}
+                />
+              </>
+            )}
             <Link
               to={mine.href}
               className="inline-flex items-center gap-1 text-sm font-semibold text-primary underline-offset-4 hover:underline"
             >
-              The whole week, courses and PDF
+              Week, courses and PDF
               <ArrowRight className="size-4" aria-hidden />
             </Link>
           </section>

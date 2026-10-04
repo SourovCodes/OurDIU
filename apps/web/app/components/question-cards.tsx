@@ -1,9 +1,8 @@
 import type { Question } from "@ourdiu/shared";
-import { Eye, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import { Link } from "react-router";
 import { ExamBadge } from "~/components/exam-badge";
 import { Card, CardTitle } from "~/components/ui/card";
-import { formatCount } from "~/lib/format";
 import { cn } from "~/lib/utils";
 
 /** Card-grid layout shared by the public lists. */
@@ -34,7 +33,7 @@ function QuestionCard({
   question: Question;
   action?: React.ReactNode;
 }) {
-  const { published, pendingReview } = question.submissionCounts;
+  const { published } = question.submissionCounts;
 
   return (
     // As in the app's rows: the exam badge, the course and where it's from, then
@@ -77,17 +76,6 @@ function QuestionCard({
                 0<span className="sr-only"> papers. No papers yet</span>
               </span>
             )}
-            {pendingReview > 0 && (
-              <span title={`${pendingReview} waiting for review`}>
-                +{pendingReview}
-                <span className="sr-only"> pending review</span>
-              </span>
-            )}
-          </span>
-          <span className="flex items-center gap-1">
-            <Eye className="size-3.5" aria-hidden />
-            {formatCount(question.viewCount)}
-            <span className="sr-only"> views</span>
           </span>
         </div>
         {/* Above the stretched link, so it stays clickable. */}

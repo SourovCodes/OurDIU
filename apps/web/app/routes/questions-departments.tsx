@@ -1,12 +1,7 @@
-import { Search, SlidersHorizontal } from "lucide-react";
-import { Link } from "react-router";
-import { CourseSearchTrigger } from "~/components/course-search";
 import { DepartmentTile } from "~/components/qb-tiles";
-import { buttonVariants } from "~/components/ui/button";
 import { rememberedDepartment } from "~/lib/department-preference";
 import { formatNumber } from "~/lib/format";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
-import { cn } from "~/lib/utils";
 import type { Route } from "./+types/questions-departments";
 import { pageMeta, QB_NAME } from "~/lib/seo";
 
@@ -44,29 +39,13 @@ export default function Departments({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+      <div>
         <div className="space-y-3">
           <h1 className="font-display-xl text-6xl sm:text-7xl">Browse</h1>
           <p className="text-muted-foreground">
             {departments.length} departments, {formatNumber(papers)} papers.
             Pick yours to see its courses.
           </p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <CourseSearchTrigger className="flex h-12 items-center gap-3 rounded-full bg-surface pr-5 pl-4 text-muted-foreground transition-colors hover:state-layer focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none sm:w-72">
-            <Search className="size-5 shrink-0" aria-hidden />
-            <span className="truncate">Know the course? Search it</span>
-          </CourseSearchTrigger>
-          <Link
-            to="/questions/browse"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "h-12 text-primary max-sm:self-start",
-            )}
-          >
-            <SlidersHorizontal aria-hidden />
-            Filter every paper
-          </Link>
         </div>
       </div>
 

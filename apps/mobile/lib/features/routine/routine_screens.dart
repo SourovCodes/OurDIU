@@ -113,8 +113,7 @@ class _DepartmentPicker extends ConsumerWidget {
           ButtonSegment(
             value: d,
             label: Text(switch (ref.watch(routineSectionsProvider(d))) {
-              AsyncData(:final value) =>
-                '${departmentName(d)} v${value.version.version}',
+              AsyncData() => departmentName(d),
               AsyncError(:final error) when isMissing(error) =>
                 '${departmentName(d)} · soon',
               _ => departmentName(d),
@@ -262,6 +261,20 @@ String _locationOf(SavedRoutine saved) => switch (saved) {
   SavedSection(:final pick) => sectionLocation(pick),
   SavedTeacher(:final pick) => teacherLocation(pick),
 };
+
+/// "My section" (or "My routine") pressed again: Today stops showing it, with
+/// a way back.
+void _forget(BuildContext context, WidgetRef ref, String label) {
+  final choice = ref.read(myRoutineChoiceProvider.notifier);
+  final was = ref.read(myRoutineChoiceProvider);
+  choice.set(null);
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text('$label is no longer your routine.'),
+      action: SnackBarAction(label: 'Undo', onPressed: () => choice.set(was)),
+    ),
+  );
+}
 
 // ── Today ────────────────────────────────────────────────────────────────────
 
@@ -413,8 +426,13 @@ class _MyDay extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final now = watchNow(ref);
     final whose = saved is SavedSection ? 'section' : 'week';
-    return switch (ref.watch(myRoutineProvider)) {
-      AsyncData(value: final mine?) => Column(
+    final routine = ref.watch(myRoutineProvider);
+    final plan = switch (routine) {
+      AsyncData(value: final mine?) => todayPlan(mine.classes, now),
+      _ => null,
+    };
+    return switch (routine) {
+      AsyncData(value: final mine?) when plan != null => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: 14,
         children: [
@@ -439,26 +457,30 @@ class _MyDay extends ConsumerWidget {
             ),
           ),
           if (mine.section.isEmpty || isRegularSection(mine.section))
-            TodayCard(classes: mine.classes, section: mine.section, now: now)
+            TodayCard(plan: plan, section: mine.section, now: now)
           else
             const _RetakeNote(),
-          const SizedBox(height: 4),
-          Text(
-            'This week',
-            style: Theme.of(context).textTheme.titleLarge
-                ?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          RoutineWeek(
-            classes: mine.classes,
-            section: mine.section,
-            department: saved.department,
-          ),
+          // The card is now (or next); the list is what comes after it. The
+          // week, courses and PDF are on the section's (or teacher's) screen.
+          if (plan.list case final list?) ...[
+            const SizedBox(height: 4),
+            Text(
+              list.heading,
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            DayClasses(
+              classes: list.classes,
+              section: mine.section,
+              department: saved.department,
+            ),
+          ],
           Align(
             alignment: AlignmentDirectional.centerStart,
             child: TextButton.icon(
               onPressed: () => context.go(_locationOf(saved)),
               icon: const Icon(Icons.arrow_forward_rounded),
-              label: const Text('The whole week, courses and PDF'),
+              label: const Text('Week, courses and PDF'),
             ),
           ),
         ],
@@ -560,14 +582,7 @@ class _RoutineSectionsScreenState extends ConsumerState<RoutineSectionsScreen> {
           children: [
             const _TopBar(),
             const SizedBox(height: 12),
-            _Heading(
-              'Students',
-              eyebrow: switch (sections) {
-                AsyncData(:final value) =>
-                  'DIU’s ${departmentName(department)} routine v${value.version.version} · ${plural(value.sections.length, 'section')}',
-                _ => 'DIU’s ${departmentName(department)} routine',
-              },
-            ),
+            const _Heading('Students'),
             const SizedBox(height: 16),
             const _DepartmentPicker(),
             const SizedBox(height: 12),
@@ -646,11 +661,9 @@ class _RoutineSectionsScreenState extends ConsumerState<RoutineSectionsScreen> {
                   c.label,
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
-                subtitle: Text(
-                  c.group == null
-                      ? '${plural(c.classCount, 'class', 'classes')} a week'
-                      : 'Lab group ${c.group} of ${c.section}',
-                ),
+                subtitle: c.group == null
+                    ? null
+                    : Text('Lab group ${c.group} of ${c.section}'),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => _open(department, c.section, c.group),
               ),
@@ -683,12 +696,14 @@ class _RoutineSectionsScreenState extends ConsumerState<RoutineSectionsScreen> {
                         group.title,
                         style: expressive(32, color: scheme.onSurface),
                       ),
-                      Flexible(
-                        child: Text(
-                          '${group.name ?? 'And others'} · ${plural(group.sections.length, 'section')}',
-                          style: TextStyle(color: scheme.onSurfaceVariant),
+                      // "Level 1, term 2" says what "1-2" means; "Batch 67" would only repeat "67".
+                      if (group.title.contains('-') && group.name != null)
+                        Flexible(
+                          child: Text(
+                            group.name!,
+                            style: TextStyle(color: scheme.onSurfaceVariant),
+                          ),
                         ),
-                      ),
                     ],
                   ),
                   Wrap(
@@ -781,9 +796,9 @@ class _RoutineSectionScreenState extends ConsumerState<RoutineSectionScreen> {
               onGroup: (g) => setState(() => _group = g),
               action: isMySection(saved, pick)
                   ? FilledButton.tonalIcon(
-                      onPressed: () => context.go('/routine'),
+                      onPressed: () => _forget(context, ref, label),
                       icon: const Icon(Icons.star_rounded),
-                      label: const Text('My section · open Today'),
+                      label: const Text('My section'),
                     )
                   : FilledButton.icon(
                       onPressed: () {
@@ -874,7 +889,6 @@ class _SectionBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final classes = classesFor(routine.classes, group);
-    final courses = {for (final c in classes) c.course.code}.length;
     final of = sectionGroup(routine.section);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -887,8 +901,6 @@ class _SectionBody extends StatelessWidget {
         Text(
           [
             '${departmentName(department)}${of == null ? '' : ' ${of.name.toLowerCase()}, section ${of.letter}'}',
-            plural(courses, 'course'),
-            '${plural(classes.length, 'class', 'classes')} a week',
           ].join(' · '),
           style: TextStyle(color: scheme.onSurfaceVariant),
         ),
@@ -925,9 +937,9 @@ class _SectionBody extends StatelessWidget {
   }
 }
 
-/// A section's courses, each with its teachers: which lab group a teacher has when
-/// they teach one group's labs, where they sit, and a tap for how to reach them
-/// and their week.
+/// A section's courses, one row per course and teacher: the course, then who
+/// teaches it (and which lab group, when only one). A tap shows where the teacher
+/// sits, how to reach them and their week.
 class _CourseList extends StatelessWidget {
   const _CourseList(
     this.classes, {
@@ -941,116 +953,68 @@ class _CourseList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final scheme = Theme.of(context).colorScheme;
     final codes = {for (final c in classes) c.course.code};
     return RowGroup(
       children: [
         for (final code in codes)
-          Builder(
-            builder: (context) {
-              final of = [
-                for (final c in classes)
-                  if (c.course.code == code) c,
-              ];
-              final course = of.first.course;
-              final teachers = {
-                for (final t in of.map((c) => c.teacher).nonNulls)
-                  t.initials: t,
-              }.values;
-              return Material(
-                color: scheme.surfaceContainer,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ListTile(
-                        title: Text(
-                          course.title ?? code,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        subtitle: Text(
-                          [
-                            if (course.title != null) code,
-                            '${of.length} a week',
-                          ].join(' · '),
-                        ),
-                      ),
-                      for (final t in teachers)
-                        _TeacherRow(
-                          teacher: t,
-                          group: _onlyGroup(of, t),
-                          section: section,
-                          department: department,
-                          courses: coursesOf(t, classes),
-                        ),
-                    ],
-                  ),
+          for (final (course, t, group) in _teachersOf(code))
+            Material(
+              color: scheme.surfaceContainer,
+              child: ListTile(
+                title: Text(
+                  course.title ?? code,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
-              );
-            },
-          ),
+                subtitle: Text(
+                  [
+                    if (course.title != null) code,
+                    if (t != null) t.name ?? t.initials,
+                    if (group case final g?) '${groupLabel(section, g)} lab',
+                  ].join(' · '),
+                ),
+                trailing: t == null
+                    ? null
+                    : Icon(Icons.chevron_right_rounded, color: scheme.primary),
+                onTap: t == null
+                    ? null
+                    : () => showTeacherSheet(
+                        context,
+                        teacher: t,
+                        courses: coursesOf(t, classes),
+                        department: department,
+                      ),
+              ),
+            ),
       ],
     );
   }
 
-  /// The lab group a teacher has in a course, when they teach only that group.
-  static String? _onlyGroup(List<RoutineClass> of, RoutineTeacher t) {
-    final groups = {
-      for (final c in of)
-        if (c.teacher?.initials == t.initials) c.labGroup,
-    };
-    return groups.length == 1 ? groups.first : null;
-  }
-}
-
-/// A course's teacher: tap for where they sit, how to reach them and their week.
-class _TeacherRow extends StatelessWidget {
-  const _TeacherRow({
-    required this.teacher,
-    required this.group,
-    required this.section,
-    required this.department,
-    required this.courses,
-  });
-
-  final RoutineTeacher teacher;
-  final String? group;
-  final String section;
-  final RoutineDepartmentSlug department;
-  final List<String> courses;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final t = teacher;
-    return ListTile(
-      dense: true,
-      visualDensity: VisualDensity.compact,
-      leading: Icon(
-        Icons.person_outline_rounded,
-        color: scheme.onSurfaceVariant,
-      ),
-      minLeadingWidth: 20,
-      title: Text(
-        [
-          t.name ?? t.initials,
-          if (t.name != null) t.initials,
-          if (group case final g?) '${groupLabel(section, g)} lab',
-        ].join(' · '),
-      ),
-      subtitle: t.room == null ? null : Text('Sits in ${t.room}'),
-      trailing: Icon(Icons.chevron_right_rounded, color: scheme.primary),
-      onTap: () => showTeacherSheet(
-        context,
-        teacher: t,
-        courses: courses,
-        department: department,
-      ),
-    );
+  /// A course's teachers (or none), each with the lab group they have when
+  /// they teach only that group's labs.
+  List<(RoutineCourse, RoutineTeacher?, String?)> _teachersOf(String code) {
+    final of = [
+      for (final c in classes)
+        if (c.course.code == code) c,
+    ];
+    final teachers = {
+      for (final t in of.map((c) => c.teacher).nonNulls) t.initials: t,
+    }.values;
+    if (teachers.isEmpty) return [(of.first.course, null, null)];
+    return [
+      for (final t in teachers)
+        (
+          of.first.course,
+          t,
+          switch ({
+            for (final c in of)
+              if (c.teacher?.initials == t.initials) c.labGroup,
+          }) {
+            final groups when groups.length == 1 => groups.first,
+            _ => null,
+          },
+        ),
+    ];
   }
 }
 
@@ -1092,14 +1056,7 @@ class _RoutineTeachersScreenState extends ConsumerState<RoutineTeachersScreen> {
           children: [
             const _TopBar(),
             const SizedBox(height: 12),
-            _Heading(
-              'Teachers',
-              eyebrow: switch (teachers) {
-                AsyncData(:final value) =>
-                  'DIU’s ${departmentName(department)} routine v${value.version.version} · ${plural(all.length, 'teacher')}',
-                _ => 'DIU’s ${departmentName(department)} routine',
-              },
-            ),
+            const _Heading('Teachers'),
             const SizedBox(height: 16),
             const _DepartmentPicker(),
             const SizedBox(height: 12),
@@ -1183,7 +1140,6 @@ class _RoutineTeachersScreenState extends ConsumerState<RoutineTeachersScreen> {
                         ? scheme.primaryContainer
                         : scheme.surfaceContainer,
                     child: ListTile(
-                      leading: _Initials(t.initials, highlighted: mine),
                       title: Text(
                         teacherName(t.initials, t.name),
                         style: const TextStyle(fontWeight: FontWeight.w700),
@@ -1195,10 +1151,6 @@ class _RoutineTeachersScreenState extends ConsumerState<RoutineTeachersScreen> {
                         ].join(' · '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: Text(
-                        '${t.classCount} a week',
-                        style: TextStyle(color: scheme.onSurfaceVariant),
                       ),
                       onTap: () => _open(department, t.initials),
                     ),
@@ -1212,38 +1164,7 @@ class _RoutineTeachersScreenState extends ConsumerState<RoutineTeachersScreen> {
   }
 }
 
-/// A teacher's initials in a rounded tile, as their avatar.
-class _Initials extends StatelessWidget {
-  const _Initials(this.initials, {this.highlighted = false});
-
-  final String initials;
-  final bool highlighted;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      width: 48,
-      height: 48,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: highlighted ? scheme.primary : scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        initials,
-        maxLines: 1,
-        style: TextStyle(
-          fontWeight: FontWeight.w800,
-          fontSize: initials.length > 3 ? 11 : 13,
-          color: highlighted ? scheme.onPrimary : scheme.onSurface,
-        ),
-      ),
-    );
-  }
-}
-
-/// A teacher's week: where they sit and how to reach them, today, the week with
+/// A teacher's week: where they sit and how to reach them, the week with
 /// the sections attending each class, and their courses' sections.
 class RoutineTeacherScreen extends ConsumerWidget {
   const RoutineTeacherScreen({
@@ -1292,11 +1213,6 @@ class RoutineTeacherScreen extends ConsumerWidget {
             final pick = (department: department, initials: teacher.initials);
             final classes = [for (final c in value.classes) AttendedClass(c)];
             final saved = ref.watch(myRoutineChoiceProvider);
-            final sections = {
-              for (final c in value.classes)
-                for (final s in c.sections) s.section,
-            }.length;
-            final courses = {for (final c in classes) c.course.code};
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               children: [
@@ -1315,18 +1231,16 @@ class RoutineTeacherScreen extends ConsumerWidget {
                       [
                         if (teacher.name != null) teacher.initials,
                         '${departmentName(department)} teacher',
-                        plural(courses.length, 'course'),
-                        plural(sections, 'section'),
-                        '${plural(classes.length, 'class', 'classes')} a week',
                       ].join(' · '),
                       style: TextStyle(color: scheme.onSurfaceVariant),
                     ),
                     TeacherContact(teacher),
                     if (isMyTeacher(saved, pick))
                       FilledButton.tonalIcon(
-                        onPressed: () => context.go('/routine'),
+                        onPressed: () =>
+                            _forget(context, ref, teacher.initials),
                         icon: const Icon(Icons.star_rounded),
-                        label: const Text('My routine · open Today'),
+                        label: const Text('My routine'),
                       )
                     else
                       FilledButton.icon(
@@ -1346,11 +1260,6 @@ class RoutineTeacherScreen extends ConsumerWidget {
                         icon: const Icon(Icons.star_outline_rounded),
                         label: const Text('Make it my routine'),
                       ),
-                    TodayCard(
-                      classes: classes,
-                      section: '',
-                      now: watchNow(ref),
-                    ),
                     const SizedBox(height: 4),
                     Text(
                       'The week',
@@ -1466,13 +1375,11 @@ class _TeacherCourses extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      Text(
-                        [
-                          if (course.title != null) code,
-                          '${of.length} a week',
-                        ].join(' · '),
-                        style: TextStyle(color: scheme.onSurfaceVariant),
-                      ),
+                      if (course.title != null)
+                        Text(
+                          code,
+                          style: TextStyle(color: scheme.onSurfaceVariant),
+                        ),
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,

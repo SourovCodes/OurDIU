@@ -54,7 +54,7 @@ test("a student finds their section, makes it theirs and downloads it", async ({
   await expect(page).toHaveURL(/\/routine\/cse\/67_B\?group=B1$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("67_B1");
   await expect(
-    page.getByText(/lab group B1 · 5 courses · 9 classes a week/),
+    page.getByText("CSE batch 67, section B · lab group B1"),
   ).toBeVisible();
 
   // Lab group B1's lab is there, B2's isn't.
@@ -98,6 +98,11 @@ test("a student finds their section, makes it theirs and downloads it", async ({
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Today");
   await expect(page.getByText("My section:")).toContainText("CSE 67_B1");
   await expect(page.getByRole("region", { name: "Today" })).toBeVisible();
+  // Today is today (or the next class day): the week is on the section's page.
+  await expect(page.getByRole("tablist", { name: "Day" })).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Week, courses and PDF" }),
+  ).toHaveAttribute("href", "/routine/cse/67_B?group=B1");
   await clickUntilUrl(page, "CSE 67_B1", /\/routine\/cse\/67_B\?group=B1$/);
 });
 

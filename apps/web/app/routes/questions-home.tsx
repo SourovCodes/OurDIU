@@ -1,18 +1,13 @@
-import type {
-  QuestionList,
-  SavedQuestionList,
-  TrendingCourseList,
-} from "@ourdiu/shared";
-import { Check, ChevronRight, Search } from "lucide-react";
+import type { QuestionList, SavedQuestionList } from "@ourdiu/shared";
+import { Check, Search } from "lucide-react";
 import { Link } from "react-router";
-import { CourseSearchTrigger, courseHref } from "~/components/course-search";
+import { CourseSearchTrigger } from "~/components/course-search";
 import { ExamBadge, ExamShape } from "~/components/exam-badge";
-import { DepartmentTile, ExamTile } from "~/components/qb-tiles";
+import { ExamTile } from "~/components/qb-tiles";
 import { QuestionCards } from "~/components/question-cards";
 import { buttonVariants } from "~/components/ui/button";
 import { apiGetJson } from "~/lib/api.server";
-import { ANDROID_BETA } from "~/lib/android-app";
-import { formatCount, formatNumber } from "~/lib/format";
+import { formatNumber } from "~/lib/format";
 import { rememberedDepartment } from "~/lib/department-preference";
 import { getUser } from "~/lib/session.server";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
@@ -25,10 +20,6 @@ import { HUB_LIVE } from "~/lib/products";
 /** The first question of each course, so one course doesn't fill a section. */
 /** Tiles in "Most viewed". */
 const MOST_VIEWED_TILES = 4;
-
-/** Courses in "Most viewed courses today", shown once at least the minimum were viewed. */
-const TODAYS_COURSES = 6;
-const MIN_TODAYS_COURSES = 4;
 
 /**
  * Today's most viewed when enough were viewed to fill the row; otherwise (a quiet
@@ -45,14 +36,6 @@ function mostViewed(
         today: false,
         questions: onePerCourse(allTime ?? [], MOST_VIEWED_TILES),
       };
-}
-
-/** No all-time stand-in: on a quiet day the section is left out. */
-function coursesToday(courses: TrendingCourseList["items"] | undefined) {
-  const items = courses ?? [];
-  return items.length >= MIN_TODAYS_COURSES
-    ? items.slice(0, TODAYS_COURSES)
-    : [];
 }
 
 function onePerCourse(questions: QuestionList["items"], limit: number) {
@@ -72,8 +55,8 @@ function onePerCourse(questions: QuestionList["items"], limit: number) {
  */
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await getUser(request);
-  const [newest, trending, popular, todaysCourses, taxonomy, saved] =
-    await Promise.allSettled([
+  const [newest, trending, popular, taxonomy, saved] = await Promise.allSettled(
+    [
       apiGetJson<QuestionList>(
         request,
         "/api/v1/questions?sort=newest&pageSize=24",
@@ -86,12 +69,12 @@ export async function loader({ request }: Route.LoaderArgs) {
         request,
         "/api/v1/questions?sort=popular&pageSize=24",
       ),
-      apiGetJson<TrendingCourseList>(request, "/api/v1/courses/trending"),
       loadTaxonomy(request),
       user
         ? apiGetJson<SavedQuestionList>(request, "/api/v1/me/saved")
         : Promise.resolve(null),
-    ]);
+    ],
+  );
   const value = <T,>(result: PromiseSettledResult<T>) =>
     result.status === "fulfilled" ? result.value : null;
 
@@ -106,22 +89,13 @@ export async function loader({ request }: Route.LoaderArgs) {
         Number(b.id === mine) - Number(a.id === mine) ||
         b.publishedCount - a.publishedCount,
     );
-  const courseCounts = new Map<number, number>();
-  for (const course of tax?.courses ?? []) {
-    courseCounts.set(
-      course.departmentId,
-      (courseCounts.get(course.departmentId) ?? 0) + 1,
-    );
-  }
   return {
     papers: departments.reduce((sum, d) => sum + d.publishedCount, 0),
     courseTotal: tax?.courses.length ?? 0,
     newest: onePerCourse(value(newest)?.items ?? [], 6),
     popular: mostViewed(value(trending)?.items, value(popular)?.items),
-    todaysCourses: coursesToday(value(todaysCourses)?.items),
     departments,
     myDepartmentId: departments[0]?.id === mine ? mine : null,
-    courseCounts: Object.fromEntries(courseCounts),
     saved: value(saved)?.items ?? [],
   };
 }
@@ -196,13 +170,10 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     courseTotal,
     newest,
     popular,
-    todaysCourses,
     departments,
     myDepartmentId,
-    courseCounts,
     saved,
   } = loaderData;
-  const [featured, ...others] = departments;
 
   return (
     <div className="space-y-16 pt-2 sm:pt-6">
@@ -325,78 +296,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         </section>
       )}
 
-      {todaysCourses.length > 0 && (
-        <section aria-labelledby="courses-today-heading" className="space-y-5">
-          <SectionHeading
-            id="courses-today-heading"
-            title="Most viewed courses today"
-          />
-          <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {todaysCourses.map((course, i) => (
-              <li key={course.id} className="grid">
-                <Link
-                  to={courseHref(course.id)}
-                  prefetch="intent"
-                  // min-w-0: a grid item otherwise grows to its longest name,
-                  // so the name could never shorten to "…".
-                  className="flex min-w-0 items-center gap-4 rounded-3xl bg-surface p-4 transition-[background-color,scale] hover:state-layer focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:scale-[0.99]"
-                >
-                  <span
-                    className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-container font-expressive text-lg text-primary-container-foreground tabular-nums"
-                    aria-hidden
-                  >
-                    {i + 1}
-                  </span>
-                  <span className="min-w-0 flex-1 space-y-0.5">
-                    <span className="block truncate font-medium">
-                      {course.name}
-                    </span>
-                    <span className="block text-sm text-muted-foreground">
-                      <span title={course.department.name}>
-                        {course.department.shortName}
-                      </span>
-                      {" · "}
-                      {formatCount(course.viewsToday)} views today
-                    </span>
-                  </span>
-                  <ChevronRight
-                    className="size-5 shrink-0 text-muted-foreground"
-                    aria-hidden
-                  />
-                </Link>
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
-
-      {featured && (
-        <section aria-labelledby="departments-heading" className="space-y-5">
-          <SectionHeading
-            id="departments-heading"
-            title="Browse by department"
-            link={{
-              to: "/questions/departments",
-              label: `All ${departments.length} departments`,
-            }}
-          />
-          <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <li className="col-span-2 grid lg:row-span-2">
-              <DepartmentTile
-                department={featured}
-                courseCount={courseCounts[featured.id]}
-                featured
-              />
-            </li>
-            {others.slice(0, 4).map((department) => (
-              <li key={department.id} className="grid">
-                <DepartmentTile department={department} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
       {newest.length > 0 && (
         <section aria-labelledby="newest-heading" className="space-y-5">
           <SectionHeading
@@ -408,7 +307,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         </section>
       )}
 
-      <section className="grid gap-3 md:grid-cols-2">
+      <section>
         <div className="relative flex flex-col items-start gap-4 overflow-hidden rounded-[1.75rem] bg-surface p-7 sm:p-9">
           <ExamShape
             kind="midterm"
@@ -427,29 +326,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             className={buttonVariants({ size: "lg" })}
           >
             Share a paper
-          </Link>
-        </div>
-        <div className="relative flex flex-col items-start gap-4 overflow-hidden rounded-[1.75rem] bg-primary p-7 text-primary-foreground sm:p-9">
-          <ExamShape
-            kind="final"
-            colored={false}
-            className="absolute -right-10 -bottom-12 size-56 text-primary-foreground/15"
-          />
-          <h2 className="relative font-expressive text-3xl sm:text-4xl">
-            Papers in your pocket.
-          </h2>
-          <p className="relative max-w-sm text-pretty opacity-90">
-            OurDIU for Android: save papers for exam week, and share a paper
-            straight from your camera.
-          </p>
-          <Link
-            to="/app"
-            className={cn(
-              buttonVariants({ size: "lg" }),
-              "relative bg-primary-foreground text-primary hover:bg-primary-foreground/90",
-            )}
-          >
-            {ANDROID_BETA ? "Try the app early" : "Get it on Google Play"}
           </Link>
         </div>
       </section>

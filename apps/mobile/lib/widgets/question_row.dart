@@ -46,7 +46,7 @@ class RowGroup extends StatelessWidget {
 }
 
 /// A question in a list: its exam badge, course (or semester, within a course)
-/// and how many papers and views it has.
+/// and how many papers it has.
 class QuestionRow extends StatelessWidget {
   const QuestionRow(
     this.question, {
@@ -109,24 +109,7 @@ class QuestionRow extends StatelessWidget {
                   color: muted,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  spacing: 2,
-                  children: [
-                    Text(plural(q.submissionCounts.published, 'paper')),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      spacing: 3,
-                      children: [
-                        Icon(Icons.visibility_outlined, size: 14, color: muted),
-                        Text(
-                          compactCount(q.viewCount),
-                          semanticsLabel: '${thousands(q.viewCount)} views',
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                child: Text(plural(q.submissionCounts.published, 'paper')),
               ),
             ],
           ),

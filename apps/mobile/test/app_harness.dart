@@ -140,7 +140,6 @@ final testDhakaNow = dhakaNow(DateTime.utc(2026, 10, 5, 3));
 Future<FakeViewCounter> pumpApp(
   WidgetTester tester, {
   Lists? lists,
-  List<TrendingCourse> trendingCourses = const [],
   PlayUpdates? play,
   String installedVersion = '1.9.0',
   String minimumVersion = '1.6.0',
@@ -175,9 +174,6 @@ Future<FakeViewCounter> pumpApp(
         playUpdatesProvider.overrideWithValue(play ?? FakePlayUpdates()),
         installedVersionProvider.overrideWith((ref) async => installedVersion),
         minimumVersionProvider.overrideWith((ref) async => minimumVersion),
-        trendingCoursesProvider.overrideWith(
-          (ref) async => TrendingCourseList(items: trendingCourses),
-        ),
         questionPageProvider.overrideWith(
           (ref, key) => (lists ?? defaultLists)(key.$1),
         ),

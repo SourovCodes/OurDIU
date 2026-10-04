@@ -13,7 +13,6 @@ import {
   RoutineLinks,
   TeacherContact,
   TeacherCourseList,
-  TodayCard,
   useDhakaNow,
   WeekGrid,
 } from "~/components/routine";
@@ -171,74 +170,63 @@ export default function RoutineTeacherPage({
   const classes = week.classes.map(teacherClass);
   const days = weekDays(classes);
   const today = now?.day ?? serverDay;
-  const courseCount = new Set(classes.map((c) => c.course.code)).size;
-  const sectionCount = new Set(
-    week.classes.flatMap((c) => c.sections.map((s) => s.section)),
-  ).size;
   const name = teacherName(teacher);
   const wide = week.slots.length > 6;
 
   return (
     <RoutineLinks value={pick.department}>
       <div className="space-y-12">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-end lg:gap-12">
-          <div className="min-w-0 space-y-6">
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: `${version.department} teachers`,
-                  to: teachersHref(pick.department),
-                },
-                { label: name },
-              ]}
-            />
-            <div className="space-y-3">
-              <h1
-                className={
-                  teacher.name
-                    ? "font-expressive text-4xl text-balance break-words sm:text-5xl"
-                    : "font-display-xl text-6xl break-words sm:text-7xl"
-                }
-              >
-                {name}
-              </h1>
-              <p className="text-muted-foreground">
-                {[
-                  teacher.name ? teacher.initials : null,
-                  `${version.department} teacher`,
-                  `${courseCount} course${courseCount === 1 ? "" : "s"}`,
-                  `${sectionCount} section${sectionCount === 1 ? "" : "s"}`,
-                  `${classes.length} classes a week`,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-              <div className="text-sm">
-                <TeacherContact t={teacher} />
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <MyRoutineButton
-                key={pick.teacher}
-                pick={pick}
-                saved={saved}
-                words={["Make it my routine", "My routine"]}
-              />
-              <a
-                href={teacherPdfHref(pick)}
-                download
-                aria-label="Download PDF"
-                className={buttonVariants()}
-              >
-                <Download aria-hidden />
-                <span className="sm:hidden">PDF</span>
-                <span className="max-sm:hidden">Download PDF</span>
-              </a>
-              <ShareButton title={`${name}’s class routine`} />
+        <div className="min-w-0 space-y-6">
+          <Breadcrumbs
+            crumbs={[
+              {
+                label: `${version.department} teachers`,
+                to: teachersHref(pick.department),
+              },
+              { label: name },
+            ]}
+          />
+          <div className="space-y-3">
+            <h1
+              className={
+                teacher.name
+                  ? "font-expressive text-4xl text-balance break-words sm:text-5xl"
+                  : "font-display-xl text-6xl break-words sm:text-7xl"
+              }
+            >
+              {name}
+            </h1>
+            <p className="text-muted-foreground">
+              {[
+                teacher.name ? teacher.initials : null,
+                `${version.department} teacher`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+            <div className="text-sm">
+              <TeacherContact t={teacher} />
             </div>
           </div>
-
-          <TodayCard classes={classes} section="" today={today} now={now} />
+          <div className="flex flex-wrap items-center gap-2">
+            <MyRoutineButton
+              key={pick.teacher}
+              pick={pick}
+              saved={saved}
+              words={["Make it my routine", "My routine"]}
+            />
+            <a
+              href={teacherPdfHref(pick)}
+              download
+              aria-label="Download PDF"
+              className={buttonVariants()}
+            >
+              <Download aria-hidden />
+              <span className="sm:hidden">PDF</span>
+              <span className="max-sm:hidden">Download PDF</span>
+            </a>
+            <ShareButton title={`${name}’s class routine`} />
+          </div>
         </div>
 
         <section aria-labelledby="week" className="space-y-4">

@@ -28,10 +28,6 @@ export function formatCount(count: number): string {
   return compact.format(count);
 }
 
-export function formatViews(count: number): string {
-  return `${formatCount(count)} ${count === 1 ? "view" : "views"}`;
-}
-
 /**
  * A round axis maximum at or above `value`: 1, 2 or 5 times a power of ten
  * (e.g. 3 → 5, 12 → 20, 0 → 1).

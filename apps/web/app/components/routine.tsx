@@ -1,4 +1,5 @@
 import type { RoutineClass, RoutineDay, RoutineSection } from "@ourdiu/shared";
+import type { TodayPlan } from "~/lib/routine";
 import {
   ROUTINE_DAY_NAMES,
   ROUTINE_DAYS,
@@ -41,7 +42,6 @@ import {
 import {
   attendingLabel,
   classState,
-  dayWord,
   dhakaNow,
   exactSection,
   matchSections,
@@ -511,81 +511,43 @@ export function DayClasses({
   );
 }
 
-/** A class in a few words: "CSE321, KT-222", with the sections in a teacher's week. */
-const briefly = (c: ShownClass) =>
-  [
-    c.course.title ?? c.course.code,
-    c.sections ? attendingLabel(c.sections) : null,
-    c.room,
-  ]
-    .filter(Boolean)
-    .join(", ");
-
 /**
  * The one thing to know right now, as a tile in the space's colour: the class
- * you're in, the next one today, or (after the last, or on a day off) the next
- * class of the week. Before hydration it shows the day's outline.
+ * you're in or the next one today (from `todayPlan`), else "Done for today" or
+ * "No classes today". What comes after is the list under it, never repeated here.
  */
 export function TodayCard({
+  plan,
   classes,
   section,
-  today,
   now,
-  label,
-  href,
 }: {
+  plan: TodayPlan;
+  /** The whole week, for the class's details. */
   classes: ShownClass[];
   section: string;
-  /** Today in Dhaka, as the server saw it. */
-  today: RoutineDay;
   now: Now | null;
-  /** Whose routine it is, e.g. "My section · 67_B1". */
-  label?: string;
-  /** Where "See the week" leads, on the routine's home. */
-  href?: string;
 }) {
-  const todays = classes.filter((c) => c.day === (now?.day ?? today));
-  const current = now ? todays.find((c) => classState(c, now) === "now") : null;
-  const next = now ? nextClass(classes, now) : null;
-
-  let eyebrow = `${dayName(now?.day ?? today)} · ${
-    todays.length
-      ? `${todays.length} class${todays.length === 1 ? "" : "es"}, ${routineTimeRange(todays[0]!.start, todays[todays.length - 1]!.end)}`
-      : "no classes"
-  }`;
-  let headline = todays.length
-    ? `${todays.length} class${todays.length === 1 ? "" : "es"} today`
-    : "No classes today";
-  let focus: ShownClass | null = null;
-  let detail: React.ReactNode = null;
-  let after: React.ReactNode = null;
-
-  if (now && current) {
-    eyebrow = `In class now · until ${routineClockTime(current.end)}`;
-    headline = current.course.title ?? current.course.code;
-    focus = current;
-    detail = `${routineMinutes(current.end) - now.minutes} min left`;
-    if (next && next.daysAhead === 0) {
-      after = `Next at ${routineClockTime(next.c.start)}: ${briefly(next.c)}`;
-    }
-  } else if (now && next && next.daysAhead === 0) {
-    const wait = routineMinutes(next.c.start) - now.minutes;
-    eyebrow = `Next class · in ${formatWait(wait)}`;
-    headline = next.c.course.title ?? next.c.course.code;
-    focus = next.c;
-    detail = routineTimeRange(next.c.start, next.c.end);
-  } else if (now) {
-    eyebrow = dayName(now.day);
-    headline = todays.length ? "Done for today" : "No classes today";
-    if (next) {
-      after = `${dayWord(next.c.day, next.daysAhead)} at ${routineClockTime(next.c.start)}: ${briefly(next.c)}`;
-    }
-  }
+  const { focus, over } = plan;
+  const eyebrow =
+    focus && now
+      ? focus.state === "now"
+        ? `Now · until ${routineClockTime(focus.c.end)}`
+        : `Next · in ${formatWait(routineMinutes(focus.c.start) - now.minutes)}`
+      : null;
+  const headline = focus
+    ? (focus.c.course.title ?? focus.c.course.code)
+    : over === "done"
+      ? "Done for today"
+      : over === "off"
+        ? "No classes today"
+        : // Before the clock is known (hydrating): the day's outline.
+          `${plan.list?.classes.length ?? "No"} class${plan.list?.classes.length === 1 ? "" : "es"} today`;
 
   return (
     <section
       aria-label="Today"
-      className="relative overflow-hidden rounded-[1.75rem] bg-primary-container p-6 text-primary-container-foreground sm:p-7"
+      className="relative min-h-40 overflow-hidden rounded-[1.75rem] bg-primary-container p-6 text-primary-container-foreground sm:p-7"
     >
       <ExamShape
         kind="midterm"
@@ -593,13 +555,14 @@ export function TodayCard({
         className="absolute -right-10 -bottom-14 size-52 rotate-12 text-primary/15"
       />
       <div className="relative space-y-3">
-        <p className="text-sm font-semibold tabular-nums opacity-85">
-          {label ? `${label} · ` : ""}
-          {eyebrow}
-        </p>
+        {eyebrow && (
+          <p className="text-sm font-semibold tabular-nums opacity-85">
+            {eyebrow}
+          </p>
+        )}
         <h2 className="font-expressive text-3xl text-balance sm:text-4xl">
           {focus ? (
-            <ClassDialog c={focus} week={classes} section={section}>
+            <ClassDialog c={focus.c} week={classes} section={section}>
               <button
                 type="button"
                 className="text-left underline decoration-current/30 decoration-2 underline-offset-[0.2em] transition-colors hover:decoration-current focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
@@ -613,23 +576,16 @@ export function TodayCard({
         </h2>
         {focus && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-            {detail && <span className="font-semibold">{detail}</span>}
-            {isLab(focus) && (
-              <LabTag section={section} group={focus.labGroup} />
+            <span className="font-semibold tabular-nums">
+              {focus.state === "now" && now
+                ? `${routineMinutes(focus.c.end) - now.minutes} min left`
+                : routineTimeRange(focus.c.start, focus.c.end)}
+            </span>
+            {isLab(focus.c) && (
+              <LabTag section={section} group={focus.c.labGroup} />
             )}
-            <Place c={focus} className="text-inherit opacity-85" />
+            <Place c={focus.c} className="text-inherit opacity-85" />
           </div>
-        )}
-        {after && <p className="text-sm opacity-85">{after}</p>}
-        {href && (
-          <Link
-            to={href}
-            prefetch="intent"
-            className={cn(buttonVariants({ size: "sm" }), "mt-1")}
-          >
-            See the week
-            <ArrowRight aria-hidden />
-          </Link>
         )}
       </div>
     </section>
@@ -981,9 +937,7 @@ export function SectionSearch({
     key: c.label,
     href: routineHref({ department, section: c.section, group: c.group }),
     label: c.label,
-    note: c.group
-      ? `Lab group ${c.group} of ${c.section}`
-      : `${c.classCount} class${c.classCount === 1 ? "" : "es"} a week`,
+    note: c.group ? `Lab group ${c.group} of ${c.section}` : null,
   }));
   const example = ROUTINE_SECTION_EXAMPLES[department];
   const hint = `Your section, e.g. ${example.section} or ${example.group}`;
@@ -1160,7 +1114,7 @@ export function CourseList({
       const [only] = groups;
       return { ...t, group: groups.size === 1 && only ? only : null };
     });
-    return { ...course, teachers, count: of.length };
+    return { ...course, teachers };
   });
   return (
     <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -1179,9 +1133,6 @@ export function CourseList({
                   {c.code}
                 </span>
               )}
-            </span>
-            <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-              {c.count} a week
             </span>
           </div>
           {c.teachers.length > 0 && (
@@ -1229,8 +1180,7 @@ export function CourseList({
 }
 
 /**
- * A teacher's courses, each with the sections taking it (linking to their weeks)
- * and how many classes a week.
+ * A teacher's courses, each with the sections taking it (linking to their weeks).
  */
 export function TeacherCourseList({ classes }: { classes: ShownClass[] }) {
   const department = useContext(LinksTo);
@@ -1253,7 +1203,7 @@ export function TeacherCourseList({ classes }: { classes: ShownClass[] }) {
           numeric: true,
         }),
     );
-    return { ...course, sections, count: of.length };
+    return { ...course, sections };
   });
   return (
     <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -1272,9 +1222,6 @@ export function TeacherCourseList({ classes }: { classes: ShownClass[] }) {
                   {c.code}
                 </span>
               )}
-            </span>
-            <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-              {c.count} a week
             </span>
           </div>
           <ul className="flex flex-wrap gap-1.5">
@@ -1339,9 +1286,9 @@ export function DepartmentSwitch({
               )}
             >
               {department.toUpperCase()}
-              <span className="text-xs font-medium opacity-80">
-                {version ? `v${version}` : "soon"}
-              </span>
+              {!version && (
+                <span className="text-xs font-medium opacity-80">soon</span>
+              )}
             </Link>
           </li>
         ))}

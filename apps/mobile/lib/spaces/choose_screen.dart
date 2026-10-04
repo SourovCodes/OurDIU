@@ -37,6 +37,7 @@ class ChooseScreen extends ConsumerWidget {
             for (final space in Space.values) ...[
               _ChoiceTile(
                 space: space,
+                soon: ref.watch(spaceSoonProvider(space)),
                 onTap: () => openSpace(context, ref, space),
               ),
               const SizedBox(height: 12),
@@ -57,16 +58,21 @@ class ChooseScreen extends ConsumerWidget {
 }
 
 class _ChoiceTile extends StatelessWidget {
-  const _ChoiceTile({required this.space, required this.onTap});
+  const _ChoiceTile({
+    required this.space,
+    required this.soon,
+    required this.onTap,
+  });
 
   final Space space;
+  final bool soon;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = space.colors(context);
     return Opacity(
-      opacity: space.live ? 1 : 0.78,
+      opacity: soon ? 0.78 : 1,
       child: Material(
         color: colors.container,
         borderRadius: BorderRadius.circular(28),
@@ -84,7 +90,7 @@ class _ChoiceTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     spacing: 4,
                     children: [
-                      if (!space.live)
+                      if (soon)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 4),
                           child: SpaceBadge('Coming soon', colors: colors),

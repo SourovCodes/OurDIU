@@ -188,6 +188,34 @@ void main() {
       expect(classState(week[0], at(RoutineDay.sun, 10, 40)), ClassState.now);
     });
 
+    test("plans Today: the card's class, then what comes after", () {
+      final week = [
+        _c('SUN', '10:00', '11:30'),
+        _c('SUN', '14:30', '16:00'),
+        _c('MON', '08:30', '11:30'),
+      ];
+      DhakaNow at(RoutineDay day, int h, int m) =>
+          (day: day, minutes: h * 60 + m, date: DateTime.utc(2026));
+      List<String>? starts(TodayPlan p) =>
+          p.list?.classes.map((c) => c.start).toList();
+      // Before the first class: the next one in the card, the rest below.
+      final morning = todayPlan(week, at(RoutineDay.sun, 9, 0));
+      expect((morning.focus?.c.start, morning.focus?.on), ('10:00', false));
+      expect(morning.list?.heading, 'Later today');
+      expect(starts(morning), ['14:30']);
+      // In the last class: nothing after it today.
+      final last = todayPlan(week, at(RoutineDay.sun, 15, 0));
+      expect((last.focus?.c.start, last.focus?.on), ('14:30', true));
+      expect(last.list, isNull);
+      // Done: tomorrow's classes, by name; a day off: the next class day.
+      final evening = todayPlan(week, at(RoutineDay.sun, 17, 0));
+      expect((evening.focus, evening.done), (null, true));
+      expect(evening.list?.heading, 'Tomorrow, Monday');
+      expect(starts(evening), ['08:30']);
+      final off = todayPlan(week, at(RoutineDay.tue, 9, 0));
+      expect((off.done, off.list?.heading), (false, 'Sunday'));
+    });
+
     test('names times as students say them', () {
       expect(timeRange('10:00', '11:30'), '10:00 – 11:30 am');
       expect(timeRange('11:30', '13:00'), '11:30 am – 1:00 pm');
@@ -286,6 +314,16 @@ void main() {
     expect(find.text('Coming soon'), findsOneWidget);
   });
 
+  testWidgets('the switcher says "Coming soon" only while none is live', (
+    tester,
+  ) async {
+    await pumpApp(tester, backend: routineBackend());
+    await tester.tap(find.bySemanticsLabel('Question Bank, switch product'));
+    await tester.pumpAndSettle();
+    // Only the Marketplace's: a routine is live on the server.
+    expect(find.text('Coming soon'), findsOneWidget);
+  });
+
   testWidgets('a student finds their section, makes it theirs, sees the day', (
     tester,
   ) async {
@@ -304,10 +342,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('67_B1'));
     await tester.pumpAndSettle();
-    expect(
-      find.text('CSE batch 67, section B · 3 courses · 3 classes a week'),
-      findsOneWidget,
-    );
+    expect(find.text('CSE batch 67, section B'), findsOneWidget);
     // On Monday (the tests' today) only B1's lab, never B2's.
     expect(find.text('LAB · 67_B1'), findsOneWidget);
     expect(find.text('LAB · 67_B2'), findsNothing);
@@ -326,10 +361,12 @@ void main() {
     expect(prefs.getString('routine_section'), '67_B');
     expect(prefs.getString('routine_group'), 'B1');
 
-    // Back on Today with the section's day and week; kept for offline use.
+    // Back on Today with the section's day; kept for offline use.
     expect(find.text('Monday 5 October'), findsOneWidget);
     expect(find.text('My section · CSE 67_B1'), findsOneWidget);
-    // The lab is next: on the Today card and in the week.
+    // Today is today: no week, which is a tap away.
+    expect(find.text("Tue"), findsNothing);
+    expect(find.text('Week, courses and PDF'), findsOneWidget);
     expect(find.text('LAB · 67_B1'), findsWidgets);
     expect(prefs.getString('routine_cache'), contains('"version":"4.1"'));
   });
@@ -352,21 +389,19 @@ void main() {
     await tester.tap(find.text('67_B').last);
     await tester.pumpAndSettle();
 
-    // Under each of their courses, with where they sit.
-    final teacher = find.textContaining('Sits in KT-712').first;
+    // A row per course and teacher; the sheet says where they sit.
+    final teacher = find.textContaining('Dr. Test Teacher').last;
     await tester.ensureVisible(teacher);
     await tester.pumpAndSettle();
     await tester.tap(teacher);
     await tester.pumpAndSettle();
     // The sheet: how to reach them, and their week.
+    expect(find.textContaining('KT-712'), findsWidgets);
     expect(find.text('sta@example.com'), findsOneWidget);
     expect(find.text('01712345678'), findsOneWidget);
     await tester.tap(find.text('See their week'));
     await tester.pumpAndSettle();
-    expect(
-      find.text('STA · CSE teacher · 1 course · 2 sections · 2 classes a week'),
-      findsOneWidget,
-    );
+    expect(find.text('STA · CSE teacher'), findsOneWidget);
   });
 
   testWidgets('a teacher finds their week, and makes it theirs', (

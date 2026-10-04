@@ -8,42 +8,41 @@ import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.os.Bundle
+import android.util.SizeF
 import android.view.View
 import android.widget.RemoteViews
 import org.json.JSONObject
 import java.util.Calendar
 import java.util.TimeZone
 
-// The Class Routine's home-screen widgets (docs/PLAN.md, decision 35): the app hands
-// over the saved routine's week (`save`), and the widgets work out the class on now
-// and the next one themselves, so they stay right offline and between app visits.
-// Each draw schedules the next one for the next class's start or end.
+// The Class Routine's home-screen widget (docs/PLAN.md, decisions 35 and 36): the
+// app hands over the saved routine's week (`save`), and the widget works out the
+// class on now and the next one itself, so it stays right offline and between app
+// visits. Small, it's the class on now or the next one; stretched wide, the day's
+// classes. Each draw schedules the next one for the next class's start or end.
 
-/** The small widget: the class on now, or the next one. */
-class RoutineNowWidget : AppWidgetProvider() {
+class RoutineWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) =
         RoutineWidgets.refresh(context)
+
+    /** Resized: before Android 12 the widget picks its layout itself. */
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        manager: AppWidgetManager,
+        id: Int,
+        options: Bundle,
+    ) = RoutineWidgets.refresh(context)
 }
 
-/** The wide widget: today's classes (or the next class day's). */
-class RoutineTodayWidget : AppWidgetProvider() {
-    override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) =
-        RoutineWidgets.refresh(context)
-}
-
-/** The large widget: the week's days, and today's classes. */
-class RoutineWeekWidget : AppWidgetProvider() {
-    override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) =
-        RoutineWidgets.refresh(context)
-}
-
-/** Redraws the widgets when a class starts or ends, and when the clock changes. */
+/** Redraws the widget when a class starts or ends, and when the clock changes. */
 class RoutineWidgetTick : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) = RoutineWidgets.refresh(context)
 }
 
 object RoutineWidgets {
-    /** The widgets open the app on Today. */
+    /** The widget opens the app on Today. */
     const val ACTION_OPEN = "com.ourdiu.app.OPEN_ROUTINE"
 
     private const val PREFS = "routine_widget"
@@ -149,23 +148,30 @@ object RoutineWidgets {
         return n.first.day to n.second
     }
 
+    /** From this width (dp) the widget lists the day's classes. */
+    private const val LIST_WIDTH = 220f
+
     fun refresh(context: Context) {
         val manager = AppWidgetManager.getInstance(context)
         val week = read(context)
         val now = now()
-        for ((kind, provider) in listOf(
-            "now" to RoutineNowWidget::class.java,
-            "today" to RoutineTodayWidget::class.java,
-            "week" to RoutineWeekWidget::class.java,
-        )) {
-            val ids = manager.getAppWidgetIds(ComponentName(context, provider))
-            if (ids.isEmpty()) continue
-            val views = when (kind) {
-                "now" -> nowViews(context, week, now)
-                else -> listViews(context, week, now, withDays = kind == "week")
+        val ids = manager.getAppWidgetIds(ComponentName(context, RoutineWidget::class.java))
+        for (id in ids) {
+            fun small() = nowViews(context, week, now).also {
+                it.setOnClickPendingIntent(R.id.routine_widget_root, openApp(context))
             }
-            views.setOnClickPendingIntent(R.id.routine_widget_root, openApp(context))
-            manager.updateAppWidget(ids, views)
+            fun wide() = listViews(context, week, now).also {
+                it.setOnClickPendingIntent(R.id.routine_widget_root, openApp(context))
+            }
+            val views = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                // The launcher shows the largest that fits, as the widget is resized.
+                RemoteViews(mapOf(SizeF(100f, 100f) to small(), SizeF(LIST_WIDTH, 100f) to wide()))
+            } else {
+                val width = manager.getAppWidgetOptions(id)
+                    .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
+                if (width >= LIST_WIDTH) wide() else small()
+            }
+            manager.updateAppWidget(id, views)
         }
         schedule(context, week, now)
     }
@@ -199,14 +205,12 @@ object RoutineWidgets {
         return views
     }
 
-    private fun listViews(context: Context, week: Week?, now: Now, withDays: Boolean): RemoteViews {
+    private fun listViews(context: Context, week: Week?, now: Now): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.routine_widget_list)
         views.removeAllViews(R.id.routine_widget_rows)
-        views.removeAllViews(R.id.routine_widget_days)
         if (week == null) {
             views.setTextViewText(R.id.routine_widget_title, "Class Routine")
             views.setTextViewText(R.id.routine_widget_note, "")
-            views.setViewVisibility(R.id.routine_widget_days, View.GONE)
             views.setViewVisibility(R.id.routine_widget_empty, View.VISIBLE)
             views.setTextViewText(
                 R.id.routine_widget_empty,
@@ -221,26 +225,6 @@ object RoutineWidgets {
             R.id.routine_widget_note,
             if (onDay.size == 1) "1 class" else "${onDay.size} classes",
         )
-
-        if (withDays) {
-            views.setViewVisibility(R.id.routine_widget_days, View.VISIBLE)
-            val days = (0 until 7).filter { it != 6 || week.classes.any { c -> c.day == 6 } }
-            for (d in days) {
-                val cell = RemoteViews(context.packageName, R.layout.routine_widget_day)
-                val count = week.classes.count { it.day == d }
-                cell.setTextViewText(R.id.routine_widget_day_name, DAY_NAMES[d].take(3))
-                cell.setTextViewText(R.id.routine_widget_day_count, if (count == 0) "–" else "$count")
-                if (d == day) {
-                    cell.setInt(R.id.routine_widget_day, "setBackgroundResource", R.drawable.routine_widget_day_on)
-                    val on = context.getColor(R.color.routine_widget_on_teal)
-                    cell.setTextColor(R.id.routine_widget_day_name, on)
-                    cell.setTextColor(R.id.routine_widget_day_count, on)
-                }
-                views.addView(R.id.routine_widget_days, cell)
-            }
-        } else {
-            views.setViewVisibility(R.id.routine_widget_days, View.GONE)
-        }
 
         views.setViewVisibility(R.id.routine_widget_empty, if (onDay.isEmpty()) View.VISIBLE else View.GONE)
         views.setTextViewText(R.id.routine_widget_empty, "No classes. Enjoy the day off.")

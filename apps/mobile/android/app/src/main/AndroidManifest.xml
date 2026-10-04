@@ -43,41 +43,19 @@
                 <data android:mimeType="application/pdf"/>
             </intent-filter>
         </activity>
-        <!-- The Class Routine's home-screen widgets (RoutineWidgets.kt). -->
+        <!-- The Class Routine's home-screen widget (RoutineWidgets.kt). -->
         <receiver
-            android:name=".RoutineNowWidget"
+            android:name=".RoutineWidget"
             android:exported="false"
-            android:label="@string/routine_widget_now_name">
+            android:label="@string/routine_widget_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/routine_widget_now"/>
+                android:resource="@xml/routine_widget"/>
         </receiver>
-        <receiver
-            android:name=".RoutineTodayWidget"
-            android:exported="false"
-            android:label="@string/routine_widget_today_name">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/routine_widget_today"/>
-        </receiver>
-        <receiver
-            android:name=".RoutineWeekWidget"
-            android:exported="false"
-            android:label="@string/routine_widget_week_name">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/routine_widget_week"/>
-        </receiver>
-        <!-- Redraws them as classes start and end, and when the clock changes. -->
+        <!-- Redraws it as classes start and end, and when the clock changes. -->
         <receiver
             android:name=".RoutineWidgetTick"
             android:exported="false">

@@ -18,7 +18,6 @@ import {
   MyRoutineButton,
   RoutineLinks,
   SectionSearch,
-  TodayCard,
   useDhakaNow,
   WeekGrid,
 } from "~/components/routine";
@@ -185,81 +184,68 @@ export default function RoutineSectionPage({
   const today = now?.day ?? serverDay;
   const group = sectionGroup(routine.section);
   const { version } = routine;
-  const courseCount = new Set(classes.map((c) => c.course.code)).size;
 
   return (
-    // Wide screens: who and today side by side, then the week across the page, then
-    // the courses with their teachers. Phones: the same, one under another.
+    // Who, then the week (a grid on wide screens, a day at a time on phones), then
+    // the courses with their teachers. Today's card is Today's alone.
     <RoutineLinks value={pick.department}>
       <div className="space-y-12">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-end lg:gap-12">
-          <div className="min-w-0 space-y-6">
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: `${version.department} students`,
-                  to: `/routine/${pick.department}`,
-                },
-                { label: pickLabel(pick) },
-              ]}
-            />
-            <div className="space-y-3">
-              <h1 className="font-display-xl text-6xl break-words sm:text-7xl">
-                {pickLabel(pick)}
-              </h1>
-              <p className="text-muted-foreground">
-                {[
-                  `${version.department}${group ? ` ${group.name}, section ${group.letter}` : ""}`,
-                  pick.group ? `lab group ${pick.group}` : null,
-                  `${courseCount} courses`,
-                  `${classes.length} classes a week`,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <MyRoutineButton
-                key={pickLabel(pick)}
-                pick={pick}
-                saved={saved}
-                words={["Make it my section", "My section"]}
-              />
-              <a
-                href={routinePdfHref(pick)}
-                download
-                aria-label="Download PDF"
-                className={buttonVariants()}
-              >
-                <Download aria-hidden />
-                {/* One row on a phone: "PDF" says enough beside the icon. */}
-                <span className="sm:hidden">PDF</span>
-                <span className="max-sm:hidden">Download PDF</span>
-              </a>
-              <ShareButton title={`${pickLabel(pick)} class routine`} />
-            </div>
-            {routine.labGroups.length > 0 && (
-              <div className="space-y-2">
-                <GroupChips routine={routine} pick={pick} />
-                {!pick.group && (
-                  <p className="text-sm text-muted-foreground">
-                    {routine.section} has lab groups. Pick yours to see only
-                    your own labs, here and in the PDF.
-                  </p>
-                )}
-              </div>
-            )}
+        <div className="min-w-0 space-y-6">
+          <Breadcrumbs
+            crumbs={[
+              {
+                label: `${version.department} students`,
+                to: `/routine/${pick.department}`,
+              },
+              { label: pickLabel(pick) },
+            ]}
+          />
+          <div className="space-y-3">
+            <h1 className="font-display-xl text-6xl break-words sm:text-7xl">
+              {pickLabel(pick)}
+            </h1>
+            <p className="text-muted-foreground">
+              {[
+                `${version.department}${group ? ` ${group.name}, section ${group.letter}` : ""}`,
+                pick.group ? `lab group ${pick.group}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
           </div>
-
-          {isRegularSection(routine.section) ? (
-            <TodayCard
-              classes={classes}
-              section={routine.section}
-              today={today}
-              now={now}
+          <div className="flex flex-wrap items-center gap-2">
+            <MyRoutineButton
+              key={pickLabel(pick)}
+              pick={pick}
+              saved={saved}
+              words={["Make it my section", "My section"]}
             />
-          ) : (
-            <Alert variant="info">
+            <a
+              href={routinePdfHref(pick)}
+              download
+              aria-label="Download PDF"
+              className={buttonVariants()}
+            >
+              <Download aria-hidden />
+              {/* One row on a phone: "PDF" says enough beside the icon. */}
+              <span className="sm:hidden">PDF</span>
+              <span className="max-sm:hidden">Download PDF</span>
+            </a>
+            <ShareButton title={`${pickLabel(pick)} class routine`} />
+          </div>
+          {routine.labGroups.length > 0 && (
+            <div className="space-y-2">
+              <GroupChips routine={routine} pick={pick} />
+              {!pick.group && (
+                <p className="text-sm text-muted-foreground">
+                  {routine.section} has lab groups. Pick yours to see only your
+                  own labs, here and in the PDF.
+                </p>
+              )}
+            </div>
+          )}
+          {!isRegularSection(routine.section) && (
+            <Alert variant="info" className="max-w-2xl">
               <AlertTitle>A retake section</AlertTitle>
               <AlertDescription>
                 {routine.section} gathers the classes of several courses, often

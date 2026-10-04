@@ -1,7 +1,6 @@
 import type { Submission } from "@ourdiu/shared";
-import { ChevronDown, Eye, FileText, ThumbsDown, ThumbsUp } from "lucide-react";
+import { ChevronDown, ThumbsDown, ThumbsUp } from "lucide-react";
 import { Link } from "react-router";
-import { StatusBadge } from "~/components/status-badge";
 import { formatDate } from "~/lib/dates";
 import { formatCount } from "~/lib/format";
 import { paperTitles } from "~/lib/submissions";
@@ -18,7 +17,7 @@ function Stat({
   value,
   label,
 }: {
-  icon: typeof Eye;
+  icon: typeof ThumbsUp;
   value: number;
   label: string;
 }) {
@@ -60,93 +59,86 @@ export function SubmissionList({
       </div>
 
       <ul aria-label="Papers" className="grid grid-cols-1 gap-0.5">
-        {submissions.map((submission) => {
-          if (submission.status === "published") {
-            const active = submission.id === selectedId;
-            const title = titles.get(submission.id)!;
-            const { uploader } = submission;
-            // The title names the uploader when there's no section or batch.
-            const byLine =
-              uploader && !title.includes(uploader.name) ? uploader.name : null;
-            return (
-              <li key={submission.id}>
-                {/* Links (not buttons) so switching works without JS and is shareable. */}
-                <Link
-                  to={`?submission=${encodeURIComponent(submission.id)}`}
-                  replace
-                  preventScrollReset
-                  aria-current={active ? "true" : undefined}
+        {/* Only published copies: rejected ones aren't anyone's business, and
+            the ones under review get the count below. */}
+        {published.map((submission) => {
+          const active = submission.id === selectedId;
+          const title = titles.get(submission.id)!;
+          const { uploader } = submission;
+          // The title names the uploader when there's no section or batch.
+          const byLine =
+            uploader && !title.includes(uploader.name) ? uploader.name : null;
+          return (
+            <li key={submission.id}>
+              {/* Links (not buttons) so switching works without JS and is shareable. */}
+              <Link
+                to={`?submission=${encodeURIComponent(submission.id)}`}
+                replace
+                preventScrollReset
+                aria-current={active ? "true" : undefined}
+                className={cn(
+                  "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-colors hover:state-layer focus-visible:state-layer focus-visible:outline-none",
+                  active && "bg-card shadow-xs",
+                )}
+              >
+                <span
+                  aria-hidden
                   className={cn(
-                    "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-colors hover:state-layer focus-visible:state-layer focus-visible:outline-none",
-                    active && "bg-card shadow-xs",
+                    "flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-primary-container text-primary-container-foreground",
                   )}
                 >
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold",
-                      active
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-primary-container text-primary-container-foreground",
-                    )}
-                  >
-                    {published.indexOf(submission) + 1}
+                  {published.indexOf(submission) + 1}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold">{title}</span>
+                  <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+                    {[
+                      byLine && (
+                        <span key="by" className="max-w-full truncate">
+                          {byLine}
+                        </span>
+                      ),
+                      // Votes only once there are some: rows of zeros are noise.
+                      (submission.likeCount > 0 ||
+                        submission.dislikeCount > 0) && (
+                        <span key="votes" className="flex gap-x-1.5">
+                          {submission.likeCount > 0 && (
+                            <Stat
+                              icon={ThumbsUp}
+                              value={submission.likeCount}
+                              label="likes"
+                            />
+                          )}
+                          {submission.dislikeCount > 0 && (
+                            <Stat
+                              icon={ThumbsDown}
+                              value={submission.dislikeCount}
+                              label="dislikes"
+                            />
+                          )}
+                        </span>
+                      ),
+                      <span key="date">
+                        {formatDate(submission.createdAt)}
+                      </span>,
+                    ]
+                      .filter(Boolean)
+                      .flatMap((part, n) =>
+                        n === 0
+                          ? [part]
+                          : [
+                              <span key={`dot-${n}`} aria-hidden>
+                                ·
+                              </span>,
+                              part,
+                            ],
+                      )}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold">
-                      {title}
-                    </span>
-                    <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
-                      {byLine && (
-                        <>
-                          <span className="max-w-full truncate">{byLine}</span>
-                          <span aria-hidden>·</span>
-                        </>
-                      )}
-                      <Stat
-                        icon={Eye}
-                        value={submission.viewCount}
-                        label="views"
-                      />
-                      {/* Votes only once there are some: rows of zeros are noise. */}
-                      {submission.likeCount > 0 && (
-                        <Stat
-                          icon={ThumbsUp}
-                          value={submission.likeCount}
-                          label="likes"
-                        />
-                      )}
-                      {submission.dislikeCount > 0 && (
-                        <Stat
-                          icon={ThumbsDown}
-                          value={submission.dislikeCount}
-                          label="dislikes"
-                        />
-                      )}
-                      <span aria-hidden>·</span>
-                      <span>{formatDate(submission.createdAt)}</span>
-                    </span>
-                  </span>
-                </Link>
-              </li>
-            );
-          }
-
-          return (
-            <li
-              key={submission.id}
-              className="flex items-center gap-3 px-3 py-2 text-sm"
-            >
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-high">
-                <FileText
-                  className="size-4 text-muted-foreground"
-                  aria-hidden
-                />
-              </span>
-              <span className="min-w-0 flex-1 text-xs text-muted-foreground">
-                Submitted {formatDate(submission.createdAt)}
-              </span>
-              <StatusBadge status={submission.status} />
+                </span>
+              </Link>
             </li>
           );
         })}
@@ -155,9 +147,8 @@ export function SubmissionList({
       {pendingCount > 0 && (
         <p className="px-3 pt-2 pb-2 text-xs text-muted-foreground">
           {pendingCount === 1
-            ? "1 more is waiting for review."
-            : `${pendingCount} more are waiting for review.`}{" "}
-          Papers under review become viewable once an admin approves them.
+            ? "1 more copy is waiting for review."
+            : `${pendingCount} more copies are waiting for review.`}
         </p>
       )}
     </section>
@@ -235,7 +226,6 @@ export function PaperSwitcher({
                   <span className="min-w-0 flex-1 truncate font-medium">
                     {titles.get(submission.id)}
                   </span>
-                  <Stat icon={Eye} value={submission.viewCount} label="views" />
                 </Link>
               </li>
             );

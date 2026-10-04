@@ -19,6 +19,7 @@ import {
   sectionChoices,
   teacherClass,
   teacherHref,
+  todayPlan,
   weekDates,
   weekDays,
 } from "./routine";
@@ -218,6 +219,35 @@ describe("the next class", () => {
       daysAhead: 5,
     });
     expect(nextClass([], at("SUN", "09:00"))).toBeNull();
+  });
+
+  it("plans Today: the card's class, then what comes after, never both", () => {
+    const starts = (cs: RoutineClass[] | undefined) => cs?.map((c) => c.start);
+    // Before the first class: the next one in the card, the rest below.
+    const morning = todayPlan(week, "SUN", at("SUN", "09:00"));
+    expect(morning.focus).toMatchObject({
+      state: "next",
+      c: { start: "10:00" },
+    });
+    expect(morning.list?.heading).toBe("Later today");
+    expect(starts(morning.list?.classes)).toEqual(["14:30"]);
+    // In the last class: nothing after it today.
+    const last = todayPlan(week, "SUN", at("SUN", "15:00"));
+    expect(last.focus).toMatchObject({ state: "now", c: { start: "14:30" } });
+    expect(last.list).toBeNull();
+    // Done for today: tomorrow's classes, by name.
+    const evening = todayPlan(week, "SUN", at("SUN", "17:00"));
+    expect(evening).toMatchObject({ focus: null, over: "done" });
+    expect(evening.list?.heading).toBe("Tomorrow, Monday");
+    expect(starts(evening.list?.classes)).toEqual(["08:30"]);
+    // A day off, more than a day before the next class.
+    const off = todayPlan(week, "TUE", at("TUE", "09:00"));
+    expect(off).toMatchObject({ focus: null, over: "off" });
+    expect(off.list?.heading).toBe("Sunday");
+    // Before the clock is known: today's classes, no card class.
+    const hydrating = todayPlan(week, "SUN", null);
+    expect(hydrating).toMatchObject({ focus: null, over: null });
+    expect(starts(hydrating.list?.classes)).toEqual(["10:00", "14:30"]);
   });
 
   it("says when in words", () => {

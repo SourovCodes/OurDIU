@@ -1,8 +1,6 @@
-import { ArrowRight } from "lucide-react";
 import { data, Link } from "react-router";
 import { ComingSoon } from "~/components/coming-soon";
 import { DepartmentSwitch, SectionSearch } from "~/components/routine";
-import { formatDate } from "~/lib/dates";
 import { product as findProduct } from "~/lib/products";
 import {
   isRoutineDepartment,
@@ -12,7 +10,6 @@ import {
   sectionChoices,
   sectionGroup,
   sectionGroups,
-  teachersHref,
 } from "~/lib/routine";
 import { routineLists } from "~/lib/routine.server";
 import { pageMeta } from "~/lib/seo";
@@ -59,18 +56,7 @@ export default function RoutineSections({ loaderData }: Route.ComponentProps) {
   return (
     <div className="space-y-10 pt-2 sm:pt-6">
       <header className="space-y-6">
-        <div className="space-y-2">
-          <p className="text-sm font-semibold text-muted-foreground">
-            {list
-              ? `DIU’s ${name} routine v${list.version.version}${
-                  list.version.publishedOn
-                    ? ` · published ${formatDate(list.version.publishedOn)}`
-                    : ""
-                }`
-              : `DIU’s ${name} routine`}
-          </p>
-          <h1 className="font-display-xl text-5xl sm:text-7xl">Students</h1>
-        </div>
+        <h1 className="font-display-xl text-5xl sm:text-7xl">Students</h1>
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <DepartmentSwitch
             departments={departments}
@@ -87,18 +73,6 @@ export default function RoutineSections({ loaderData }: Route.ComponentProps) {
             </div>
           )}
         </div>
-        {list && (
-          <p className="text-sm text-muted-foreground">
-            Looking for a teacher’s week?{" "}
-            <Link
-              to={teachersHref(department)}
-              className="inline-flex items-center gap-1 font-semibold text-primary underline-offset-4 hover:underline"
-            >
-              {name} teachers
-              <ArrowRight className="size-3.5" aria-hidden />
-            </Link>
-          </p>
-        )}
       </header>
 
       {list ? (
@@ -111,10 +85,13 @@ export default function RoutineSections({ loaderData }: Route.ComponentProps) {
               >
                 <div className="flex items-baseline justify-between gap-3">
                   <h2 className="font-display-xl text-5xl">{group.title}</h2>
-                  <span className="text-sm text-muted-foreground first-letter:uppercase">
-                    {group.name ?? "and others"} · {group.sections.length}{" "}
-                    section{group.sections.length === 1 ? "" : "s"}
-                  </span>
+                  {/* "Level 1, term 2" says what "1-2" means; "batch 67"
+                      would only repeat "67". */}
+                  {group.key.includes("-") && (
+                    <span className="text-sm text-muted-foreground first-letter:uppercase">
+                      {group.name}
+                    </span>
+                  )}
                 </div>
                 <ul className="flex flex-wrap gap-1.5">
                   {group.sections.map((section) => (

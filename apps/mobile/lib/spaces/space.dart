@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/prefs.dart';
+import '../data/routine.dart';
 import '../theme/exam_shape.dart';
 
 /// The OurDIU products. Each is a space of its own, with its own screens, tabs
@@ -33,7 +34,7 @@ enum Space {
     tagline: "Today's classes, your section's or a teacher's week",
     icon: Icons.calendar_month_outlined,
     home: '/routine',
-    live: false,
+    live: true,
     shape: ExamKind.midterm,
     light: SpaceColors(
       accent: Color(0xFF006B5B),
@@ -89,7 +90,9 @@ enum Space {
   /// The space's first screen.
   final String home;
 
-  /// False while it's "coming soon".
+  /// False while it's "coming soon" in this version of the app. The Class
+  /// Routine is built in, and "coming soon" until a department's routine is
+  /// live on the server: see [spaceSoonProvider].
   final bool live;
 
   /// Drawn behind its icon, like the exam types' shapes.
@@ -167,3 +170,11 @@ class LastSpace extends Notifier<Space?> {
 }
 
 final lastSpaceProvider = NotifierProvider<LastSpace, Space?>(LastSpace.new);
+
+/// Whether a space says "Coming soon": not built yet, or (the Class Routine)
+/// no department's routine is live yet. Unknown (loading, offline): not said.
+final spaceSoonProvider = Provider.family<bool, Space>((ref, space) {
+  if (!space.live) return true;
+  if (space != Space.routine) return false;
+  return ref.watch(liveDepartmentsProvider).value?.isEmpty ?? false;
+});

@@ -166,6 +166,64 @@ String dayWord(RoutineDay day, int daysAhead) => switch (daysAhead) {
   _ => dayName(day),
 };
 
+/// What Today shows: the class in its card (the one on now, else the next one
+/// today) and the list under it (the rest of today; once today's are over, or
+/// on a day off, the next class day's). Nothing appears in both.
+typedef TodayPlan = ({
+  ({RoutineClass c, bool on})? focus,
+
+  /// "Done for today" (true) or "No classes today" (false) when there's no
+  /// class for the card; null when there is.
+  bool? done,
+  ({String heading, List<RoutineClass> classes})? list,
+});
+
+TodayPlan todayPlan(List<RoutineClass> classes, DhakaNow now) {
+  final todays = [
+    for (final c in classes)
+      if (c.day == now.day) c,
+  ];
+  final current = todays
+      .where((c) => classState(c, now) == ClassState.now)
+      .firstOrNull;
+  final later = [
+    for (final c in todays)
+      if (classState(c, now) == ClassState.later) c,
+  ];
+  final focus = current != null
+      ? (c: current, on: true)
+      : later.isNotEmpty
+      ? (c: later.first, on: false)
+      : null;
+  if (focus != null) {
+    final rest = [
+      for (final c in later)
+        if (!identical(c, focus.c)) c,
+    ];
+    return (
+      focus: focus,
+      done: null,
+      list: rest.isEmpty ? null : (heading: 'Later today', classes: rest),
+    );
+  }
+  final next = nextClass(classes, now);
+  return (
+    focus: null,
+    done: todays.isNotEmpty,
+    list: next == null
+        ? null
+        : (
+            heading: next.daysAhead == 1
+                ? 'Tomorrow, ${dayName(next.c.day)}'
+                : dayWord(next.c.day, next.daysAhead),
+            classes: [
+              for (final c in classes)
+                if (c.day == next.c.day) c,
+            ],
+          ),
+  );
+}
+
 /// A section to show, and maybe one of its lab groups.
 typedef RoutinePick = ({
   RoutineDepartmentSlug department,

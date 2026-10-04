@@ -188,8 +188,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     OurDIU
                   </Link>
                   <p className="text-sm text-muted-foreground">
-                    Free forever, no ads. Built by a DIU student; not an
-                    official university service.
+                    Free forever, no ads. Built by a DIU student, with papers
+                    shared by DIU students.
                   </p>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <span>

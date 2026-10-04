@@ -301,6 +301,7 @@ function Preview({
       >
         <WeekGrid
           classes={preview.classes}
+          section={preview.section}
           slots={preview.slots}
           days={weekDays(preview.classes)}
           today={null}

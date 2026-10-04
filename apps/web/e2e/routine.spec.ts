@@ -3,7 +3,13 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { cseRoutinePdf, onePagePdf } from "../../api/test/cse-routine-pdf";
 import { eeeRoutinePdf } from "../../api/test/eee-routine-pdf";
-import { failOnConsoleErrors, logInAs, openMenu, SEED_ADMIN } from "./helpers";
+import {
+  clickUntilUrl,
+  failOnConsoleErrors,
+  logInAs,
+  openMenu,
+  SEED_ADMIN,
+} from "./helpers";
 
 failOnConsoleErrors();
 
@@ -60,6 +66,17 @@ test("a student finds their section, makes it theirs and downloads it", async ({
     await expect(week.getByText("Lab · 67_B2")).toHaveCount(0);
   }
 
+  // A class opens in full: the teacher, how to reach them, the course's week.
+  await week.getByRole("button", { name: /Computer Networks Lab/ }).click();
+  const details = page.getByRole("dialog");
+  await expect(details).toContainText("Monday, 2:30 – 5:30 pm");
+  await expect(details).toContainText("Dr. Sample Teacher");
+  await expect(details.getByText("Sits in KT-712")).toBeVisible();
+  await expect(
+    details.getByRole("link", { name: "sta@example.com" }),
+  ).toHaveAttribute("href", "mailto:sta@example.com");
+  await page.keyboard.press("Escape");
+
   // The PDF is this lab group's week.
   const [download] = await Promise.all([
     page.waitForEvent("download"),
@@ -78,8 +95,7 @@ test("a student finds their section, makes it theirs and downloads it", async ({
   await page.goto("/routine");
   const today = page.getByRole("region", { name: "Today" });
   await expect(today).toContainText("My section · CSE 67_B1");
-  await today.getByRole("link", { name: "See the week" }).click();
-  await expect(page).toHaveURL(/\/routine\/cse\/67_B\?group=B1$/);
+  await clickUntilUrl(page, "See the week", /\/routine\/cse\/67_B\?group=B1$/);
 });
 
 test("section addresses are canonical, and near misses find the section", async ({
@@ -302,8 +318,11 @@ test("an admin uploads EEE's routine PDF, and EEE students find their section", 
 
   // Titles go in bulk: select, then remove.
   await page.goto("/admin/routine/courses?department=EEE");
-  await page.getByRole("checkbox", { name: "Select 0713-121" }).check();
-  await expect(page.getByText("1 selected")).toBeVisible();
+  await expect(async () => {
+    // Clicked while the page hydrates, the box can stay empty: check it again.
+    await page.getByRole("checkbox", { name: "Select 0713-121" }).check();
+    await expect(page.getByText("1 selected")).toBeVisible({ timeout: 1_000 });
+  }).toPass();
   await page.getByRole("button", { name: "Remove titles" }).click();
   await page.getByRole("button", { name: "Remove", exact: true }).click();
   await expect(page.getByText("Title removed")).toBeVisible();

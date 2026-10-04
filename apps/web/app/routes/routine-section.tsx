@@ -302,6 +302,7 @@ export default function RoutineSectionPage({
         >
           <WeekGrid
             classes={classes}
+            section={routine.section}
             slots={routine.slots}
             days={days}
             today={days.includes(today) ? today : null}

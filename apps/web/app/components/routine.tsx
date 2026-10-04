@@ -10,6 +10,7 @@ import {
 } from "@ourdiu/shared/constants";
 import {
   ArrowRight,
+  ChevronRight,
   Mail,
   MapPin,
   Phone,
@@ -20,6 +21,14 @@ import { useId, useMemo, useState, useSyncExternalStore } from "react";
 import { Link, useNavigate } from "react-router";
 import { ExamShape } from "~/components/exam-badge";
 import { buttonVariants } from "~/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "~/components/ui/dialog";
 import {
   classState,
   dayWord,
@@ -132,14 +141,150 @@ function Place({ c, className }: { c: RoutineClass; className?: string }) {
   );
 }
 
+const sameClass = (a: RoutineClass, b: RoutineClass) =>
+  a.day === b.day &&
+  a.start === b.start &&
+  a.course.code === b.course.code &&
+  a.labGroup === b.labGroup;
+
+/**
+ * A class in full, opened from wherever it's shown (the week, a day, today): the
+ * course's title, when and where, the teacher and how to reach them, and the
+ * course's other classes in the week.
+ */
+export function ClassDialog({
+  c,
+  week,
+  section,
+  children,
+}: {
+  c: RoutineClass;
+  /** The week it's in, for the course's other classes. */
+  week: RoutineClass[];
+  section: string;
+  /** What opens it: one element, given the button's behaviour. */
+  children: React.ReactNode;
+}) {
+  const others = week.filter((o) => o.course.code === c.course.code);
+  return (
+    <Dialog>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] gap-6 overflow-y-auto">
+        <DialogHeader className="gap-2 pr-8 text-left">
+          {(c.course.title || isLab(c)) && (
+            <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-muted-foreground">
+              {c.course.title && c.course.code}
+              {isLab(c) && <LabTag section={section} group={c.labGroup} />}
+            </p>
+          )}
+          <DialogTitle className="font-expressive text-3xl leading-tight text-balance">
+            {c.course.title ?? c.course.code}
+          </DialogTitle>
+          <DialogDescription className="text-base text-foreground tabular-nums">
+            {dayName(c.day)}, {routineTimeRange(c.start, c.end)}
+            <span className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+              <MapPin className="size-4" aria-hidden />
+              <span className="sr-only">Room</span>
+              {c.room}
+            </span>
+          </DialogDescription>
+        </DialogHeader>
+
+        <section aria-label="Teacher" className="grid gap-2">
+          <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            Teacher
+          </h3>
+          {c.teacher ? (
+            <div className="grid gap-2 rounded-2xl bg-surface px-4 py-3.5">
+              <p className="flex flex-wrap items-baseline gap-x-2">
+                <span className="font-bold">
+                  {c.teacher.name ?? c.teacher.initials}
+                </span>
+                {c.teacher.name && (
+                  <span className="text-sm text-muted-foreground">
+                    {c.teacher.initials}
+                  </span>
+                )}
+              </p>
+              <TeacherContact t={c.teacher} />
+              {!c.teacher.room && !c.teacher.email && !c.teacher.phone && (
+                <p className="text-sm text-muted-foreground">
+                  No contact details yet.
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              The routine doesn’t name one.
+            </p>
+          )}
+        </section>
+
+        {others.length > 1 && (
+          <section aria-label="This week" className="grid gap-2">
+            <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              {c.course.code} this week · {others.length} classes
+            </h3>
+            <ul className="grid gap-1 text-sm tabular-nums">
+              {others.map((o) => {
+                const self = sameClass(o, c);
+                return (
+                  <li
+                    key={`${o.day}-${o.start}-${o.labGroup}`}
+                    aria-current={self ? "true" : undefined}
+                    className={cn(
+                      "grid grid-cols-[2.75rem_minmax(0,1fr)] gap-x-3 rounded-xl px-3 py-2",
+                      self
+                        ? "bg-primary-container text-primary-container-foreground"
+                        : "bg-surface",
+                    )}
+                  >
+                    <span className="font-bold">
+                      {dayName(o.day).slice(0, 3)}
+                    </span>
+                    <span className="grid gap-0.5">
+                      <span>
+                        {routineTimeRange(o.start, o.end)}
+                        {o.labGroup && (
+                          <span className="opacity-75">
+                            {" "}
+                            · {routineGroupLabel(section, o.labGroup)}
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-xs opacity-75">
+                        {[
+                          o.room,
+                          o.teacher?.initials !== c.teacher?.initials &&
+                            o.teacher &&
+                            (o.teacher.name ?? o.teacher.initials),
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /** One class: course, time, room and teacher; "Now" and "Next" on today's. */
 export function ClassCard({
   c,
+  week,
   section,
   state,
   minutesLeft,
 }: {
   c: RoutineClass;
+  /** The week it's in: tapping the card opens the class in full. */
+  week: RoutineClass[];
   section: string;
   state?: "now" | "next" | "over" | null;
   /** Until it ends (now) or starts (next). */
@@ -148,7 +293,7 @@ export function ClassCard({
   return (
     <article
       className={cn(
-        "grid gap-1 rounded-2xl bg-surface px-4 py-3.5",
+        "relative grid gap-1 rounded-2xl bg-surface px-4 py-3.5 transition-colors has-[button:focus-visible]:ring-2 has-[button:focus-visible]:ring-ring has-[button:hover]:state-layer",
         state === "now" &&
           "bg-primary-container text-primary-container-foreground",
         state === "over" && "opacity-55",
@@ -179,9 +324,17 @@ export function ClassCard({
                 : "")}
         </span>
         {isLab(c) && <LabTag section={section} group={c.labGroup} />}
+        <ChevronRight className="ml-auto size-4 opacity-60" aria-hidden />
       </div>
       <h3 className="text-base leading-snug font-bold">
-        {c.course.title ?? c.course.code}
+        <ClassDialog c={c} week={week} section={section}>
+          <button
+            type="button"
+            className="text-left after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none"
+          >
+            {c.course.title ?? c.course.code}
+          </button>
+        </ClassDialog>
       </h3>
       <Place
         c={c}
@@ -194,11 +347,14 @@ export function ClassCard({
 /** A day's classes as cards, with "Now" and "Next" when the day is today. */
 export function DayClasses({
   classes,
+  week,
   section,
   now,
   className,
 }: {
   classes: RoutineClass[];
+  /** The whole week, for a class's details. */
+  week: RoutineClass[];
   section: string;
   now: Now | null;
   className?: string;
@@ -228,6 +384,7 @@ export function DayClasses({
           <ClassCard
             key={`${c.day}-${c.start}-${c.course.code}-${c.labGroup}`}
             c={c}
+            week={week}
             section={section}
             state={state}
             minutesLeft={minutesLeft}
@@ -315,7 +472,18 @@ export function TodayCard({
           {eyebrow}
         </p>
         <h2 className="font-expressive text-3xl text-balance sm:text-4xl">
-          {headline}
+          {focus ? (
+            <ClassDialog c={focus} week={classes} section={section}>
+              <button
+                type="button"
+                className="text-left underline decoration-current/30 decoration-2 underline-offset-[0.2em] transition-colors hover:decoration-current focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              >
+                {headline}
+              </button>
+            </ClassDialog>
+          ) : (
+            headline
+          )}
         </h2>
         {focus && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
@@ -395,12 +563,14 @@ export function GroupChips({
  */
 export function WeekGrid({
   classes,
+  section,
   slots,
   days,
   today,
   now,
 }: {
   classes: RoutineClass[];
+  section: string;
   /** The routine's time slots, in order. */
   slots: { start: string; end: string }[];
   days: RoutineDay[];
@@ -515,29 +685,41 @@ export function WeekGrid({
                           gridRow: firstRow + lane,
                           gridColumn: `${column(c.start)} / span ${span(c)}`,
                         }}
-                        title={[
-                          c.course.title,
-                          routineTimeRange(c.start, c.end),
-                          c.teacher?.name,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                        className={cn(
-                          "relative m-1.5 grid content-start gap-px rounded-xl px-2.5 py-2 text-xs",
-                          isLab(c)
-                            ? "bg-exam-lab text-exam-lab-foreground"
-                            : "bg-surface-highest",
-                          on &&
-                            "ring-2 ring-primary ring-offset-2 ring-offset-surface",
-                        )}
+                        className="flex min-w-0 p-1.5"
                       >
-                        <b className="text-[0.8125rem]">
-                          {c.course.code}
-                          {c.labGroup ? ` · ${c.labGroup}` : ""}
-                        </b>
-                        <span>{c.room}</span>
-                        {c.teacher && <span>{c.teacher.initials}</span>}
-                        {on && <span className="sr-only">(now)</span>}
+                        <ClassDialog c={c} week={classes} section={section}>
+                          <button
+                            type="button"
+                            className={cn(
+                              "grid w-full min-w-0 content-start gap-0.5 rounded-xl px-2.5 py-2 text-left text-xs transition-colors hover:state-layer focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                              isLab(c)
+                                ? "bg-exam-lab text-exam-lab-foreground"
+                                : "bg-surface-highest",
+                              on &&
+                                "ring-2 ring-primary ring-offset-2 ring-offset-surface",
+                            )}
+                          >
+                            <b className="text-[0.8125rem]">
+                              {c.course.code}
+                              {c.labGroup ? ` · ${c.labGroup}` : ""}
+                            </b>
+                            {c.course.title && (
+                              <span className="line-clamp-2 leading-snug font-medium">
+                                {c.course.title}
+                              </span>
+                            )}
+                            <span className="mt-0.5 opacity-80">{c.room}</span>
+                            {c.teacher && (
+                              <span
+                                className="truncate opacity-80"
+                                title={c.teacher.name ?? undefined}
+                              >
+                                {c.teacher.name ?? c.teacher.initials}
+                              </span>
+                            )}
+                            {on && <span className="sr-only">(now)</span>}
+                          </button>
+                        </ClassDialog>
                       </div>
                     );
                   })}
@@ -626,6 +808,7 @@ export function DayTabs({
         {onDay.length ? (
           <DayClasses
             classes={onDay}
+            week={classes}
             section={section}
             now={day === today ? now : null}
           />

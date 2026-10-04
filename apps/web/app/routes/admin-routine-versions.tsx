@@ -7,7 +7,6 @@ import {
   Download,
   EllipsisVertical,
   Eye,
-  FileText,
   Radio,
   Trash2,
 } from "lucide-react";
@@ -20,7 +19,6 @@ import {
   DELETE_DESCRIPTION,
   RoutineStatusBadge,
   UploadRoutineDialog,
-  versionFileHref,
   versionPdfHref,
   versionUrl,
 } from "~/components/admin/routine";
@@ -112,20 +110,10 @@ function RowActions({
               Make live
             </DropdownMenuItem>
           )}
-          {version.hasPdf && (
-            <DropdownMenuItem asChild>
-              <a href={versionPdfHref(version)} download>
-                <FileText />
-                Download DIU’s PDF
-              </a>
-            </DropdownMenuItem>
-          )}
           <DropdownMenuItem asChild>
-            <a href={versionFileHref(version)} download>
+            <a href={versionPdfHref(version)} download>
               <Download />
-              {version.hasPdf
-                ? "Download file read from it"
-                : "Download uploaded file"}
+              Download DIU’s PDF
             </a>
           </DropdownMenuItem>
           {version.status !== "live" && (
@@ -183,12 +171,9 @@ export default function AdminRoutineVersions({
     <>
       <AdminPageHeader
         title="Routine versions"
-        description="Upload DIU’s routine PDF (EEE’s can be read as it is) or a JSON file made from it; it’s kept as a draft. Review it, then make it live: students only see the live version, one per department."
+        description="Upload a department’s routine PDF as DIU publishes it; it’s read and kept as a draft. Review it, then make it live: students only see the live version, one per department."
         actions={
           <>
-            <Button variant="ghost" asChild>
-              <Link to="/admin/routine/format">File format</Link>
-            </Button>
             <UploadRoutineDialog />
           </>
         }
@@ -200,17 +185,27 @@ export default function AdminRoutineVersions({
           description={
             <ol className="mx-auto mt-1 grid max-w-md list-decimal gap-1 pl-5 text-left">
               <li>
-                For EEE, upload DIU’s routine PDF as it is. For CSE, turn the
-                PDF into a JSON file first: the{" "}
+                Upload the department’s routine PDF (CSE’s or EEE’s) as DIU
+                publishes it. It’s read, checked and kept as a draft.
+              </li>
+              <li>
+                Add course titles and teachers’ details, which the PDFs don’t
+                have, on{" "}
                 <Link
-                  to="/admin/routine/format"
+                  to="/admin/routine/courses"
                   className="text-primary underline"
                 >
-                  file format
+                  Course titles
                 </Link>{" "}
-                page has instructions to paste into an AI chat.
+                and{" "}
+                <Link
+                  to="/admin/routine/teachers"
+                  className="text-primary underline"
+                >
+                  Teachers
+                </Link>
+                .
               </li>
-              <li>It’s read, checked and kept as a draft.</li>
               <li>
                 Review it, preview a section, and make it live. Until then the
                 Class Routine says it’s coming soon.
@@ -229,7 +224,7 @@ export default function AdminRoutineVersions({
                   Uploaded
                 </TableHead>
                 <TableHead className="hidden @xl/main:table-cell">
-                  In the file
+                  In it
                 </TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-10">

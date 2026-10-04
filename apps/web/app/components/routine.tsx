@@ -8,7 +8,14 @@ import {
   routineMinutes,
   routineTimeRange,
 } from "@ourdiu/shared/constants";
-import { ArrowRight, MapPin, Search, UserRound } from "lucide-react";
+import {
+  ArrowRight,
+  Mail,
+  MapPin,
+  Phone,
+  Search,
+  UserRound,
+} from "lucide-react";
 import { useId, useMemo, useState, useSyncExternalStore } from "react";
 import { Link, useNavigate } from "react-router";
 import { ExamShape } from "~/components/exam-badge";
@@ -798,6 +805,88 @@ export function CourseList({ classes }: { classes: RoutineClass[] }) {
                 .join(" · ")}
             </span>
           </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * A section's teachers, with how to reach them where it's known: the room where they
+ * sit, their email and phone.
+ */
+export function TeacherList({ classes }: { classes: RoutineClass[] }) {
+  const teachers = [
+    ...new Map(
+      classes.flatMap((c) =>
+        c.teacher ? [[c.teacher.initials, c.teacher] as const] : [],
+      ),
+    ).values(),
+  ].map((t) => ({
+    ...t,
+    courses: [
+      ...new Set(
+        classes
+          .filter((c) => c.teacher?.initials === t.initials)
+          .map((c) => c.course.code),
+      ),
+    ],
+  }));
+  if (!teachers.length) return null;
+  return (
+    <ul className="grid gap-0.5">
+      {teachers.map((t, i) => (
+        <li
+          key={t.initials}
+          className={cn(
+            "grid gap-1 bg-surface px-4 py-3 text-sm",
+            i === 0 && "rounded-t-2xl",
+            i === teachers.length - 1 && "rounded-b-2xl",
+          )}
+        >
+          <span className="leading-snug font-semibold">
+            {t.name ?? t.initials}
+            {t.name && (
+              <span className="font-normal text-muted-foreground">
+                {" "}
+                · {t.initials}
+              </span>
+            )}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {t.courses.join(", ")}
+          </span>
+          {(t.room || t.email || t.phone) && (
+            <span className="flex flex-wrap gap-x-3 gap-y-1 pt-0.5 text-xs">
+              {t.room && (
+                <span className="inline-flex items-center gap-1">
+                  <MapPin
+                    className="size-3.5 text-muted-foreground"
+                    aria-hidden
+                  />
+                  Sits in {t.room}
+                </span>
+              )}
+              {t.email && (
+                <a
+                  href={`mailto:${t.email}`}
+                  className="inline-flex min-w-0 items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  <Mail className="size-3.5 shrink-0" aria-hidden />
+                  <span className="truncate">{t.email}</span>
+                </a>
+              )}
+              {t.phone && (
+                <a
+                  href={`tel:${t.phone.replace(/[\s-]/g, "")}`}
+                  className="inline-flex items-center gap-1 font-medium text-primary tabular-nums underline-offset-4 hover:underline"
+                >
+                  <Phone className="size-3.5" aria-hidden />
+                  {t.phone}
+                </a>
+              )}
+            </span>
+          )}
         </li>
       ))}
     </ul>

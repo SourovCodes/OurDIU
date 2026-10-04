@@ -292,19 +292,17 @@ export const ROUTINE_WARNING_KINDS = [
   "unreadable",
 ] as const;
 
-/** A routine file holds at most this many classes (the CSE routine has about 2,000). */
+/** A routine holds at most this many classes (CSE's has about 1,600). */
 export const MAX_ROUTINE_CLASSES = 6000;
-/** The largest routine file accepted, in bytes. */
-export const MAX_ROUTINE_FILE_BYTES = 2 * 1024 * 1024;
-/** The largest routine PDF accepted, in bytes (EEE's is about 270 KB). */
+/** The largest routine PDF accepted, in bytes (CSE's and EEE's are under 300 KB). */
 export const MAX_ROUTINE_PDF_BYTES = 10 * 1024 * 1024;
 
 /** Course codes as printed in the routine: CSE321, ACT327, or EEE's 0713-121. */
 export const ROUTINE_COURSE_CODE_PATTERN =
   /^(?:[A-Z]{2,6}\d{2,4}[A-Z]?|\d{4}-\d{3})$/;
-/** Sections as printed: 67_B, retakes like RE_A(3C), EEE's 1-2 B (one space at most between parts). */
+/** Sections as printed: 67_B, retakes like RE_A(3C) or RE_A1(1.5C), EEE's 1-2 B (one space at most between parts). */
 export const ROUTINE_SECTION_PATTERN =
-  /^(?=.{1,30}$)[A-Za-z0-9](?:[A-Za-z0-9_()-]| (?=[A-Za-z0-9(]))*$/;
+  /^(?=.{1,30}$)[A-Za-z0-9](?:[A-Za-z0-9_().-]| (?=[A-Za-z0-9(]))*$/;
 /**
  * A batch's or a level-term's own section: CSE's 67_B, EEE's 1-2 B. Others, like
  * CSE's retake sections (RE_A(3C)), gather many courses at the same times; each
@@ -314,8 +312,9 @@ export const ROUTINE_REGULAR_SECTION_PATTERN =
   /^(?:\d+_[A-Za-z]+|\d-\d [A-Z]+)$/;
 /** A lab group within a section, e.g. B1 for 67_B1. */
 export const ROUTINE_LAB_GROUP_PATTERN = /^[A-Z0-9]{1,8}$/;
-/** Teacher initials: STA, MRR. */
-export const ROUTINE_TEACHER_PATTERN = /^[A-Za-z][A-Za-z.]{0,11}$/;
+/** Teacher initials: STA, MRR, ShA, or a placeholder like NT-1 or EEE_1 (a new teacher). */
+export const ROUTINE_TEACHER_PATTERN =
+  /^[A-Za-z][A-Za-z.]{0,11}(?:[-_]\d{1,2})?$/;
 
 /** Minutes since midnight for a 24-hour "HH:MM". */
 export function routineMinutes(time: string): number {

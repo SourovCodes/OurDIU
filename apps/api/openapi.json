@@ -1838,11 +1838,32 @@
               "string",
               "null"
             ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "room": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
           "initials",
-          "name"
+          "name",
+          "phone",
+          "email",
+          "room"
         ]
       },
       "AdminRoutineVersionList": {
@@ -1883,9 +1904,6 @@
               "string",
               "null"
             ]
-          },
-          "hasPdf": {
-            "type": "boolean"
           },
           "status": {
             "$ref": "#/components/schemas/RoutineVersionStatus"
@@ -1934,7 +1952,6 @@
           "version",
           "publishedOn",
           "source",
-          "hasPdf",
           "status",
           "sectionCount",
           "classCount",
@@ -1988,9 +2005,6 @@
               "string",
               "null"
             ]
-          },
-          "hasPdf": {
-            "type": "boolean"
           },
           "status": {
             "$ref": "#/components/schemas/RoutineVersionStatus"
@@ -2060,7 +2074,6 @@
           "version",
           "publishedOn",
           "source",
-          "hasPdf",
           "status",
           "sectionCount",
           "classCount",
@@ -2237,140 +2250,153 @@
           "teacher"
         ]
       },
-      "RoutineFile": {
+      "AdminRoutineCourseList": {
         "type": "object",
         "properties": {
-          "format": {
-            "type": "number",
-            "enum": [
-              1
-            ]
-          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminRoutineCourse"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "AdminRoutineCourse": {
+        "type": "object",
+        "properties": {
           "department": {
             "$ref": "#/components/schemas/RoutineDepartment"
           },
-          "version": {
-            "type": "string",
-            "pattern": "^\\d{1,3}(\\.\\d{1,3}){0,2}$"
+          "code": {
+            "type": "string"
           },
-          "publishedOn": {
+          "title": {
             "type": [
               "string",
               "null"
-            ],
-            "format": "date"
-          },
-          "source": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "maxLength": 500,
-            "format": "uri"
-          },
-          "slots": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RoutineSlot"
-            },
-            "minItems": 1,
-            "maxItems": 12
-          },
-          "courses": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 120
-            }
-          },
-          "teachers": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 120
-            }
-          },
-          "classes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RoutineFileClass"
-            },
-            "minItems": 1,
-            "maxItems": 6000
-          }
-        },
-        "required": [
-          "format",
-          "department",
-          "version",
-          "slots",
-          "classes"
-        ],
-        "additionalProperties": false
-      },
-      "RoutineFileClass": {
-        "type": "object",
-        "properties": {
-          "day": {
-            "$ref": "#/components/schemas/RoutineDay"
-          },
-          "start": {
-            "type": "string",
-            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
-          },
-          "end": {
-            "type": "string",
-            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
-          },
-          "course": {
-            "type": "string",
-            "pattern": "^(?:[A-Z]{2,6}\\d{2,4}[A-Z]?|\\d{4}-\\d{3})$"
-          },
-          "section": {
-            "type": "string",
-            "pattern": "^(?=.{1,30}$)[A-Za-z0-9](?:[A-Za-z0-9_()-]| (?=[A-Za-z0-9(]))*$"
-          },
-          "labGroup": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "pattern": "^[A-Z0-9]{1,8}$"
-          },
-          "room": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 40
-          },
-          "roomType": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "enum": [
-              "lab",
-              null
             ]
           },
-          "teacher": {
+          "liveSections": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "department",
+          "code",
+          "title",
+          "liveSections"
+        ]
+      },
+      "RoutineCourseInput": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "AdminRoutineTeacherList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminRoutineTeacher"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "AdminRoutineTeacher": {
+        "type": "object",
+        "properties": {
+          "department": {
+            "$ref": "#/components/schemas/RoutineDepartment"
+          },
+          "initials": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "room": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "liveClasses": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "department",
+          "initials",
+          "name",
+          "phone",
+          "email",
+          "room",
+          "liveClasses"
+        ]
+      },
+      "RoutineTeacherInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "phone": {
             "type": [
               "string",
               "null"
             ],
-            "pattern": "^[A-Za-z][A-Za-z.]{0,11}$"
+            "maxLength": 40
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          },
+          "room": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 60
           }
         },
         "required": [
-          "day",
-          "start",
-          "end",
-          "course",
-          "section",
-          "room"
-        ],
-        "additionalProperties": false
+          "name"
+        ]
       },
       "ReportReason": {
         "type": "string",
@@ -4311,7 +4337,7 @@
           {
             "schema": {
               "type": "string",
-              "pattern": "^(?=.{1,30}$)[A-Za-z0-9](?:[A-Za-z0-9_()-]| (?=[A-Za-z0-9(]))*$"
+              "pattern": "^(?=.{1,30}$)[A-Za-z0-9](?:[A-Za-z0-9_().-]| (?=[A-Za-z0-9(]))*$"
             },
             "required": true,
             "name": "section",
@@ -4361,7 +4387,7 @@
           {
             "schema": {
               "type": "string",
-              "pattern": "^(?=.{1,30}$)[A-Za-z0-9](?:[A-Za-z0-9_()-]| (?=[A-Za-z0-9(]))*$"
+              "pattern": "^(?=.{1,30}$)[A-Za-z0-9](?:[A-Za-z0-9_().-]| (?=[A-Za-z0-9(]))*$"
             },
             "required": true,
             "name": "section",
@@ -4445,89 +4471,8 @@
         "tags": [
           "Admin: routine"
         ],
-        "summary": "Upload a routine file as a draft",
-        "description": "The body is the routine file (`RoutineFile`). A file that can't be used is answered with 422 `INVALID_ROUTINE_FILE` and its problems in `details` (`{ path, message }`). Possible slips (clashes, untitled courses) don't stop the upload: they're the draft's `warnings`.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RoutineFile"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "The draft",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AdminRoutineVersionDetail"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not signed in",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not an admin",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The version is already uploaded",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "The file is too large",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "The file can't be used",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/admin/routine/versions/pdf": {
-      "post": {
-        "tags": [
-          "Admin: routine"
-        ],
         "summary": "Read DIU's routine PDF into a draft",
-        "description": "For departments whose PDF OurDIU can read (EEE). The routine read from it is checked like an uploaded file and kept with the PDF; cells that couldn't be read, or were read with a guess, are the draft's first warnings (`unreadable`). A PDF of another layout is answered with 422 `UNKNOWN_ROUTINE_PDF`.",
+        "description": "Each department's PDF has its own reader (CSE's and EEE's so far), found by the heading on its first page; another PDF is answered with 422 `UNKNOWN_ROUTINE_PDF`. What's read is checked: if the PDF's layout changed so it can't be used, 422 `INVALID_ROUTINE_FILE` with the problems in `details` (`{ path, message }`). Cells that couldn't be read, or were read with a guess, are the draft's first warnings (`unreadable`); possible slips in the routine (clashes, untitled courses) follow.",
         "requestBody": {
           "required": true,
           "content": {
@@ -4686,7 +4631,7 @@
         "tags": [
           "Admin: routine"
         ],
-        "summary": "Delete a version that isn't live, with its uploaded file",
+        "summary": "Delete a version that isn't live, with its PDF",
         "parameters": [
           {
             "schema": {
@@ -4751,7 +4696,7 @@
           "Admin: routine"
         ],
         "summary": "Make a version the one students see",
-        "description": "The department's live version becomes a previous version. A previous version can be made live again.",
+        "description": "The department's live version becomes a previous version. A previous version can be made live again. Teachers the PDF lists are added to the department's; for ones already there, only empty details are filled in.",
         "parameters": [
           {
             "schema": {
@@ -4879,67 +4824,6 @@
         }
       }
     },
-    "/api/v1/admin/routine/versions/{id}/file": {
-      "get": {
-        "tags": [
-          "Admin: routine"
-        ],
-        "summary": "Download the file a version was uploaded as",
-        "parameters": [
-          {
-            "schema": {
-              "type": "integer",
-              "exclusiveMinimum": 0
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The routine file",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RoutineFile"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not signed in",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not an admin",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Version not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/admin/routine/versions/{id}/pdf": {
       "get": {
         "tags": [
@@ -4990,7 +4874,369 @@
             }
           },
           "404": {
-            "description": "Version not found, or not read from a PDF",
+            "description": "Version not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/routine/courses": {
+      "get": {
+        "tags": [
+          "Admin: routine"
+        ],
+        "summary": "A department's courses and their titles",
+        "description": "The codes in any of the department's versions, and any given a title, by code.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/RoutineDepartment"
+            },
+            "required": true,
+            "name": "department",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Courses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRoutineCourseList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/routine/courses/{department}/{code}": {
+      "put": {
+        "tags": [
+          "Admin: routine"
+        ],
+        "summary": "Give a course its title",
+        "description": "Students see it right away, in every version.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/RoutineDepartment"
+            },
+            "required": true,
+            "name": "department",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[A-Z]{2,6}\\d{2,4}[A-Z]?|\\d{4}-\\d{3})$"
+            },
+            "required": true,
+            "name": "code",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoutineCourseInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The course",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRoutineCourse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid title",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin: routine"
+        ],
+        "summary": "Take a course's title away",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/RoutineDepartment"
+            },
+            "required": true,
+            "name": "department",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[A-Z]{2,6}\\d{2,4}[A-Z]?|\\d{4}-\\d{3})$"
+            },
+            "required": true,
+            "name": "code",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/routine/teachers": {
+      "get": {
+        "tags": [
+          "Admin: routine"
+        ],
+        "summary": "A department's teachers and their details",
+        "description": "The initials in any of the department's versions, and any added by hand, by initials.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/RoutineDepartment"
+            },
+            "required": true,
+            "name": "department",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Teachers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRoutineTeacherList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/routine/teachers/{department}/{initials}": {
+      "put": {
+        "tags": [
+          "Admin: routine"
+        ],
+        "summary": "Set a teacher's name, phone, email and room",
+        "description": "Replaces what's there: a field left out is cleared. Students see it right away.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/RoutineDepartment"
+            },
+            "required": true,
+            "name": "department",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z.]{0,11}(?:[-_]\\d{1,2})?$"
+            },
+            "required": true,
+            "name": "initials",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoutineTeacherInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The teacher",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRoutineTeacher"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin: routine"
+        ],
+        "summary": "Forget a teacher's details",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/RoutineDepartment"
+            },
+            "required": true,
+            "name": "department",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z.]{0,11}(?:[-_]\\d{1,2})?$"
+            },
+            "required": true,
+            "name": "initials",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
             "content": {
               "application/json": {
                 "schema": {

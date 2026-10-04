@@ -4,26 +4,32 @@
 
 import 'package:json_annotation/json_annotation.dart';
 
-part 'routine_teacher.g.dart';
+import 'routine_department.dart';
+
+part 'admin_routine_teacher.g.dart';
 
 @JsonSerializable()
-class RoutineTeacher {
-  const RoutineTeacher({
+class AdminRoutineTeacher {
+  const AdminRoutineTeacher({
+    required this.department,
     required this.initials,
     required this.name,
     required this.phone,
     required this.email,
     required this.room,
+    required this.liveClasses,
   });
 
-  factory RoutineTeacher.fromJson(Map<String, Object?> json) =>
-      _$RoutineTeacherFromJson(json);
+  factory AdminRoutineTeacher.fromJson(Map<String, Object?> json) =>
+      _$AdminRoutineTeacherFromJson(json);
 
+  final RoutineDepartment department;
   final String initials;
   final String? name;
   final String? phone;
   final String? email;
   final String? room;
+  final int liveClasses;
 
-  Map<String, Object?> toJson() => _$RoutineTeacherToJson(this);
+  Map<String, Object?> toJson() => _$AdminRoutineTeacherToJson(this);
 }

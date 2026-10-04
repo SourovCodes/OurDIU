@@ -12,8 +12,6 @@ import {
 import {
   Download,
   ExternalLink,
-  FileJson,
-  FileText,
   FileWarning,
   Radio,
   Trash2,
@@ -27,18 +25,11 @@ import {
   ChangeStat,
   DELETE_DESCRIPTION,
   RoutineStatusBadge,
-  versionFileHref,
   versionPdfHref,
 } from "~/components/admin/routine";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { WeekGrid } from "~/components/routine";
 import { Button } from "~/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -219,37 +210,12 @@ export default function AdminRoutineVersion({
         }
         actions={
           <>
-            {v.hasPdf ? (
-              <DropdownMenu modal={false}>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost">
-                    <Download aria-hidden />
-                    Download
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <a href={versionPdfHref(v)} download>
-                      <FileText />
-                      DIU’s PDF
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <a href={versionFileHref(v)} download>
-                      <FileJson />
-                      File read from it (JSON)
-                    </a>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button variant="ghost" asChild>
-                <a href={versionFileHref(v)} download>
-                  <Download aria-hidden />
-                  Uploaded file
-                </a>
-              </Button>
-            )}
+            <Button variant="ghost" asChild>
+              <a href={versionPdfHref(v)} download>
+                <Download aria-hidden />
+                DIU’s PDF
+              </a>
+            </Button>
             {v.status !== "live" && (
               <ConfirmAction
                 trigger={
@@ -343,8 +309,7 @@ export default function AdminRoutineVersion({
             <p className="mt-2">
               Cells that couldn’t be read are left out, so students won’t see
               those classes; others were read with a guess. Compare them with
-              the PDF. To correct them, download the file read from it, fix it,
-              delete this draft and upload the file.
+              DIU’s PDF before making this version live.
             </p>
           </AlertDescription>
         </Alert>
@@ -363,9 +328,15 @@ export default function AdminRoutineVersion({
               ))}
             </ul>
             <p className="mt-2">
-              {v.hasPdf
-                ? "These may be in DIU’s routine itself, or misread from the PDF. If they’re misread, fix the file read from it and upload it as a new draft."
-                : "These may be in DIU’s routine itself, or slips in the file. Fix the file and upload it as a new draft if they’re slips."}
+              These are usually in DIU’s routine itself. Course titles can be
+              added on{" "}
+              <Link
+                to="/admin/routine/courses"
+                className="font-medium underline"
+              >
+                Course titles
+              </Link>
+              .
             </p>
           </AlertDescription>
         </Alert>

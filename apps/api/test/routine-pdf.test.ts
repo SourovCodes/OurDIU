@@ -9,6 +9,7 @@ import { PDFDocument } from "pdf-lib";
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { readRoutinePdf } from "../src/services/routine/import";
+import { cseRoutinePdf } from "./cse-routine-pdf";
 import { eeeRoutinePdf } from "./eee-routine-pdf";
 import { api, jsonRequest, pdfFile, signIn, signInAdmin } from "./helpers";
 
@@ -29,7 +30,7 @@ function uploadPdf(bytes: Uint8Array | File, cookie = admin.cookie) {
       ? bytes
       : new File([bytes], "eee-routine.pdf", { type: "application/pdf" }),
   );
-  return api("/api/v1/admin/routine/versions/pdf", {
+  return api("/api/v1/admin/routine/versions", {
     method: "POST",
     headers: { cookie },
     body: form,
@@ -64,13 +65,18 @@ describe("reading EEE's routine PDF", () => {
       "16:00",
       "17:00",
     ]);
-    // Names only: the list's phone numbers and emails aren't read.
+    // The teachers' list, with phone numbers and emails.
+    const listed = (name: string, initials: string) => ({
+      name,
+      phone: "01700000000",
+      email: `${initials.toLowerCase()}@example.com`,
+    });
     expect(file.teachers).toEqual({
-      MSA: "Dr. Test Alam",
-      MW: "Test Wahid",
-      AAA: "Anan Test Azad",
-      BS: "Bijoy Test",
-      ShA: "Dr. Md. Shahin Test",
+      MSA: listed("Dr. Test Alam", "MSA"),
+      MW: listed("Test Wahid", "MW"),
+      AAA: listed("Anan Test Azad", "AAA"),
+      BS: listed("Bijoy Test", "BS"),
+      ShA: listed("Dr. Md. Shahin Test", "ShA"),
     });
     const line = (c: RoutineFile["classes"][number]) =>
       `${c.day} ${c.start}-${c.end} ${c.section}${c.labGroup ? ` (${c.labGroup})` : ""} ${c.course} ${c.room}${c.roomType ? " lab" : ""} ${c.teacher}`;
@@ -108,6 +114,96 @@ describe("reading EEE's routine PDF", () => {
   });
 });
 
+describe("reading CSE's routine PDF", () => {
+  it("follows days over pages and reads sections as they're meant", async () => {
+    const at = (day: string, start: string, end: string) => ({
+      day,
+      start,
+      end,
+    });
+    const pdf = await cseRoutinePdf({
+      version: "4.1",
+      publishedOn: "2026-10-03",
+      slots: [
+        { start: "08:30", end: "10:00" },
+        { start: "10:00", end: "11:30" },
+        { start: "11:30", end: "13:00" },
+      ],
+      classes: [
+        // A lab over two slots, for lab group B1 of 67_B.
+        {
+          ...at("SAT", "08:30", "11:30"),
+          course: "CSE322",
+          section: "67_B",
+          labGroup: "B1",
+          room: "G1-017",
+          roomType: "lab",
+          teacher: "STA",
+        },
+        // Too long for its cell: it wraps.
+        {
+          ...at("SAT", "08:30", "10:00"),
+          course: "CSE325",
+          section: "RE_A(3C)(DMML)",
+          room: "ANX1-209",
+          teacher: "MHIM",
+        },
+        // Enough rooms for Saturday to run onto the next page…
+        ...Array.from({ length: 60 }, (_, i) => ({
+          ...at("SAT", "11:30", "13:00"),
+          course: "CSE111",
+          section: `${60 + (i % 10)}_${String.fromCharCode(65 + Math.floor(i / 10))}`,
+          room: `KT-${300 + i}`,
+          teacher: "NT-1",
+        })),
+        // …and Sunday to start under it, with a slip in a section's name.
+        {
+          ...at("SUN", "10:00", "11:30"),
+          course: "MAT101",
+          section: "RE_A (3C.)",
+          room: "KT-216",
+          teacher: "EEE_1",
+        },
+      ],
+    });
+    expect(await PDFDocument.load(pdf).then((d) => d.getPageCount())).toBe(2);
+
+    const { file, notes } = await readRoutinePdf(pdf);
+    expect(file).toMatchObject({
+      department: "CSE",
+      version: "4.1",
+      publishedOn: "2026-10-03",
+    });
+    expect(file.classes).toHaveLength(63);
+    expect(file.classes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ...at("SAT", "08:30", "11:30"),
+          section: "67_B",
+          labGroup: "B1",
+          room: "G1-017",
+          roomType: "lab",
+        }),
+        expect.objectContaining({
+          ...at("SAT", "08:30", "10:00"),
+          section: "RE_A(3C)(DMML)",
+          teacher: "MHIM",
+          roomType: null,
+        }),
+        expect.objectContaining({
+          ...at("SUN", "10:00", "11:30"),
+          section: "RE_A(3C)",
+          teacher: "EEE_1",
+        }),
+      ]),
+    );
+    expect(file.classes.filter((c) => c.day === "SAT")).toHaveLength(62);
+    expect(notes).toEqual([
+      "Sunday 10:00 am, KT-216: section “RE_A (3C.)” read as RE_A(3C), here and wherever else it’s written so.",
+    ]);
+  });
+});
+
 // The tests share one database and run in order.
 describe("uploading a routine PDF", () => {
   it("only lets admins in", async () => {
@@ -131,7 +227,6 @@ describe("uploading a routine PDF", () => {
       department: "EEE",
       version: "4.0",
       status: "draft",
-      hasPdf: true,
       sectionCount: 8,
       classCount: 10,
     });
@@ -142,20 +237,23 @@ describe("uploading a routine PDF", () => {
     ]);
     expect(draft.warnings[0]!.message).toContain("read as 1-3 A");
 
-    // The PDF and the file read from it can be downloaded.
+    // The PDF can be downloaded.
     const original = await adminCall("GET", `/versions/${draft.id}/pdf`);
     expect(original.status).toBe(200);
     expect(original.headers.get("content-disposition")).toContain(
       "eee-routine-4.0.pdf",
     );
     expect(new Uint8Array(await original.arrayBuffer())).toEqual(pdf);
-    const file = await adminCall("GET", `/versions/${draft.id}/file`);
-    expect((await file.json<RoutineFile>()).classes).toHaveLength(10);
 
     expect((await uploadPdf(pdf)).status).toBe(409);
   });
 
   it("shows EEE's sections, with lab groups written as students do", async () => {
+    // An admin's details for a teacher stay; the PDF fills in what's empty.
+    await adminCall("PUT", "/teachers/EEE/MW", {
+      name: "Md. Wahid",
+      room: "KT-712",
+    });
     await adminCall("POST", `/versions/${draft.id}/live`);
     const list = await api("/api/v1/routine/eee/sections");
     expect(list.status).toBe(200);
@@ -180,7 +278,13 @@ describe("uploading a routine PDF", () => {
     expect(section.labGroups).toEqual(["B1"]);
     expect(section.classes[0]).toMatchObject({
       course: { code: "0713-121", title: null },
-      teacher: { initials: "MW", name: "Test Wahid" },
+      teacher: {
+        initials: "MW",
+        name: "Md. Wahid",
+        phone: "01700000000",
+        email: "mw@example.com",
+        room: "KT-712",
+      },
     });
     expect((await api("/api/v1/routine/eee/sections/1-2%20B")).status).toBe(
       200,
@@ -195,33 +299,32 @@ describe("uploading a routine PDF", () => {
 
   it("keeps each department's teachers apart", async () => {
     // CSE's MW is someone else.
-    const cse = await adminCall("POST", "/versions", {
-      format: 1,
-      department: "CSE",
-      version: "1.0",
-      slots: [{ start: "08:30", end: "10:00" }],
-      teachers: { MW: "A CSE Teacher" },
-      classes: [
-        {
-          day: "SAT",
-          start: "08:30",
-          end: "10:00",
-          course: "CSE101",
-          section: "65_A",
-          room: "KT-201",
-          teacher: "MW",
-        },
-      ],
-    });
+    const cse = await uploadPdf(
+      await cseRoutinePdf({
+        version: "1.0",
+        slots: [{ start: "08:30", end: "10:00" }],
+        classes: [
+          {
+            day: "SAT",
+            start: "08:30",
+            end: "10:00",
+            course: "CSE101",
+            section: "65_A",
+            room: "KT-201",
+            teacher: "MW",
+          },
+        ],
+      }),
+    );
     expect(cse.status).toBe(201);
-    const { id, hasPdf } = await cse.json<AdminRoutineVersionDetail>();
-    expect(hasPdf).toBe(false);
+    const { id } = await cse.json<AdminRoutineVersionDetail>();
+    await adminCall("PUT", "/teachers/CSE/MW", { name: "A CSE Teacher" });
     await adminCall("POST", `/versions/${id}/live`);
 
     const eee = await (
       await api("/api/v1/routine/eee/sections/1-2_B")
     ).json<RoutineSection>();
-    expect(eee.classes[0]!.teacher?.name).toBe("Test Wahid");
+    expect(eee.classes[0]!.teacher?.name).toBe("Md. Wahid");
     const csWeek = await (
       await api("/api/v1/routine/cse/sections/65_A")
     ).json<RoutineSection>();
@@ -235,7 +338,7 @@ describe("uploading a routine PDF", () => {
     const res = await uploadPdf(await eeeRoutinePdf("4.1"));
     expect(res.status).toBe(201);
     const { id } = await res.json<AdminRoutineVersionDetail>();
-    expect(await files()).toBe(before + 2);
+    expect(await files()).toBe(before + 1);
 
     expect((await adminCall("DELETE", `/versions/${id}`)).status).toBe(204);
     expect(await files()).toBe(before);

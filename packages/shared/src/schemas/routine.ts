@@ -16,10 +16,9 @@ import {
 import { nullableRef } from "./common";
 
 // ── The routine file ─────────────────────────────────────────────────────────
-// DIU publishes each department's routine as a PDF. OurDIU reads the PDFs whose
-// layout it knows (EEE's) into this JSON; others are turned into it outside OurDIU
-// (by hand or with an AI chat) and uploaded by an admin. The messages are written
-// for whoever fixes the file.
+// DIU publishes each department's routine as a PDF; an admin uploads it and OurDIU's
+// reader for that department's layout turns it into this, checked before it's kept.
+// A rule broken here means the PDF wasn't read right (its layout changed).
 
 const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, {
   error: 'Use 24-hour time with two digits, e.g. "08:30" or "13:00"',
@@ -80,7 +79,7 @@ export const routineFileClassSchema = z
   .meta({ id: "RoutineFileClass" });
 export type RoutineFileClass = z.infer<typeof routineFileClassSchema>;
 
-/** A routine version as uploaded (docs: /admin/routine/format). */
+/** A routine version as read from DIU's PDF. */
 export const routineFileSchema = z
   .strictObject({
     format: z.literal(ROUTINE_FILE_FORMAT, {
@@ -95,13 +94,18 @@ export const routineFileSchema = z
     publishedOn: z.iso
       .date({ error: 'Use a date like "2026-10-04"' })
       .nullish(),
-    /** Where DIU's PDF is. */
-    source: z.url().max(500).nullish(),
     slots: z.array(routineSlotSchema).min(1).max(12),
-    /** Course titles by code: { "CSE321": "Computer Networks" }. */
-    courses: z.record(courseCodeSchema, nameSchema).optional(),
-    /** Teachers' names by initials: { "STA": "…" }. */
-    teachers: z.record(teacherInitialsSchema, nameSchema).optional(),
+    /** Teachers by initials, when the PDF lists them (EEE's does). */
+    teachers: z
+      .record(
+        teacherInitialsSchema,
+        z.strictObject({
+          name: nameSchema,
+          phone: z.string().max(40).nullish(),
+          email: z.email().max(200).nullish(),
+        }),
+      )
+      .optional(),
     classes: z.array(routineFileClassSchema).min(1).max(MAX_ROUTINE_CLASSES),
   })
   .superRefine((file, ctx) => {
@@ -208,7 +212,14 @@ export const routineCourseSchema = z
   .meta({ id: "RoutineCourse" });
 
 export const routineTeacherSchema = z
-  .object({ initials: z.string(), name: z.string().nullable() })
+  .object({
+    initials: z.string(),
+    name: z.string().nullable(),
+    phone: z.string().nullable(),
+    email: z.string().nullable(),
+    /** Where the teacher sits: "KT-712". */
+    room: z.string().nullable(),
+  })
   .meta({ id: "RoutineTeacher" });
 
 export const routineClassSchema = z
@@ -262,8 +273,6 @@ export const adminRoutineVersionSchema = z
     version: z.string(),
     publishedOn: z.iso.date().nullable(),
     source: z.string().nullable(),
-    /** Whether it was read from DIU's PDF, which can be downloaded. */
-    hasPdf: z.boolean(),
     status: routineVersionStatusSchema,
     sectionCount: z.number().int(),
     classCount: z.number().int(),
@@ -351,7 +360,7 @@ export type AdminRoutineVersionDetail = z.infer<
   typeof adminRoutineVersionDetailSchema
 >;
 
-/** Why an uploaded file can't be used: each problem with where it is. */
+/** Why what was read from a PDF can't be used: each problem with where it is. */
 export const routineFileProblemSchema = z.object({
   /** Where in the file, e.g. "classes[412].start"; empty for the whole file. */
   path: z.string(),
@@ -368,10 +377,88 @@ export function routineFilePath(path: readonly PropertyKey[]): string {
     .join("");
 }
 
-/** The routine file's JSON schema, for people and AI chats making one. */
-export function routineFileJsonSchema(): Record<string, unknown> {
-  return z.toJSONSchema(routineFileSchema, {
-    io: "input",
-    unrepresentable: "any",
-  });
-}
+// ── Course titles and teachers (/api/v1/admin/routine/courses, /teachers) ────
+// Kept per department across versions; DIU's PDFs don't have titles (and CSE's no
+// teachers' names), so admins add them.
+
+export const adminRoutineDepartmentQuerySchema = z.object({
+  department: routineDepartmentSchema,
+});
+
+export const adminRoutineCourseSchema = z
+  .object({
+    department: routineDepartmentSchema,
+    code: z.string(),
+    title: z.string().nullable(),
+    /** Sections taking it in the live version; 0 if it's not in it. */
+    liveSections: z.number().int(),
+  })
+  .meta({ id: "AdminRoutineCourse" });
+export type AdminRoutineCourse = z.infer<typeof adminRoutineCourseSchema>;
+
+export const adminRoutineCourseListSchema = z
+  .object({ items: z.array(adminRoutineCourseSchema) })
+  .meta({ id: "AdminRoutineCourseList" });
+export type AdminRoutineCourseList = z.infer<
+  typeof adminRoutineCourseListSchema
+>;
+
+export const routineCourseParamsSchema = z.object({
+  department: routineDepartmentSchema,
+  code: courseCodeSchema,
+});
+
+export const routineCourseInputSchema = z
+  .object({ title: z.string().trim().min(2).max(200) })
+  .meta({ id: "RoutineCourseInput" });
+export type RoutineCourseInput = z.infer<typeof routineCourseInputSchema>;
+
+export const adminRoutineTeacherSchema = z
+  .object({
+    department: routineDepartmentSchema,
+    initials: z.string(),
+    name: z.string().nullable(),
+    phone: z.string().nullable(),
+    email: z.string().nullable(),
+    room: z.string().nullable(),
+    /** Classes a week in the live version; 0 if not in it. */
+    liveClasses: z.number().int(),
+  })
+  .meta({ id: "AdminRoutineTeacher" });
+export type AdminRoutineTeacher = z.infer<typeof adminRoutineTeacherSchema>;
+
+export const adminRoutineTeacherListSchema = z
+  .object({ items: z.array(adminRoutineTeacherSchema) })
+  .meta({ id: "AdminRoutineTeacherList" });
+export type AdminRoutineTeacherList = z.infer<
+  typeof adminRoutineTeacherListSchema
+>;
+
+export const routineTeacherParamsSchema = z.object({
+  department: routineDepartmentSchema,
+  initials: teacherInitialsSchema,
+});
+
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .nullish()
+    .transform((v) => v || null);
+
+export const routineTeacherInputSchema = z
+  .object({
+    name: z.string().trim().min(2).max(120),
+    phone: optionalText(40).refine((v) => !v || /^\+?[\d\s-]{7,20}$/.test(v), {
+      error: "Use digits, e.g. 01712345678",
+    }),
+    email: optionalText(200).refine(
+      (v) => !v || z.email().safeParse(v).success,
+      { error: "Use an email address, e.g. name@diu.edu.bd" },
+    ),
+    /** Where the teacher sits: "KT-712". */
+    room: optionalText(60),
+  })
+  .meta({ id: "RoutineTeacherInput" });
+export type RoutineTeacherInput = z.infer<typeof routineTeacherInputSchema>;

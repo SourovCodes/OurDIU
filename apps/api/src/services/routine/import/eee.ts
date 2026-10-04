@@ -3,71 +3,48 @@ import {
   ROUTINE_DAYS,
   ROUTINE_FILE_FORMAT,
   ROUTINE_TEACHER_PATTERN,
-  routineClockTime,
   routineMinutes,
-  routineTime,
   type RoutineDay,
   type RoutineFile,
   type RoutineFileClass,
 } from "@ourdiu/shared";
+import {
+  isoDate,
+  lines,
+  rowClasses,
+  SAME_LINE,
+  TIME_RANGE,
+  timeRange,
+  where,
+  type Cell,
+  type Entry,
+  type Slot,
+} from "./common";
 import type { PdfText } from "./text";
+import { readTeacherList, type TeacherListState } from "./teachers";
 import type { RoutineImport } from "./types";
 
 // EEE's routine PDF: a page per day, each a grid of rooms by one-hour slots, the
 // classrooms first and the labs under a second header. A cell holds the level-term
 // and section ("1-2 B"), the course with the section again and maybe a lab group
 // ("0713-121 B1") and the teacher's initials. A lab fills two cells in a row; a class
-// two sections share has a line for each. The last pages list the teachers.
+// two sections share has a line for each. The last pages list the teachers, with
+// their phone numbers and emails.
 
 export const EEE_HEADING =
   "Department of Electrical and Electronic Engineering";
 
 const LEVEL_TERM_SECTION = /^(\d-\d) ([A-Z])(\d?)$/;
 const COURSE = /^(\d{4}-\d{3})(?: ([A-Z])(\d?))?$/;
-const TIME_RANGE = /^(\d{1,2}):(\d\d) ?- ?(\d{1,2}):(\d\d)$/;
 const VERSION = /Version\s+(\d{1,3}(?:\.\d{1,3}){0,2})\b/;
 const EFFECTIVE = /Effective from ([A-Z][a-z]+) (\d{1,2}), (\d{4})/;
-const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
 
-/** Text on one line of a page is within this many points of the line. */
-const SAME_LINE = 2;
 /** Lines of one grid row (a cell with two sections) are this close; rows are apart more. */
 const ROW_GAP = 6;
 /** A room's name, maybe on several lines, sits this close to its row's middle. */
 const ROOM_REACH = 13;
 
-/** "1:00" in the afternoon is 13:00: classes run from 8:30 am to 6 pm. */
-function clock(h: string, m: string) {
-  const hour = Number(h);
-  return routineTime((hour < 8 ? hour + 12 : hour) * 60 + Number(m));
-}
-
-/** Pieces of text on the same line, top line first. */
-function lines(texts: PdfText[]): PdfText[][] {
-  const sorted = [...texts].sort((a, b) => b.y - a.y || a.x - b.x);
-  const out: PdfText[][] = [];
-  for (const t of sorted) {
-    const line = out.at(-1);
-    if (line && Math.abs(line[0]!.y - t.y) <= SAME_LINE) line.push(t);
-    else out.push([t]);
-  }
-  return out;
-}
-
-type Column = { start: string; end: string; left: number; right: number };
+type Column = Slot & { left: number; right: number };
 
 /** One grid of a page: the classrooms', or the labs'. */
 type Grid = { top: number; bottom: number; lab: boolean; columns: Column[] };
@@ -91,14 +68,7 @@ function grids(texts: PdfText[]): Grid[] {
       .at(-1)!;
     const slots = (times ?? [])
       .filter((t) => TIME_RANGE.test(t.text))
-      .map((t) => {
-        const [, h1, m1, h2, m2] = TIME_RANGE.exec(t.text)!;
-        return {
-          start: clock(h1!, m1!),
-          end: clock(h2!, m2!),
-          center: t.x + t.width / 2,
-        };
-      });
+      .map((t) => ({ ...timeRange(t.text), center: t.x + t.width / 2 }));
     const lts = header.filter((t) => t.text === "L-T-S").map((t) => t.x);
     const ti = header.filter((t) => t.text === "TI").map((t) => t.x);
     const columns = lts.map((x, j) => {
@@ -126,18 +96,6 @@ function grids(texts: PdfText[]): Grid[] {
     };
   });
 }
-
-type Entry = {
-  section: string;
-  labGroup: string | null;
-  course: string;
-  teacher: string | null;
-};
-
-type Cell = { column: number; entries: Entry[] };
-
-const where = (day: RoutineDay, column: Column, room: string) =>
-  `${ROUTINE_DAY_NAMES[ROUTINE_DAYS.indexOf(day)]} ${routineClockTime(column.start)}, ${room}`;
 
 /** A cell's classes: one per section in it, all with the same teacher. */
 function readCell(texts: PdfText[], note: (message: string) => void): Entry[] {
@@ -300,11 +258,11 @@ function readDay(
 
     rowsOf(cells, roomTexts).forEach(({ room, texts: row }) => {
       const cellsOfRow: Cell[] = [];
-      grid.columns.forEach((column, i) => {
+      for (const column of grid.columns) {
         const texts = row.filter(
           (t) => t.x >= column.left && t.x < column.right,
         );
-        if (!texts.length) return;
+        if (!texts.length) continue;
         const entries = readCell(texts, (message) =>
           notes.push(
             `${where(day, column, room || "a room without a name")} ${message}.`,
@@ -314,94 +272,24 @@ function readDay(
           notes.push(
             `${where(day, column, "a row")}: couldn’t find the room of “${texts.map((t) => t.text).join(" ")}”, left out.`,
           );
-          return;
+          continue;
         }
-        if (entries.length) cellsOfRow.push({ column: i, entries });
-      });
-
-      // The same classes in back-to-back slots are one longer class. A lab's
-      // second cell sometimes leaves out the lab group: still the same lab.
-      const key = (cell: Cell, withGroups = true) =>
-        JSON.stringify(
-          cell.entries.map((e) => (withGroups ? e : { ...e, labGroup: null })),
-        );
-      for (let i = 0; i < cellsOfRow.length; i++) {
-        const first = cellsOfRow[i]!;
-        let last = first;
-        while (cellsOfRow[i + 1]) {
-          const next = cellsOfRow[i + 1]!;
-          if (
-            grid.columns[next.column]!.start !== grid.columns[last.column]!.end
-          ) {
-            break;
-          }
-          if (key(next) !== key(first)) {
-            const groupLeftOut =
-              key(next, false) === key(first, false) &&
-              next.entries.every((e) => e.labGroup === null);
-            if (!groupLeftOut) break;
-            const column = grid.columns[next.column]!;
-            notes.push(
-              `${where(day, column, room)} has no lab group; read as ${first.entries
-                .map((e) =>
-                  e.labGroup ? `${e.section} (${e.labGroup})` : e.section,
-                )
-                .join(" and ")}’s lab going on.`,
-            );
-          }
-          last = cellsOfRow[++i]!;
-        }
-        for (const entry of first.entries) {
-          classes.push({
-            day,
-            start: grid.columns[first.column]!.start,
-            end: grid.columns[last.column]!.end,
-            course: entry.course,
-            section: entry.section,
-            labGroup: entry.labGroup,
-            room,
-            roomType: grid.lab ? "lab" : null,
-            teacher: entry.teacher,
-          });
-        }
+        if (entries.length) cellsOfRow.push({ slot: column, entries });
       }
+      classes.push(
+        ...rowClasses(day, room, grid.lab ? "lab" : null, cellsOfRow, notes),
+      );
     });
   }
   return { classes, slots };
-}
-
-/** The teachers' list: names by initials (their phone numbers and emails aren't read). */
-function readTeachers(texts: PdfText[], teachers: Record<string, string>) {
-  const all = lines(texts);
-  const header = all.find(
-    (l) =>
-      l.some((t) => t.text === "Initial") && l.some((t) => t.text === "Name"),
-  );
-  // A list continued from the page before has no header; the columns stay put.
-  const initialX = header?.find((t) => t.text === "Initial")?.x;
-  for (const line of all) {
-    const initials = line.find(
-      (t) =>
-        ROUTINE_TEACHER_PATTERN.test(t.text) &&
-        t.text.length <= 6 &&
-        (initialX === undefined || Math.abs(t.x - initialX) < 25),
-    );
-    if (!initials || initials.text === "Initial") continue;
-    const name = line
-      .filter((t) => t.x < initials.x - 2)
-      .map((t) => t.text)
-      .join(" ");
-    if (/^[A-Z][A-Za-z.\s'-]+$/.test(name) && /\s/.test(name)) {
-      teachers[initials.text] = name;
-    }
-  }
 }
 
 export function readEeeRoutine(pages: PdfText[][]): RoutineImport {
   const notes: string[] = [];
   const classes: RoutineFileClass[] = [];
   const slots = new Map<string, { start: string; end: string }>();
-  const teachers: Record<string, string> = {};
+  const teachers: NonNullable<RoutineFile["teachers"]> = {};
+  const teacherList: TeacherListState = {};
   let version: string | null = null;
   let publishedOn: string | null = null;
 
@@ -409,12 +297,11 @@ export function readEeeRoutine(pages: PdfText[][]): RoutineImport {
     const all = texts.map((t) => t.text).join("\n");
     version ??= VERSION.exec(all)?.[1] ?? null;
     const effective = EFFECTIVE.exec(all);
-    if (!publishedOn && effective && MONTHS.includes(effective[1]!)) {
-      const month = String(MONTHS.indexOf(effective[1]!) + 1).padStart(2, "0");
-      publishedOn = `${effective[3]}-${month}-${effective[2]!.padStart(2, "0")}`;
+    if (effective) {
+      publishedOn ??= isoDate(effective[2]!, effective[1]!, effective[3]!);
     }
     if (/Teachers.? Information/i.test(all)) {
-      readTeachers(texts, teachers);
+      readTeacherList(texts, teachers, teacherList);
       continue;
     }
     const dayName = texts.find((t) =>

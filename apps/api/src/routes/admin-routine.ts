@@ -1,27 +1,39 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import {
+  adminRoutineCourseListSchema,
+  adminRoutineCourseSchema,
+  adminRoutineDepartmentQuerySchema,
+  adminRoutineTeacherListSchema,
+  adminRoutineTeacherSchema,
   adminRoutineVersionDetailSchema,
   adminRoutineVersionListSchema,
-  routineSectionSchema,
   idQuerySchema,
-  MAX_ROUTINE_FILE_BYTES,
   MAX_ROUTINE_PDF_BYTES,
-  routineFilePath,
-  routineFileSchema,
-  type RoutineFileProblem,
+  routineCourseInputSchema,
+  routineCourseParamsSchema,
+  routineSectionSchema,
+  routineTeacherInputSchema,
+  routineTeacherParamsSchema,
 } from "@ourdiu/shared";
 import { bodyLimit } from "hono/body-limit";
 import { errorBody } from "../lib/errors";
 import { objectResponse } from "../lib/files";
 import { errorResponse, jsonResponse } from "../lib/openapi";
 import { requireAdmin } from "../middleware/require-admin";
+import {
+  deleteRoutineCourseTitle,
+  deleteRoutineTeacher,
+  listRoutineCourses,
+  listRoutineTeachers,
+  setRoutineCourseTitle,
+  setRoutineTeacher,
+} from "../services/routine/catalog";
 import { readRoutinePdf } from "../services/routine/import";
 import { sectionOfVersion } from "../services/routine/sections";
 import {
   deleteRoutineVersion,
   findVersion,
   getRoutineVersion,
-  getRoutineVersionFile,
   getRoutineVersionPdf,
   listRoutineVersions,
   makeRoutineVersionLive,
@@ -29,9 +41,9 @@ import {
 } from "../services/routine/versions";
 import type { AppEnv } from "../types";
 
-// Routine versions for admins (/api/v1/admin/routine). Routines are uploaded here as
-// drafts: DIU's PDF where OurDIU can read it (EEE's), otherwise a JSON file made from
-// it outside OurDIU. One version per department is live.
+// The Class Routine for admins (/api/v1/admin/routine). DIU's routine PDFs are
+// uploaded here and read into drafts; one version per department is live. Course
+// titles and teachers' details, which the PDFs lack, are kept per department.
 
 const tags = ["Admin: routine"];
 const middleware = requireAdmin;
@@ -40,9 +52,6 @@ const denied = {
   403: errorResponse("Not an admin"),
 };
 const params = z.object({ id: idQuerySchema });
-
-/** At most this many problems are listed when a file can't be used. */
-const MAX_PROBLEMS = 50;
 
 const listVersionsRoute = createRoute({
   method: "get",
@@ -60,45 +69,9 @@ const uploadVersionRoute = createRoute({
   method: "post",
   path: "/versions",
   tags,
-  summary: "Upload a routine file as a draft",
-  description:
-    "The body is the routine file (`RoutineFile`). A file that can't be used is answered with 422 `INVALID_ROUTINE_FILE` and its problems in `details` (`{ path, message }`). Possible slips (clashes, untitled courses) don't stop the upload: they're the draft's `warnings`.",
-  middleware: [
-    requireAdmin,
-    bodyLimit({
-      maxSize: MAX_ROUTINE_FILE_BYTES,
-      onError: (c) =>
-        c.json(
-          errorBody(
-            "FILE_TOO_LARGE",
-            `The file is larger than ${MAX_ROUTINE_FILE_BYTES / 1024 / 1024} MB`,
-          ),
-          413,
-        ),
-    }),
-  ] as const,
-  request: {
-    body: {
-      required: true,
-      content: { "application/json": { schema: routineFileSchema } },
-    },
-  },
-  responses: {
-    201: jsonResponse(adminRoutineVersionDetailSchema, "The draft"),
-    ...denied,
-    409: errorResponse("The version is already uploaded"),
-    413: errorResponse("The file is too large"),
-    422: errorResponse("The file can't be used"),
-  },
-});
-
-const uploadPdfRoute = createRoute({
-  method: "post",
-  path: "/versions/pdf",
-  tags,
   summary: "Read DIU's routine PDF into a draft",
   description:
-    "For departments whose PDF OurDIU can read (EEE). The routine read from it is checked like an uploaded file and kept with the PDF; cells that couldn't be read, or were read with a guess, are the draft's first warnings (`unreadable`). A PDF of another layout is answered with 422 `UNKNOWN_ROUTINE_PDF`.",
+    "Each department's PDF has its own reader (CSE's and EEE's so far), found by the heading on its first page; another PDF is answered with 422 `UNKNOWN_ROUTINE_PDF`. What's read is checked: if the PDF's layout changed so it can't be used, 422 `INVALID_ROUTINE_FILE` with the problems in `details` (`{ path, message }`). Cells that couldn't be read, or were read with a guess, are the draft's first warnings (`unreadable`); possible slips in the routine (clashes, untitled courses) follow.",
   middleware: [
     requireAdmin,
     bodyLimit({
@@ -159,7 +132,7 @@ const makeLiveRoute = createRoute({
   tags,
   summary: "Make a version the one students see",
   description:
-    "The department's live version becomes a previous version. A previous version can be made live again.",
+    "The department's live version becomes a previous version. A previous version can be made live again. Teachers the PDF lists are added to the department's; for ones already there, only empty details are filled in.",
   middleware,
   request: { params },
   responses: {
@@ -173,7 +146,7 @@ const deleteVersionRoute = createRoute({
   method: "delete",
   path: "/versions/{id}",
   tags,
-  summary: "Delete a version that isn't live, with its uploaded file",
+  summary: "Delete a version that isn't live, with its PDF",
   middleware,
   request: { params },
   responses: {
@@ -203,23 +176,6 @@ const previewSectionRoute = createRoute({
   },
 });
 
-const versionFileRoute = createRoute({
-  method: "get",
-  path: "/versions/{id}/file",
-  tags,
-  summary: "Download the file a version was uploaded as",
-  middleware,
-  request: { params },
-  responses: {
-    200: {
-      description: "The routine file",
-      content: { "application/json": { schema: routineFileSchema } },
-    },
-    ...denied,
-    404: errorResponse("Version not found"),
-  },
-});
-
 const versionPdfRoute = createRoute({
   method: "get",
   path: "/versions/{id}/pdf",
@@ -237,7 +193,106 @@ const versionPdfRoute = createRoute({
       },
     },
     ...denied,
-    404: errorResponse("Version not found, or not read from a PDF"),
+    404: errorResponse("Version not found"),
+  },
+});
+
+const listCoursesRoute = createRoute({
+  method: "get",
+  path: "/courses",
+  tags,
+  summary: "A department's courses and their titles",
+  description:
+    "The codes in any of the department's versions, and any given a title, by code.",
+  middleware,
+  request: { query: adminRoutineDepartmentQuerySchema },
+  responses: {
+    200: jsonResponse(adminRoutineCourseListSchema, "Courses"),
+    ...denied,
+  },
+});
+
+const setCourseRoute = createRoute({
+  method: "put",
+  path: "/courses/{department}/{code}",
+  tags,
+  summary: "Give a course its title",
+  description: "Students see it right away, in every version.",
+  middleware,
+  request: {
+    params: routineCourseParamsSchema,
+    body: {
+      required: true,
+      content: { "application/json": { schema: routineCourseInputSchema } },
+    },
+  },
+  responses: {
+    200: jsonResponse(adminRoutineCourseSchema, "The course"),
+    ...denied,
+    422: errorResponse("Invalid title"),
+  },
+});
+
+const deleteCourseRoute = createRoute({
+  method: "delete",
+  path: "/courses/{department}/{code}",
+  tags,
+  summary: "Take a course's title away",
+  middleware,
+  request: { params: routineCourseParamsSchema },
+  responses: {
+    204: { description: "Removed" },
+    ...denied,
+  },
+});
+
+const listTeachersRoute = createRoute({
+  method: "get",
+  path: "/teachers",
+  tags,
+  summary: "A department's teachers and their details",
+  description:
+    "The initials in any of the department's versions, and any added by hand, by initials.",
+  middleware,
+  request: { query: adminRoutineDepartmentQuerySchema },
+  responses: {
+    200: jsonResponse(adminRoutineTeacherListSchema, "Teachers"),
+    ...denied,
+  },
+});
+
+const setTeacherRoute = createRoute({
+  method: "put",
+  path: "/teachers/{department}/{initials}",
+  tags,
+  summary: "Set a teacher's name, phone, email and room",
+  description:
+    "Replaces what's there: a field left out is cleared. Students see it right away.",
+  middleware,
+  request: {
+    params: routineTeacherParamsSchema,
+    body: {
+      required: true,
+      content: { "application/json": { schema: routineTeacherInputSchema } },
+    },
+  },
+  responses: {
+    200: jsonResponse(adminRoutineTeacherSchema, "The teacher"),
+    ...denied,
+    422: errorResponse("Invalid details"),
+  },
+});
+
+const deleteTeacherRoute = createRoute({
+  method: "delete",
+  path: "/teachers/{department}/{initials}",
+  tags,
+  summary: "Forget a teacher's details",
+  middleware,
+  request: { params: routineTeacherParamsSchema },
+  responses: {
+    204: { description: "Removed" },
+    ...denied,
   },
 });
 
@@ -245,49 +300,15 @@ export const adminRoutineRoutes = new OpenAPIHono<AppEnv>()
   .openapi(listVersionsRoute, async (c) =>
     c.json({ items: await listRoutineVersions(c.var.db) }, 200),
   )
-  .openapi(
-    uploadVersionRoute,
-    async (c) =>
-      c.json(
-        await uploadRoutineVersion(
-          c.var.db,
-          c.env.BUCKET,
-          c.var.session!.user.id,
-          c.req.valid("json"),
-          await c.req.text(),
-        ),
-        201,
-      ),
-    (result, c) => {
-      if (result.success) return;
-      const problems: RoutineFileProblem[] = result.error.issues
-        .slice(0, MAX_PROBLEMS)
-        .map((issue) => ({
-          path: routineFilePath(issue.path),
-          message: issue.message,
-        }));
-      const total = result.error.issues.length;
-      return c.json(
-        errorBody(
-          "INVALID_ROUTINE_FILE",
-          `The file can't be used: ${total} problem${total === 1 ? "" : "s"}`,
-          problems,
-        ),
-        422,
-      );
-    },
-  )
-  .openapi(uploadPdfRoute, async (c) => {
+  .openapi(uploadVersionRoute, async (c) => {
     const pdf = new Uint8Array(await c.req.valid("form").file.arrayBuffer());
-    const { file, notes } = await readRoutinePdf(pdf);
     return c.json(
       await uploadRoutineVersion(
         c.var.db,
         c.env.BUCKET,
         c.var.session!.user.id,
-        file,
-        JSON.stringify(file, null, 2),
-        { pdf, notes },
+        await readRoutinePdf(pdf),
+        pdf,
       ),
       201,
     );
@@ -316,20 +337,6 @@ export const adminRoutineRoutes = new OpenAPIHono<AppEnv>()
       200,
     );
   })
-  .openapi(versionFileRoute, async (c) => {
-    const { object, filename } = await getRoutineVersionFile(
-      c.var.db,
-      c.env.BUCKET,
-      c.req.valid("param").id,
-    );
-    const res = objectResponse(object, "private, no-store");
-    res.headers.set(
-      "content-disposition",
-      `attachment; filename="${filename}"`,
-    );
-    // Streamed as stored, not through c.json, so the route's JSON typing can't see it.
-    return res as never;
-  })
   .openapi(versionPdfRoute, async (c) => {
     const { object, filename } = await getRoutineVersionPdf(
       c.var.db,
@@ -341,5 +348,62 @@ export const adminRoutineRoutes = new OpenAPIHono<AppEnv>()
       "content-disposition",
       `attachment; filename="${filename}"`,
     );
+    // Streamed as stored, not through c.json, so the route's typing can't see it.
     return res as never;
+  })
+  .openapi(listCoursesRoute, async (c) =>
+    c.json(
+      {
+        items: await listRoutineCourses(
+          c.var.db,
+          c.req.valid("query").department,
+        ),
+      },
+      200,
+    ),
+  )
+  .openapi(setCourseRoute, async (c) => {
+    const { department, code } = c.req.valid("param");
+    return c.json(
+      await setRoutineCourseTitle(
+        c.var.db,
+        department,
+        code,
+        c.req.valid("json").title,
+      ),
+      200,
+    );
+  })
+  .openapi(deleteCourseRoute, async (c) => {
+    const { department, code } = c.req.valid("param");
+    await deleteRoutineCourseTitle(c.var.db, department, code);
+    return c.body(null, 204);
+  })
+  .openapi(listTeachersRoute, async (c) =>
+    c.json(
+      {
+        items: await listRoutineTeachers(
+          c.var.db,
+          c.req.valid("query").department,
+        ),
+      },
+      200,
+    ),
+  )
+  .openapi(setTeacherRoute, async (c) => {
+    const { department, initials } = c.req.valid("param");
+    return c.json(
+      await setRoutineTeacher(
+        c.var.db,
+        department,
+        initials,
+        c.req.valid("json"),
+      ),
+      200,
+    );
+  })
+  .openapi(deleteTeacherRoute, async (c) => {
+    const { department, initials } = c.req.valid("param");
+    await deleteRoutineTeacher(c.var.db, department, initials);
+    return c.body(null, 204);
   });

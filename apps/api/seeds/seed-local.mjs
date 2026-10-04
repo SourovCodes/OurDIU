@@ -43,16 +43,16 @@ for (const key of keys) {
   ]);
 }
 
-// The live routine version's uploaded file.
+// The live routine version's PDF.
 wrangler([
   "r2",
   "object",
   "put",
-  `${bucket}/routine/versions/seed-cse-4.1.json`,
+  `${bucket}/routine/versions/seed-cse-4.1.pdf`,
   "--file",
-  path.join(import.meta.dirname, "routine-cse-4.1.json"),
+  path.join(import.meta.dirname, "routine-cse-4.1.pdf"),
   "--content-type",
-  "application/json",
+  "application/pdf",
   "--local",
 ]);
 
@@ -67,5 +67,5 @@ wrangler([
 ]);
 
 console.log(
-  `Seeded local D1 and uploaded ${keys.size} sample PDFs and a routine file to R2.`,
+  `Seeded local D1 and uploaded ${keys.size} sample PDFs and a routine PDF to R2.`,
 );

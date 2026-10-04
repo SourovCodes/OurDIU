@@ -4,13 +4,19 @@ import {
   type RoutineFileProblem,
 } from "@ourdiu/shared";
 import { AppError } from "../../../lib/errors";
+import { CSE_HEADING, readCseRoutine } from "./cse";
 import { EEE_HEADING, readEeeRoutine } from "./eee";
 import { pdfText } from "./text";
 import type { RoutineImport } from "./types";
 
 // Reading a routine from DIU's PDF. Each department lays its routine out its own way,
-// so each has its own reader (only EEE's so far); a PDF no reader knows is refused,
-// and its routine is uploaded as a JSON file instead.
+// so each has its own reader, found by the heading on the PDF's first page; a PDF no
+// reader knows is refused.
+
+const READERS = [
+  { department: "CSE", heading: CSE_HEADING, read: readCseRoutine },
+  { department: "EEE", heading: EEE_HEADING, read: readEeeRoutine },
+];
 
 const PDF_MAGIC = "%PDF-";
 /** At most this many problems are listed when what was read can't be used. */
@@ -35,14 +41,15 @@ export async function readRoutinePdf(
     );
   }
   const first = (pages[0] ?? []).map((t) => t.text).join(" ");
-  if (!first.includes(EEE_HEADING)) {
+  const reader = READERS.find((r) => first.includes(r.heading));
+  if (!reader) {
     throw new AppError(
       422,
       "UNKNOWN_ROUTINE_PDF",
-      "OurDIU can read EEE’s routine PDF only, for now. Turn this routine into a JSON file and upload that.",
+      `This isn’t a routine PDF OurDIU can read: only ${READERS.map((r) => r.department).join(" and ")}’s, as DIU publishes them.`,
     );
   }
-  const read = readEeeRoutine(pages);
+  const read = reader.read(pages);
 
   const checked = routineFileSchema.safeParse(read.file);
   if (!checked.success) {

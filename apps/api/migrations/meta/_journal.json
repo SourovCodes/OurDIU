@@ -134,6 +134,13 @@
       "when": 1791093197072,
       "tag": "0018_routine_departments",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1791095576270,
+      "tag": "0019_routine_pdf_only",
+      "breakpoints": true
     }
   ]
 }

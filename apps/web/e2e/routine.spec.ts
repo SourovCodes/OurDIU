@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
+import { cseRoutinePdf, onePagePdf } from "../../api/test/cse-routine-pdf";
 import { eeeRoutinePdf } from "../../api/test/eee-routine-pdf";
 import { failOnConsoleErrors, logInAs, openMenu, SEED_ADMIN } from "./helpers";
 
@@ -98,7 +99,7 @@ test("section addresses are canonical, and near misses find the section", async 
   await expect(page).toHaveURL(/\/routine\/cse\/67_B\?group=B1$/);
 });
 
-test("an admin uploads a routine file, reviews it and makes it live", async ({
+test("an admin uploads CSE's routine PDF, reviews it and makes it live", async ({
   page,
 }) => {
   // It compares the draft with the live version, which another run of this test
@@ -120,31 +121,35 @@ test("an admin uploads a routine file, reviews it and makes it live", async ({
       await expect(dialog).toBeVisible({ timeout: 1_000 });
     }).toPass();
   };
-  const choose = (file: unknown) =>
-    dialog.getByLabel(/Routine PDF or file/).setInputFiles({
-      name: `cse-routine-${version}.json`,
-      mimeType: "application/json",
-      buffer: Buffer.from(JSON.stringify(file, null, 2)),
+  const choose = (name: string, buffer: Uint8Array) =>
+    dialog.getByLabel("Routine PDF").setInputFiles({
+      name,
+      mimeType: "application/pdf",
+      buffer: Buffer.from(buffer),
     });
 
-  // A file with a 12-hour time is turned away, pointing at the class.
+  // A PDF that isn't a department's routine is turned away, saying so.
   await openUpload();
-  const broken = structuredClone(SEED_ROUTINE);
-  broken.version = version;
-  broken.classes[0]!.start = "1:00";
-  await choose(broken);
+  await choose(
+    "bba-routine.pdf",
+    await onePagePdf("Class Routine for BBA Program"),
+  );
   await dialog.getByRole("button", { name: "Upload" }).click();
-  await expect(dialog.getByRole("alert")).toContainText("classes[0].start");
-  await expect(dialog.getByRole("alert")).toContainText("24-hour");
+  await expect(dialog.getByRole("alert")).toContainText(
+    "isn’t a routine PDF OurDIU can read",
+  );
 
-  // The fixed file becomes a draft: one 65_A class moved from Thursday to Tuesday.
+  // CSE's PDF becomes a draft: one 65_A class moved from Thursday to Tuesday.
   const fixed = structuredClone(SEED_ROUTINE);
   fixed.version = version;
   const moved = fixed.classes.find(
     (c) => c.section === "65_A" && c.day === "THU",
   )!;
   moved.day = "TUE";
-  await choose(fixed);
+  await choose(
+    `cse-class-routine-v${version}.pdf`,
+    await cseRoutinePdf(fixed as Parameters<typeof cseRoutinePdf>[0]),
+  );
   await dialog.getByRole("button", { name: "Upload" }).click();
   await expect(page).toHaveURL(/\/admin\/routine\/versions\/\d+$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
@@ -195,7 +200,7 @@ test("an admin uploads EEE's routine PDF, and EEE students find their section", 
     await page.getByRole("button", { name: "Upload routine" }).click();
     await expect(dialog).toBeVisible({ timeout: 1_000 });
   }).toPass();
-  await dialog.getByLabel(/Routine PDF or file/).setInputFiles({
+  await dialog.getByLabel("Routine PDF").setInputFiles({
     name: `eee-class-routine-v${version}.pdf`,
     mimeType: "application/pdf",
     buffer: Buffer.from(await eeeRoutinePdf(version)),
@@ -209,12 +214,43 @@ test("an admin uploads EEE's routine PDF, and EEE students find their section", 
   );
   await expect(page.getByText("2 places in DIU’s PDF to check")).toBeVisible();
   await expect(page.getByText(/says 1-3 A but 0541-131 B/)).toBeVisible();
-  await openMenu(page.getByRole("button", { name: "Download" }));
-  await expect(page.getByRole("menuitem", { name: "DIU’s PDF" })).toBeVisible();
-  await page.keyboard.press("Escape");
+  await expect(page.getByRole("link", { name: "DIU’s PDF" })).toBeVisible();
   await page.getByRole("button", { name: `Make v${version} live` }).click();
   await page.getByRole("button", { name: "Make live" }).click();
   await expect(page.getByText(`v${version} is live`)).toBeVisible();
+
+  // The PDF has no course titles: one is added. A teacher gets the room they sit in.
+  await page.goto("/admin/routine/courses?department=EEE");
+  await openMenu(
+    page
+      .getByRole("row", { name: /0713-121/ })
+      .getByRole("button", { name: "Actions for 0713-121" }),
+  );
+  await page.getByRole("menuitem", { name: /^(Edit|Add) title$/ }).click();
+  const titleDialog = page.getByRole("dialog");
+  await titleDialog.getByLabel("Course title").fill("Electrical Circuits I");
+  await titleDialog.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("0713-121 is titled")).toBeVisible();
+  await expect(
+    page
+      .getByRole("row", { name: /0713-121/ })
+      .getByText("Electrical Circuits I"),
+  ).toBeVisible();
+
+  await page.goto("/admin/routine/teachers?department=EEE");
+  await openMenu(
+    page
+      .getByRole("row", { name: /\bMW\b/ })
+      .getByRole("button", { name: "Actions for MW" }),
+  );
+  await page.getByRole("menuitem", { name: /^(Edit|Add) details$/ }).click();
+  const teacherDialog = page.getByRole("dialog");
+  // From the PDF's list of teachers.
+  await expect(teacherDialog.getByLabel("Name")).toHaveValue("Test Wahid");
+  await expect(teacherDialog.getByLabel("Email")).toHaveValue("mw@example.com");
+  await teacherDialog.getByLabel("Room where they sit").fill("KT-712");
+  await teacherDialog.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("MW saved")).toBeVisible();
 
   // Students switch to EEE and find 1-2 B1 as they write it.
   await page.goto("/routine");
@@ -240,8 +276,16 @@ test("an admin uploads EEE's routine PDF, and EEE students find their section", 
   await expect(
     page.getByText(/EEE level 1, term 2, section B · lab group B1/),
   ).toBeVisible();
-  // Teachers' names come from the PDF's list.
+  // The title added, and the teacher with the PDF's details and the room added.
   await expect(
-    page.getByRole("region", { name: "Courses" }).getByText(/Test Wahid/),
+    page
+      .getByRole("region", { name: "Courses" })
+      .getByText("Electrical Circuits I"),
   ).toBeVisible();
+  const teachers = page.getByRole("region", { name: "Teachers" });
+  await expect(teachers.getByText(/Test Wahid/)).toBeVisible();
+  await expect(teachers.getByText("Sits in KT-712")).toBeVisible();
+  await expect(
+    teachers.getByRole("link", { name: "mw@example.com" }),
+  ).toHaveAttribute("href", "mailto:mw@example.com");
 });

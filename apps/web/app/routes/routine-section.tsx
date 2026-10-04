@@ -17,6 +17,7 @@ import {
   DayTabs,
   GroupChips,
   SectionSearch,
+  TeacherList,
   TodayCard,
   useDhakaNow,
   WeekGrid,
@@ -283,6 +284,14 @@ export default function RoutineSectionPage({
           </h2>
           <CourseList classes={classes} />
         </section>
+        {classes.some((c) => c.teacher) && (
+          <section aria-labelledby="teachers" className="space-y-3">
+            <h2 id="teachers" className="font-expressive text-xl">
+              Teachers
+            </h2>
+            <TeacherList classes={classes} />
+          </section>
+        )}
         <section className="space-y-2 rounded-3xl bg-surface p-5 text-sm">
           <h2 className="font-semibold">About this routine</h2>
           <p className="text-muted-foreground">

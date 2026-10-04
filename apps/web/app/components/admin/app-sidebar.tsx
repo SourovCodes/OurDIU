@@ -1,6 +1,7 @@
 import {
+  BookOpenText,
   CalendarClock,
-  FileJson,
+  Contact,
   GraduationCap,
   EllipsisVertical,
   ExternalLink,
@@ -233,9 +234,14 @@ export function AdminSidebar({ user, counts, ...props }: AdminSidebarProps) {
               icon: CalendarClock,
             },
             {
-              title: "File format",
-              url: "/admin/routine/format",
-              icon: FileJson,
+              title: "Course titles",
+              url: "/admin/routine/courses",
+              icon: BookOpenText,
+            },
+            {
+              title: "Teachers",
+              url: "/admin/routine/teachers",
+              icon: Contact,
             },
           ]}
         />

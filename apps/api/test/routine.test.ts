@@ -1,4 +1,7 @@
 import type {
+  AdminRoutineCourseList,
+  AdminRoutineTeacher,
+  AdminRoutineTeacherList,
   AdminRoutineVersionDetail,
   AdminRoutineVersionList,
   ApiError,
@@ -7,11 +10,14 @@ import type {
   RoutineSection,
   RoutineSectionList,
 } from "@ourdiu/shared";
+import { PDFDocument } from "pdf-lib";
 import { beforeAll, describe, expect, it } from "vitest";
 import { routineChanges, routineWarnings } from "../src/services/routine/check";
+import { cseRoutinePdf } from "./cse-routine-pdf";
 import { api, jsonRequest, signIn, signInAdmin } from "./helpers";
 
-// Section 67_B of the CSE routine v4.1 (a student's PDF of it), and one more section.
+// Section 67_B of the CSE routine v4.1 (a student's PDF of it), and one more section,
+// uploaded as PDFs in CSE's layout (test/cse-routine-pdf.ts).
 const SLOTS = [
   { start: "08:30", end: "10:00" },
   { start: "10:00", end: "11:30" },
@@ -21,6 +27,14 @@ const SLOTS = [
   { start: "16:00", end: "17:30" },
 ];
 
+const TITLES = {
+  CSE315: "Software Engineering",
+  CSE317: "Microprocessor and Microcontrollers",
+  CSE321: "Computer Networks",
+  CSE322: "Computer Networks Lab",
+  ACT327: "Financial and Managerial Accounting",
+};
+
 function routineFile(version: string): RoutineFile {
   return {
     format: 1,
@@ -28,14 +42,6 @@ function routineFile(version: string): RoutineFile {
     version,
     publishedOn: "2026-10-02",
     slots: SLOTS,
-    courses: {
-      CSE315: "Software Engineering",
-      CSE317: "Microprocessor and Microcontrollers",
-      CSE321: "Computer Networks",
-      CSE322: "Computer Networks Lab",
-      ACT327: "Financial and Managerial Accounting",
-    },
-    teachers: { STA: "Test Teacher" },
     classes: [
       {
         day: "SAT",
@@ -158,8 +164,21 @@ const adminCall = (method: string, path: string, body?: unknown) =>
       : jsonRequest(method, body, admin.cookie),
   );
 
+function postPdf(pdf: Uint8Array, cookie = admin.cookie) {
+  const form = new FormData();
+  form.set(
+    "file",
+    new File([pdf], "cse-routine.pdf", { type: "application/pdf" }),
+  );
+  return api("/api/v1/admin/routine/versions", {
+    method: "POST",
+    headers: { cookie },
+    body: form,
+  });
+}
+
 async function upload(file: RoutineFile) {
-  const res = await adminCall("POST", "/versions", file);
+  const res = await postPdf(await cseRoutinePdf(file));
   expect(res.status).toBe(201);
   return res.json<AdminRoutineVersionDetail>();
 }
@@ -172,9 +191,9 @@ describe("routine versions", () => {
       headers: { cookie: user.cookie },
     });
     expect(res.status).toBe(403);
-    const upload = await api(
-      "/api/v1/admin/routine/versions",
-      jsonRequest("POST", routineFile("1.0"), user.cookie),
+    const upload = await postPdf(
+      await cseRoutinePdf(routineFile("1.0")),
+      user.cookie,
     );
     expect(upload.status).toBe(403);
   });
@@ -185,48 +204,26 @@ describe("routine versions", () => {
     expect((await res.json<ApiError>()).error.code).toBe("NO_ROUTINE");
   });
 
-  it("points at each problem of a file that can't be used", async () => {
-    const file = routineFile("9.9");
-    file.classes[0]!.start = "1:00";
-    file.classes[1]!.start = "09:00";
-    file.classes[2]!.day = "Sunday" as never;
-    const res = await adminCall("POST", "/versions", file);
-    expect(res.status).toBe(422);
-    const body = await res.json<ApiError>();
-    expect(body.error.code).toBe("INVALID_ROUTINE_FILE");
-    const problems = body.error.details as RoutineFileProblem[];
-    expect(problems.map((p) => p.path)).toEqual(
-      expect.arrayContaining(["classes[0].start", "classes[2].day"]),
+  it("turns away PDFs it can't read, saying why", async () => {
+    const notPdf = await postPdf(new TextEncoder().encode('{"format":1}'));
+    expect(notPdf.status).toBe(422);
+    expect((await notPdf.json<ApiError>()).error.code).toBe("NOT_A_PDF");
+
+    const other = await PDFDocument.create();
+    other.addPage().drawText("Class Routine for BBA Program");
+    const unknown = await postPdf(await other.save());
+    expect((await unknown.json<ApiError>()).error.code).toBe(
+      "UNKNOWN_ROUTINE_PDF",
     );
+
+    // CSE's layout, but without a version: what's read can't be used.
+    const noVersion = await postPdf(await cseRoutinePdf(routineFile("")));
+    expect(noVersion.status).toBe(422);
+    const body = await noVersion.json<ApiError>();
+    expect(body.error.code).toBe("INVALID_ROUTINE_FILE");
     expect(
-      problems.find((p) => p.path === "classes[0].start")!.message,
-    ).toMatch(/24-hour/);
-
-    // Times are checked against the slots once the file is otherwise right.
-    const offSlot = routineFile("9.9");
-    offSlot.classes[1]!.start = "09:00";
-    const off = await adminCall("POST", "/versions", offSlot);
-    const offProblems = (await off.json<ApiError>()).error
-      .details as RoutineFileProblem[];
-    expect(offProblems).toEqual([
-      {
-        path: "classes[1].start",
-        message: expect.stringContaining("isn't the start of a slot"),
-      },
-    ]);
-  });
-
-  it("rejects unknown fields and departments", async () => {
-    const res = await adminCall("POST", "/versions", {
-      ...routineFile("9.8"),
-      department: "BBA",
-      extra: true,
-    });
-    expect(res.status).toBe(422);
-    const paths = (
-      (await res.json<ApiError>()).error.details as RoutineFileProblem[]
-    ).map((p) => p.path);
-    expect(paths).toEqual(expect.arrayContaining(["department", ""]));
+      (body.error.details as RoutineFileProblem[]).map((p) => p.path),
+    ).toEqual(["version"]);
   });
 
   let first: AdminRoutineVersionDetail;
@@ -243,22 +240,98 @@ describe("routine versions", () => {
       comparedWith: null,
       uploadedBy: { name: "Test User" },
     });
-    // CSE431 has no title; KT-208 isn't booked twice (Sunday 10:00 vs Monday).
+    // No course has a title yet; KT-208 isn't booked twice (Sunday 10:00 vs Monday).
     expect(first.warnings).toEqual([
-      { kind: "untitled_course", message: expect.stringContaining("CSE431") },
+      {
+        kind: "untitled_course",
+        message: expect.stringContaining("6 courses have no title yet"),
+      },
     ]);
 
-    const again = await adminCall("POST", "/versions", routineFile("4.1"));
+    const again = await postPdf(await cseRoutinePdf(routineFile("4.1")));
     expect(again.status).toBe(409);
   });
 
-  it("keeps the file as it was uploaded", async () => {
-    const res = await adminCall("GET", `/versions/${first.id}/file`);
+  it("keeps the PDF it was read from", async () => {
+    const res = await adminCall("GET", `/versions/${first.id}/pdf`);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-disposition")).toContain(
-      "cse-routine-4.1.json",
+      "cse-routine-4.1.pdf",
     );
-    expect((await res.json<RoutineFile>()).version).toBe("4.1");
+    expect(new Uint8Array(await res.arrayBuffer())).toEqual(
+      await cseRoutinePdf(routineFile("4.1")),
+    );
+  });
+
+  it("lists the department's courses and teachers for titles and details", async () => {
+    const courses = await (
+      await adminCall("GET", "/courses?department=CSE")
+    ).json<AdminRoutineCourseList>();
+    expect(courses.items.map((c) => c.code)).toEqual([
+      "ACT327",
+      "CSE315",
+      "CSE317",
+      "CSE321",
+      "CSE322",
+      "CSE431",
+    ]);
+    // Not live yet: no section takes them.
+    expect(courses.items[0]).toEqual({
+      department: "CSE",
+      code: "ACT327",
+      title: null,
+      liveSections: 0,
+    });
+
+    for (const [code, title] of Object.entries(TITLES)) {
+      const res = await adminCall("PUT", `/courses/CSE/${code}`, { title });
+      expect(res.status).toBe(200);
+    }
+    expect(
+      (await adminCall("PUT", "/courses/CSE/CSE321", { title: " " })).status,
+    ).toBe(422);
+
+    const teachers = await (
+      await adminCall("GET", "/teachers?department=CSE")
+    ).json<AdminRoutineTeacherList>();
+    expect(teachers.items.map((t) => t.initials)).toEqual([
+      "AS",
+      "IK",
+      "MRR",
+      "SMAH",
+      "STA",
+    ]);
+    const sta = await adminCall("PUT", "/teachers/CSE/STA", {
+      name: "Test Teacher",
+      phone: "01712-345678",
+      email: "sta@diu.edu.bd",
+      room: "KT-712",
+    });
+    expect(await sta.json<AdminRoutineTeacher>()).toEqual({
+      department: "CSE",
+      initials: "STA",
+      name: "Test Teacher",
+      phone: "01712-345678",
+      email: "sta@diu.edu.bd",
+      room: "KT-712",
+      liveClasses: 0,
+    });
+    const bad = await adminCall("PUT", "/teachers/CSE/STA", {
+      name: "Test Teacher",
+      email: "not an email",
+    });
+    expect(bad.status).toBe(422);
+    // A teacher added by hand, before any version has them.
+    expect(
+      (await adminCall("PUT", "/teachers/CSE/NT-1", { name: "New Teacher" }))
+        .status,
+    ).toBe(200);
+
+    const user = await signIn();
+    const denied = await api("/api/v1/admin/routine/courses?department=CSE", {
+      headers: { cookie: user.cookie },
+    });
+    expect(denied.status).toBe(403);
   });
 
   it("makes a version live for students", async () => {
@@ -310,7 +383,21 @@ describe("routine versions", () => {
       labGroup: null,
       room: "KT-222",
       roomType: null,
-      teacher: { initials: "STA", name: "Test Teacher" },
+      teacher: {
+        initials: "STA",
+        name: "Test Teacher",
+        phone: "01712-345678",
+        email: "sta@diu.edu.bd",
+        room: "KT-712",
+      },
+    });
+    // Details nobody added stay empty.
+    expect(week.classes[2]!.teacher).toEqual({
+      initials: "AS",
+      name: null,
+      phone: null,
+      email: null,
+      room: null,
     });
     expect(week.classes[4]).toMatchObject({
       labGroup: "B2",
@@ -359,7 +446,6 @@ describe("routine versions", () => {
       room: "KT-222",
       teacher: "STA",
     });
-    file.courses = { CSE111: "Computer Fundamentals" };
     const draft = await upload(file);
     expect(draft.comparedWith).toBe("4.1");
     expect(draft.changes).toMatchObject({
@@ -387,7 +473,7 @@ describe("routine versions", () => {
       await api("/api/v1/routine/cse/sections/67_B")
     ).json<RoutineSection>();
     expect(after.version.version).toBe("4.2");
-    // Titles from 4.1 stay known though 4.2 doesn't repeat them.
+    // Titles are the department's, not a version's.
     expect(after.classes[0]!.course).toEqual({
       code: "CSE321",
       title: "Computer Networks",

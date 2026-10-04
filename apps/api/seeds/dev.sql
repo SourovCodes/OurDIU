@@ -188,9 +188,10 @@ UPDATE submissions SET view_count = CASE id
 WHERE status = 'published';
 
 -- The Class Routine: CSE v4.1, live, with two sections (seeds/routine-cse-4.1.json,
--- which seed-local.mjs uploads as the version's file). Course titles are illustrative.
-INSERT INTO routine_versions (id, department, version, published_on, source, status, file_key, slots, courses, teachers, warnings, section_count, class_count, uploaded_by, live_at, created_at, updated_at) VALUES
-  (1, 'CSE', '4.1', '2026-10-02', 'https://webbackend.daffodilvarsity.edu.bd/noticeFile/cse-class-routine-v41.pdf', 'live', 'routine/versions/seed-cse-4.1.json', '[{"start":"08:30","end":"10:00"},{"start":"10:00","end":"11:30"},{"start":"11:30","end":"13:00"},{"start":"13:00","end":"14:30"},{"start":"14:30","end":"16:00"},{"start":"16:00","end":"17:30"}]', '{"CSE315":"Software Engineering","CSE317":"Microprocessor and Microcontrollers","CSE321":"Computer Networks","CSE322":"Computer Networks Lab","ACT327":"Financial and Managerial Accounting","CSE413":"Compiler Design","CSE431":"Artificial Intelligence","CSE432":"Artificial Intelligence Lab"}', '{}', '[]', 2, 16, 'seed-user-admin', 1791000000000, 1791000000000, 1791000000000);
+-- drawn in CSE's PDF layout as seeds/routine-cse-4.1.pdf, which seed-local.mjs uploads
+-- as the version's PDF). Course titles and teachers' details are illustrative.
+INSERT INTO routine_versions (id, department, version, published_on, source, status, file_key, slots, teachers, warnings, section_count, class_count, uploaded_by, live_at, created_at, updated_at) VALUES
+  (1, 'CSE', '4.1', '2026-10-02', 'https://webbackend.daffodilvarsity.edu.bd/noticeFile/cse-class-routine-v41.pdf', 'live', 'routine/versions/seed-cse-4.1.pdf', '[{"start":"08:30","end":"10:00"},{"start":"10:00","end":"11:30"},{"start":"11:30","end":"13:00"},{"start":"13:00","end":"14:30"},{"start":"14:30","end":"16:00"},{"start":"16:00","end":"17:30"}]', '{}', '[]', 2, 16, 'seed-user-admin', 1791000000000, 1791000000000, 1791000000000);
 INSERT INTO routine_classes (version_id, day, start, "end", course, section, lab_group, room, room_type, teacher) VALUES
   (1, 'SAT', 780, 870, 'CSE321', '67_B', NULL, 'KT-222', NULL, 'STA'),
   (1, 'SAT', 870, 960, 'ACT327', '67_B', NULL, 'KT-318(B)', NULL, 'IK'),
@@ -217,3 +218,7 @@ INSERT INTO routine_courses (department, code, title) VALUES
   ('CSE', 'CSE413', 'Compiler Design'),
   ('CSE', 'CSE431', 'Artificial Intelligence'),
   ('CSE', 'CSE432', 'Artificial Intelligence Lab');
+INSERT INTO routine_teachers (department, initials, name, phone, email, room) VALUES
+  ('CSE', 'STA', 'Dr. Sample Teacher', '01700000001', 'sta@example.com', 'KT-712'),
+  ('CSE', 'MRR', 'Md. Sample Rahman', NULL, 'mrr@example.com', 'KT-708'),
+  ('CSE', 'IK', 'Sample Islam Khan', NULL, NULL, NULL);

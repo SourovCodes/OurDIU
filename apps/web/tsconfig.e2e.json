@@ -1,7 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
-  // The API tests' made-up EEE routine PDF, uploaded by the routine tests.
-  "include": ["e2e/**/*", "../api/test/eee-routine-pdf.ts"],
+  // The API tests' made-up routine PDFs, uploaded by the routine tests.
+  "include": [
+    "e2e/**/*",
+    "../api/test/cse-routine-pdf.ts",
+    "../api/test/eee-routine-pdf.ts"
+  ],
   "compilerOptions": {
     "composite": true,
     // Playwright runs in Node, but `page.evaluate` callbacks run in the browser.

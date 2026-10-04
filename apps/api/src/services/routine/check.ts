@@ -12,7 +12,7 @@ import {
 } from "@ourdiu/shared";
 
 // Checks on a routine that don't stop an upload (things DIU's routine sometimes really
-// has, or slips made turning its PDF into the file), and what changed between two
+// has, or slips in reading its PDF), and what changed between two
 // versions. Both are pure, over classes with times in minutes.
 
 /** A class as the checks see it: times in minutes since midnight. */
@@ -142,8 +142,8 @@ export function routineWarnings(
       kind: "untitled_course",
       message:
         untitled.length === 1
-          ? `${untitled[0]} has no course title in this file or an earlier version, so students see only the code.`
-          : `${untitled.length} courses have no title in this file or an earlier version, so students see only their codes: ${untitled.join(", ")}.`,
+          ? `${untitled[0]} has no course title yet, so students see only the code. Add it on Course titles.`
+          : `${untitled.length} courses have no title yet, so students see only their codes: ${untitled.join(", ")}. Add them on Course titles.`,
     });
   }
   return warnings;

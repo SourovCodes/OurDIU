@@ -1,11 +1,12 @@
 import type {
   AdminRoutineVersion,
+  RoutineDepartment,
   RoutineFileProblem,
   RoutineVersionStatus,
 } from "@ourdiu/shared";
 import {
-  MAX_ROUTINE_FILE_BYTES,
   MAX_ROUTINE_PDF_BYTES,
+  ROUTINE_DEPARTMENTS,
 } from "@ourdiu/shared/constants";
 import { FileUp, Upload } from "lucide-react";
 import { useState } from "react";
@@ -53,20 +54,16 @@ export function RoutineStatusBadge({
 
 /** What deleting a version does; the live one can't be deleted. */
 export const DELETE_DESCRIPTION =
-  "Its classes and the uploaded file (or PDF) are deleted for good. Students don’t notice: they only see the live version. You can upload it again later.";
+  "Its classes and its PDF are deleted for good. Students don’t notice: they only see the live version. You can upload the PDF again later.";
 
 /** The review page of an uploaded routine version. */
 export const versionUrl = (id: number) => `/admin/routine/versions/${id}`;
 
-/** The uploaded file of a version, straight from the API. */
-export const versionFileHref = (v: Pick<AdminRoutineVersion, "id">) =>
-  `/api/v1/admin/routine/versions/${v.id}/file`;
-
-/** DIU's PDF a version was read from, if it was. */
+/** DIU's PDF a version was read from, straight from the API. */
 export const versionPdfHref = (v: Pick<AdminRoutineVersion, "id">) =>
   `/api/v1/admin/routine/versions/${v.id}/pdf`;
 
-/** What the upload action answers when the file can't be used. */
+/** What the upload action answers when the PDF can't be used. */
 export type UploadResult = {
   ok: false;
   intent: "upload";
@@ -74,20 +71,15 @@ export type UploadResult = {
   problems: RoutineFileProblem[];
 };
 
-/** A routine PDF, read by OurDIU, rather than a JSON file. */
-export const isPdfFile = (file: File) =>
-  file.type === "application/pdf" || /\.pdf$/i.test(file.name);
-
-const mb = (bytes: number) => `${bytes / 1024 / 1024} MB`;
+const MAX_MB = MAX_ROUTINE_PDF_BYTES / 1024 / 1024;
 
 /**
- * Uploads DIU's routine PDF (where OurDIU can read it) or a routine file. Problems
- * with a file are listed where they are in it; one that's fine opens as a draft (the
- * action redirects to its review).
+ * Uploads DIU's routine PDF, read on the server. One it can't read is answered with
+ * why; one that's read opens as a draft (the action redirects to its review).
  */
 export function UploadRoutineDialog() {
   const fetcher = useFetcher<UploadResult>();
-  const [tooLarge, setTooLarge] = useState<string | null>(null);
+  const [tooLarge, setTooLarge] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const busy = fetcher.state !== "idle";
@@ -105,9 +97,9 @@ export function UploadRoutineDialog() {
         <DialogHeader>
           <DialogTitle>Upload a routine</DialogTitle>
           <DialogDescription>
-            DIU’s routine PDF as it is, for EEE, or a JSON file made from any
-            department’s PDF. It’s read and checked, then kept as a draft for
-            you to review; students see nothing until you make it live.
+            DIU’s routine PDF as the department publishes it, CSE’s or EEE’s.
+            It’s read and checked, then kept as a draft for you to review;
+            students see nothing until you make it live.
           </DialogDescription>
         </DialogHeader>
         <fetcher.Form
@@ -116,14 +108,10 @@ export function UploadRoutineDialog() {
           className="grid gap-4"
           onSubmit={(event) => {
             const file = new FormData(event.currentTarget).get("file");
-            const max =
-              file instanceof File && isPdfFile(file)
-                ? MAX_ROUTINE_PDF_BYTES
-                : MAX_ROUTINE_FILE_BYTES;
-            if (file instanceof File && file.size > max) {
+            if (file instanceof File && file.size > MAX_ROUTINE_PDF_BYTES) {
               event.preventDefault();
-              setTooLarge(`The file is larger than ${mb(max)}.`);
-            } else setTooLarge(null);
+              setTooLarge(true);
+            } else setTooLarge(false);
           }}
         >
           <input type="hidden" name="intent" value="upload" />
@@ -136,20 +124,20 @@ export function UploadRoutineDialog() {
           >
             <FileUp className="size-7 text-primary" aria-hidden />
             <span className="font-semibold">
-              {file ? file.name : "Choose or drop the PDF or JSON file"}
+              {file ? file.name : "Choose or drop the routine PDF"}
             </span>
             <span className="text-muted-foreground">
               {file
                 ? `${Math.max(1, Math.round(file.size / 1024))} KB · choose another to replace it`
-                : `EEE’s PDF up to ${mb(MAX_ROUTINE_PDF_BYTES)}, or a .json file up to ${mb(MAX_ROUTINE_FILE_BYTES)}`}
+                : `As DIU publishes it, up to ${MAX_MB} MB`}
             </span>
             <input
               id="routine-file"
               name="file"
               type="file"
-              accept="application/pdf,.pdf,application/json,.json"
+              accept="application/pdf,.pdf"
               required
-              aria-label="Routine PDF or file (.pdf, .json)"
+              aria-label="Routine PDF"
               onChange={(event) => setFile(event.target.files?.[0] ?? null)}
               onDragEnter={() => setDragging(true)}
               onDragLeave={() => setDragging(false)}
@@ -157,7 +145,9 @@ export function UploadRoutineDialog() {
               className="absolute inset-0 cursor-pointer opacity-0"
             />
           </div>
-          {tooLarge && <FormMessage message={tooLarge} />}
+          {tooLarge && (
+            <FormMessage message={`The PDF is larger than ${MAX_MB} MB.`} />
+          )}
           {result && !result.ok && (
             <Alert variant="destructive" role="alert">
               <AlertTitle>{result.error}</AlertTitle>
@@ -178,21 +168,28 @@ export function UploadRoutineDialog() {
                   </ul>
                 )}
                 <p className="mt-2">
-                  Fix the file and upload it again. Nothing was saved.
+                  Nothing was saved. If this is the department’s routine PDF,
+                  its layout may have changed: tell the developers.
                 </p>
               </AlertDescription>
             </Alert>
           )}
           <p className="text-sm text-muted-foreground">
-            Another department’s PDF?{" "}
+            Course titles and teachers’ details aren’t in the PDFs: add them on{" "}
             <Link
-              to="/admin/routine/format"
+              to="/admin/routine/courses"
               className="font-medium text-primary underline"
             >
-              File format
+              Course titles
             </Link>{" "}
-            has the JSON file’s rules, an example and instructions for an AI
-            chat.
+            and{" "}
+            <Link
+              to="/admin/routine/teachers"
+              className="font-medium text-primary underline"
+            >
+              Teachers
+            </Link>
+            .
           </p>
           <DialogFooter>
             <DialogClose asChild>
@@ -201,11 +198,7 @@ export function UploadRoutineDialog() {
               </Button>
             </DialogClose>
             <Button type="submit" disabled={busy}>
-              {busy
-                ? file && isPdfFile(file)
-                  ? "Reading the PDF…"
-                  : "Checking…"
-                : "Upload"}
+              {busy ? "Reading the PDF…" : "Upload"}
             </Button>
           </DialogFooter>
         </fetcher.Form>
@@ -236,3 +229,16 @@ export function ChangeStat({
     </div>
   );
 }
+
+/** The department in a URL's `?department=`, CSE by default. */
+export function routineDepartmentOf(request: Request): RoutineDepartment {
+  const asked = new URL(request.url).searchParams.get("department");
+  return ROUTINE_DEPARTMENTS.find((d) => d === asked) ?? "CSE";
+}
+
+/** A tab per department, through `?department=`. */
+export const departmentTabs = ROUTINE_DEPARTMENTS.map((d, i) => ({
+  value: d,
+  label: d,
+  search: i === 0 ? "" : `?department=${d}`,
+}));

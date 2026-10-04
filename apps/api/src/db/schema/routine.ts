@@ -18,8 +18,8 @@ import { user } from "./auth";
 import { timestamps } from "./columns";
 
 // The Class Routine (docs/PLAN.md, Phase 3). Each department's routine comes in
-// versions, uploaded as JSON files (`RoutineFile`) or read from DIU's PDF, and kept
-// as drafts until an admin makes one live. Students only ever see the live version.
+// versions, read from DIU's PDF and kept as drafts until an admin makes one live.
+// Students only ever see the live version.
 
 export const routineVersions = sqliteTable(
   "routine_versions",
@@ -31,18 +31,12 @@ export const routineVersions = sqliteTable(
     publishedOn: text(),
     source: text(),
     status: text({ enum: ROUTINE_VERSION_STATUSES }).notNull().default("draft"),
-    /** The uploaded file, kept as it was: `routine/versions/<uuid>.json` in R2. */
+    /** DIU's PDF it was read from: `routine/versions/<uuid>.pdf` in R2. */
     fileKey: text().notNull(),
-    /** DIU's PDF it was read from, if it was: `routine/versions/<uuid>.pdf`. */
-    pdfKey: text(),
     slots: text({ mode: "json" }).$type<RoutineFile["slots"]>().notNull(),
-    /** The file's course titles and teachers' names; copied to the lists below when made live. */
-    courses: text({ mode: "json" })
-      .$type<Record<string, string>>()
-      .notNull()
-      .default(sql`'{}'`),
+    /** The teachers the PDF lists (EEE's does); added to the list below when made live. */
     teachers: text({ mode: "json" })
-      .$type<Record<string, string>>()
+      .$type<NonNullable<RoutineFile["teachers"]>>()
       .notNull()
       .default(sql`'{}'`),
     warnings: text({ mode: "json" })
@@ -99,10 +93,7 @@ export const routineClasses = sqliteTable(
 export type RoutineClassRow = typeof routineClasses.$inferSelect;
 export type NewRoutineClassRow = typeof routineClasses.$inferInsert;
 
-/**
- * A department's course titles, kept across versions: a version without a title for
- * a code shows the one an earlier version had. Written when a version is made live.
- */
+/** A department's course titles by code, kept across versions; added by admins. */
 export const routineCourses = sqliteTable(
   "routine_courses",
   {
@@ -115,8 +106,10 @@ export const routineCourses = sqliteTable(
 );
 
 /**
- * A department's teachers' names by initials, kept across versions like course
- * titles. Departments' initials overlap: EEE's "SD" isn't CSE's.
+ * A department's teachers by initials, kept across versions like course titles:
+ * their names, and how students reach them. Admins edit them; a PDF that lists
+ * teachers adds the ones missing and fills in what's empty, never overwriting.
+ * Departments' initials overlap: EEE's "SD" isn't CSE's.
  */
 export const routineTeachers = sqliteTable(
   "routine_teachers",
@@ -124,6 +117,10 @@ export const routineTeachers = sqliteTable(
     department: text({ enum: ROUTINE_DEPARTMENTS }).notNull(),
     initials: text().notNull(),
     name: text().notNull(),
+    phone: text(),
+    email: text(),
+    /** Where the teacher sits: "KT-712". */
+    room: text(),
     updatedAt: timestamps.updatedAt,
   },
   (t) => [primaryKey({ columns: [t.department, t.initials] })],

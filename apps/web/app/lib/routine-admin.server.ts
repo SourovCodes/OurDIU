@@ -4,12 +4,8 @@ import type {
   RoutineFileProblem,
 } from "@ourdiu/shared";
 import { data, redirect } from "react-router";
-import {
-  isPdfFile,
-  versionUrl,
-  type UploadResult,
-} from "~/components/admin/routine";
-import { adminRequest } from "./admin.server";
+import { versionUrl, type UploadResult } from "~/components/admin/routine";
+import { adminRequest, formObject } from "./admin.server";
 import { apiFetch, readJson } from "./api.server";
 
 function uploadFailed(error: string, problems: RoutineFileProblem[] = []) {
@@ -19,54 +15,32 @@ function uploadFailed(error: string, problems: RoutineFileProblem[] = []) {
   );
 }
 
-/** Sends DIU's routine PDF to the API, to be read there. */
-function sendPdf(request: Request, file: File) {
-  const body = new FormData();
-  body.set("file", file);
-  return apiFetch(request, "/api/v1/admin/routine/versions/pdf", {
-    method: "POST",
-    body,
-  });
-}
-
 /**
- * Sends an uploaded routine PDF or file to the API and opens the draft's review, or
- * answers with the problems found.
+ * Sends DIU's routine PDF to the API, to be read there, and opens the draft's
+ * review, or answers with why it can't be used.
  */
 async function uploadVersion(request: Request, form: FormData) {
   const file = form.get("file");
   if (!(file instanceof File) || file.size === 0) {
-    return uploadFailed("Choose the routine’s PDF or file.");
+    return uploadFailed("Choose the routine PDF.");
   }
-  let res: Response;
-  if (isPdfFile(file)) {
-    res = await sendPdf(request, file);
-  } else {
-    const text = await file.text();
-    try {
-      JSON.parse(text);
-    } catch (err) {
-      return uploadFailed(
-        `This file isn't valid JSON: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
-    res = await apiFetch(request, "/api/v1/admin/routine/versions", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: text,
-    });
-  }
+  const body = new FormData();
+  body.set("file", file);
+  const res = await apiFetch(request, "/api/v1/admin/routine/versions", {
+    method: "POST",
+    body,
+  });
   if (res.status === 201) {
     const version = await readJson<AdminRoutineVersionDetail>(res);
     return redirect(versionUrl(version.id));
   }
-  const body = await readJson<ApiError>(res).catch(() => null);
+  const failed = await readJson<ApiError>(res).catch(() => null);
   const problems =
-    body?.error.code === "INVALID_ROUTINE_FILE"
-      ? (body.error.details as RoutineFileProblem[])
+    failed?.error.code === "INVALID_ROUTINE_FILE"
+      ? (failed.error.details as RoutineFileProblem[])
       : [];
   return uploadFailed(
-    body?.error.message ?? "Something went wrong. Please try again.",
+    failed?.error.message ?? "Something went wrong. Please try again.",
     problems,
   );
 }
@@ -97,6 +71,52 @@ export async function routineAdminAction(request: Request) {
       return result.data.ok && form.get("from") === "review"
         ? redirect("/admin/routine/versions")
         : result;
+    }
+    default:
+      throw data("Unknown intent", { status: 400 });
+  }
+}
+
+/**
+ * The course titles' and teachers' pages' actions: give a course its title (or take
+ * it away), set a teacher's details (or forget them).
+ */
+export async function routineCatalogAction(request: Request) {
+  const form = await request.formData();
+  const intent = String(form.get("intent"));
+  const department = encodeURIComponent(String(form.get("department")));
+  switch (intent) {
+    case "title":
+    case "remove-title": {
+      const code = encodeURIComponent(String(form.get("code")));
+      return intent === "title"
+        ? adminRequest(
+            request,
+            intent,
+            "PUT",
+            `/routine/courses/${department}/${code}`,
+            { title: String(form.get("title") ?? "") },
+          )
+        : adminRequest(
+            request,
+            intent,
+            "DELETE",
+            `/routine/courses/${department}/${code}`,
+          );
+    }
+    case "teacher":
+    case "forget-teacher": {
+      const initials = encodeURIComponent(String(form.get("initials")));
+      const path = `/routine/teachers/${department}/${initials}`;
+      return intent === "teacher"
+        ? adminRequest(
+            request,
+            intent,
+            "PUT",
+            path,
+            formObject(form, "intent", "department", "initials"),
+          )
+        : adminRequest(request, intent, "DELETE", path);
     }
     default:
       throw data("Unknown intent", { status: 400 });

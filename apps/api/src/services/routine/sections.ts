@@ -107,6 +107,9 @@ export async function sectionOfVersion(
       roomType: routineClasses.roomType,
       teacher: routineClasses.teacher,
       teacherName: routineTeachers.name,
+      teacherPhone: routineTeachers.phone,
+      teacherEmail: routineTeachers.email,
+      teacherRoom: routineTeachers.room,
     })
     .from(routineClasses)
     .leftJoin(
@@ -162,7 +165,15 @@ export async function sectionOfVersion(
       labGroup: c.labGroup,
       room: c.room,
       roomType: c.roomType,
-      teacher: c.teacher ? { initials: c.teacher, name: c.teacherName } : null,
+      teacher: c.teacher
+        ? {
+            initials: c.teacher,
+            name: c.teacherName,
+            phone: c.teacherPhone,
+            email: c.teacherEmail,
+            room: c.teacherRoom,
+          }
+        : null,
     })),
   };
 }

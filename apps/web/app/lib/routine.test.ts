@@ -27,7 +27,7 @@ const cls = (over: Partial<RoutineClass>): RoutineClass => ({
   labGroup: null,
   room: "KT-213",
   roomType: null,
-  teacher: { initials: "AS", name: null },
+  teacher: { initials: "AS", name: null, phone: null, email: null, room: null },
   ...over,
 });
 

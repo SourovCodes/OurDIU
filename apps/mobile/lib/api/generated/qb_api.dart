@@ -10,6 +10,8 @@ import 'clients/questions_client.dart';
 import 'clients/submissions_client.dart';
 import 'clients/contributors_client.dart';
 import 'clients/account_client.dart';
+import 'clients/routine_client.dart';
+import 'clients/admin_routine_client.dart';
 import 'clients/app_client.dart';
 import 'clients/engagement_client.dart';
 import 'clients/saved_client.dart';
@@ -30,6 +32,8 @@ class QbApi {
   SubmissionsClient? _submissions;
   ContributorsClient? _contributors;
   AccountClient? _account;
+  RoutineClient? _routine;
+  AdminRoutineClient? _adminRoutine;
   AppClient? _app;
   EngagementClient? _engagement;
   SavedClient? _saved;
@@ -51,6 +55,12 @@ class QbApi {
 
   AccountClient get account =>
       _account ??= AccountClient(_dio, baseUrl: _baseUrl);
+
+  RoutineClient get routine =>
+      _routine ??= RoutineClient(_dio, baseUrl: _baseUrl);
+
+  AdminRoutineClient get adminRoutine =>
+      _adminRoutine ??= AdminRoutineClient(_dio, baseUrl: _baseUrl);
 
   AppClient get app => _app ??= AppClient(_dio, baseUrl: _baseUrl);
 

@@ -43,9 +43,9 @@ export function ExamTile({
         </span>
         <span className="block text-xs font-medium opacity-80">
           {today && question.viewsToday !== null
-            ? `${formatCount(question.viewsToday)} views today`
-            : `${formatCount(question.viewCount)} views`}{" "}
-          · {question.department.shortName}
+            ? `${formatCount(question.viewsToday)} views today · `
+            : ""}
+          {question.department.shortName}
         </span>
       </span>
     </Link>

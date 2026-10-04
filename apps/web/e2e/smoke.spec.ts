@@ -348,9 +348,11 @@ test("question page embeds the PDF, shows its uploader and switches submissions"
   await expect(page.getByRole("link", { name: "Report" })).toHaveCount(1);
   await expect(viewer).toHaveCount(1);
 
-  // Unpublished submissions are listed but can't be opened.
-  await expect(page.getByText("Pending review", { exact: true })).toBeVisible();
-  await expect(page.getByText("Rejected", { exact: true })).toBeVisible();
+  // Unpublished copies aren't listed (just counted) and can't be opened.
+  await expect(
+    page.getByText("1 more copy is waiting for review."),
+  ).toBeVisible();
+  await expect(page.getByText("Rejected", { exact: true })).toHaveCount(0);
   const pendingFile = await page.request.get("/api/v1/submissions/13/file");
   expect(pendingFile.status()).toBe(404);
 });
@@ -664,7 +666,7 @@ test("a member can like, dislike and report a paper", async ({
   // question 10 (#11) on desktop, question 8 (#9) on mobile.
   const questionId = testInfo.project.name === "mobile" ? 8 : 10;
   await logInAs(page, NEW_USER, `/questions/${questionId}`);
-  await expect(page.getByText(/\d+ views?/).first()).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
   // The page has both vote areas, one hidden by CSS: the bar under the paper on
   // phones, the column beside it from `lg`. Look only in this project's one, so
@@ -937,10 +939,10 @@ test("the switcher moves between products", async ({ page }) => {
     }
     await expect(page).toHaveURL(/\/routine$/, { timeout: 2_000 });
   }).toPass();
+  // The seed has a live routine (without one, the page says it's coming soon).
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Class Routine",
+    "Your class routine.",
   );
-  await expect(page.getByText("Class Routine is coming soon")).toBeVisible();
   // The routine's space has no question bank menu.
   await expect(page.getByRole("link", { name: "Share a paper" })).toHaveCount(
     0,
@@ -1120,33 +1122,4 @@ test("the question bank home shows what was most viewed today", async ({
   await expect(
     page.getByRole("list", { name: "Questions" }).getByRole("link").first(),
   ).toHaveText("Algorithms");
-});
-
-test("the question bank home ranks the courses most viewed today", async ({
-  page,
-}) => {
-  await page.goto("/questions");
-  const courses = page
-    .getByRole("region", { name: "Most viewed courses today" })
-    .getByRole("listitem");
-  await expect(courses).toHaveCount(5);
-  await expect(courses.first()).toContainText("Algorithms");
-  await expect(courses.first()).toContainText("CSE · 40 views today");
-  // A long name shortens to "…" instead of widening its card past the column.
-  for (const card of await courses.getByRole("link").all()) {
-    expect(await card.evaluate((a) => a.scrollWidth <= a.clientWidth)).toBe(
-      true,
-    );
-  }
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth,
-    ),
-  ).toBe(true);
-  await expect(async () => {
-    await courses.first().getByRole("link").click();
-    await expect(page).toHaveURL(/\/questions\/courses\/2$/, {
-      timeout: 2_000,
-    });
-  }).toPass();
 });

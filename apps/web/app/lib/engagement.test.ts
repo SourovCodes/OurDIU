@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseVoteValue, withVote } from "./engagement";
-import { formatCount, formatViews } from "./format";
+import { formatCount } from "./format";
 
 describe("withVote", () => {
   const stats = { likeCount: 5, dislikeCount: 2 };
@@ -31,7 +31,5 @@ describe("formatCount", () => {
   it("abbreviates large counts", () => {
     expect(formatCount(999)).toBe("999");
     expect(formatCount(1234)).toBe("1.2K");
-    expect(formatViews(1)).toBe("1 view");
-    expect(formatViews(2500)).toBe("2.5K views");
   });
 });

@@ -234,3 +234,137 @@ export const QUESTION_SORTS = ["newest", "popular", "az", "trending"] as const;
 /** Paper search (`GET /api/v1/questions/search`): query length, in characters. */
 export const MIN_SEARCH_LENGTH = 2;
 export const MAX_SEARCH_LENGTH = 100;
+
+// ── Class Routine ────────────────────────────────────────────────────────────
+
+/** Departments with a class routine. Each has its own versions, one live at a time. */
+export const ROUTINE_DEPARTMENTS = ["CSE", "EEE", "SWE"] as const;
+/** The same departments as they appear in URLs: /routine/cse/67_B. */
+export const ROUTINE_DEPARTMENT_SLUGS = ["cse", "eee", "swe"] as const;
+/**
+ * How each department writes a section, for examples in the search: CSE and SWE by
+ * batch ("67_B", lab group "67_B1"), EEE by level, term and section ("1-2 B", "1-2 B1").
+ */
+export const ROUTINE_SECTION_EXAMPLES: Record<
+  (typeof ROUTINE_DEPARTMENT_SLUGS)[number],
+  { section: string; group: string }
+> = {
+  cse: { section: "67_B", group: "67_B1" },
+  eee: { section: "1-2 B", group: "1-2 B1" },
+  swe: { section: "44_G", group: "44_G1" },
+};
+
+/** The routine file's format, `"format": 1`. Raise it only for an incompatible change. */
+export const ROUTINE_FILE_FORMAT = 1;
+
+/** Days of the university week, in order. Friday is usually off but allowed. */
+export const ROUTINE_DAYS = [
+  "SAT",
+  "SUN",
+  "MON",
+  "TUE",
+  "WED",
+  "THU",
+  "FRI",
+] as const;
+export const ROUTINE_DAY_NAMES = [
+  "Saturday",
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+] as const;
+
+/**
+ * A routine version: uploaded as a draft, then made live. Making another version live
+ * turns the live one into a previous version, which can be made live again.
+ */
+export const ROUTINE_VERSION_STATUSES = ["draft", "live", "previous"] as const;
+
+/** Things in an uploaded routine that may be slips; shown in the review, not blocking. */
+export const ROUTINE_WARNING_KINDS = [
+  "section_clash",
+  "room_clash",
+  "teacher_clash",
+  "duplicate",
+  "untitled_course",
+  "unreadable",
+] as const;
+
+/** A routine holds at most this many classes (CSE's has about 1,600). */
+export const MAX_ROUTINE_CLASSES = 6000;
+/** The largest routine file accepted, in bytes (CSE's and EEE's PDFs are under 300 KB, SWE's sheet 70 KB). */
+export const MAX_ROUTINE_PDF_BYTES = 10 * 1024 * 1024;
+
+/** Course codes as printed in the routine: CSE321, ACT327, or EEE's 0713-121. */
+export const ROUTINE_COURSE_CODE_PATTERN =
+  /^(?:[A-Z]{2,6}\d{2,4}[A-Z]?|\d{4}-\d{3})$/;
+/** Sections as printed: 67_B, retakes like RE_A(3C) or RE_A1(1.5C), EEE's 1-2 B (one space at most between parts). */
+export const ROUTINE_SECTION_PATTERN =
+  /^(?=.{1,30}$)[A-Za-z0-9](?:[A-Za-z0-9_().-]| (?=[A-Za-z0-9(]))*$/;
+/**
+ * A batch's or a level-term's own section: CSE's 67_B, EEE's 1-2 B. Others, like
+ * CSE's retake sections (RE_A(3C)), gather many courses at the same times; each
+ * student attends only some of them.
+ */
+export const ROUTINE_REGULAR_SECTION_PATTERN =
+  /^(?:\d+_[A-Za-z]+|\d-\d [A-Z]+)$/;
+/** A lab group within a section, e.g. B1 for 67_B1. */
+export const ROUTINE_LAB_GROUP_PATTERN = /^[A-Z0-9]{1,8}$/;
+/** Teacher initials: STA, MRR, ShA, or a placeholder like NT-1 or EEE_1 (a new teacher). */
+export const ROUTINE_TEACHER_PATTERN =
+  /^[A-Za-z][A-Za-z.]{0,11}(?:[-_]\d{1,2})?$/;
+
+/** Minutes since midnight for a 24-hour "HH:MM". */
+export function routineMinutes(time: string): number {
+  const [h, m] = time.split(":").map(Number);
+  return h! * 60 + m!;
+}
+
+/** "HH:MM" (24-hour) for minutes since midnight. */
+export function routineTime(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/** "1:00 pm" for "13:00". */
+export function routineClockTime(time: string): string {
+  const minutes = routineMinutes(time);
+  const h = Math.floor(minutes / 60);
+  const m = String(minutes % 60).padStart(2, "0");
+  return `${h % 12 === 0 ? 12 : h % 12}:${m} ${h < 12 ? "am" : "pm"}`;
+}
+
+/** "10:00 – 11:30 am", or "11:30 am – 1:00 pm" across noon. */
+export function routineTimeRange(start: string, end: string): string {
+  const a = routineClockTime(start);
+  const b = routineClockTime(end);
+  return a.slice(-2) === b.slice(-2)
+    ? `${a.slice(0, -3)} – ${b}`
+    : `${a} – ${b}`;
+}
+
+/**
+ * What a lab group is called: "67_B1" for group B1 of 67_B ("1-2 B1" of 1-2 B, SWE's
+ * "41_DSA1" of 41_DSA), as students write it; "RE_A(3C) (G1)" when the group
+ * doesn't continue the section's letters.
+ */
+export function routineGroupLabel(section: string, group: string): string {
+  const letters = /[_ ]([A-Za-z]+)$/.exec(section)?.[1];
+  return letters &&
+    group.startsWith(letters) &&
+    /^\d+$/.test(group.slice(letters.length))
+    ? `${section}${group.slice(letters.length)}`
+    : `${section} (${group})`;
+}
+
+/**
+ * A section as it goes in a page's address: spaces as underscores (/routine/eee/1-2_B).
+ * The API finds a section written either way.
+ */
+export function routineSectionSlug(section: string): string {
+  return section.replaceAll(" ", "_");
+}

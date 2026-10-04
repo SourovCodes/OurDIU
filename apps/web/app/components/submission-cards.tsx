@@ -1,5 +1,5 @@
 import type { ContributorSubmission } from "@ourdiu/shared";
-import { Eye, ThumbsUp } from "lucide-react";
+import { ThumbsUp } from "lucide-react";
 import { Link } from "react-router";
 import {
   CARD_GRID,
@@ -58,11 +58,6 @@ function SubmissionCard({ submission }: { submission: ContributorSubmission }) {
         </p>
         <div className="mt-auto flex items-center gap-4 pt-1.5 text-xs text-muted-foreground">
           <span>Added {formatDate(submission.createdAt)}</span>
-          <span className="flex items-center gap-1 tabular-nums">
-            <Eye className="size-3.5" aria-hidden />
-            {formatCount(submission.viewCount)}
-            <span className="sr-only"> views</span>
-          </span>
           {/* Likes only once there are some. */}
           {submission.likeCount > 0 && (
             <span className="flex items-center gap-1 tabular-nums">

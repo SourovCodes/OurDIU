@@ -403,9 +403,9 @@ describe("GET /api/v1/questions/search", () => {
   });
 
   it("matches word starts and other forms of a word", async () => {
-    // Letters then digits: a random ending like "bb" would stem differently
-    // ("…bbing" → "…b"), so "…bb" wouldn't start it.
-    const word = `zorbl${crypto.getRandomValues(new Uint32Array(1))[0]}`;
+    // Digits then one letter: a doubled ending like "bb" or "44" stems
+    // differently ("…bbing" → "…b"), so "…bb" wouldn't start it.
+    const word = `zorbl${crypto.getRandomValues(new Uint32Array(1))[0]}k`;
     const { question } = await seedPaper(
       `Describe the algorithms of ${word}ing.`,
     );

@@ -35,12 +35,14 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "~/components/ui/sheet";
-import { HUB_LIVE, PRODUCTS, type Product } from "~/lib/products";
+import { HUB_LIVE, type Product } from "~/lib/products";
+import { useProducts } from "~/lib/use-products";
 import { useLogoutTarget, useSpace } from "~/lib/use-space";
 import { loginHref } from "~/lib/redirect";
 import { setTheme, useIsDark } from "~/lib/theme";
 import type { SessionUser } from "~/lib/types";
 import { cn } from "~/lib/utils";
+import { useRoutinePlaces } from "./routine-nav";
 
 type NavItem = {
   to: string;
@@ -49,6 +51,8 @@ type NavItem = {
   section?: string[];
   /** A count to show next to it, e.g. papers that need the user. */
   count?: number;
+  /** Whether the page is in its section, when the path alone can't tell. */
+  active?: boolean;
 };
 
 /** Each product's own menu; platform pages (hub, account, legal) have none. */
@@ -62,11 +66,20 @@ const NAV_ITEMS: Record<Product["id"], NavItem[]> = {
     { to: "/questions/browse", label: "All papers" },
     { to: "/questions/contributors", label: "Contributors" },
   ],
+  // Today, Sections and Teachers depend on the department: `useNavItems`.
   routine: [],
   market: [],
 };
 
+/** The space's menu: the Class Routine's places follow the department. */
+function useNavItems(product: Product | null): NavItem[] {
+  const places = useRoutinePlaces();
+  if (!product) return [];
+  return product.id === "routine" ? [...places] : NAV_ITEMS[product.id];
+}
+
 function inSection(item: NavItem, pathname: string) {
+  if (item.active !== undefined) return item.active;
   return (
     pathname === item.to ||
     pathname.startsWith(`${item.to}/`) ||
@@ -259,9 +272,13 @@ function MobileMenu({
   const location = useLocation();
   const logoutTarget = useLogoutTarget();
   const { pathname } = location;
+  const items = useNavItems(product);
   const links: NavItem[] = [
-    ...(product ? [{ to: product.href, label: "Home" }] : []),
-    ...(product ? NAV_ITEMS[product.id] : []),
+    // The routine's Today is its home.
+    ...(product && product.id !== "routine"
+      ? [{ to: product.href, label: "Home" }]
+      : []),
+    ...items,
     ...(product?.id === "questions"
       ? [
           { to: "/questions/saved", label: "Saved" },
@@ -280,7 +297,7 @@ function MobileMenu({
     ...(user ? [{ to: "/account", label: "Account settings" }] : []),
     ...(user?.role === "admin" ? [{ to: "/admin", label: "Admin panel" }] : []),
   ];
-  const others = PRODUCTS.filter((p) => p.id !== product?.id);
+  const others = useProducts().filter((p) => p.id !== product?.id);
 
   return (
     <Sheet>
@@ -346,7 +363,7 @@ function MobileMenu({
               )}
               {links.map((item) => {
                 const active =
-                  item.to === product?.href
+                  item.to === product?.href && item.active === undefined
                     ? pathname === item.to
                     : inSection(item, pathname);
                 return (
@@ -438,7 +455,7 @@ export function SiteHeader({
   const location = useLocation();
   const { pathname } = location;
   const product = useSpace();
-  const items = product ? NAV_ITEMS[product.id] : [];
+  const items = useNavItems(product);
   const questions = product?.id === "questions";
 
   return (

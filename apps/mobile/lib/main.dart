@@ -12,6 +12,7 @@ import 'api/api.dart';
 import 'auth/token.dart';
 import 'data/prefs.dart';
 import 'data/settings.dart';
+import 'features/routine/routine_home_widget.dart';
 import 'features/update/update_gate.dart';
 import 'router.dart';
 import 'spaces/space.dart';
@@ -60,7 +61,10 @@ class QbApp extends ConsumerWidget {
       themeMode: ref.watch(appearanceProvider),
       routerConfig: router,
       scaffoldMessengerKey: rootMessengerKey,
-      builder: (context, child) => UpdateGate(child: child!),
+      builder: (context, child) => RoutineWidgetSync(
+        router: router,
+        child: UpdateGate(child: child!),
+      ),
     );
   }
 }

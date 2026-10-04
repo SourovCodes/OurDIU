@@ -129,7 +129,6 @@ class _CourseScreenState extends ConsumerState<CourseScreen> {
         if (_examType == null || q.examType.name == _examType) q,
     ];
     final papers = items.fold(0, (n, q) => n + q.submissionCounts.published);
-    final views = items.fold(0, (n, q) => n + q.viewCount);
     // Under their semester, newest first (the list is sorted that way).
     final semesters = <String, List<Question>>{};
     for (final q in shown) {
@@ -158,7 +157,6 @@ class _CourseScreenState extends ConsumerState<CourseScreen> {
             if (dept != null) dept.name,
             if (items.isNotEmpty)
               '${plural(papers, 'paper')} from ${plural(items.length, 'exam')}',
-            if (items.isNotEmpty) '${compactCount(views)} views',
           ].join(' · '),
           style: TextStyle(color: scheme.onSurfaceVariant),
         ),

@@ -9,8 +9,10 @@ import 'package:diuqbank/auth/token.dart';
 import 'package:diuqbank/data/app_update.dart';
 import 'package:diuqbank/data/prefs.dart';
 import 'package:diuqbank/data/questions.dart';
+import 'package:diuqbank/data/routine.dart';
 import 'package:diuqbank/data/taxonomy.dart';
 import 'package:diuqbank/features/questions/question_providers.dart';
+import 'package:diuqbank/features/routine/routine_widgets.dart';
 import 'package:diuqbank/features/upload/papers.dart';
 import 'package:diuqbank/features/upload/shared_pdfs.dart';
 import 'package:diuqbank/features/upload/upload_screen.dart';
@@ -130,11 +132,14 @@ class FakeSharedPdfs implements SharedPdfs {
 /// Question lists by query: a course's exams, the most viewed, or the newest.
 typedef Lists = Future<QuestionList> Function(QuestionQuery query);
 
+/// The Class Routine's clock in tests: Monday 5 October 2026, 9:00 in Dhaka, with
+/// classes still to come that day in the tests' routines.
+final testDhakaNow = dhakaNow(DateTime.utc(2026, 10, 5, 3));
+
 /// The whole app on a phone-sized screen, with the API replaced by test data.
 Future<FakeViewCounter> pumpApp(
   WidgetTester tester, {
   Lists? lists,
-  List<TrendingCourse> trendingCourses = const [],
   PlayUpdates? play,
   String installedVersion = '1.9.0',
   String minimumVersion = '1.6.0',
@@ -164,13 +169,11 @@ Future<FakeViewCounter> pumpApp(
     ProviderScope(
       overrides: [
         prefsProvider.overrideWithValue(preferences),
+        dhakaClockProvider.overrideWith((ref) => Stream.value(testDhakaNow)),
         taxonomyProvider.overrideWith((ref) async => taxonomy),
         playUpdatesProvider.overrideWithValue(play ?? FakePlayUpdates()),
         installedVersionProvider.overrideWith((ref) async => installedVersion),
         minimumVersionProvider.overrideWith((ref) async => minimumVersion),
-        trendingCoursesProvider.overrideWith(
-          (ref) async => TrendingCourseList(items: trendingCourses),
-        ),
         questionPageProvider.overrideWith(
           (ref, key) => (lists ?? defaultLists)(key.$1),
         ),

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="routine_widget_surface">#0F1513</color>
+    <color name="routine_widget_on_surface">#DEE4E1</color>
+    <color name="routine_widget_muted">#BFC9C4</color>
+    <color name="routine_widget_row">#1B211F</color>
+    <color name="routine_widget_container">#005144</color>
+    <color name="routine_widget_on_container">#A0F2DF</color>
+    <color name="routine_widget_teal">#84D6C3</color>
+    <color name="routine_widget_on_teal">#00382E</color>
+    <color name="routine_widget_shape">#2984D6C3</color>
+</resources>

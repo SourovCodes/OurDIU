@@ -62,6 +62,18 @@ const PREFERENCES: CookieRow[] = [
     lasts: "1 year",
   },
   {
+    names: ["ourdiu_routine"],
+    purpose:
+      "Set if you make a section (e.g. 67_B1) or a teacher’s week of the class routine yours, so the Class Routine’s Today shows it.",
+    lasts: "1 year",
+  },
+  {
+    names: ["ourdiu_routine_department"],
+    purpose:
+      "Remembers the department whose class routine you last looked at (e.g. CSE), so Students and Teachers open it again.",
+    lasts: "1 year",
+  },
+  {
     names: ["ourdiu_android_invite"],
     purpose:
       "Set if you close the invitation to test the Android app, so it stays closed.",

@@ -15,7 +15,7 @@ import { buttonVariants } from "~/components/ui/button";
 import { apiFetch, readJson } from "~/lib/api.server";
 import { redirectIfMerged } from "~/lib/merged.server";
 import { courseEntries, sameCourses } from "~/lib/courses";
-import { formatCount, formatViews, hasLongWord } from "~/lib/format";
+import { hasLongWord } from "~/lib/format";
 import { plural } from "~/lib/submissions";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
@@ -147,7 +147,6 @@ export default function Course({ loaderData }: Route.ComponentProps) {
     (sum, q) => sum + q.submissionCounts.published,
     0,
   );
-  const views = questions.reduce((sum, q) => sum + q.viewCount, 0);
 
   return (
     <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-12">
@@ -180,8 +179,6 @@ export default function Course({ loaderData }: Route.ComponentProps) {
                 {" · "}
                 {plural(papers, "paper")} from{" "}
                 {plural(questions.length, "exam")}
-                {" · "}
-                {formatViews(views)}
               </>
             )}
           </p>
@@ -272,8 +269,6 @@ export default function Course({ loaderData }: Route.ComponentProps) {
                         </span>
                         <span className="block text-sm text-muted-foreground tabular-nums">
                           {plural(question.submissionCounts.published, "paper")}
-                          {" · "}
-                          {formatCount(question.viewCount)} views
                         </span>
                       </span>
                       <ChevronRight

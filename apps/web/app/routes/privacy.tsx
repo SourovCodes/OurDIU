@@ -139,6 +139,23 @@ export default function Privacy() {
         </p>
       </LegalSection>
 
+      <LegalSection id="teachers" title="Teachers in the class routine">
+        <p>
+          The Class Routine shows the routines DIU’s departments publish, with
+          each class’s teacher by their initials. Next to them it shows a
+          teacher’s{" "}
+          <strong>
+            name, the room where they sit, work email and phone number
+          </strong>{" "}
+          where the department’s routine lists them or the site’s admins add
+          them from what the university publishes. Each teacher also has a page
+          with their week as the routine has it (the classes they teach, when,
+          where and to which sections), found by initials or name. A teacher who
+          wants a detail changed or removed can write to us (see the contact
+          page) and we’ll do it.
+        </p>
+      </LegalSection>
+
       <LegalSection id="processors" title="Services that process your data">
         <ul>
           <li>

@@ -21,6 +21,7 @@ export type Product = {
   icon: LucideIcon;
   /** The space's home; every page under it belongs to the product. */
   href: string;
+  /** The Class Routine's is "soon" here; `useProducts` makes it live once a routine is. */
   status: "live" | "soon";
   /** Its shape (one of the exam shapes) and colours, as in the app's spaces. */
   shape: "final" | "midterm" | "quiz";
@@ -66,9 +67,9 @@ export const PRODUCTS: Product[] = [
     id: "routine",
     name: "Class Routine",
     title: "My class routine",
-    tagline: "Today’s classes, your week, free rooms",
+    tagline: "Today’s classes, your section’s or a teacher’s week",
     description:
-      "Your section's week, a teacher's classes, and which rooms are free right now.",
+      "Your section's week and today's classes, or a teacher's, from DIU's routines.",
     icon: CalendarClock,
     href: "/routine",
     status: "soon",
@@ -177,3 +178,9 @@ export function spaceAt(
   }
   return productAt(pathname) ?? (isPlatformPage(pathname) ? last : null);
 }
+
+/** The products, the Class Routine live once a department's routine is. */
+export const productsWith = (routineLive: boolean): Product[] =>
+  PRODUCTS.map((p) =>
+    p.id === "routine" && routineLive ? { ...p, status: "live" } : p,
+  );

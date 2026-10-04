@@ -1,4 +1,7 @@
 import {
+  BookOpenText,
+  CalendarClock,
+  Contact,
   GraduationCap,
   EllipsisVertical,
   ExternalLink,
@@ -219,6 +222,26 @@ export function AdminSidebar({ user, counts, ...props }: AdminSidebarProps) {
               title: "Catalog",
               url: "/admin/questions/catalog",
               icon: FolderTree,
+            },
+          ]}
+        />
+        <NavGroup
+          label="Class Routine"
+          items={[
+            {
+              title: "Versions",
+              url: "/admin/routine/versions",
+              icon: CalendarClock,
+            },
+            {
+              title: "Course titles",
+              url: "/admin/routine/courses",
+              icon: BookOpenText,
+            },
+            {
+              title: "Teachers",
+              url: "/admin/routine/teachers",
+              icon: Contact,
             },
           ]}
         />

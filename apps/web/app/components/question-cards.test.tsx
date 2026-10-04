@@ -1,5 +1,5 @@
 import type { Question } from "@ourdiu/shared";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { createRoutesStub } from "react-router";
 import { afterEach, expect, it } from "vitest";
 import { QuestionCards } from "./question-cards";
@@ -30,13 +30,15 @@ async function renderCard(q: Question) {
   return { link, card: link.closest("li")! };
 }
 
-it("links to the question and summarises its submissions and views", async () => {
+it("links to the question and summarises its submissions", async () => {
   const { link, card } = await renderCard(question);
   expect(link.getAttribute("href")).toBe("/questions/7");
-  for (const text of ["CSE", "Midterm", "Summer 24", "2 papers", "1.2K"]) {
+  for (const text of ["CSE", "Midterm", "Summer 24", "2 papers"]) {
     expect(card.textContent).toContain(text);
   }
-  expect(within(card).getByTitle("1 waiting for review")).toBeTruthy();
+  // Copies under review and view counts aren't for lists.
+  expect(card.textContent).not.toContain("+1");
+  expect(card.textContent).not.toContain("1.2K");
 });
 
 it("shows when only pending submissions exist", async () => {

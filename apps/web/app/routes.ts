@@ -26,8 +26,14 @@ export default [
   // For students applying to DIU. At the root too, for the same reason.
   route("admission", "routes/admission.tsx"),
 
-  // Coming soon.
+  // Class Routine.
   route("routine", "routes/routine.tsx"),
+  route("routine/:department", "routes/routine-sections.tsx"),
+  route("routine/:department/teachers", "routes/routine-teachers.tsx"),
+  route("routine/:department/teachers/:initials", "routes/routine-teacher.tsx"),
+  route("routine/:department/:section", "routes/routine-section.tsx"),
+
+  // Coming soon.
   route("market", "routes/market.tsx"),
 
   // Platform.
@@ -46,6 +52,10 @@ export default [
     route("questions/submissions/:id", "routes/admin-submission.tsx"),
     route("questions/reports", "routes/admin-reports.tsx"),
     route("questions/catalog", "routes/admin-catalog.tsx"),
+    route("routine/versions", "routes/admin-routine-versions.tsx"),
+    route("routine/versions/:id", "routes/admin-routine-version.tsx"),
+    route("routine/courses", "routes/admin-routine-courses.tsx"),
+    route("routine/teachers", "routes/admin-routine-teachers.tsx"),
     route("users", "routes/admin-users.tsx"),
   ]),
   route("login", "routes/login.tsx"),

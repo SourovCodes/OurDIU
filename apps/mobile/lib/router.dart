@@ -9,6 +9,8 @@ import 'features/browse/department_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/home/question_list_screen.dart';
 import 'features/questions/question_screen.dart';
+import 'data/routine.dart';
+import 'features/routine/routine_screens.dart';
 import 'features/saved/saved_screen.dart';
 import 'features/search/search_screen.dart';
 import 'features/upload/my_papers_screen.dart';
@@ -71,9 +73,59 @@ GoRouter buildRouter({String initialLocation = '/home'}) => GoRouter(
     // First launch: which product to open.
     GoRoute(path: '/choose', builder: (context, state) => const ChooseScreen()),
     // Products that aren't out yet.
-    GoRoute(
-      path: '/routine',
-      builder: (context, state) => const ComingSoonScreen(Space.routine),
+    // The Class Routine's space: Today, Students and Teachers (coming soon until
+    // a routine is live).
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, shell) => RoutineShell(shell: shell),
+      branches: [
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/routine',
+              builder: (context, state) => const RoutineTodayScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/routine/sections',
+              builder: (context, state) => const RoutineSectionsScreen(),
+              routes: [
+                GoRoute(
+                  path: ':department/:section',
+                  builder: (context, state) => RoutineSectionScreen(
+                    department:
+                        departmentFrom(state.pathParameters['department']) ??
+                        RoutineDepartmentSlug.cse,
+                    section: state.pathParameters['section']!,
+                    group: state.uri.queryParameters['group'],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/routine/teachers',
+              builder: (context, state) => const RoutineTeachersScreen(),
+              routes: [
+                GoRoute(
+                  path: ':department/:initials',
+                  builder: (context, state) => RoutineTeacherScreen(
+                    department:
+                        departmentFrom(state.pathParameters['department']) ??
+                        RoutineDepartmentSlug.cse,
+                    initials: state.pathParameters['initials']!,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
     ),
     GoRoute(
       path: '/market',

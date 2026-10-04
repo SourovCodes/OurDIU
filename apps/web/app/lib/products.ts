@@ -39,10 +39,10 @@ export type Product = {
  * Whether the hub at / ("What do you need?") is shown. Until a second product is
  * live it isn't: / redirects to the question bank (a 302, which browsers don't
  * cache, so the hub can come back), "All of OurDIU" links are hidden, the sitemap
- * leaves / out and the WebSite markup moves to /questions. Set to true when the
- * Class Routine or the Marketplace launches.
+ * leaves / out and the WebSite markup moves to /questions. On since the Class
+ * Routine launched (5 October 2026).
  */
-export const HUB_LIVE = false;
+export const HUB_LIVE = true;
 
 export const PRODUCTS: Product[] = [
   {

@@ -1,11 +1,13 @@
 import type {
   RoutineSection,
   RoutineSectionList,
+  RoutineTeacherList,
   RoutineTeacherWeek,
 } from "@ourdiu/shared";
 import { ROUTINE_DEPARTMENT_SLUGS } from "@ourdiu/shared/constants";
 import { data } from "react-router";
 import { apiFetch, apiGetJson, readJson } from "~/lib/api.server";
+import type { RoutineSitemap } from "~/lib/seo";
 import {
   classesFor,
   isTeacherPick,
@@ -65,6 +67,36 @@ export async function routineLists(request: Request) {
       version: l.list?.version.version ?? null,
     })),
   };
+}
+
+/**
+ * The live routines' sections and teachers, for the sitemap and llms.txt. Empty if
+ * the API fails: those still answer, without the routine.
+ */
+export async function routineSitemap(
+  request: Request,
+): Promise<RoutineSitemap> {
+  try {
+    const { lists } = await routineLists(request);
+    return await Promise.all(
+      lists.flatMap(({ department, list }) =>
+        list
+          ? [
+              apiGetJson<RoutineTeacherList>(
+                request,
+                `/api/v1/routine/${department}/teachers`,
+              ).then((teachers) => ({
+                department,
+                sections: list.sections.map((s) => s.section),
+                teachers: teachers.teachers.map((t) => t.initials),
+              })),
+            ]
+          : [],
+      ),
+    );
+  } catch {
+    return [];
+  }
 }
 
 /** The routine a visitor made theirs, with its week, for the Today page. */

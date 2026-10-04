@@ -1,4 +1,5 @@
 import type { Sitemap } from "@ourdiu/shared";
+import { routineSectionSlug } from "@ourdiu/shared/constants";
 import type { MetaDescriptor } from "react-router";
 import { LEGAL_PAGES } from "./legal";
 import { HUB_LIVE } from "./products";
@@ -110,6 +111,7 @@ const STATIC_PATHS = [
   "/diuqbank",
   "/admission",
   "/questions/contributors",
+  "/routine",
   "/app",
   "/about",
   "/contact",
@@ -137,16 +139,25 @@ function urlEntry(loc: string, lastModified?: string) {
 }
 
 /** sitemap.xml (sitemaps.org protocol) for the site at `origin`. */
+/** Each department's live routine: its sections and teachers' initials. */
+export type RoutineSitemap = {
+  department: string;
+  sections: string[];
+  teachers: string[];
+}[];
+
 export function sitemapXml(
   origin: string,
   sitemap: Sitemap,
-  /** Departments and courses with papers to read, from the taxonomy. */
+  /** Departments and courses with papers to read, from the taxonomy; live routines. */
   {
     departmentIds = [],
     courseIds = [],
+    routine = [],
   }: {
     departmentIds?: number[];
     courseIds?: number[];
+    routine?: RoutineSitemap;
   } = {},
 ) {
   const entries = [
@@ -158,6 +169,18 @@ export function sitemapXml(
     ...sitemap.questions.map((q) =>
       urlEntry(`${origin}/questions/${q.id}`, q.lastModified),
     ),
+    ...routine.flatMap(({ department, sections, teachers }) => [
+      urlEntry(`${origin}/routine/${department}`),
+      urlEntry(`${origin}/routine/${department}/teachers`),
+      ...sections.map((s) =>
+        urlEntry(`${origin}/routine/${department}/${routineSectionSlug(s)}`),
+      ),
+      ...teachers.map((t) =>
+        urlEntry(
+          `${origin}/routine/${department}/teachers/${encodeURIComponent(t)}`,
+        ),
+      ),
+    ]),
     ...sitemap.contributors.map((c) =>
       urlEntry(
         `${origin}/questions/contributors/${encodeURIComponent(c.username)}`,
@@ -219,6 +242,8 @@ export function llmsTxt(
     date: string;
     faq: readonly { question: string; answer: string }[];
   },
+  /** The departments with a live class routine. */
+  routine: RoutineSitemap = [],
 ) {
   const withPapers = <T extends Counted>(items: T[]) =>
     items
@@ -234,12 +259,17 @@ export function llmsTxt(
   return [
     `# ${SITE_NAME}`,
     "",
-    `> ${SITE_NAME} (ourdiu.com) is a free website and Android app for students of Daffodil International University (DIU), Bangladesh. Its first part is the ${QB_NAME}: ${papers.toLocaleString("en-US")} past exam question papers (finals, midterms and quizzes) from ${shownCourses.length} courses in ${shownDepartments.length} departments, shared by students. Until ${move.date} it was DIU QBank at diuqbank.com.`,
+    `> ${SITE_NAME} (ourdiu.com) is a free website and Android app for students of Daffodil International University (DIU), Bangladesh. It has the ${QB_NAME}${routine.length ? " and the Class Routine" : ""}. The ${QB_NAME}: ${papers.toLocaleString("en-US")} past exam question papers (finals, midterms and quizzes) from ${shownCourses.length} courses in ${shownDepartments.length} departments, shared by students. Until ${move.date} it was DIU QBank at diuqbank.com.`,
     "",
     `- The ${QB_NAME} is at ${origin}/questions. Papers are free to read and download, with no ads and no sign-up to read.`,
     `- diuqbank.com moved to ourdiu.com on ${move.date}; its pages redirect to the same pages here (diuqbank.com/questions/123 is ${origin}/questions/123).`,
     `- Each course has a page listing its papers by semester and exam type, and each exam has a page with its question papers (PDF).`,
-    "- A class routine and a student marketplace are coming.",
+    ...(routine.length
+      ? [
+          `- The Class Routine is at ${origin}/routine: DIU's class routines (${routine.map((r) => r.department.toUpperCase()).join(", ")}) as the departments publish them, by section or teacher, with rooms, teachers and a PDF of the week.`,
+          "- A student marketplace is coming.",
+        ]
+      : ["- A class routine and a student marketplace are coming."]),
     "",
     `## ${QB_NAME}`,
     "",
@@ -265,6 +295,18 @@ export function llmsTxt(
           `- [${c.name} (${shortName.get(c.departmentId) ?? "DIU"})](${origin}/questions/courses/${c.id}): ${count(c.publishedCount)}`,
       ),
     "",
+    ...(routine.length
+      ? [
+          "## Class Routine",
+          "",
+          `- [Class Routine](${origin}/routine): today's classes for your section or a teacher's week, once made yours`,
+          ...routine.flatMap(({ department, sections, teachers }) => [
+            `- [DIU ${department.toUpperCase()} class routine](${origin}/routine/${department}): ${sections.length} section${sections.length === 1 ? "" : "s"}, by batch or level and term`,
+            `- [DIU ${department.toUpperCase()} teachers' routines](${origin}/routine/${department}/teachers): ${teachers.length} teacher${teachers.length === 1 ? "" : "s"}, by initials or name`,
+          ]),
+          "",
+        ]
+      : []),
     "## Questions about the move",
     "",
     ...move.faq.flatMap(({ question, answer }) => [

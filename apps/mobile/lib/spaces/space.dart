@@ -146,16 +146,16 @@ Space? _read(SharedPreferences prefs) =>
 
 /// Whether the first launch asks "What do you need?". Not until a second product
 /// is live (like the website's `HUB_LIVE`): until then the app opens in the
-/// Question Bank. Set to true when the Class Routine or the Marketplace launches.
-const showChooser = false;
+/// Question Bank. On since the Class Routine launched (5 October 2026).
+const showChooser = true;
 
-/// Where the app opens: the space used last, or the chooser on first launch. While
-/// the chooser is off, a coming-soon space picked from the switcher isn't where to
-/// land either: the app opens in the Question Bank.
+/// Where the app opens: the space used last, or the chooser on first launch. A
+/// coming-soon space picked from the switcher isn't where to land: the chooser
+/// (or, while it's off, the Question Bank) instead.
 String startLocation(SharedPreferences prefs) {
   final last = _read(prefs);
-  if (showChooser) return last?.home ?? '/choose';
-  return last != null && last.live ? last.home : Space.questions.home;
+  if (last != null && last.live) return last.home;
+  return showChooser ? '/choose' : Space.questions.home;
 }
 
 /// The space used last, remembered so the app reopens there.

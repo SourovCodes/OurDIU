@@ -10,10 +10,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import { HUB_LIVE, PRODUCTS, type Product } from "~/lib/products";
+import { HUB_LIVE, type Product } from "~/lib/products";
+import { useProducts } from "~/lib/use-products";
 
 /** The way between OurDIU's products: the hub, and each product's space. */
 export function ProductSwitcher({ current }: { current: Product | null }) {
+  const products = useProducts();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -30,7 +32,7 @@ export function ProductSwitcher({ current }: { current: Product | null }) {
         <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
           OurDIU
         </DropdownMenuLabel>
-        {PRODUCTS.map((product) => {
+        {products.map((product) => {
           const { id, icon: Icon, name, tagline, href, status } = product;
           const isCurrent = current?.id === id;
           return (

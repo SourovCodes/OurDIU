@@ -28,6 +28,7 @@ import { SiteHeader } from "~/components/site-header";
 import { SocialIcon } from "~/components/social-icons";
 import { buttonVariants } from "~/components/ui/button";
 import { TopLoader } from "~/components/top-loader";
+import { routineIsLive } from "~/lib/routine.server";
 import { Toaster } from "~/components/ui/sonner";
 import {
   analyticsEnabled,
@@ -65,13 +66,16 @@ async function reviewActivity(request: Request) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const [user, needsAttention] = await Promise.all([
+  const [user, needsAttention, routineLive] = await Promise.all([
     getUser(request),
     reviewActivity(request),
+    routineIsLive(request),
   ]);
   return {
     user,
     needsAttention,
+    // Whether the switchers show the Class Routine as live or "soon".
+    routineLive,
     androidInvite: androidInvite(request),
     space: rememberedSpace(request.headers.get("cookie"))?.id ?? null,
     // The site's own origin: canonicalHostRedirect sends every other host here.

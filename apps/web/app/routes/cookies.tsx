@@ -64,7 +64,13 @@ const PREFERENCES: CookieRow[] = [
   {
     names: ["ourdiu_routine"],
     purpose:
-      "Set if you make a section of the class routine yours (e.g. 67_B1), so the Class Routine offers it first.",
+      "Set if you make a section (e.g. 67_B1) or a teacher’s week of the class routine yours, so the Class Routine’s Today shows it.",
+    lasts: "1 year",
+  },
+  {
+    names: ["ourdiu_routine_department"],
+    purpose:
+      "Remembers the department whose class routine you last looked at (e.g. CSE), so Students and Teachers open it again.",
     lasts: "1 year",
   },
   {

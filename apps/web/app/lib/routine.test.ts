@@ -91,6 +91,10 @@ describe("saved section", () => {
     });
   });
 
+  it("ignores a garbled cookie", () => {
+    expect(savedRoutine("ourdiu_routine=%E0%A4%A")).toBeNull();
+  });
+
   it("reads a teacher's week saved as theirs", () => {
     expect(savedRoutine("ourdiu_routine=eee%2F%40ShA")).toEqual({
       department: "eee",

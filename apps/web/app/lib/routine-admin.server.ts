@@ -7,6 +7,7 @@ import { data, redirect } from "react-router";
 import { versionUrl, type UploadResult } from "~/components/admin/routine";
 import { adminRequest, formObject } from "./admin.server";
 import { apiFetch, readJson } from "./api.server";
+import { invalidateRoutineLive } from "./routine.server";
 
 function uploadFailed(error: string, problems: RoutineFileProblem[] = []) {
   return data<UploadResult>(
@@ -56,6 +57,7 @@ export async function routineAdminAction(request: Request) {
     case "upload":
       return uploadVersion(request, form);
     case "live":
+      invalidateRoutineLive();
       return adminRequest(
         request,
         intent,
@@ -67,6 +69,7 @@ export async function routineAdminAction(request: Request) {
         version: String(form.get("version") ?? "").trim(),
       });
     case "delete": {
+      invalidateRoutineLive();
       const result = await adminRequest(
         request,
         intent,

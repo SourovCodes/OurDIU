@@ -19,6 +19,30 @@ import {
   type ShownClass,
 } from "~/lib/routine";
 
+/** Whether any department's routine is live, asked at most once a minute per isolate. */
+const LIVE_TTL_MS = 60_000;
+let liveCache: { value: boolean; expires: number } | null = null;
+
+/**
+ * Whether the Class Routine is live (any department's routine is), for the product
+ * switchers on every page. Cached like the taxonomy; admins' make-live and delete
+ * clear it (`invalidateRoutineLive`). If the API fails, it's "soon" for now.
+ */
+export async function routineIsLive(request: Request) {
+  if (liveCache && liveCache.expires > Date.now()) return liveCache.value;
+  try {
+    const value = (await routineLists(request)).live.length > 0;
+    liveCache = { value, expires: Date.now() + LIVE_TTL_MS };
+    return value;
+  } catch {
+    return false;
+  }
+}
+
+export function invalidateRoutineLive() {
+  liveCache = null;
+}
+
 /** Each department's live routine's sections, or null while it's coming soon. */
 export async function routineLists(request: Request) {
   const lists = await Promise.all(

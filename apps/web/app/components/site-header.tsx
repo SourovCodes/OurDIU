@@ -35,7 +35,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "~/components/ui/sheet";
-import { HUB_LIVE, PRODUCTS, type Product } from "~/lib/products";
+import { HUB_LIVE, type Product } from "~/lib/products";
+import { useProducts } from "~/lib/use-products";
 import { useLogoutTarget, useSpace } from "~/lib/use-space";
 import { loginHref } from "~/lib/redirect";
 import { setTheme, useIsDark } from "~/lib/theme";
@@ -296,7 +297,7 @@ function MobileMenu({
     ...(user ? [{ to: "/account", label: "Account settings" }] : []),
     ...(user?.role === "admin" ? [{ to: "/admin", label: "Admin panel" }] : []),
   ];
-  const others = PRODUCTS.filter((p) => p.id !== product?.id);
+  const others = useProducts().filter((p) => p.id !== product?.id);
 
   return (
     <Sheet>

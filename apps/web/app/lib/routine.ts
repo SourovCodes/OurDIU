@@ -160,7 +160,14 @@ export function savedRoutine(
     new RegExp(`(?:^|;\\s*)${ROUTINE_COOKIE}=([^;]+)`),
   )?.[1];
   if (!value) return null;
-  const [department, section, group] = decodeURIComponent(value).split("/");
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(value);
+  } catch {
+    // Garbled (by hand, or another site's cookie): as if nothing were saved.
+    return null;
+  }
+  const [department, section, group] = decoded.split("/");
   if (!isRoutineDepartment(department) || !section) return null;
   if (section.startsWith("@")) {
     return section.length > 1

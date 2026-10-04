@@ -1,7 +1,8 @@
 import { ArrowRight } from "lucide-react";
 import { Link, redirect } from "react-router";
 import { SpaceIcon } from "~/components/space-icon";
-import { HUB_LIVE, PRODUCTS, type Product } from "~/lib/products";
+import { HUB_LIVE, type Product } from "~/lib/products";
+import { useProducts } from "~/lib/use-products";
 import { plural } from "~/lib/submissions";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
@@ -102,7 +103,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export default function Home({ loaderData }: Route.ComponentProps) {
   // Live products first; the others are still to come.
-  const products = [...PRODUCTS].sort(
+  const products = [...useProducts()].sort(
     (a, b) => Number(a.status === "soon") - Number(b.status === "soon"),
   );
   return (

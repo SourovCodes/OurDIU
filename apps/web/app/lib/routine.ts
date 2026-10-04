@@ -7,8 +7,10 @@ import {
   ROUTINE_DAY_NAMES,
   ROUTINE_DAYS,
   ROUTINE_DEPARTMENT_SLUGS,
+  ROUTINE_REGULAR_SECTION_PATTERN,
   routineGroupLabel,
   routineMinutes,
+  routineSectionSlug,
 } from "@ourdiu/shared/constants";
 
 // The Class Routine on the web (docs/PLAN.md, Phase 3). Client-safe helpers.
@@ -28,9 +30,9 @@ export function isRoutineDepartment(
   return ROUTINE_DEPARTMENT_SLUGS.some((d) => d === slug);
 }
 
-/** /routine/cse/67_B, with ?group=B1 for one lab group. */
+/** /routine/cse/67_B, with ?group=B1 for one lab group; EEE's 1-2 B is /routine/eee/1-2_B. */
 export function routineHref({ department, section, group }: RoutinePick) {
-  return `/routine/${department}/${encodeURIComponent(section)}${
+  return `/routine/${department}/${encodeURIComponent(routineSectionSlug(section))}${
     group ? `?group=${encodeURIComponent(group)}` : ""
   }`;
 }
@@ -240,8 +242,67 @@ export function weekDates(date = new Date()): Record<RoutineDay, number> {
 }
 
 /**
- * Whether a section is a batch's own ("67_B"). Retake sections ("RE_A(3C)") gather
- * many courses at the same times; each student attends only some of them.
+ * Whether a section is a batch's or a level-term's own ("67_B", EEE's "1-2 B").
+ * Retake sections ("RE_A(3C)") gather many courses at the same times; each student
+ * attends only some of them.
  */
 export const isRegularSection = (section: string) =>
-  /^\d+_[A-Za-z]+$/.test(section);
+  ROUTINE_REGULAR_SECTION_PATTERN.test(section);
+
+/**
+ * What a section belongs to: CSE's batch ("67" of 67_B) or EEE's level and term
+ * ("1-2" of 1-2 B), with the section's letter; null for retakes and others.
+ */
+export function sectionGroup(
+  section: string,
+): { key: string; title: string; letter: string; name: string } | null {
+  const batch = /^(\d+)_([A-Za-z]+)$/.exec(section);
+  if (batch) {
+    return {
+      key: batch[1]!,
+      title: batch[1]!,
+      letter: batch[2]!,
+      name: `batch ${batch[1]}`,
+    };
+  }
+  const term = /^(\d)-(\d) ([A-Z]+)$/.exec(section);
+  if (term) {
+    return {
+      key: `${term[1]}-${term[2]}`,
+      title: `${term[1]}-${term[2]}`,
+      letter: term[3]!,
+      name: `level ${term[1]}, term ${term[2]}`,
+    };
+  }
+  return null;
+}
+
+/**
+ * Sections by batch or level-term, as the home lists them: the newest batch first,
+ * the first level-term first; retakes and others last.
+ */
+export function sectionGroups(sections: string[]) {
+  const groups = new Map<
+    string,
+    { key: string; title: string; name: string | null; sections: string[] }
+  >();
+  for (const section of sections) {
+    const of = sectionGroup(section);
+    const key = of?.key ?? "";
+    const group = groups.get(key) ?? {
+      key,
+      title: of?.title ?? "Retakes",
+      name: of ? of.name : null,
+      sections: [],
+    };
+    group.sections.push(section);
+    groups.set(key, group);
+  }
+  return [...groups.values()].sort((a, b) => {
+    if (!a.key || !b.key) return a.key ? -1 : b.key ? 1 : 0;
+    // Batches: newest (highest) first. Level-terms: 1-1 first.
+    return a.key.includes("-")
+      ? a.key.localeCompare(b.key)
+      : Number(b.key) - Number(a.key);
+  });
+}

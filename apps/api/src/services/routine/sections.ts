@@ -1,5 +1,6 @@
 import {
   ROUTINE_DAYS,
+  routineSectionSlug,
   routineTime,
   type RoutineDepartment,
   type RoutineSection,
@@ -76,7 +77,8 @@ export async function listRoutineSections(
 
 /**
  * A section's week in the live routine, in day and time order. The section is found
- * regardless of case ("67_b"); the response has its name as printed.
+ * regardless of case ("67_b") and with underscores for spaces ("1-2_B", as in page
+ * addresses); the response has its name as printed.
  */
 export async function getRoutineSection(
   db: Database,
@@ -107,15 +109,24 @@ export async function sectionOfVersion(
       teacherName: routineTeachers.name,
     })
     .from(routineClasses)
-    .leftJoin(routineCourses, eq(routineCourses.code, routineClasses.course))
+    .leftJoin(
+      routineCourses,
+      and(
+        eq(routineCourses.department, version.department),
+        eq(routineCourses.code, routineClasses.course),
+      ),
+    )
     .leftJoin(
       routineTeachers,
-      eq(routineTeachers.initials, routineClasses.teacher),
+      and(
+        eq(routineTeachers.department, version.department),
+        eq(routineTeachers.initials, routineClasses.teacher),
+      ),
     )
     .where(
       and(
         eq(routineClasses.versionId, version.id),
-        sql`${routineClasses.section} = ${section} collate nocase`,
+        sql`replace(${routineClasses.section}, ' ', '_') = ${routineSectionSlug(section)} collate nocase`,
       ),
     );
   if (!rows.length) {

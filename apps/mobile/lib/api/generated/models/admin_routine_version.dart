@@ -18,6 +18,7 @@ class AdminRoutineVersion {
     required this.version,
     required this.publishedOn,
     required this.source,
+    required this.hasPdf,
     required this.status,
     required this.sectionCount,
     required this.classCount,
@@ -36,6 +37,7 @@ class AdminRoutineVersion {
   final String version;
   final DateTime? publishedOn;
   final String? source;
+  final bool hasPdf;
   final RoutineVersionStatus status;
   final int sectionCount;
   final int classCount;

@@ -3,6 +3,10 @@ import type {
   RoutineSection,
   RoutineSectionList,
 } from "@ourdiu/shared";
+import {
+  ROUTINE_SECTION_EXAMPLES,
+  routineSectionSlug,
+} from "@ourdiu/shared/constants";
 import { Download, ExternalLink, SearchX, Star } from "lucide-react";
 import { useState } from "react";
 import { data, Link, redirect } from "react-router";
@@ -29,6 +33,7 @@ import {
   isRegularSection,
   isRoutineDepartment,
   matchSections,
+  sectionGroup,
   pickLabel,
   routineHref,
   routinePdfHref,
@@ -71,7 +76,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   if (res.status === 404) {
     const code = (await readJson<ApiError>(res).catch(() => null))?.error.code;
     // No routine at all: the home says it's coming.
-    if (code === "NO_ROUTINE") throw redirect("/routine");
+    if (code === "NO_ROUTINE") throw redirect(`/routine/${department}`);
     // A section that isn't in the routine: offer the search and look-alikes.
     const list = await apiGetJson<RoutineSectionList>(
       request,
@@ -103,7 +108,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const asked = url.searchParams.get("group");
   const group = asked && routine.labGroups.includes(asked) ? asked : null;
   // One address per page: the section as printed, a lab group it has.
-  if (routine.section !== section || asked !== group) {
+  if (routineSectionSlug(routine.section) !== section || asked !== group) {
     throw redirect(
       routineHref({ department, section: routine.section, group }),
       301,
@@ -161,7 +166,7 @@ function MissingSection({ department, asked, sections, version }: Missing) {
         icon={SearchX}
         shape="midterm"
         title={`${asked} isn’t in the routine`}
-        description={`DIU’s ${version.department} routine v${version.version} has no section called ${asked}. Sections are written like 67_B, and lab groups like 67_B1.`}
+        description={`DIU’s ${version.department} routine v${version.version} has no section called ${asked}. Sections are written like ${ROUTINE_SECTION_EXAMPLES[department].section}, and lab groups like ${ROUTINE_SECTION_EXAMPLES[department].group}.`}
       />
       <SectionSearch department={department} choices={choices} />
       {alike.length > 0 && (
@@ -200,7 +205,7 @@ export default function RoutineSectionPage({
   const classes = classesFor(routine.classes, pick.group);
   const days = weekDays(classes);
   const today = now?.day ?? serverDay;
-  const batch = /^(\d+)_([A-Za-z]+)$/.exec(routine.section);
+  const group = sectionGroup(routine.section);
   const { version } = routine;
   const courseCount = new Set(classes.map((c) => c.course.code)).size;
 
@@ -209,7 +214,10 @@ export default function RoutineSectionPage({
       <div className="min-w-0 space-y-7">
         <Breadcrumbs
           crumbs={[
-            { label: "Class Routine", to: "/routine" },
+            {
+              label: `${version.department} Class Routine`,
+              to: `/routine/${pick.department}`,
+            },
             { label: pickLabel(pick) },
           ]}
         />
@@ -219,7 +227,7 @@ export default function RoutineSectionPage({
           </h1>
           <p className="text-muted-foreground">
             {[
-              `${version.department}${batch ? ` batch ${batch[1]}, section ${batch[2]}` : ""}`,
+              `${version.department}${group ? ` ${group.name}, section ${group.letter}` : ""}`,
               pick.group ? `lab group ${pick.group}` : null,
               `${courseCount} courses`,
               `${classes.length} classes a week`,

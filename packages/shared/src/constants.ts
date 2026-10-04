@@ -238,9 +238,20 @@ export const MAX_SEARCH_LENGTH = 100;
 // ── Class Routine ────────────────────────────────────────────────────────────
 
 /** Departments with a class routine. Each has its own versions, one live at a time. */
-export const ROUTINE_DEPARTMENTS = ["CSE"] as const;
+export const ROUTINE_DEPARTMENTS = ["CSE", "EEE"] as const;
 /** The same departments as they appear in URLs: /routine/cse/67_B. */
-export const ROUTINE_DEPARTMENT_SLUGS = ["cse"] as const;
+export const ROUTINE_DEPARTMENT_SLUGS = ["cse", "eee"] as const;
+/**
+ * How each department writes a section, for examples in the search: CSE by batch
+ * ("67_B", lab group "67_B1"), EEE by level, term and section ("1-2 B", "1-2 B1").
+ */
+export const ROUTINE_SECTION_EXAMPLES: Record<
+  (typeof ROUTINE_DEPARTMENT_SLUGS)[number],
+  { section: string; group: string }
+> = {
+  cse: { section: "67_B", group: "67_B1" },
+  eee: { section: "1-2 B", group: "1-2 B1" },
+};
 
 /** The routine file's format, `"format": 1`. Raise it only for an incompatible change. */
 export const ROUTINE_FILE_FORMAT = 1;
@@ -278,17 +289,29 @@ export const ROUTINE_WARNING_KINDS = [
   "teacher_clash",
   "duplicate",
   "untitled_course",
+  "unreadable",
 ] as const;
 
 /** A routine file holds at most this many classes (the CSE routine has about 2,000). */
 export const MAX_ROUTINE_CLASSES = 6000;
 /** The largest routine file accepted, in bytes. */
 export const MAX_ROUTINE_FILE_BYTES = 2 * 1024 * 1024;
+/** The largest routine PDF accepted, in bytes (EEE's is about 270 KB). */
+export const MAX_ROUTINE_PDF_BYTES = 10 * 1024 * 1024;
 
-/** Course codes as printed in the routine: CSE321, ACT327. */
-export const ROUTINE_COURSE_CODE_PATTERN = /^[A-Z]{2,6}\d{2,4}[A-Z]?$/;
-/** Sections as printed: 67_B, or retakes like RE_A(3C). */
-export const ROUTINE_SECTION_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_()-]{0,29}$/;
+/** Course codes as printed in the routine: CSE321, ACT327, or EEE's 0713-121. */
+export const ROUTINE_COURSE_CODE_PATTERN =
+  /^(?:[A-Z]{2,6}\d{2,4}[A-Z]?|\d{4}-\d{3})$/;
+/** Sections as printed: 67_B, retakes like RE_A(3C), EEE's 1-2 B (one space at most between parts). */
+export const ROUTINE_SECTION_PATTERN =
+  /^(?=.{1,30}$)[A-Za-z0-9](?:[A-Za-z0-9_()-]| (?=[A-Za-z0-9(]))*$/;
+/**
+ * A batch's or a level-term's own section: CSE's 67_B, EEE's 1-2 B. Others, like
+ * CSE's retake sections (RE_A(3C)), gather many courses at the same times; each
+ * student attends only some of them.
+ */
+export const ROUTINE_REGULAR_SECTION_PATTERN =
+  /^(?:\d+_[A-Za-z]+|\d-\d [A-Z]+)$/;
 /** A lab group within a section, e.g. B1 for 67_B1. */
 export const ROUTINE_LAB_GROUP_PATTERN = /^[A-Z0-9]{1,8}$/;
 /** Teacher initials: STA, MRR. */
@@ -325,11 +348,22 @@ export function routineTimeRange(start: string, end: string): string {
 }
 
 /**
- * What a lab group is called: "67_B1" for group B1 of 67_B, as students write it;
- * "RE_A(3C) (G1)" when the group doesn't continue the section's letter.
+ * What a lab group is called: "67_B1" for group B1 of 67_B ("1-2 B1" of 1-2 B), as
+ * students write it; "RE_A(3C) (G1)" when the group doesn't continue the section's
+ * letter.
  */
 export function routineGroupLabel(section: string, group: string): string {
-  return section.endsWith(`_${group[0]}`) && /^[A-Z]\d+$/.test(group)
+  return (section.endsWith(`_${group[0]}`) ||
+    section.endsWith(` ${group[0]}`)) &&
+    /^[A-Z]\d+$/.test(group)
     ? `${section}${group.slice(1)}`
     : `${section} (${group})`;
+}
+
+/**
+ * A section as it goes in a page's address: spaces as underscores (/routine/eee/1-2_B).
+ * The API finds a section written either way.
+ */
+export function routineSectionSlug(section: string): string {
+  return section.replaceAll(" ", "_");
 }

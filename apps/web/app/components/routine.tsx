@@ -2,6 +2,7 @@ import type { RoutineClass, RoutineDay, RoutineSection } from "@ourdiu/shared";
 import {
   ROUTINE_DAY_NAMES,
   ROUTINE_DAYS,
+  ROUTINE_SECTION_EXAMPLES,
   routineClockTime,
   routineGroupLabel,
   routineMinutes,
@@ -620,7 +621,8 @@ export function DayTabs({
 }
 
 /**
- * The section search: suggestions as you type ("67b" finds 67_B and its lab groups);
+ * The section search: suggestions as you type ("67b" finds 67_B and its lab groups,
+ * "12b" EEE's 1-2 B);
  * Enter opens the exact match, else the first suggestion.
  */
 export function SectionSearch({
@@ -640,6 +642,8 @@ export function SectionSearch({
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const matches = matchSections(choices, query);
+  const example = ROUTINE_SECTION_EXAMPLES[department];
+  const hint = `Your section, e.g. ${example.section} or ${example.group}`;
   const open = (c: SectionChoice) =>
     navigate(routineHref({ department, section: c.section, group: c.group }));
 
@@ -655,7 +659,7 @@ export function SectionSearch({
       }}
     >
       <label htmlFor={`${id}-input`} className="sr-only">
-        Your section, e.g. 67_B or 67_B1
+        {hint}
       </label>
       <div
         className={cn(
@@ -676,7 +680,7 @@ export function SectionSearch({
           autoCapitalize="characters"
           spellCheck={false}
           autoFocus={autoFocus}
-          placeholder="Your section, e.g. 67_B or 67_B1"
+          placeholder={hint}
           value={query}
           onChange={(event) => {
             setQuery(event.target.value);
@@ -713,8 +717,8 @@ export function SectionSearch({
         >
           {matches.length === 0 ? (
             <li className="px-4 py-3 text-sm text-muted-foreground">
-              No section matches “{query}”. Sections look like 67_B; lab groups
-              like 67_B1.
+              No section matches “{query}”. Sections look like {example.section}
+              ; lab groups like {example.group}.
             </li>
           ) : (
             matches.map((c, i) => (

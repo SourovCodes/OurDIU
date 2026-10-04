@@ -5,6 +5,7 @@ import {
   routineSectionSchema,
   idQuerySchema,
   MAX_ROUTINE_FILE_BYTES,
+  MAX_ROUTINE_PDF_BYTES,
   routineFilePath,
   routineFileSchema,
   type RoutineFileProblem,
@@ -14,21 +15,23 @@ import { errorBody } from "../lib/errors";
 import { objectResponse } from "../lib/files";
 import { errorResponse, jsonResponse } from "../lib/openapi";
 import { requireAdmin } from "../middleware/require-admin";
+import { readRoutinePdf } from "../services/routine/import";
 import { sectionOfVersion } from "../services/routine/sections";
 import {
   deleteRoutineVersion,
   findVersion,
   getRoutineVersion,
   getRoutineVersionFile,
+  getRoutineVersionPdf,
   listRoutineVersions,
   makeRoutineVersionLive,
   uploadRoutineVersion,
 } from "../services/routine/versions";
 import type { AppEnv } from "../types";
 
-// Routine versions for admins (/api/v1/admin/routine). Routines are turned from DIU's
-// PDF into a JSON file outside OurDIU and uploaded here as drafts; one version per
-// department is live.
+// Routine versions for admins (/api/v1/admin/routine). Routines are uploaded here as
+// drafts: DIU's PDF where OurDIU can read it (EEE's), otherwise a JSON file made from
+// it outside OurDIU. One version per department is live.
 
 const tags = ["Admin: routine"];
 const middleware = requireAdmin;
@@ -86,6 +89,51 @@ const uploadVersionRoute = createRoute({
     409: errorResponse("The version is already uploaded"),
     413: errorResponse("The file is too large"),
     422: errorResponse("The file can't be used"),
+  },
+});
+
+const uploadPdfRoute = createRoute({
+  method: "post",
+  path: "/versions/pdf",
+  tags,
+  summary: "Read DIU's routine PDF into a draft",
+  description:
+    "For departments whose PDF OurDIU can read (EEE). The routine read from it is checked like an uploaded file and kept with the PDF; cells that couldn't be read, or were read with a guess, are the draft's first warnings (`unreadable`). A PDF of another layout is answered with 422 `UNKNOWN_ROUTINE_PDF`.",
+  middleware: [
+    requireAdmin,
+    bodyLimit({
+      maxSize: MAX_ROUTINE_PDF_BYTES,
+      onError: (c) =>
+        c.json(
+          errorBody(
+            "FILE_TOO_LARGE",
+            `The PDF is larger than ${MAX_ROUTINE_PDF_BYTES / 1024 / 1024} MB`,
+          ),
+          413,
+        ),
+    }),
+  ] as const,
+  request: {
+    body: {
+      required: true,
+      content: {
+        "multipart/form-data": {
+          schema: z.object({
+            file: z
+              .instanceof(File, { error: "Choose the routine PDF" })
+              .openapi({ type: "string", format: "binary" }),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    201: jsonResponse(adminRoutineVersionDetailSchema, "The draft"),
+    400: errorResponse("No file"),
+    ...denied,
+    409: errorResponse("The version is already uploaded"),
+    413: errorResponse("The PDF is too large"),
+    422: errorResponse("Not a routine PDF OurDIU can read"),
   },
 });
 
@@ -172,6 +220,27 @@ const versionFileRoute = createRoute({
   },
 });
 
+const versionPdfRoute = createRoute({
+  method: "get",
+  path: "/versions/{id}/pdf",
+  tags,
+  summary: "Download DIU's PDF a version was read from",
+  middleware,
+  request: { params },
+  responses: {
+    200: {
+      description: "The PDF",
+      content: {
+        "application/pdf": {
+          schema: z.string().openapi({ format: "binary" }),
+        },
+      },
+    },
+    ...denied,
+    404: errorResponse("Version not found, or not read from a PDF"),
+  },
+});
+
 export const adminRoutineRoutes = new OpenAPIHono<AppEnv>()
   .openapi(listVersionsRoute, async (c) =>
     c.json({ items: await listRoutineVersions(c.var.db) }, 200),
@@ -208,6 +277,21 @@ export const adminRoutineRoutes = new OpenAPIHono<AppEnv>()
       );
     },
   )
+  .openapi(uploadPdfRoute, async (c) => {
+    const pdf = new Uint8Array(await c.req.valid("form").file.arrayBuffer());
+    const { file, notes } = await readRoutinePdf(pdf);
+    return c.json(
+      await uploadRoutineVersion(
+        c.var.db,
+        c.env.BUCKET,
+        c.var.session!.user.id,
+        file,
+        JSON.stringify(file, null, 2),
+        { pdf, notes },
+      ),
+      201,
+    );
+  })
   .openapi(getVersionRoute, async (c) =>
     c.json(await getRoutineVersion(c.var.db, c.req.valid("param").id), 200),
   )
@@ -244,5 +328,18 @@ export const adminRoutineRoutes = new OpenAPIHono<AppEnv>()
       `attachment; filename="${filename}"`,
     );
     // Streamed as stored, not through c.json, so the route's JSON typing can't see it.
+    return res as never;
+  })
+  .openapi(versionPdfRoute, async (c) => {
+    const { object, filename } = await getRoutineVersionPdf(
+      c.var.db,
+      c.env.BUCKET,
+      c.req.valid("param").id,
+    );
+    const res = objectResponse(object, "private, no-store");
+    res.headers.set(
+      "content-disposition",
+      `attachment; filename="${filename}"`,
+    );
     return res as never;
   });

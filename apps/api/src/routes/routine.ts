@@ -5,6 +5,7 @@ import {
   routineSectionListSchema,
   routineSectionParamsSchema,
   routineSectionSchema,
+  routineSectionSlug,
   type RoutineDepartment,
 } from "@ourdiu/shared";
 import { AppError } from "../lib/errors";
@@ -107,7 +108,7 @@ export const routineRoutes = new OpenAPIHono<AppEnv>()
       );
     }
     const page = new URL(
-      `/routine/${slug}/${encodeURIComponent(routine.section)}`,
+      `/routine/${slug}/${encodeURIComponent(routineSectionSlug(routine.section))}`,
       c.req.url,
     );
     if (group) page.searchParams.set("group", group);

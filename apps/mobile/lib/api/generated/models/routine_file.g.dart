@@ -48,5 +48,6 @@ const _$RoutineFileFormatEnumMap = {
 
 const _$RoutineDepartmentEnumMap = {
   RoutineDepartment.cse: 'CSE',
+  RoutineDepartment.eee: 'EEE',
   RoutineDepartment.$unknown: r'$unknown',
 };

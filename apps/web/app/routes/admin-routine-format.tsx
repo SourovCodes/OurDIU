@@ -72,7 +72,7 @@ export default function AdminRoutineFormat({
     <>
       <AdminPageHeader
         title="Routine file format"
-        description="One JSON file per routine version, made from DIU’s routine PDF by hand or with an AI chat. Copy the AI instructions, paste them into a chat with the PDF, check the answer and upload it."
+        description="One JSON file per routine version, made from DIU’s routine PDF by hand or with an AI chat: copy the AI instructions, paste them into a chat with the PDF, check the answer and upload it. EEE’s PDF needs no file: upload it as it is."
         actions={<CopyInstructions text={loaderData.instructions} />}
       >
         <div className="flex flex-wrap gap-2">

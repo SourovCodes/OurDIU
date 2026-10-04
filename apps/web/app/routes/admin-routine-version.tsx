@@ -12,6 +12,9 @@ import {
 import {
   Download,
   ExternalLink,
+  FileJson,
+  FileText,
+  FileWarning,
   Radio,
   Trash2,
   TriangleAlert,
@@ -25,10 +28,17 @@ import {
   DELETE_DESCRIPTION,
   RoutineStatusBadge,
   versionFileHref,
+  versionPdfHref,
 } from "~/components/admin/routine";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { WeekGrid } from "~/components/routine";
 import { Button } from "~/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -189,6 +199,8 @@ export default function AdminRoutineVersion({
   // Owned by the page: the buttons go once the version is live (or deleted).
   const { run } = useFormAction();
   const name = `v${v.version}`;
+  const unread = v.warnings.filter((w) => w.kind === "unreadable");
+  const others = v.warnings.filter((w) => w.kind !== "unreadable");
   const changed =
     changes.moved +
     changes.room +
@@ -207,12 +219,37 @@ export default function AdminRoutineVersion({
         }
         actions={
           <>
-            <Button variant="ghost" asChild>
-              <a href={versionFileHref(v)} download>
-                <Download aria-hidden />
-                Uploaded file
-              </a>
-            </Button>
+            {v.hasPdf ? (
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost">
+                    <Download aria-hidden />
+                    Download
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <a href={versionPdfHref(v)} download>
+                      <FileText />
+                      DIU’s PDF
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href={versionFileHref(v)} download>
+                      <FileJson />
+                      File read from it (JSON)
+                    </a>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button variant="ghost" asChild>
+                <a href={versionFileHref(v)} download>
+                  <Download aria-hidden />
+                  Uploaded file
+                </a>
+              </Button>
+            )}
             {v.status !== "live" && (
               <ConfirmAction
                 trigger={
@@ -290,21 +327,45 @@ export default function AdminRoutineVersion({
         </Alert>
       )}
 
-      {v.warnings.length > 0 && (
-        <Alert variant="warning">
-          <TriangleAlert aria-hidden />
+      {unread.length > 0 && (
+        <Alert variant="destructive">
+          <FileWarning aria-hidden />
           <AlertTitle>
-            {v.warningCount} warning{v.warningCount === 1 ? "" : "s"}
+            {unread.length} place{unread.length === 1 ? "" : "s"} in DIU’s PDF
+            to check
           </AlertTitle>
           <AlertDescription>
             <ul className="mt-1 grid max-h-80 list-disc gap-1 overflow-y-auto pl-4">
-              {v.warnings.map((w, i) => (
+              {unread.map((w, i) => (
                 <li key={i}>{w.message}</li>
               ))}
             </ul>
             <p className="mt-2">
-              These may be in DIU’s routine itself, or slips in the file. Fix
-              the file and upload it as a new draft if they’re slips.
+              Cells that couldn’t be read are left out, so students won’t see
+              those classes; others were read with a guess. Compare them with
+              the PDF. To correct them, download the file read from it, fix it,
+              delete this draft and upload the file.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {others.length > 0 && (
+        <Alert variant="warning">
+          <TriangleAlert aria-hidden />
+          <AlertTitle>
+            {others.length} warning{others.length === 1 ? "" : "s"}
+          </AlertTitle>
+          <AlertDescription>
+            <ul className="mt-1 grid max-h-80 list-disc gap-1 overflow-y-auto pl-4">
+              {others.map((w, i) => (
+                <li key={i}>{w.message}</li>
+              ))}
+            </ul>
+            <p className="mt-2">
+              {v.hasPdf
+                ? "These may be in DIU’s routine itself, or misread from the PDF. If they’re misread, fix the file read from it and upload it as a new draft."
+                : "These may be in DIU’s routine itself, or slips in the file. Fix the file and upload it as a new draft if they’re slips."}
             </p>
           </AlertDescription>
         </Alert>

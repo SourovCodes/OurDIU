@@ -7,6 +7,7 @@ import {
   Download,
   EllipsisVertical,
   Eye,
+  FileText,
   Radio,
   Trash2,
 } from "lucide-react";
@@ -20,6 +21,7 @@ import {
   RoutineStatusBadge,
   UploadRoutineDialog,
   versionFileHref,
+  versionPdfHref,
   versionUrl,
 } from "~/components/admin/routine";
 import { EmptyState } from "~/components/empty-state";
@@ -110,10 +112,20 @@ function RowActions({
               Make live
             </DropdownMenuItem>
           )}
+          {version.hasPdf && (
+            <DropdownMenuItem asChild>
+              <a href={versionPdfHref(version)} download>
+                <FileText />
+                Download DIU’s PDF
+              </a>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem asChild>
             <a href={versionFileHref(version)} download>
               <Download />
-              Download uploaded file
+              {version.hasPdf
+                ? "Download file read from it"
+                : "Download uploaded file"}
             </a>
           </DropdownMenuItem>
           {version.status !== "live" && (
@@ -171,7 +183,7 @@ export default function AdminRoutineVersions({
     <>
       <AdminPageHeader
         title="Routine versions"
-        description="DIU’s routine, turned into a JSON file, is uploaded here as a draft. Review it, then make it live: students only see the live version, one per department."
+        description="Upload DIU’s routine PDF (EEE’s can be read as it is) or a JSON file made from it; it’s kept as a draft. Review it, then make it live: students only see the live version, one per department."
         actions={
           <>
             <Button variant="ghost" asChild>
@@ -188,7 +200,8 @@ export default function AdminRoutineVersions({
           description={
             <ol className="mx-auto mt-1 grid max-w-md list-decimal gap-1 pl-5 text-left">
               <li>
-                Turn DIU’s routine PDF into a JSON file: the{" "}
+                For EEE, upload DIU’s routine PDF as it is. For CSE, turn the
+                PDF into a JSON file first: the{" "}
                 <Link
                   to="/admin/routine/format"
                   className="text-primary underline"
@@ -197,7 +210,7 @@ export default function AdminRoutineVersions({
                 </Link>{" "}
                 page has instructions to paste into an AI chat.
               </li>
-              <li>Upload it here. It’s checked and kept as a draft.</li>
+              <li>It’s read, checked and kept as a draft.</li>
               <li>
                 Review it, preview a section, and make it live. Until then the
                 Class Routine says it’s coming soon.

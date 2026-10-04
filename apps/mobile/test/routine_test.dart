@@ -184,7 +184,7 @@ void main() {
     expect(prefs.getString('routine_group'), 'B1');
 
     // Back on Today with the section's day; the routine is kept for offline use.
-    expect(find.text(dayName(dhakaNow().day)), findsOneWidget);
+    expect(find.text(dayName(testDhakaNow.day)), findsOneWidget);
     expect(find.widgetWithText(ActionChip, '67_B1'), findsOneWidget);
     expect(prefs.getString('routine_cache'), contains('"version":"4.1"'));
 
@@ -226,7 +226,7 @@ void main() {
       find.text('Offline: the routine saved on this phone (v4.1).'),
       findsOneWidget,
     );
-    expect(find.text(dayName(dhakaNow().day)), findsOneWidget);
+    expect(find.text(dayName(testDhakaNow.day)), findsOneWidget);
   });
 
   testWidgets('says when the routine was updated since last time', (

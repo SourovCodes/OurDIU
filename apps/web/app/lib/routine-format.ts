@@ -137,7 +137,7 @@ export const ROUTINE_FIELD_RULES: { field: string; rule: string }[] = [
   { field: "format", rule: `Always ${ROUTINE_FILE_FORMAT}.` },
   {
     field: "department",
-    rule: `${ROUTINE_DEPARTMENTS.map((d) => `"${d}"`).join(", ")} (the only department for now).`,
+    rule: `${ROUTINE_DEPARTMENTS.map((d) => `"${d}"`).join(", ")} (EEE's PDF can be uploaded as it is, without a file).`,
   },
   {
     field: "version",
@@ -169,11 +169,11 @@ export const ROUTINE_FIELD_RULES: { field: string; rule: string }[] = [
   },
   {
     field: "classes[].course",
-    rule: 'The course code in capitals without spaces: "CSE321".',
+    rule: 'The course code as printed, in capitals: "CSE321", or EEE\'s "0713-121".',
   },
   {
     field: "classes[].section",
-    rule: 'Batch and section: "67_B". Retakes as printed: "RE_A(3C)".',
+    rule: 'Batch and section: "67_B". Retakes as printed: "RE_A(3C)". EEE\'s level-term and section: "1-2 B".',
   },
   {
     field: "classes[].labGroup",

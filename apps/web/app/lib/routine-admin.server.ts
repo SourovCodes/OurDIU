@@ -4,7 +4,11 @@ import type {
   RoutineFileProblem,
 } from "@ourdiu/shared";
 import { data, redirect } from "react-router";
-import { versionUrl, type UploadResult } from "~/components/admin/routine";
+import {
+  isPdfFile,
+  versionUrl,
+  type UploadResult,
+} from "~/components/admin/routine";
 import { adminRequest } from "./admin.server";
 import { apiFetch, readJson } from "./api.server";
 
@@ -15,28 +19,43 @@ function uploadFailed(error: string, problems: RoutineFileProblem[] = []) {
   );
 }
 
+/** Sends DIU's routine PDF to the API, to be read there. */
+function sendPdf(request: Request, file: File) {
+  const body = new FormData();
+  body.set("file", file);
+  return apiFetch(request, "/api/v1/admin/routine/versions/pdf", {
+    method: "POST",
+    body,
+  });
+}
+
 /**
- * Sends an uploaded routine file to the API and opens the draft's review, or
- * answers with the file's problems.
+ * Sends an uploaded routine PDF or file to the API and opens the draft's review, or
+ * answers with the problems found.
  */
 async function uploadVersion(request: Request, form: FormData) {
   const file = form.get("file");
   if (!(file instanceof File) || file.size === 0) {
-    return uploadFailed("Choose a routine file.");
+    return uploadFailed("Choose the routine’s PDF or file.");
   }
-  const text = await file.text();
-  try {
-    JSON.parse(text);
-  } catch (err) {
-    return uploadFailed(
-      `This file isn't valid JSON: ${err instanceof Error ? err.message : String(err)}`,
-    );
+  let res: Response;
+  if (isPdfFile(file)) {
+    res = await sendPdf(request, file);
+  } else {
+    const text = await file.text();
+    try {
+      JSON.parse(text);
+    } catch (err) {
+      return uploadFailed(
+        `This file isn't valid JSON: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    res = await apiFetch(request, "/api/v1/admin/routine/versions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: text,
+    });
   }
-  const res = await apiFetch(request, "/api/v1/admin/routine/versions", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: text,
-  });
   if (res.status === 201) {
     const version = await readJson<AdminRoutineVersionDetail>(res);
     return redirect(versionUrl(version.id));

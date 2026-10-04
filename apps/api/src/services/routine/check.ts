@@ -1,6 +1,7 @@
 import {
   ROUTINE_DAY_NAMES,
   ROUTINE_DAYS,
+  ROUTINE_REGULAR_SECTION_PATTERN,
   routineClockTime,
   routineTime,
   type AdminRoutineVersionDetail,
@@ -37,9 +38,9 @@ const at = (c: CheckedClass) =>
   `${dayName(c.day)} at ${routineClockTime(routineTime(c.start))}`;
 const sectionLabel = (c: CheckedClass) =>
   c.labGroup ? `${c.section} (${c.labGroup})` : c.section;
-/** A batch's section ("67_B"), not a retake or other mixed section. */
+/** A batch's or a level-term's section ("67_B", "1-2 B"), not a retake or other mixed one. */
 export const isRegularSection = (section: string) =>
-  /^\d+_[A-Za-z]+$/.test(section);
+  ROUTINE_REGULAR_SECTION_PATTERN.test(section);
 const overlaps = (a: CheckedClass, b: CheckedClass) =>
   a.day === b.day && a.start < b.end && b.start < a.end;
 const sameClass = (a: CheckedClass, b: CheckedClass) =>

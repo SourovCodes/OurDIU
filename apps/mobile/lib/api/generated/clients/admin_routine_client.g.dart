@@ -78,6 +78,49 @@ class _AdminRoutineClient implements AdminRoutineClient {
   }
 
   @override
+  Future<AdminRoutineVersionDetail> postApiV1AdminRoutineVersionsPdf({
+    required File file,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = FormData();
+    _data.files.add(
+      MapEntry(
+        'file',
+        MultipartFile.fromFileSync(
+          file.path,
+          filename: file.path.split(Platform.pathSeparator).last,
+        ),
+      ),
+    );
+    final _options = _setStreamType<AdminRoutineVersionDetail>(
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'multipart/form-data',
+          )
+          .compose(
+            _dio.options,
+            '/api/v1/admin/routine/versions/pdf',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, Object?>>(_options);
+    late AdminRoutineVersionDetail _value;
+    try {
+      _value = AdminRoutineVersionDetail.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
   Future<AdminRoutineVersionDetail> getApiV1AdminRoutineVersionsId({
     required int id,
   }) async {
@@ -211,6 +254,34 @@ class _AdminRoutineClient implements AdminRoutineClient {
       rethrow;
     }
     return _value;
+  }
+
+  @override
+  Stream<String> getApiV1AdminRoutineVersionsIdPdf({required int id}) async* {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<String>(
+      Options(
+            method: 'GET',
+            headers: _headers,
+            extra: _extra,
+            responseType: ResponseType.stream,
+          )
+          .compose(
+            _dio.options,
+            '/api/v1/admin/routine/versions/${id}/pdf',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = _dio.fetch<ResponseBody>(_options);
+    final _value = _result.asStream().asyncExpand(
+      (response) => utf8.decoder.bind(response.data!.stream),
+    );
+    yield* _value;
   }
 
   RequestOptions _setStreamType<T>(RequestOptions requestOptions) {

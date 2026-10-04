@@ -1,4 +1,5 @@
 import type { RoutineSection, RoutineSectionList } from "@ourdiu/shared";
+import { ROUTINE_DEPARTMENT_SLUGS } from "@ourdiu/shared/constants";
 import { CalendarClock, Download, Star } from "lucide-react";
 import { data, Link } from "react-router";
 import { ComingSoon } from "~/components/coming-soon";
@@ -10,10 +11,13 @@ import { product as findProduct } from "~/lib/products";
 import {
   classesFor,
   dhakaNow,
+  isRoutineDepartment,
   pickLabel,
   routineHref,
   savedRoutine,
   sectionChoices,
+  sectionGroup,
+  sectionGroups,
   type RoutineDepartmentSlug,
 } from "~/lib/routine";
 import { pageMeta } from "~/lib/seo";
@@ -21,27 +25,56 @@ import { cn } from "~/lib/utils";
 import type { Route } from "./+types/routine";
 
 const product = findProduct("routine");
-const DEPARTMENT: RoutineDepartmentSlug = "cse";
 
-export const meta: Route.MetaFunction = () =>
-  pageMeta({
-    title: "DIU Class Routine — your section's classes | OurDIU",
-    description:
-      "The DIU CSE class routine by section: today's classes, your week with lab groups, rooms and teachers, and a PDF to download.",
+export const meta: Route.MetaFunction = ({ loaderData, params }) => {
+  const name = loaderData?.department.toUpperCase();
+  return pageMeta({
+    title: params.department
+      ? `DIU ${name} Class Routine — your section's classes | OurDIU`
+      : "DIU Class Routine — your section's classes | OurDIU",
+    description: params.department
+      ? `The DIU ${name} class routine by section: today's classes, your week with lab groups, rooms and teachers, and a PDF to download.`
+      : "DIU's class routines by section (CSE and EEE): today's classes, your week with lab groups, rooms and teachers, and a PDF to download.",
   });
+};
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const res = await apiFetch(request, `/api/v1/routine/${DEPARTMENT}/sections`);
-  // Until a routine is live, the space stays "coming soon".
-  if (res.status === 404) return { list: null, mine: null, serverDay: null };
-  if (!res.ok) throw data("API request failed", { status: 502 });
-  const list = await readJson<RoutineSectionList>(res);
+/**
+ * /routine and /routine/:department. Each department's live routine; /routine shows
+ * the department of the visitor's saved section, else the first with a routine.
+ */
+export async function loader({ request, params }: Route.LoaderArgs) {
+  if (
+    params.department !== undefined &&
+    !isRoutineDepartment(params.department)
+  ) {
+    throw data("Not found", { status: 404 });
+  }
+  const lists = await Promise.all(
+    ROUTINE_DEPARTMENT_SLUGS.map(async (department) => {
+      const res = await apiFetch(
+        request,
+        `/api/v1/routine/${department}/sections`,
+      );
+      // Not live yet: that department is "coming soon".
+      if (res.status === 404) return { department, list: null };
+      if (!res.ok) throw data("API request failed", { status: 502 });
+      return { department, list: await readJson<RoutineSectionList>(res) };
+    }),
+  );
+  const live = lists.flatMap((l) => (l.list ? [l.department] : []));
+  const saved = savedRoutine(request.headers.get("cookie"));
+  const department: RoutineDepartmentSlug =
+    params.department ??
+    (saved && live.includes(saved.department) ? saved.department : live[0]) ??
+    "cse";
+  const list = lists.find((l) => l.department === department)!.list;
 
   // "My section", with its week for the Today card. Gone from a new version, it's
   // just left out.
-  const saved = savedRoutine(request.headers.get("cookie"));
+  const savedList =
+    saved && lists.find((l) => l.department === saved.department)?.list;
   const mine =
-    saved && list.sections.some((s) => s.section === saved.section)
+    saved && savedList?.sections.some((s) => s.section === saved.section)
       ? {
           pick: saved,
           routine: await apiGetJson<RoutineSection>(
@@ -51,14 +84,55 @@ export async function loader({ request }: Route.LoaderArgs) {
         }
       : null;
   return {
+    department,
+    // Until any routine is live, the space stays "coming soon".
+    anyLive: live.length > 0,
+    departments: lists.map((l) => ({
+      department: l.department,
+      version: l.list?.version.version ?? null,
+    })),
     list,
     mine: mine?.routine ? { pick: mine.pick, routine: mine.routine } : null,
     serverDay: dhakaNow().day,
   };
 }
 
-/** The batch a section belongs to ("67" for 67_B), or null for retakes and others. */
-const batchOf = (section: string) => /^(\d+)_/.exec(section)?.[1] ?? null;
+/** The departments, CSE and EEE, as links to their routines. */
+function DepartmentSwitch({
+  departments,
+  current,
+}: {
+  departments: { department: RoutineDepartmentSlug; version: string | null }[];
+  current: RoutineDepartmentSlug;
+}) {
+  return (
+    <nav aria-label="Departments">
+      <ul className="inline-flex gap-1 rounded-full bg-surface p-1">
+        {departments.map(({ department, version }) => (
+          <li key={department}>
+            <Link
+              to={`/routine/${department}`}
+              aria-current={department === current ? "page" : undefined}
+              prefetch="intent"
+              preventScrollReset
+              className={cn(
+                "flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors",
+                department === current
+                  ? "bg-primary-container text-primary-container-foreground"
+                  : "text-muted-foreground hover:state-layer",
+              )}
+            >
+              {department.toUpperCase()}
+              <span className="text-xs font-medium opacity-80">
+                {version ? `v${version}` : "soon"}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
 
 /** The routine's shape, large, beside the title on wide screens. */
 function ShapeCluster() {
@@ -84,52 +158,49 @@ function ShapeCluster() {
   );
 }
 
-/** /routine: your section's day, or find it. */
+/** /routine: your section's day, or find it in your department's routine. */
 export default function Routine({ loaderData }: Route.ComponentProps) {
   const now = useDhakaNow();
-  const { list, mine, serverDay } = loaderData;
-  if (!list || !serverDay) return <ComingSoon product={product} />;
+  const { department, anyLive, departments, list, mine, serverDay } =
+    loaderData;
+  if (!anyLive) return <ComingSoon product={product} />;
 
-  const choices = sectionChoices(list.sections);
-  const batches = new Map<string, string[]>();
-  for (const { section } of list.sections) {
-    const batch = batchOf(section) ?? "Others";
-    batches.set(batch, [...(batches.get(batch) ?? []), section]);
-  }
-  const ordered = [...batches.entries()].sort(([a], [b]) =>
-    a === "Others" ? 1 : b === "Others" ? -1 : Number(b) - Number(a),
-  );
-  const { version } = list;
+  const name = department.toUpperCase();
+  const groups = list ? sectionGroups(list.sections.map((s) => s.section)) : [];
 
   return (
     <div className="space-y-16 pt-2 sm:pt-6">
       <section className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         <div className="space-y-7">
-          <p className="inline-flex items-center gap-2 rounded-full bg-primary-container py-1.5 pr-4 pl-1.5 text-sm font-medium text-primary-container-foreground">
-            <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">
-              {version.department}
-            </span>
-            Routine v{version.version}
-            {version.publishedOn &&
-              ` · published ${formatDate(version.publishedOn)}`}
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <DepartmentSwitch departments={departments} current={department} />
+            {list?.version.publishedOn && (
+              <p className="text-sm text-muted-foreground">
+                {name} v{list.version.version} · published{" "}
+                {formatDate(list.version.publishedOn)}
+              </p>
+            )}
+          </div>
           <div className="space-y-5">
             <h1 className="font-display-xl text-6xl sm:text-7xl xl:text-8xl">
               Your class routine.
             </h1>
             <p className="max-w-xl text-lg text-pretty text-muted-foreground">
-              Find your section in DIU’s {version.department} routine: today’s
-              classes, your week with rooms and teachers, and a PDF to keep.
-              More departments later.
+              {list
+                ? `Find your section in DIU’s ${name} routine: today’s classes, your week with rooms and teachers, and a PDF to keep.`
+                : `DIU’s ${name} routine is coming soon. Until then, pick another department above.`}
             </p>
           </div>
-          <div className="max-w-xl">
-            <SectionSearch
-              department={DEPARTMENT}
-              choices={choices}
-              size="lg"
-            />
-          </div>
+          {list && (
+            <div className="max-w-xl">
+              <SectionSearch
+                key={department}
+                department={department}
+                choices={sectionChoices(list.sections)}
+                size="lg"
+              />
+            </div>
+          )}
         </div>
         {mine ? (
           // A returning student's day comes first on phones.
@@ -139,7 +210,7 @@ export default function Routine({ loaderData }: Route.ComponentProps) {
               section={mine.routine.section}
               today={now?.day ?? serverDay}
               now={now}
-              label={`My section · ${pickLabel(mine.pick)}`}
+              label={`My section · ${mine.pick.department.toUpperCase()} ${pickLabel(mine.pick)}`}
               href={routineHref(mine.pick)}
             />
           </div>
@@ -148,57 +219,54 @@ export default function Routine({ loaderData }: Route.ComponentProps) {
         )}
       </section>
 
-      <section aria-labelledby="batches-heading" className="space-y-5">
-        <h2
-          id="batches-heading"
-          className="font-expressive text-3xl sm:text-4xl"
-        >
-          Every section
-        </h2>
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {ordered.map(([batch, sections]) => (
-            <li
-              key={batch}
-              className="flex flex-col gap-4 rounded-[1.75rem] bg-surface p-5"
-            >
-              <div className="flex items-baseline justify-between gap-3">
-                <h3 className="font-display-xl text-5xl">
-                  {batch === "Others" ? "Retakes" : batch}
-                </h3>
-                <span className="text-sm text-muted-foreground">
-                  {batch === "Others" ? "and others" : "Batch"} ·{" "}
-                  {sections.length} section{sections.length === 1 ? "" : "s"}
-                </span>
-              </div>
-              <ul className="flex flex-wrap gap-1.5">
-                {sections.map((section) => (
-                  <li key={section}>
-                    <Link
-                      to={routineHref({
-                        department: DEPARTMENT,
-                        section,
-                        group: null,
-                      })}
-                      prefetch="intent"
-                      className={cn(
-                        "inline-flex h-10 items-center rounded-xl border px-3.5 text-sm font-semibold transition-colors",
-                        mine?.pick.section === section
-                          ? "border-primary-container bg-primary-container text-primary-container-foreground"
-                          : "border-input bg-background hover:state-layer",
-                      )}
-                    >
-                      {batch === "Others"
-                        ? section
-                        : section.slice(batch.length + 1)}
-                      <span className="sr-only"> ({section})</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {list && (
+        <section aria-labelledby="batches-heading" className="space-y-5">
+          <h2
+            id="batches-heading"
+            className="font-expressive text-3xl sm:text-4xl"
+          >
+            Every {name} section
+          </h2>
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {groups.map((group) => (
+              <li
+                key={group.key}
+                className="flex flex-col gap-4 rounded-[1.75rem] bg-surface p-5"
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <h3 className="font-display-xl text-5xl">{group.title}</h3>
+                  <span className="text-sm text-muted-foreground first-letter:uppercase">
+                    {group.name ?? "and others"} · {group.sections.length}{" "}
+                    section{group.sections.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <ul className="flex flex-wrap gap-1.5">
+                  {group.sections.map((section) => (
+                    <li key={section}>
+                      <Link
+                        to={routineHref({ department, section, group: null })}
+                        prefetch="intent"
+                        className={cn(
+                          "inline-flex h-10 items-center rounded-xl border px-3.5 text-sm font-semibold transition-colors",
+                          mine?.pick.department === department &&
+                            mine.pick.section === section
+                            ? "border-primary-container bg-primary-container text-primary-container-foreground"
+                            : "border-input bg-background hover:state-layer",
+                        )}
+                      >
+                        {group.name
+                          ? (sectionGroup(section)?.letter ?? section)
+                          : section}
+                        <span className="sr-only"> ({section})</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="grid gap-3 md:grid-cols-2">
         <div className="relative flex flex-col items-start gap-4 overflow-hidden rounded-[1.75rem] bg-surface p-7 sm:p-9">

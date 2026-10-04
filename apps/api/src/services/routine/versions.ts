@@ -4,6 +4,7 @@ import {
   type AdminRoutineVersionDetail,
   type RoutineDepartment,
   type RoutineFile,
+  type RoutineWarning,
 } from "@ourdiu/shared";
 import { and, asc, desc, eq, getTableColumns } from "drizzle-orm";
 import type { Database } from "../../db/client";
@@ -24,13 +25,21 @@ import {
   type CheckedClass,
 } from "./check";
 
-// Routine versions for admins: upload a file as a draft, review it against the live
-// version, make it live (one per department), delete drafts.
+// Routine versions for admins: upload a file (or one read from DIU's PDF) as a draft,
+// review it against the live version, make it live (one per department), delete
+// drafts.
 
 /** Classes go into D1 in chunks, each one JSON parameter (D1 takes 100 per query). */
 const INSERT_CHUNK = 1000;
 
-const newFileKey = () => `routine/versions/${crypto.randomUUID()}.json`;
+/** Where a version's file goes in R2; DIU's PDF, if it was read from one, beside it. */
+const newFileKeys = () => {
+  const id = crypto.randomUUID();
+  return {
+    fileKey: `routine/versions/${id}.json`,
+    pdfKey: `routine/versions/${id}.pdf`,
+  };
+};
 
 const iso = (d: Date | null) => (d ? d.toISOString() : null);
 
@@ -43,6 +52,7 @@ function toAdminVersion(
     version: row.version,
     publishedOn: row.publishedOn,
     source: row.source,
+    hasPdf: row.pdfKey !== null,
     status: row.status,
     sectionCount: row.sectionCount,
     classCount: row.classCount,
@@ -109,8 +119,10 @@ const checkedClasses = (file: RoutineFile): CheckedClass[] =>
   }));
 
 /**
- * Saves an uploaded routine as a draft: the file as it came in R2, its classes in D1,
- * and the warnings found in it. Students see nothing until it's made live.
+ * Saves an uploaded routine as a draft: the file as it came in R2 (with DIU's PDF,
+ * when it was read from one), its classes in D1, and the warnings found in it,
+ * after what couldn't be read from the PDF (`notes`). Students see nothing until
+ * it's made live.
  */
 export async function uploadRoutineVersion(
   db: Database,
@@ -118,6 +130,7 @@ export async function uploadRoutineVersion(
   userId: string,
   file: RoutineFile,
   raw: string,
+  fromPdf?: { pdf: Uint8Array; notes: string[] },
 ): Promise<AdminRoutineVersionDetail> {
   const exists = await db
     .select({ id: routineVersions.id })
@@ -140,10 +153,19 @@ export async function uploadRoutineVersion(
   const knownTitles = new Set([
     ...Object.keys(file.courses ?? {}),
     ...(
-      await db.select({ code: routineCourses.code }).from(routineCourses)
+      await db
+        .select({ code: routineCourses.code })
+        .from(routineCourses)
+        .where(eq(routineCourses.department, file.department))
     ).map((r) => r.code),
   ]);
-  const found = routineWarnings(classes, knownTitles);
+  const found: RoutineWarning[] = [
+    ...(fromPdf?.notes ?? []).map((message) => ({
+      kind: "unreadable" as const,
+      message,
+    })),
+    ...routineWarnings(classes, knownTitles),
+  ];
   const warnings =
     found.length > MAX_STORED_WARNINGS
       ? [
@@ -155,10 +177,19 @@ export async function uploadRoutineVersion(
         ]
       : found;
 
-  const fileKey = newFileKey();
+  const keys = newFileKeys();
+  const { fileKey } = keys;
+  const pdfKey = fromPdf ? keys.pdfKey : null;
+  const removeFiles = () =>
+    bucket.delete(pdfKey ? [fileKey, pdfKey] : [fileKey]);
   await bucket.put(fileKey, raw, {
     httpMetadata: { contentType: "application/json" },
   });
+  if (fromPdf && pdfKey) {
+    await bucket.put(pdfKey, fromPdf.pdf, {
+      httpMetadata: { contentType: "application/pdf" },
+    });
+  }
 
   let versionId: number;
   try {
@@ -170,6 +201,7 @@ export async function uploadRoutineVersion(
         publishedOn: file.publishedOn ?? null,
         source: file.source ?? null,
         fileKey,
+        pdfKey,
         slots: file.slots,
         courses: file.courses ?? {},
         teachers: file.teachers ?? {},
@@ -181,7 +213,7 @@ export async function uploadRoutineVersion(
       .returning({ id: routineVersions.id });
     versionId = row!.id;
   } catch (err) {
-    await bucket.delete(fileKey);
+    await removeFiles();
     if (isConstraintError(err, "UNIQUE")) {
       throw new AppError(
         409,
@@ -215,7 +247,7 @@ export async function uploadRoutineVersion(
     await client.batch(statements);
   } catch (err) {
     await db.delete(routineVersions).where(eq(routineVersions.id, versionId));
-    await bucket.delete(fileKey);
+    await removeFiles();
     throw err;
   }
 
@@ -293,24 +325,24 @@ export async function makeRoutineVersionLive(
         .bind(now, id),
       client
         .prepare(
-          `insert into routine_courses (code, title)
-          select key, value from json_each(?1) where true
-          on conflict (code) do update set title = excluded.title, updated_at = ?2`,
+          `insert into routine_courses (department, code, title)
+          select ?3, key, value from json_each(?1) where true
+          on conflict (department, code) do update set title = excluded.title, updated_at = ?2`,
         )
-        .bind(JSON.stringify(row.courses), now),
+        .bind(JSON.stringify(row.courses), now, row.department),
       client
         .prepare(
-          `insert into routine_teachers (initials, name)
-          select key, value from json_each(?1) where true
-          on conflict (initials) do update set name = excluded.name, updated_at = ?2`,
+          `insert into routine_teachers (department, initials, name)
+          select ?3, key, value from json_each(?1) where true
+          on conflict (department, initials) do update set name = excluded.name, updated_at = ?2`,
         )
-        .bind(JSON.stringify(row.teachers), now),
+        .bind(JSON.stringify(row.teachers), now, row.department),
     ]);
   }
   return getRoutineVersion(db, id);
 }
 
-/** Deletes a version that isn't live, with its classes and uploaded file. */
+/** Deletes a version that isn't live, with its classes and uploaded files. */
 export async function deleteRoutineVersion(
   db: Database,
   bucket: R2Bucket,
@@ -325,7 +357,7 @@ export async function deleteRoutineVersion(
     );
   }
   await db.delete(routineVersions).where(eq(routineVersions.id, id));
-  await bucket.delete(row.fileKey);
+  await bucket.delete(row.pdfKey ? [row.fileKey, row.pdfKey] : [row.fileKey]);
 }
 
 /** The file a version was uploaded as. */
@@ -342,6 +374,23 @@ export async function getRoutineVersionFile(
   return {
     object,
     filename: `${row.department.toLowerCase()}-routine-${row.version}.json`,
+  };
+}
+
+/** DIU's PDF a version was read from. */
+export async function getRoutineVersionPdf(
+  db: Database,
+  bucket: R2Bucket,
+  id: number,
+) {
+  const row = await findVersion(db, id);
+  const object = row.pdfKey ? await bucket.get(row.pdfKey) : null;
+  if (!object) {
+    throw new AppError(404, "NOT_FOUND", "This version wasn't read from a PDF");
+  }
+  return {
+    object,
+    filename: `${row.department.toLowerCase()}-routine-${row.version}.pdf`,
   };
 }
 

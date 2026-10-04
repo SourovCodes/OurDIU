@@ -2,6 +2,11 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, unused_import, invalid_annotation_target, unnecessary_import
 
+import 'dart:convert';
+import 'dart:io';
+
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 
@@ -26,6 +31,15 @@ abstract class AdminRoutineClient {
   @POST('/api/v1/admin/routine/versions')
   Future<AdminRoutineVersionDetail> postApiV1AdminRoutineVersions({
     @Body() required RoutineFile body,
+  });
+
+  /// Read DIU's routine PDF into a draft.
+  ///
+  /// For departments whose PDF OurDIU can read (EEE). The routine read from it is checked like an uploaded file and kept with the PDF; cells that couldn't be read, or were read with a guess, are the draft's first warnings (`unreadable`). A PDF of another layout is answered with 422 `UNKNOWN_ROUTINE_PDF`.
+  @MultiPart()
+  @POST('/api/v1/admin/routine/versions/pdf')
+  Future<AdminRoutineVersionDetail> postApiV1AdminRoutineVersionsPdf({
+    @Part(name: 'file') required File file,
   });
 
   /// A version with its warnings and changes.
@@ -60,6 +74,13 @@ abstract class AdminRoutineClient {
   /// Download the file a version was uploaded as
   @GET('/api/v1/admin/routine/versions/{id}/file')
   Future<RoutineFile> getApiV1AdminRoutineVersionsIdFile({
+    @Path('id') required int id,
+  });
+
+  /// Download DIU's PDF a version was read from
+  @GET('/api/v1/admin/routine/versions/{id}/pdf')
+  @DioResponseType(ResponseType.stream)
+  Stream<String> getApiV1AdminRoutineVersionsIdPdf({
     @Path('id') required int id,
   });
 }

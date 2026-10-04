@@ -208,12 +208,12 @@ INSERT INTO routine_classes (version_id, day, start, "end", course, section, lab
   (1, 'MON', 600, 690, 'CSE431', '65_A', NULL, 'KT-503', 'lab', 'SMAH'),
   (1, 'MON', 690, 780, 'CSE413', '65_A', NULL, 'KT-515', NULL, 'THT'),
   (1, 'THU', 690, 780, 'CSE432', '65_A', NULL, 'KT-504', 'lab', 'SR');
-INSERT INTO routine_courses (code, title) VALUES
-  ('CSE315', 'Software Engineering'),
-  ('CSE317', 'Microprocessor and Microcontrollers'),
-  ('CSE321', 'Computer Networks'),
-  ('CSE322', 'Computer Networks Lab'),
-  ('ACT327', 'Financial and Managerial Accounting'),
-  ('CSE413', 'Compiler Design'),
-  ('CSE431', 'Artificial Intelligence'),
-  ('CSE432', 'Artificial Intelligence Lab');
+INSERT INTO routine_courses (department, code, title) VALUES
+  ('CSE', 'CSE315', 'Software Engineering'),
+  ('CSE', 'CSE317', 'Microprocessor and Microcontrollers'),
+  ('CSE', 'CSE321', 'Computer Networks'),
+  ('CSE', 'CSE322', 'Computer Networks Lab'),
+  ('CSE', 'ACT327', 'Financial and Managerial Accounting'),
+  ('CSE', 'CSE413', 'Compiler Design'),
+  ('CSE', 'CSE431', 'Artificial Intelligence'),
+  ('CSE', 'CSE432', 'Artificial Intelligence Lab');

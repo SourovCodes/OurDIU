@@ -28,5 +28,6 @@ Map<String, dynamic> _$RoutineVersionToJson(RoutineVersion instance) =>
 
 const _$RoutineDepartmentEnumMap = {
   RoutineDepartment.cse: 'CSE',
+  RoutineDepartment.eee: 'EEE',
   RoutineDepartment.$unknown: r'$unknown',
 };

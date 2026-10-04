@@ -16,9 +16,10 @@ import {
 import { nullableRef } from "./common";
 
 // ── The routine file ─────────────────────────────────────────────────────────
-// DIU publishes each department's routine as a PDF. It's turned into this JSON
-// outside OurDIU (by hand or with an AI chat) and uploaded by an admin. The
-// messages are written for whoever fixes the file.
+// DIU publishes each department's routine as a PDF. OurDIU reads the PDFs whose
+// layout it knows (EEE's) into this JSON; others are turned into it outside OurDIU
+// (by hand or with an AI chat) and uploaded by an admin. The messages are written
+// for whoever fixes the file.
 
 const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, {
   error: 'Use 24-hour time with two digits, e.g. "08:30" or "13:00"',
@@ -38,7 +39,7 @@ export type RoutineDepartment = z.infer<typeof routineDepartmentSchema>;
 
 const courseCodeSchema = z.string().regex(ROUTINE_COURSE_CODE_PATTERN, {
   error:
-    'Use the course code as printed, in capitals and without spaces: "CSE321"',
+    'Use the course code as printed, in capitals: "CSE321", or EEE\'s "0713-121"',
 });
 const teacherInitialsSchema = z.string().regex(ROUTINE_TEACHER_PATTERN, {
   error: 'Use the teacher\'s initials as printed: "STA"',
@@ -61,9 +62,9 @@ export const routineFileClassSchema = z
     course: courseCodeSchema,
     section: z.string().regex(ROUTINE_SECTION_PATTERN, {
       error:
-        'Use the batch and section as printed: "67_B", or "RE_A(3C)" for a retake',
+        'Use the section as printed: "67_B", "RE_A(3C)" for a retake, or EEE\'s "1-2 B"',
     }),
-    /** The lab group that attends ("B1" for 67_B1); absent when the whole section does. */
+    /** The lab group that attends ("B1" for 67_B1 or 1-2 B1); absent when the whole section does. */
     labGroup: z
       .string()
       .regex(ROUTINE_LAB_GROUP_PATTERN, {
@@ -261,6 +262,8 @@ export const adminRoutineVersionSchema = z
     version: z.string(),
     publishedOn: z.iso.date().nullable(),
     source: z.string().nullable(),
+    /** Whether it was read from DIU's PDF, which can be downloaded. */
+    hasPdf: z.boolean(),
     status: routineVersionStatusSchema,
     sectionCount: z.number().int(),
     classCount: z.number().int(),

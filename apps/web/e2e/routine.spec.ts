@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
+import { eeeRoutinePdf } from "../../api/test/eee-routine-pdf";
 import { failOnConsoleErrors, logInAs, openMenu, SEED_ADMIN } from "./helpers";
 
 failOnConsoleErrors();
@@ -75,7 +76,7 @@ test("a student finds their section, makes it theirs and downloads it", async ({
   // The routine's home then opens with that section's day.
   await page.goto("/routine");
   const today = page.getByRole("region", { name: "Today" });
-  await expect(today).toContainText("My section · 67_B1");
+  await expect(today).toContainText("My section · CSE 67_B1");
   await today.getByRole("link", { name: "See the week" }).click();
   await expect(page).toHaveURL(/\/routine\/cse\/67_B\?group=B1$/);
 });
@@ -112,15 +113,15 @@ test("an admin uploads a routine file, reviews it and makes it live", async ({
     page.getByRole("heading", { name: "Routine versions" }),
   ).toBeVisible();
 
-  const dialog = page.getByRole("dialog", { name: "Upload routine file" });
+  const dialog = page.getByRole("dialog", { name: "Upload a routine" });
   const openUpload = async () => {
     await expect(async () => {
-      await page.getByRole("button", { name: "Upload routine file" }).click();
+      await page.getByRole("button", { name: "Upload routine" }).click();
       await expect(dialog).toBeVisible({ timeout: 1_000 });
     }).toPass();
   };
   const choose = (file: unknown) =>
-    dialog.getByLabel("Routine file (.json)").setInputFiles({
+    dialog.getByLabel(/Routine PDF or file/).setInputFiles({
       name: `cse-routine-${version}.json`,
       mimeType: "application/json",
       buffer: Buffer.from(JSON.stringify(file, null, 2)),
@@ -178,4 +179,69 @@ test("an admin uploads a routine file, reviews it and makes it live", async ({
   await page.getByRole("button", { name: "Delete", exact: true }).click();
   await expect(page.getByText("v4.1 deleted")).toBeVisible();
   await expect(old).toHaveCount(0);
+});
+
+test("an admin uploads EEE's routine PDF, and EEE students find their section", async ({
+  page,
+}) => {
+  test.skip(
+    test.info().project.name === "mobile",
+    "Makes a version live: runs in one project",
+  );
+  const version = uniqueVersion();
+  await logInAs(page, SEED_ADMIN, "/admin/routine/versions");
+  const dialog = page.getByRole("dialog", { name: "Upload a routine" });
+  await expect(async () => {
+    await page.getByRole("button", { name: "Upload routine" }).click();
+    await expect(dialog).toBeVisible({ timeout: 1_000 });
+  }).toPass();
+  await dialog.getByLabel(/Routine PDF or file/).setInputFiles({
+    name: `eee-class-routine-v${version}.pdf`,
+    mimeType: "application/pdf",
+    buffer: Buffer.from(await eeeRoutinePdf(version)),
+  });
+  await dialog.getByRole("button", { name: "Upload" }).click();
+
+  // Read into a draft, with the cells it read with a guess to check.
+  await expect(page).toHaveURL(/\/admin\/routine\/versions\/\d+$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    `EEE v${version}`,
+  );
+  await expect(page.getByText("2 places in DIU’s PDF to check")).toBeVisible();
+  await expect(page.getByText(/says 1-3 A but 0541-131 B/)).toBeVisible();
+  await openMenu(page.getByRole("button", { name: "Download" }));
+  await expect(page.getByRole("menuitem", { name: "DIU’s PDF" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: `Make v${version} live` }).click();
+  await page.getByRole("button", { name: "Make live" }).click();
+  await expect(page.getByText(`v${version} is live`)).toBeVisible();
+
+  // Students switch to EEE and find 1-2 B1 as they write it.
+  await page.goto("/routine");
+  await page
+    .getByRole("navigation", { name: "Departments" })
+    .getByRole("link", { name: /EEE/ })
+    .click();
+  await expect(page).toHaveURL(/\/routine\/eee$/);
+  await expect(
+    page.getByRole("heading", { name: "Every EEE section" }),
+  ).toBeVisible();
+  const search = page.getByRole("combobox", { name: /Your section/ });
+  await expect(async () => {
+    await search.fill("");
+    await search.fill("12b1");
+    await expect(page.getByRole("option", { name: /1-2 B1/ })).toBeVisible({
+      timeout: 1_000,
+    });
+  }).toPass();
+  await search.press("Enter");
+  await expect(page).toHaveURL(/\/routine\/eee\/1-2_B\?group=B1$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("1-2 B1");
+  await expect(
+    page.getByText(/EEE level 1, term 2, section B · lab group B1/),
+  ).toBeVisible();
+  // Teachers' names come from the PDF's list.
+  await expect(
+    page.getByRole("region", { name: "Courses" }).getByText(/Test Wahid/),
+  ).toBeVisible();
 });

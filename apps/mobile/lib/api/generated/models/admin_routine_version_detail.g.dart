@@ -16,6 +16,7 @@ AdminRoutineVersionDetail _$AdminRoutineVersionDetailFromJson(
       ? null
       : DateTime.parse(json['publishedOn'] as String),
   source: json['source'] as String?,
+  hasPdf: json['hasPdf'] as bool,
   status: RoutineVersionStatus.fromJson(json['status'] as String),
   sectionCount: (json['sectionCount'] as num).toInt(),
   classCount: (json['classCount'] as num).toInt(),
@@ -50,6 +51,7 @@ Map<String, dynamic> _$AdminRoutineVersionDetailToJson(
   'version': instance.version,
   'publishedOn': instance.publishedOn?.toIso8601String(),
   'source': instance.source,
+  'hasPdf': instance.hasPdf,
   'status': _$RoutineVersionStatusEnumMap[instance.status]!,
   'sectionCount': instance.sectionCount,
   'classCount': instance.classCount,
@@ -66,6 +68,7 @@ Map<String, dynamic> _$AdminRoutineVersionDetailToJson(
 
 const _$RoutineDepartmentEnumMap = {
   RoutineDepartment.cse: 'CSE',
+  RoutineDepartment.eee: 'EEE',
   RoutineDepartment.$unknown: r'$unknown',
 };
 

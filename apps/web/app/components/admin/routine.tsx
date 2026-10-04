@@ -3,8 +3,11 @@ import type {
   RoutineFileProblem,
   RoutineVersionStatus,
 } from "@ourdiu/shared";
-import { MAX_ROUTINE_FILE_BYTES } from "@ourdiu/shared/constants";
-import { FileJson, Upload } from "lucide-react";
+import {
+  MAX_ROUTINE_FILE_BYTES,
+  MAX_ROUTINE_PDF_BYTES,
+} from "@ourdiu/shared/constants";
+import { FileUp, Upload } from "lucide-react";
 import { useState } from "react";
 import { Link, useFetcher } from "react-router";
 import { FormMessage } from "~/components/form";
@@ -50,7 +53,7 @@ export function RoutineStatusBadge({
 
 /** What deleting a version does; the live one can't be deleted. */
 export const DELETE_DESCRIPTION =
-  "Its classes and the uploaded JSON file are deleted for good. Students don’t notice: they only see the live version. You can upload the file again later.";
+  "Its classes and the uploaded file (or PDF) are deleted for good. Students don’t notice: they only see the live version. You can upload it again later.";
 
 /** The review page of an uploaded routine version. */
 export const versionUrl = (id: number) => `/admin/routine/versions/${id}`;
@@ -58,6 +61,10 @@ export const versionUrl = (id: number) => `/admin/routine/versions/${id}`;
 /** The uploaded file of a version, straight from the API. */
 export const versionFileHref = (v: Pick<AdminRoutineVersion, "id">) =>
   `/api/v1/admin/routine/versions/${v.id}/file`;
+
+/** DIU's PDF a version was read from, if it was. */
+export const versionPdfHref = (v: Pick<AdminRoutineVersion, "id">) =>
+  `/api/v1/admin/routine/versions/${v.id}/pdf`;
 
 /** What the upload action answers when the file can't be used. */
 export type UploadResult = {
@@ -67,13 +74,20 @@ export type UploadResult = {
   problems: RoutineFileProblem[];
 };
 
+/** A routine PDF, read by OurDIU, rather than a JSON file. */
+export const isPdfFile = (file: File) =>
+  file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+
+const mb = (bytes: number) => `${bytes / 1024 / 1024} MB`;
+
 /**
- * Uploads a routine file. Problems with the file are listed where they are in it;
- * a file that's fine opens as a draft (the action redirects to its review).
+ * Uploads DIU's routine PDF (where OurDIU can read it) or a routine file. Problems
+ * with a file are listed where they are in it; one that's fine opens as a draft (the
+ * action redirects to its review).
  */
 export function UploadRoutineDialog() {
   const fetcher = useFetcher<UploadResult>();
-  const [tooLarge, setTooLarge] = useState(false);
+  const [tooLarge, setTooLarge] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const busy = fetcher.state !== "idle";
@@ -84,16 +98,16 @@ export function UploadRoutineDialog() {
       <DialogTrigger asChild>
         <Button>
           <Upload aria-hidden />
-          Upload routine file
+          Upload routine
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Upload routine file</DialogTitle>
+          <DialogTitle>Upload a routine</DialogTitle>
           <DialogDescription>
-            A JSON file made from DIU’s routine PDF. It’s checked, then kept as
-            a draft for you to review; students see nothing until you make it
-            live.
+            DIU’s routine PDF as it is, for EEE, or a JSON file made from any
+            department’s PDF. It’s read and checked, then kept as a draft for
+            you to review; students see nothing until you make it live.
           </DialogDescription>
         </DialogHeader>
         <fetcher.Form
@@ -102,10 +116,14 @@ export function UploadRoutineDialog() {
           className="grid gap-4"
           onSubmit={(event) => {
             const file = new FormData(event.currentTarget).get("file");
-            if (file instanceof File && file.size > MAX_ROUTINE_FILE_BYTES) {
+            const max =
+              file instanceof File && isPdfFile(file)
+                ? MAX_ROUTINE_PDF_BYTES
+                : MAX_ROUTINE_FILE_BYTES;
+            if (file instanceof File && file.size > max) {
               event.preventDefault();
-              setTooLarge(true);
-            } else setTooLarge(false);
+              setTooLarge(`The file is larger than ${mb(max)}.`);
+            } else setTooLarge(null);
           }}
         >
           <input type="hidden" name="intent" value="upload" />
@@ -116,22 +134,22 @@ export function UploadRoutineDialog() {
               dragging && "border-primary bg-primary-container/40",
             )}
           >
-            <FileJson className="size-7 text-primary" aria-hidden />
+            <FileUp className="size-7 text-primary" aria-hidden />
             <span className="font-semibold">
-              {file ? file.name : "Choose or drop the routine file"}
+              {file ? file.name : "Choose or drop the PDF or JSON file"}
             </span>
             <span className="text-muted-foreground">
               {file
                 ? `${Math.max(1, Math.round(file.size / 1024))} KB · choose another to replace it`
-                : "A .json file, up to 2 MB"}
+                : `EEE’s PDF up to ${mb(MAX_ROUTINE_PDF_BYTES)}, or a .json file up to ${mb(MAX_ROUTINE_FILE_BYTES)}`}
             </span>
             <input
               id="routine-file"
               name="file"
               type="file"
-              accept="application/json,.json"
+              accept="application/pdf,.pdf,application/json,.json"
               required
-              aria-label="Routine file (.json)"
+              aria-label="Routine PDF or file (.pdf, .json)"
               onChange={(event) => setFile(event.target.files?.[0] ?? null)}
               onDragEnter={() => setDragging(true)}
               onDragLeave={() => setDragging(false)}
@@ -139,11 +157,7 @@ export function UploadRoutineDialog() {
               className="absolute inset-0 cursor-pointer opacity-0"
             />
           </div>
-          {tooLarge && (
-            <FormMessage
-              message={`The file is larger than ${MAX_ROUTINE_FILE_BYTES / 1024 / 1024} MB.`}
-            />
-          )}
+          {tooLarge && <FormMessage message={tooLarge} />}
           {result && !result.ok && (
             <Alert variant="destructive" role="alert">
               <AlertTitle>{result.error}</AlertTitle>
@@ -170,14 +184,15 @@ export function UploadRoutineDialog() {
             </Alert>
           )}
           <p className="text-sm text-muted-foreground">
-            Not sure of the format?{" "}
+            Another department’s PDF?{" "}
             <Link
               to="/admin/routine/format"
               className="font-medium text-primary underline"
             >
               File format
             </Link>{" "}
-            has the rules, an example and instructions for an AI chat.
+            has the JSON file’s rules, an example and instructions for an AI
+            chat.
           </p>
           <DialogFooter>
             <DialogClose asChild>
@@ -186,7 +201,11 @@ export function UploadRoutineDialog() {
               </Button>
             </DialogClose>
             <Button type="submit" disabled={busy}>
-              {busy ? "Checking…" : "Upload"}
+              {busy
+                ? file && isPdfFile(file)
+                  ? "Reading the PDF…"
+                  : "Checking…"
+                : "Upload"}
             </Button>
           </DialogFooter>
         </fetcher.Form>

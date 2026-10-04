@@ -24,5 +24,6 @@ const _$RoutineWarningKindEnumMap = {
   RoutineWarningKind.teacherClash: 'teacher_clash',
   RoutineWarningKind.duplicate: 'duplicate',
   RoutineWarningKind.untitledCourse: 'untitled_course',
+  RoutineWarningKind.unreadable: 'unreadable',
   RoutineWarningKind.$unknown: r'$unknown',
 };

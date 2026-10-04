@@ -31,6 +31,7 @@ export default [
   route("routine/:department", "routes/routine.tsx", {
     id: "routes/routine-department",
   }),
+  route("routine/:department/teachers/:initials", "routes/routine-teacher.tsx"),
   route("routine/:department/:section", "routes/routine-section.tsx"),
 
   // Coming soon.

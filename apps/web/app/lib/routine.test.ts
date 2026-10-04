@@ -7,14 +7,18 @@ import {
   dhakaNow,
   dayWord,
   exactSection,
+  exactTeacher,
   isRegularSection,
   matchSections,
+  matchTeachers,
   nextClass,
   routineHref,
   sectionGroup,
   sectionGroups,
   savedRoutine,
   sectionChoices,
+  teacherClass,
+  teacherHref,
   weekDates,
   weekDays,
 } from "./routine";
@@ -84,6 +88,14 @@ describe("saved section", () => {
       section: "65_A",
       group: null,
     });
+  });
+
+  it("reads a teacher's week saved as theirs", () => {
+    expect(savedRoutine("ourdiu_routine=eee%2F%40ShA")).toEqual({
+      department: "eee",
+      teacher: "ShA",
+    });
+    expect(savedRoutine("ourdiu_routine=eee%2F%40")).toBeNull();
   });
 
   it("ignores unknown departments and junk", () => {
@@ -231,5 +243,46 @@ describe("the next class", () => {
     expect(isRegularSection("67_B")).toBe(true);
     expect(isRegularSection("1-2 B")).toBe(true);
     expect(isRegularSection("RE_A(3C)")).toBe(false);
+  });
+});
+
+describe("teachers", () => {
+  const teachers = [
+    { initials: "STA", name: "Dr. Sample Teacher", courses: [], classCount: 4 },
+    { initials: "ST", name: null, courses: [], classCount: 2 },
+    { initials: "AS", name: "Ahmed Stahl", courses: [], classCount: 2 },
+  ];
+
+  it("finds teachers by initials first, then by name", () => {
+    expect(matchTeachers(teachers, "st").map((t) => t.initials)).toEqual([
+      "ST",
+      "STA",
+      "AS",
+    ]);
+    expect(matchTeachers(teachers, "sample").map((t) => t.initials)).toEqual([
+      "STA",
+    ]);
+    expect(matchTeachers(teachers, "  ")).toEqual([]);
+    expect(exactTeacher(teachers, "sta")?.initials).toBe("STA");
+    expect(exactTeacher(teachers, "s")).toBeNull();
+  });
+
+  it("links to a teacher's week", () => {
+    expect(teacherHref({ department: "eee", teacher: "ShA" })).toBe(
+      "/routine/eee/teachers/ShA",
+    );
+  });
+
+  it("shows a teacher's class as a lab when a lab group attends", () => {
+    const c = teacherClass({
+      day: "MON",
+      start: "14:30",
+      end: "17:30",
+      course: { code: "CSE322", title: null },
+      room: "G1-014",
+      roomType: null,
+      sections: [{ section: "67_B", labGroup: "B1" }],
+    });
+    expect(c).toMatchObject({ roomType: "lab", labGroup: null, teacher: null });
   });
 });

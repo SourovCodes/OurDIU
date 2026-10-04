@@ -3,6 +3,8 @@ import type {
   RoutineDay,
   RoutineDepartment,
   RoutineSectionSummary,
+  RoutineTeacherClass,
+  RoutineTeacherSummary,
 } from "@ourdiu/shared";
 import {
   ROUTINE_DAY_NAMES,
@@ -57,41 +59,68 @@ export function routinePdfHref({ department, section, group }: RoutinePick) {
   }`;
 }
 
+/** A teacher's week to open: their department and initials as printed. */
+export type TeacherPick = {
+  department: RoutineDepartmentSlug;
+  teacher: string;
+};
+
+/** What a visitor made theirs: a section (or lab group), or a teacher's week. */
+export type SavedRoutine = RoutinePick | TeacherPick;
+
+export const isTeacherPick = (pick: SavedRoutine): pick is TeacherPick =>
+  "teacher" in pick;
+
+/** /routine/cse/teachers/STA */
+export const teacherHref = ({ department, teacher }: TeacherPick) =>
+  `/routine/${department}/teachers/${encodeURIComponent(teacher)}`;
+
+/** The PDF of a teacher's week (`GET /api/v1/routine/…/teachers/…/pdf`). */
+export const teacherPdfHref = ({ department, teacher }: TeacherPick) =>
+  `/api/v1/routine/${department}/teachers/${encodeURIComponent(teacher)}/pdf`;
+
 /**
- * The section a visitor made theirs ("My section"), so /routine offers it first. A
- * cookie, so the server renders the same page the browser will.
+ * The section or teacher a visitor made theirs ("My section", "My routine"), so
+ * /routine offers it first. A cookie, so the server renders the same page the
+ * browser will: "cse/67_B/B1" for a section, "cse/@STA" for a teacher (no section
+ * starts with "@").
  */
 export const ROUTINE_COOKIE = "ourdiu_routine";
 
-/** The saved section a Cookie header (or `document.cookie`) holds, if any. */
+/** The saved routine a Cookie header (or `document.cookie`) holds, if any. */
 export function savedRoutine(
   cookie: string | null | undefined,
-): RoutinePick | null {
+): SavedRoutine | null {
   const value = cookie?.match(
     new RegExp(`(?:^|;\\s*)${ROUTINE_COOKIE}=([^;]+)`),
   )?.[1];
   if (!value) return null;
   const [department, section, group] = decodeURIComponent(value).split("/");
   if (!isRoutineDepartment(department) || !section) return null;
+  if (section.startsWith("@")) {
+    return section.length > 1
+      ? { department, teacher: section.slice(1) }
+      : null;
+  }
   return { department, section, group: group || null };
 }
 
-export function saveRoutine(pick: RoutinePick | null) {
+export function saveRoutine(pick: SavedRoutine | null) {
   document.cookie = pick
     ? `${ROUTINE_COOKIE}=${encodeURIComponent(
-        [pick.department, pick.section, pick.group ?? ""].join("/"),
+        isTeacherPick(pick)
+          ? `${pick.department}/@${pick.teacher}`
+          : [pick.department, pick.section, pick.group ?? ""].join("/"),
       )}; Path=/; Max-Age=31536000; SameSite=Lax`
     : `${ROUTINE_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
 }
 
-export function samePick(a: RoutinePick | null, b: RoutinePick | null) {
-  return (
-    !!a &&
-    !!b &&
-    a.department === b.department &&
-    a.section === b.section &&
-    a.group === b.group
-  );
+export function samePick(a: SavedRoutine | null, b: SavedRoutine | null) {
+  if (!a || !b || a.department !== b.department) return false;
+  if (isTeacherPick(a) || isTeacherPick(b)) {
+    return isTeacherPick(a) && isTeacherPick(b) && a.teacher === b.teacher;
+  }
+  return a.section === b.section && a.group === b.group;
 }
 
 /** A lab group's classes: its own labs and the whole section's classes. */
@@ -186,6 +215,78 @@ export function matchSections(
   }
   return [...starts, ...contains].slice(0, limit);
 }
+
+/**
+ * Teachers matching what was typed: by initials ("sta", those starting with it
+ * first), then by a word of their name ("sample"), then anywhere in the name.
+ */
+export function matchTeachers(
+  teachers: RoutineTeacherSummary[],
+  query: string,
+  limit = 6,
+): RoutineTeacherSummary[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const ranked: { t: RoutineTeacherSummary; rank: number }[] = [];
+  for (const t of teachers) {
+    const initials = t.initials.toLowerCase();
+    const name = t.name?.toLowerCase() ?? "";
+    const rank =
+      initials === q
+        ? 0
+        : initials.startsWith(q)
+          ? 1
+          : name.split(/[\s.]+/).some((w) => w.startsWith(q))
+            ? 2
+            : name.includes(q)
+              ? 3
+              : -1;
+    if (rank >= 0) ranked.push({ t, rank });
+  }
+  return ranked
+    .sort((a, b) => a.rank - b.rank)
+    .slice(0, limit)
+    .map((r) => r.t);
+}
+
+/** The teacher whose initials are exactly what was typed ("sta"), if any. */
+export const exactTeacher = (
+  teachers: RoutineTeacherSummary[],
+  query: string,
+) =>
+  teachers.find(
+    (t) => t.initials.toLowerCase() === query.trim().toLowerCase(),
+  ) ?? null;
+
+/** A teacher's name, or their initials until admins add it. */
+export const teacherName = (t: { initials: string; name: string | null }) =>
+  t.name ?? t.initials;
+
+/**
+ * A teacher's class in the shape a section's class has, to show it with the same
+ * pieces: no teacher, the sections attending instead. A lab group's class is a lab.
+ */
+export function teacherClass(c: RoutineTeacherClass): ShownClass {
+  return {
+    ...c,
+    labGroup: null,
+    roomType: c.roomType ?? (c.sections.some((s) => s.labGroup) ? "lab" : null),
+    teacher: null,
+  };
+}
+
+/** A class as shown: a section's, or a teacher's with who attends it. */
+export type ShownClass = RoutineClass & {
+  sections?: RoutineTeacherClass["sections"];
+};
+
+/** Who attends a teacher's class, as students write them: "67_B1, 67_C". */
+export const attendingLabel = (sections: RoutineTeacherClass["sections"]) =>
+  sections
+    .map((s) =>
+      s.labGroup ? routineGroupLabel(s.section, s.labGroup) : s.section,
+    )
+    .join(", ");
 
 /** The choice that is exactly what was typed ("67_b1" for 67_B, group B1), if any. */
 export function exactSection(choices: SectionChoice[], query: string) {

@@ -148,9 +148,11 @@ export default function Privacy() {
             name, the room where they sit, work email and phone number
           </strong>{" "}
           where the department’s routine lists them or the site’s admins add
-          them from what the university publishes. A teacher who wants a detail
-          changed or removed can write to us (see the contact page) and we’ll do
-          it.
+          them from what the university publishes. Each teacher also has a page
+          with their week as the routine has it (the classes they teach, when,
+          where and to which sections), found by initials or name. A teacher who
+          wants a detail changed or removed can write to us (see the contact
+          page) and we’ll do it.
         </p>
       </LegalSection>
 

@@ -21,7 +21,7 @@ import { liveRoutineVersion } from "./versions";
 
 // What students read: the live version's sections and each section's week.
 
-function toVersion(row: RoutineVersionRow): RoutineVersion {
+export function toVersion(row: RoutineVersionRow): RoutineVersion {
   return {
     department: row.department,
     version: row.version,
@@ -31,7 +31,7 @@ function toVersion(row: RoutineVersionRow): RoutineVersion {
   };
 }
 
-async function requireLive(db: Database, department: RoutineDepartment) {
+export async function requireLive(db: Database, department: RoutineDepartment) {
   const row = await liveRoutineVersion(db, department);
   if (!row) {
     throw new AppError(

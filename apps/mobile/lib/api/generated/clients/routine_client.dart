@@ -11,6 +11,8 @@ import 'package:retrofit/retrofit.dart';
 import '../models/routine_department_slug.dart';
 import '../models/routine_section.dart';
 import '../models/routine_section_list.dart';
+import '../models/routine_teacher_list.dart';
+import '../models/routine_teacher_week.dart';
 
 part 'routine_client.g.dart';
 
@@ -44,5 +46,32 @@ abstract class RoutineClient {
     @Path('department') required RoutineDepartmentSlug department,
     @Path('section') required String section,
     @Query('group') String? group,
+  });
+
+  /// Every teacher in a department's live routine.
+  ///
+  /// Initials, the name where admins added it, and the courses they teach: for finding a teacher's week.
+  @GET('/api/v1/routine/{department}/teachers')
+  Future<RoutineTeacherList> getApiV1RoutineDepartmentTeachers({
+    @Path('department') required RoutineDepartmentSlug department,
+  });
+
+  /// A teacher's week in the live routine.
+  ///
+  /// Every class the teacher has, with the sections attending, in day and time order. Sections sharing a class are one class. The initials are matched regardless of case.
+  @GET('/api/v1/routine/{department}/teachers/{initials}')
+  Future<RoutineTeacherWeek> getApiV1RoutineDepartmentTeachersInitials({
+    @Path('department') required RoutineDepartmentSlug department,
+    @Path('initials') required String initials,
+  });
+
+  /// A teacher's week as a PDF.
+  ///
+  /// One A4 page: each day's classes with course, time, room and sections, the routine's version and a QR code to the teacher's page.
+  @GET('/api/v1/routine/{department}/teachers/{initials}/pdf')
+  @DioResponseType(ResponseType.stream)
+  Stream<String> getApiV1RoutineDepartmentTeachersInitialsPdf({
+    @Path('department') required RoutineDepartmentSlug department,
+    @Path('initials') required String initials,
   });
 }

@@ -172,6 +172,12 @@ export const routineSectionParamsSchema = routineDepartmentParamSchema.extend({
   section: z.string().regex(ROUTINE_SECTION_PATTERN),
 });
 
+export const routineTeacherWeekParamsSchema =
+  routineDepartmentParamSchema.extend({
+    /** As printed, matched regardless of case: "STA". */
+    initials: z.string().regex(ROUTINE_TEACHER_PATTERN),
+  });
+
 export const routinePdfQuerySchema = z.object({
   /** Only this lab group's labs; the whole section's otherwise. */
   group: z.string().regex(ROUTINE_LAB_GROUP_PATTERN).optional(),
@@ -224,6 +230,7 @@ export const routineTeacherSchema = z
     room: z.string().nullable(),
   })
   .meta({ id: "RoutineTeacher" });
+export type RoutineTeacher = z.infer<typeof routineTeacherSchema>;
 
 export const routineClassSchema = z
   .object({
@@ -253,6 +260,61 @@ export const routineSectionSchema = z
   })
   .meta({ id: "RoutineSection" });
 export type RoutineSection = z.infer<typeof routineSectionSchema>;
+
+/** A teacher in the live routine, for finding their week. */
+export const routineTeacherSummarySchema = z
+  .object({
+    initials: z.string(),
+    name: z.string().nullable(),
+    /** The courses they teach, by code. */
+    courses: z.array(z.string()),
+    classCount: z.number().int(),
+  })
+  .meta({ id: "RoutineTeacherSummary" });
+export type RoutineTeacherSummary = z.infer<typeof routineTeacherSummarySchema>;
+
+export const routineTeacherListSchema = z
+  .object({
+    version: routineVersionSchema,
+    teachers: z.array(routineTeacherSummarySchema),
+  })
+  .meta({ id: "RoutineTeacherList" });
+export type RoutineTeacherList = z.infer<typeof routineTeacherListSchema>;
+
+/** A teacher's class: who attends instead of who teaches. */
+export const routineTeacherClassSchema = z
+  .object({
+    day: routineDaySchema,
+    /** 24-hour "HH:MM". */
+    start: z.string(),
+    end: z.string(),
+    course: routineCourseSchema,
+    room: z.string(),
+    roomType: nullableRef(roomTypeSchema),
+    /**
+     * Who attends, as students write them: "67_B", or "67_B1" for a lab group's
+     * lab. Several when sections share the class (same time, room and course).
+     */
+    sections: z.array(
+      z
+        .object({ section: z.string(), labGroup: z.string().nullable() })
+        .meta({ id: "RoutineAttendingSection" }),
+    ),
+  })
+  .meta({ id: "RoutineTeacherClass" });
+export type RoutineTeacherClass = z.infer<typeof routineTeacherClassSchema>;
+
+/** A teacher's week, in day and time order. */
+export const routineTeacherWeekSchema = z
+  .object({
+    version: routineVersionSchema,
+    teacher: routineTeacherSchema,
+    /** The routine's time slots, in order: the columns of a week. */
+    slots: z.array(routineSlotSchema),
+    classes: z.array(routineTeacherClassSchema),
+  })
+  .meta({ id: "RoutineTeacherWeek" });
+export type RoutineTeacherWeek = z.infer<typeof routineTeacherWeekSchema>;
 
 // ── Admin (/api/v1/admin/routine) ────────────────────────────────────────────
 

@@ -3,8 +3,10 @@ import {
   ROUTINE_DAYS,
   routineGroupLabel,
   routineTimeRange,
-  type RoutineClass,
+  type RoutineDay,
   type RoutineSection,
+  type RoutineTeacherWeek,
+  type RoutineVersion,
 } from "@ourdiu/shared";
 import {
   PDFDocument,
@@ -15,7 +17,7 @@ import {
 } from "pdf-lib";
 import qrcode from "qrcode-generator";
 
-// A section's week as a one-page A4 PDF (docs/PLAN.md, Phase 3): the columns of the
+// A section's (or a teacher's) week as a one-page A4 PDF (docs/PLAN.md, Phase 3): the columns of the
 // routine PDFs students already share (day, course, time, room, teacher), with the
 // version, the lab group and a QR code to the live page, so a printed copy leads
 // to the latest routine. OurDIU's name only: it isn't an official DIU document.
@@ -29,7 +31,7 @@ const RULE = rgb(0xd9 / 255, 0xd5 / 255, 0xe3 / 255);
 const BAND = rgb(0xee / 255, 0xf8 / 255, 0xf5 / 255);
 const WHITE = rgb(1, 1, 1);
 
-/** Column left edges and widths: day, course, time, room, teacher. */
+/** Column left edges and widths: day, course, time, room, teacher (or sections). */
 const COLUMNS = [
   { title: "Day", x: MARGIN, width: 70 },
   { title: "Course", x: MARGIN + 70, width: 214 },
@@ -108,17 +110,131 @@ export function routinePdfFilename(
   return `${name.replace(/[^A-Za-z0-9_.-]+/g, "_")}_routine_v${routine.version.version}.pdf`;
 }
 
+/** A row of the table: one class. */
+type PdfRow = {
+  day: RoutineDay;
+  title: string;
+  /** Under the title: the code and who attends. */
+  detail: string;
+  start: string;
+  end: string;
+  room: string;
+  lab: boolean;
+  /** The last column: the teacher's initials, or the sections. */
+  who: string | null;
+};
+
+type WeekPdfInput = {
+  version: RoutineVersion;
+  /** Whose week: "67_B1", "STA". */
+  label: string;
+  /** Under the heading, before the class count: the lab groups, the teacher's name. */
+  meta: (string | null)[];
+  /** The last column's heading. */
+  who: string;
+  rows: PdfRow[];
+  pageUrl: string;
+  today: string;
+};
+
 export async function routinePdf({
   routine,
   group,
   pageUrl,
   today,
 }: RoutinePdfInput): Promise<Uint8Array> {
-  const doc = await PDFDocument.create();
   const label = group
     ? routineGroupLabel(routine.section, group)
     : routine.section;
-  const { version } = routine;
+  return weekPdf({
+    version: routine.version,
+    label,
+    meta: [
+      group
+        ? `Lab group ${group}`
+        : routine.labGroups.length
+          ? `Both lab groups (${routine.labGroups.join(", ")})`
+          : null,
+    ],
+    who: "Teacher",
+    rows: classesFor(routine, group).map((c) => ({
+      day: c.day,
+      title: c.course.title ?? c.course.code,
+      detail: [
+        c.course.code,
+        c.labGroup
+          ? routineGroupLabel(routine.section, c.labGroup)
+          : routine.section,
+      ].join("  ·  "),
+      start: c.start,
+      end: c.end,
+      room: c.room,
+      lab: c.roomType === "lab",
+      who: c.teacher?.initials ?? null,
+    })),
+    pageUrl,
+    today,
+  });
+}
+
+/** Who attends a teacher's class, as students write them: "67_B1, 67_C". */
+export const attendingLabel = (
+  sections: RoutineTeacherWeek["classes"][number]["sections"],
+) =>
+  sections
+    .map((s) =>
+      s.labGroup ? routineGroupLabel(s.section, s.labGroup) : s.section,
+    )
+    .join(", ");
+
+/** "STA_routine_v4.1.pdf" */
+export function teacherPdfFilename(week: RoutineTeacherWeek) {
+  return `${week.teacher.initials.replace(/[^A-Za-z0-9_.-]+/g, "_")}_routine_v${week.version.version}.pdf`;
+}
+
+/** A teacher's week: the sections they teach where a section's PDF has the teacher. */
+export async function teacherRoutinePdf({
+  week,
+  pageUrl,
+  today,
+}: {
+  week: RoutineTeacherWeek;
+  pageUrl: string;
+  today: string;
+}): Promise<Uint8Array> {
+  return weekPdf({
+    version: week.version,
+    label: week.teacher.initials,
+    meta: [
+      week.teacher.name,
+      week.teacher.room ? `Sits in ${week.teacher.room}` : null,
+    ],
+    who: "Section",
+    rows: week.classes.map((c) => ({
+      day: c.day,
+      title: c.course.title ?? c.course.code,
+      detail: c.course.title ? c.course.code : "",
+      start: c.start,
+      end: c.end,
+      room: c.room,
+      lab: c.roomType === "lab",
+      who: attendingLabel(c.sections),
+    })),
+    pageUrl,
+    today,
+  });
+}
+
+async function weekPdf({
+  version,
+  label,
+  meta: extra,
+  who,
+  rows: classes,
+  pageUrl,
+  today,
+}: WeekPdfInput): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
   doc.setTitle(`Class schedule: ${label}`);
   doc.setAuthor("OurDIU");
   doc.setSubject(
@@ -130,7 +246,6 @@ export async function routinePdf({
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const italic = await doc.embedFont(StandardFonts.HelveticaOblique);
 
-  const classes = classesFor(routine, group);
   const days = ROUTINE_DAYS.filter(
     (d) => d !== "FRI" || classes.some((c) => c.day === "FRI"),
   );
@@ -214,11 +329,7 @@ export async function routinePdf({
   const meta = [
     `${version.department} class routine v${version.version}`,
     version.publishedOn ? `published ${formatDate(version.publishedOn)}` : null,
-    group
-      ? `Lab group ${group}`
-      : routine.labGroups.length
-        ? `Both lab groups (${routine.labGroups.join(", ")})`
-        : null,
+    ...extra,
     `${classes.length} class${classes.length === 1 ? "" : "es"} a week`,
   ].filter(Boolean);
   page.drawText(printable(meta.join("  ·  ")), {
@@ -241,7 +352,7 @@ export async function routinePdf({
       color: TEAL,
     });
     for (const col of COLUMNS) {
-      page.drawText(col.title, {
+      page.drawText(col === COLUMNS[4] ? who : col.title, {
         x: col.x + PAD,
         y: y - 15,
         size: 10,
@@ -309,23 +420,13 @@ export async function routinePdf({
   };
   const [dayCol, courseCol, timeCol, roomCol, teacherCol] = COLUMNS;
 
-  const drawClass = (c: RoutineClass, top: number) => {
-    cellText(c.course.title ?? c.course.code, courseCol, top, { font: bold });
-    cellText(
-      [
-        c.course.code,
-        c.labGroup
-          ? routineGroupLabel(routine.section, c.labGroup)
-          : routine.section,
-      ].join("  ·  "),
-      courseCol,
-      top,
-      { line: 2 },
-    );
+  const drawClass = (c: PdfRow, top: number) => {
+    cellText(c.title, courseCol, top, { font: bold });
+    if (c.detail) cellText(c.detail, courseCol, top, { line: 2 });
     cellText(routineTimeRange(c.start, c.end), timeCol, top);
     cellText(c.room, roomCol, top);
-    if (c.roomType === "lab") cellText("Lab", roomCol, top, { line: 2 });
-    if (c.teacher) cellText(c.teacher.initials, teacherCol, top);
+    if (c.lab) cellText("Lab", roomCol, top, { line: 2 });
+    if (c.who) cellText(c.who, teacherCol, top);
   };
 
   for (const day of days) {

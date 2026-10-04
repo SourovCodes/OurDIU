@@ -1866,6 +1866,145 @@
           "room"
         ]
       },
+      "RoutineTeacherList": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "$ref": "#/components/schemas/RoutineVersion"
+          },
+          "teachers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutineTeacherSummary"
+            }
+          }
+        },
+        "required": [
+          "version",
+          "teachers"
+        ]
+      },
+      "RoutineTeacherSummary": {
+        "type": "object",
+        "properties": {
+          "initials": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "courses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "classCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "initials",
+          "name",
+          "courses",
+          "classCount"
+        ]
+      },
+      "RoutineTeacherWeek": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "$ref": "#/components/schemas/RoutineVersion"
+          },
+          "teacher": {
+            "$ref": "#/components/schemas/RoutineTeacher"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutineSlot"
+            }
+          },
+          "classes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutineTeacherClass"
+            }
+          }
+        },
+        "required": [
+          "version",
+          "teacher",
+          "slots",
+          "classes"
+        ]
+      },
+      "RoutineTeacherClass": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "$ref": "#/components/schemas/RoutineDay"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "course": {
+            "$ref": "#/components/schemas/RoutineCourse"
+          },
+          "room": {
+            "type": "string"
+          },
+          "roomType": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoutineRoomType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutineAttendingSection"
+            }
+          }
+        },
+        "required": [
+          "day",
+          "start",
+          "end",
+          "course",
+          "room",
+          "roomType",
+          "sections"
+        ]
+      },
+      "RoutineAttendingSection": {
+        "type": "object",
+        "properties": {
+          "section": {
+            "type": "string"
+          },
+          "labGroup": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "section",
+          "labGroup"
+        ]
+      },
       "AdminRoutineVersionList": {
         "type": "object",
         "properties": {
@@ -4570,6 +4709,148 @@
           },
           "404": {
             "description": "No live routine, no such section or lab group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/routine/{department}/teachers": {
+      "get": {
+        "tags": [
+          "Routine"
+        ],
+        "summary": "Every teacher in a department's live routine",
+        "description": "Initials, the name where admins added it, and the courses they teach: for finding a teacher's week.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/RoutineDepartmentSlug"
+            },
+            "required": true,
+            "name": "department",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Teachers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineTeacherList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The department has no live routine",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/routine/{department}/teachers/{initials}": {
+      "get": {
+        "tags": [
+          "Routine"
+        ],
+        "summary": "A teacher's week in the live routine",
+        "description": "Every class the teacher has, with the sections attending, in day and time order. Sections sharing a class are one class. The initials are matched regardless of case.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/RoutineDepartmentSlug"
+            },
+            "required": true,
+            "name": "department",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z.]{0,11}(?:[-_]\\d{1,2})?$"
+            },
+            "required": true,
+            "name": "initials",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The teacher's week",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineTeacherWeek"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No live routine, or no such teacher",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/routine/{department}/teachers/{initials}/pdf": {
+      "get": {
+        "tags": [
+          "Routine"
+        ],
+        "summary": "A teacher's week as a PDF",
+        "description": "One A4 page: each day's classes with course, time, room and sections, the routine's version and a QR code to the teacher's page.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/RoutineDepartmentSlug"
+            },
+            "required": true,
+            "name": "department",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z.]{0,11}(?:[-_]\\d{1,2})?$"
+            },
+            "required": true,
+            "name": "initials",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PDF file",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No live routine, or no such teacher",
             "content": {
               "application/json": {
                 "schema": {

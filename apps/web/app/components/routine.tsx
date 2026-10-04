@@ -1,4 +1,9 @@
-import type { RoutineClass, RoutineDay, RoutineSection } from "@ourdiu/shared";
+import type {
+  RoutineClass,
+  RoutineDay,
+  RoutineSection,
+  RoutineTeacherSummary,
+} from "@ourdiu/shared";
 import {
   ROUTINE_DAY_NAMES,
   ROUTINE_DAYS,
@@ -11,16 +16,25 @@ import {
 import {
   ArrowRight,
   ChevronRight,
+  Star,
   Mail,
   MapPin,
   Phone,
   Search,
   UserRound,
+  UsersRound,
 } from "lucide-react";
-import { useId, useMemo, useState, useSyncExternalStore } from "react";
+import {
+  createContext,
+  useContext,
+  useId,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { Link, useNavigate } from "react-router";
 import { ExamShape } from "~/components/exam-badge";
-import { buttonVariants } from "~/components/ui/button";
+import { Button, buttonVariants } from "~/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -30,27 +44,43 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog";
 import {
+  attendingLabel,
   classState,
   dayWord,
   dhakaNow,
   exactSection,
+  exactTeacher,
   matchSections,
+  matchTeachers,
   nextClass,
   routineHref,
+  samePick,
+  saveRoutine,
+  teacherHref,
+  teacherName,
   type RoutineDepartmentSlug,
+  type SavedRoutine,
   type RoutinePick,
   type SectionChoice,
+  type ShownClass,
 } from "~/lib/routine";
 import { cn } from "~/lib/utils";
 
 // The Class Routine's pieces (docs/PLAN.md, decision 29), in the question bank's
 // shapes: tonal tiles, filter chips, rows on a surface.
 
+/**
+ * The department the routine on the page is in, for links between sections and
+ * teachers; none in an admin's preview of a draft, which links nowhere.
+ */
+const LinksTo = createContext<RoutineDepartmentSlug | null>(null);
+export const RoutineLinks = LinksTo.Provider;
+
 export const dayName = (day: RoutineDay) =>
   ROUTINE_DAY_NAMES[ROUTINE_DAYS.indexOf(day)]!;
 
 /** A lab: one lab group's class, or a class in a lab room. */
-export const isLab = (c: RoutineClass) =>
+export const isLab = (c: ShownClass) =>
   c.labGroup !== null || c.roomType === "lab";
 
 type Now = ReturnType<typeof dhakaNow>;
@@ -113,7 +143,7 @@ function LabTag({ section, group }: { section: string; group: string | null }) {
   );
 }
 
-function Place({ c, className }: { c: RoutineClass; className?: string }) {
+function Place({ c, className }: { c: ShownClass; className?: string }) {
   return (
     <span
       className={cn(
@@ -134,18 +164,29 @@ function Place({ c, className }: { c: RoutineClass; className?: string }) {
         >
           <UserRound className="size-3.5" aria-hidden />
           <span className="sr-only">Teacher</span>
-          {c.teacher.name ?? c.teacher.initials}
+          {teacherName(c.teacher)}
+        </span>
+      )}
+      {c.sections && (
+        <span className="inline-flex items-center gap-1">
+          <UsersRound className="size-3.5" aria-hidden />
+          <span className="sr-only">Sections</span>
+          {attendingLabel(c.sections)}
         </span>
       )}
     </span>
   );
 }
 
-const sameClass = (a: RoutineClass, b: RoutineClass) =>
+const sameClass = (a: ShownClass, b: ShownClass) =>
   a.day === b.day &&
   a.start === b.start &&
+  a.room === b.room &&
   a.course.code === b.course.code &&
   a.labGroup === b.labGroup;
+
+const textLink =
+  "font-semibold text-primary underline-offset-4 hover:underline";
 
 /**
  * A class in full, opened from wherever it's shown (the week, a day, today): the
@@ -158,13 +199,14 @@ export function ClassDialog({
   section,
   children,
 }: {
-  c: RoutineClass;
+  c: ShownClass;
   /** The week it's in, for the course's other classes. */
-  week: RoutineClass[];
+  week: ShownClass[];
   section: string;
   /** What opens it: one element, given the button's behaviour. */
   children: React.ReactNode;
 }) {
+  const department = useContext(LinksTo);
   const others = week.filter((o) => o.course.code === c.course.code);
   return (
     <Dialog>
@@ -190,35 +232,83 @@ export function ClassDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <section aria-label="Teacher" className="grid gap-2">
-          <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            Teacher
-          </h3>
-          {c.teacher ? (
-            <div className="grid gap-2 rounded-2xl bg-surface px-4 py-3.5">
-              <p className="flex flex-wrap items-baseline gap-x-2">
-                <span className="font-bold">
-                  {c.teacher.name ?? c.teacher.initials}
-                </span>
-                {c.teacher.name && (
-                  <span className="text-sm text-muted-foreground">
-                    {c.teacher.initials}
-                  </span>
-                )}
-              </p>
-              <TeacherContact t={c.teacher} />
-              {!c.teacher.room && !c.teacher.email && !c.teacher.phone && (
-                <p className="text-sm text-muted-foreground">
-                  No contact details yet.
+        {c.sections ? (
+          <section aria-label="Sections" className="grid gap-2">
+            <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              {c.sections.length === 1 ? "Section" : "Sections"}
+            </h3>
+            <ul className="flex flex-wrap gap-2">
+              {c.sections.map((s) => {
+                const label = s.labGroup
+                  ? routineGroupLabel(s.section, s.labGroup)
+                  : s.section;
+                return (
+                  <li key={label}>
+                    {department ? (
+                      <Link
+                        to={routineHref({
+                          department,
+                          section: s.section,
+                          group: s.labGroup,
+                        })}
+                        className="flex h-10 items-center rounded-xl border border-input px-3.5 text-sm font-semibold transition-colors hover:state-layer"
+                      >
+                        {label}
+                      </Link>
+                    ) : (
+                      <span className="flex h-10 items-center rounded-xl bg-surface px-3.5 text-sm font-semibold">
+                        {label}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ) : (
+          <section aria-label="Teacher" className="grid gap-2">
+            <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              Teacher
+            </h3>
+            {c.teacher ? (
+              <div className="grid gap-2 rounded-2xl bg-surface px-4 py-3.5">
+                <p className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="font-bold">{teacherName(c.teacher)}</span>
+                  {c.teacher.name && (
+                    <span className="text-sm text-muted-foreground">
+                      {c.teacher.initials}
+                    </span>
+                  )}
                 </p>
-              )}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              The routine doesn’t name one.
-            </p>
-          )}
-        </section>
+                <TeacherContact t={c.teacher} />
+                {!c.teacher.room && !c.teacher.email && !c.teacher.phone && (
+                  <p className="text-sm text-muted-foreground">
+                    No contact details yet.
+                  </p>
+                )}
+                {department && (
+                  <Link
+                    to={teacherHref({
+                      department,
+                      teacher: c.teacher.initials,
+                    })}
+                    className={cn(
+                      textLink,
+                      "inline-flex items-center gap-1 text-sm",
+                    )}
+                  >
+                    {teacherName(c.teacher)}’s routine
+                    <ArrowRight className="size-4" aria-hidden />
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                The routine doesn’t name one.
+              </p>
+            )}
+          </section>
+        )}
 
         {others.length > 1 && (
           <section aria-label="This week" className="grid gap-2">
@@ -230,7 +320,7 @@ export function ClassDialog({
                 const self = sameClass(o, c);
                 return (
                   <li
-                    key={`${o.day}-${o.start}-${o.labGroup}`}
+                    key={`${o.day}-${o.start}-${o.labGroup}-${o.room}`}
                     aria-current={self ? "true" : undefined}
                     className={cn(
                       "grid grid-cols-[2.75rem_minmax(0,1fr)] gap-x-3 rounded-xl px-3 py-2",
@@ -245,10 +335,13 @@ export function ClassDialog({
                     <span className="grid gap-0.5">
                       <span>
                         {routineTimeRange(o.start, o.end)}
-                        {o.labGroup && (
+                        {(o.labGroup || o.sections) && (
                           <span className="opacity-75">
                             {" "}
-                            · {routineGroupLabel(section, o.labGroup)}
+                            ·{" "}
+                            {o.sections
+                              ? attendingLabel(o.sections)
+                              : routineGroupLabel(section, o.labGroup!)}
                           </span>
                         )}
                       </span>
@@ -257,7 +350,7 @@ export function ClassDialog({
                           o.room,
                           o.teacher?.initials !== c.teacher?.initials &&
                             o.teacher &&
-                            (o.teacher.name ?? o.teacher.initials),
+                            teacherName(o.teacher),
                         ]
                           .filter(Boolean)
                           .join(" · ")}
@@ -274,6 +367,36 @@ export function ClassDialog({
   );
 }
 
+/**
+ * Makes a section or a teacher's week the visitor's own, so /routine opens with it;
+ * pressed again, forgets it.
+ */
+export function MyRoutineButton({
+  pick,
+  saved,
+  words,
+}: {
+  pick: SavedRoutine;
+  saved: SavedRoutine | null;
+  /** What it says before and after: "Make it my section", "My section". */
+  words: [string, string];
+}) {
+  const [mine, setMine] = useState(samePick(pick, saved));
+  return (
+    <Button
+      variant="secondary"
+      aria-pressed={mine}
+      onClick={() => {
+        saveRoutine(mine ? null : pick);
+        setMine(!mine);
+      }}
+    >
+      <Star className={cn(mine && "fill-current")} aria-hidden />
+      {mine ? words[1] : words[0]}
+    </Button>
+  );
+}
+
 /** One class: course, time, room and teacher; "Now" and "Next" on today's. */
 export function ClassCard({
   c,
@@ -282,9 +405,9 @@ export function ClassCard({
   state,
   minutesLeft,
 }: {
-  c: RoutineClass;
+  c: ShownClass;
   /** The week it's in: tapping the card opens the class in full. */
-  week: RoutineClass[];
+  week: ShownClass[];
   section: string;
   state?: "now" | "next" | "over" | null;
   /** Until it ends (now) or starts (next). */
@@ -352,9 +475,9 @@ export function DayClasses({
   now,
   className,
 }: {
-  classes: RoutineClass[];
+  classes: ShownClass[];
   /** The whole week, for a class's details. */
-  week: RoutineClass[];
+  week: ShownClass[];
   section: string;
   now: Now | null;
   className?: string;
@@ -395,6 +518,16 @@ export function DayClasses({
   );
 }
 
+/** A class in a few words: "CSE321, KT-222", with the sections in a teacher's week. */
+const briefly = (c: ShownClass) =>
+  [
+    c.course.title ?? c.course.code,
+    c.sections ? attendingLabel(c.sections) : null,
+    c.room,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
 /**
  * The one thing to know right now, as a tile in the space's colour: the class
  * you're in, the next one today, or (after the last, or on a day off) the next
@@ -408,7 +541,7 @@ export function TodayCard({
   label,
   href,
 }: {
-  classes: RoutineClass[];
+  classes: ShownClass[];
   section: string;
   /** Today in Dhaka, as the server saw it. */
   today: RoutineDay;
@@ -430,7 +563,7 @@ export function TodayCard({
   let headline = todays.length
     ? `${todays.length} class${todays.length === 1 ? "" : "es"} today`
     : "No classes today";
-  let focus: RoutineClass | null = null;
+  let focus: ShownClass | null = null;
   let detail: React.ReactNode = null;
   let after: React.ReactNode = null;
 
@@ -440,7 +573,7 @@ export function TodayCard({
     focus = current;
     detail = `${routineMinutes(current.end) - now.minutes} min left`;
     if (next && next.daysAhead === 0) {
-      after = `Next at ${routineClockTime(next.c.start)}: ${next.c.course.title ?? next.c.course.code}, ${next.c.room}`;
+      after = `Next at ${routineClockTime(next.c.start)}: ${briefly(next.c)}`;
     }
   } else if (now && next && next.daysAhead === 0) {
     const wait = routineMinutes(next.c.start) - now.minutes;
@@ -452,7 +585,7 @@ export function TodayCard({
     eyebrow = dayName(now.day);
     headline = todays.length ? "Done for today" : "No classes today";
     if (next) {
-      after = `${dayWord(next.c.day, next.daysAhead)} at ${routineClockTime(next.c.start)}: ${next.c.course.title ?? next.c.course.code}, ${next.c.room}`;
+      after = `${dayWord(next.c.day, next.daysAhead)} at ${routineClockTime(next.c.start)}: ${briefly(next.c)}`;
     }
   }
 
@@ -569,7 +702,7 @@ export function WeekGrid({
   today,
   now,
 }: {
-  classes: RoutineClass[];
+  classes: ShownClass[];
   section: string;
   /** The routine's time slots, in order. */
   slots: { start: string; end: string }[];
@@ -578,7 +711,7 @@ export function WeekGrid({
   now: Now | null;
 }) {
   const column = (time: string) => slots.findIndex((s) => s.start === time) + 2;
-  const span = (c: RoutineClass) =>
+  const span = (c: ShownClass) =>
     slots.findIndex((s) => s.end === c.end) -
     slots.findIndex((s) => s.start === c.start) +
     1;
@@ -588,12 +721,12 @@ export function WeekGrid({
     day: RoutineDay;
     firstRow: number;
     lanes: number;
-    placed: { c: RoutineClass; lane: number }[];
+    placed: { c: ShownClass; lane: number }[];
   }[] = [];
   let nextRow = 2;
   for (const day of days) {
     const ends: number[] = [];
-    const placed: { c: RoutineClass; lane: number }[] = [];
+    const placed: { c: ShownClass; lane: number }[] = [];
     for (const c of classes) {
       if (c.day !== day) continue;
       const start = routineMinutes(c.start);
@@ -714,7 +847,12 @@ export function WeekGrid({
                                 className="truncate opacity-80"
                                 title={c.teacher.name ?? undefined}
                               >
-                                {c.teacher.name ?? c.teacher.initials}
+                                {teacherName(c.teacher)}
+                              </span>
+                            )}
+                            {c.sections && (
+                              <span className="font-semibold">
+                                {attendingLabel(c.sections)}
                               </span>
                             )}
                             {on && <span className="sr-only">(now)</span>}
@@ -742,7 +880,7 @@ export function DayTabs({
   today,
   now,
 }: {
-  classes: RoutineClass[];
+  classes: ShownClass[];
   days: RoutineDay[];
   /** Each day's date this week; none for a version not live (an admin's preview). */
   dates: Record<RoutineDay, number> | null;
@@ -833,11 +971,14 @@ export function DayTabs({
 export function SectionSearch({
   department,
   choices,
+  teachers,
   autoFocus,
   size = "default",
 }: {
   department: RoutineDepartmentSlug;
   choices: SectionChoice[];
+  /** Teachers to find too, by initials or name. */
+  teachers?: RoutineTeacherSummary[];
   autoFocus?: boolean;
   /** "lg": the home's search, with a Search button, like the question bank's. */
   size?: "default" | "lg";
@@ -846,11 +987,31 @@ export function SectionSearch({
   const id = useId();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
-  const matches = matchSections(choices, query);
+  const sectionMatches = matchSections(choices, query, teachers ? 6 : 8);
+  const teacherMatches = teachers ? matchTeachers(teachers, query) : [];
+  // One list for the keyboard: sections, then teachers.
+  const matches = [
+    ...sectionMatches.map((c) => ({
+      key: c.label,
+      href: routineHref({ department, section: c.section, group: c.group }),
+      label: c.label,
+      note: c.group
+        ? `Lab group ${c.group} of ${c.section}`
+        : `${c.classCount} class${c.classCount === 1 ? "" : "es"} a week`,
+    })),
+    ...teacherMatches.map((t) => ({
+      key: `@${t.initials}`,
+      href: teacherHref({ department, teacher: t.initials }),
+      label: teacherName(t),
+      note: [t.name ? t.initials : null, t.courses.join(", ")]
+        .filter(Boolean)
+        .join(" · "),
+    })),
+  ];
   const example = ROUTINE_SECTION_EXAMPLES[department];
-  const hint = `Your section, e.g. ${example.section} or ${example.group}`;
-  const open = (c: SectionChoice) =>
-    navigate(routineHref({ department, section: c.section, group: c.group }));
+  const hint = teachers
+    ? `Your section (e.g. ${example.section}) or a teacher`
+    : `Your section, e.g. ${example.section} or ${example.group}`;
 
   return (
     <form
@@ -858,9 +1019,14 @@ export function SectionSearch({
       className="relative"
       onSubmit={(event) => {
         event.preventDefault();
-        const pick =
-          exactSection(choices, query) ?? matches[active] ?? matches[0];
-        if (pick) open(pick);
+        const section = exactSection(choices, query);
+        const teacher = teachers && exactTeacher(teachers, query);
+        const href = section
+          ? routineHref({ department, ...section })
+          : teacher
+            ? teacherHref({ department, teacher: teacher.initials })
+            : (matches[active] ?? matches[0])?.href;
+        if (href) navigate(href);
       }}
     >
       <label htmlFor={`${id}-input`} className="sr-only">
@@ -917,38 +1083,45 @@ export function SectionSearch({
         <ul
           id={`${id}-list`}
           role="listbox"
-          aria-label="Sections"
+          aria-label={teachers ? "Sections and teachers" : "Sections"}
           className="absolute inset-x-0 top-full z-20 mt-2 grid max-h-80 overflow-y-auto rounded-3xl bg-popover p-1.5 text-left shadow-lg"
         >
           {matches.length === 0 ? (
             <li className="px-4 py-3 text-sm text-muted-foreground">
-              No section matches “{query}”. Sections look like {example.section}
-              ; lab groups like {example.group}.
+              No {teachers ? "section or teacher" : "section"} matches “{query}
+              ”. Sections look like {example.section}; lab groups like{" "}
+              {example.group}
+              {teachers ? "; teachers by initials or name." : "."}
             </li>
           ) : (
-            matches.map((c, i) => (
+            matches.map((m, i) => (
               <li
-                key={c.label}
+                key={m.key}
                 id={`${id}-${i}`}
                 role="option"
                 aria-selected={i === active}
               >
+                {teachers &&
+                  (i === 0 || i === sectionMatches.length) &&
+                  sectionMatches.length > 0 &&
+                  teacherMatches.length > 0 && (
+                    <p
+                      aria-hidden
+                      className="px-4 pt-2 pb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                    >
+                      {i === 0 ? "Sections" : "Teachers"}
+                    </p>
+                  )}
                 <Link
-                  to={routineHref({
-                    department,
-                    section: c.section,
-                    group: c.group,
-                  })}
+                  to={m.href}
                   className={cn(
                     "flex items-baseline justify-between gap-3 rounded-2xl px-4 py-2.5 hover:state-layer",
                     i === active && "state-layer",
                   )}
                 >
-                  <span className="font-semibold">{c.label}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {c.group
-                      ? `Lab group ${c.group} of ${c.section}`
-                      : `${c.classCount} classes a week`}
+                  <span className="min-w-0 font-semibold">{m.label}</span>
+                  <span className="min-w-0 truncate text-right text-xs text-muted-foreground">
+                    {m.note}
                   </span>
                 </Link>
               </li>
@@ -961,7 +1134,11 @@ export function SectionSearch({
 }
 
 /** How to reach a teacher, where it's known: the room where they sit, email, phone. */
-function TeacherContact({ t }: { t: NonNullable<RoutineClass["teacher"]> }) {
+export function TeacherContact({
+  t,
+}: {
+  t: NonNullable<RoutineClass["teacher"]>;
+}) {
   if (!t.room && !t.email && !t.phone) return null;
   return (
     <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
@@ -1004,6 +1181,7 @@ export function CourseList({
   classes: RoutineClass[];
   section: string;
 }) {
+  const department = useContext(LinksTo);
   const courses = [
     ...new Map(classes.map((c) => [c.course.code, c.course])).values(),
   ].map((course) => {
@@ -1056,7 +1234,16 @@ export function CourseList({
                       className="size-3.5 self-center text-muted-foreground"
                       aria-hidden
                     />
-                    <span className="font-medium">{t.name ?? t.initials}</span>
+                    {department ? (
+                      <Link
+                        to={teacherHref({ department, teacher: t.initials })}
+                        className="font-medium underline-offset-4 hover:text-primary hover:underline"
+                      >
+                        {teacherName(t)}
+                      </Link>
+                    ) : (
+                      <span className="font-medium">{teacherName(t)}</span>
+                    )}
                     <span className="text-muted-foreground">
                       {[
                         t.name ? t.initials : null,
@@ -1076,6 +1263,88 @@ export function CourseList({
               ))}
             </ul>
           )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * A teacher's courses, each with the sections taking it (linking to their weeks)
+ * and how many classes a week.
+ */
+export function TeacherCourseList({ classes }: { classes: ShownClass[] }) {
+  const department = useContext(LinksTo);
+  const courses = [
+    ...new Map(classes.map((c) => [c.course.code, c.course])).values(),
+  ].map((course) => {
+    const of = classes.filter((c) => c.course.code === course.code);
+    const sections = [
+      ...new Map(
+        of.flatMap((c) =>
+          (c.sections ?? []).map(
+            (s) => [`${s.section}|${s.labGroup}`, s] as const,
+          ),
+        ),
+      ).values(),
+    ].sort(
+      (a, b) =>
+        a.section.localeCompare(b.section, "en", { numeric: true }) ||
+        (a.labGroup ?? "").localeCompare(b.labGroup ?? "", "en", {
+          numeric: true,
+        }),
+    );
+    return { ...course, sections, count: of.length };
+  });
+  return (
+    <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {courses.map((c) => (
+        <li
+          key={c.code}
+          className="grid content-start gap-3 rounded-2xl bg-surface px-4 py-4"
+        >
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="min-w-0">
+              <span className="block leading-snug font-semibold">
+                {c.title ?? c.code}
+              </span>
+              {c.title && (
+                <span className="block text-xs text-muted-foreground">
+                  {c.code}
+                </span>
+              )}
+            </span>
+            <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+              {c.count} a week
+            </span>
+          </div>
+          <ul className="flex flex-wrap gap-1.5">
+            {c.sections.map((s) => {
+              const label = s.labGroup
+                ? routineGroupLabel(s.section, s.labGroup)
+                : s.section;
+              return (
+                <li key={label}>
+                  {department ? (
+                    <Link
+                      to={routineHref({
+                        department,
+                        section: s.section,
+                        group: s.labGroup,
+                      })}
+                      className="flex h-8 items-center rounded-lg border border-input px-2.5 text-xs font-semibold transition-colors hover:state-layer"
+                    >
+                      {label}
+                    </Link>
+                  ) : (
+                    <span className="flex h-8 items-center rounded-lg bg-surface-high px-2.5 text-xs font-semibold">
+                      {label}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </li>
       ))}
     </ul>

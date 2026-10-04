@@ -7,8 +7,7 @@ import {
   ROUTINE_SECTION_EXAMPLES,
   routineSectionSlug,
 } from "@ourdiu/shared/constants";
-import { Download, ExternalLink, SearchX, Star } from "lucide-react";
-import { useState } from "react";
+import { Download, ExternalLink, SearchX } from "lucide-react";
 import { data, Link, redirect } from "react-router";
 import { EmptyState } from "~/components/empty-state";
 import { Breadcrumbs } from "~/components/page-header";
@@ -16,6 +15,8 @@ import {
   CourseList,
   DayTabs,
   GroupChips,
+  MyRoutineButton,
+  RoutineLinks,
   SectionSearch,
   TodayCard,
   useDhakaNow,
@@ -23,7 +24,7 @@ import {
 } from "~/components/routine";
 import { ShareButton } from "~/components/share-button";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
-import { Button, buttonVariants } from "~/components/ui/button";
+import { buttonVariants } from "~/components/ui/button";
 import { apiFetch, apiGetJson, readJson } from "~/lib/api.server";
 import { formatDate } from "~/lib/dates";
 import {
@@ -37,16 +38,13 @@ import {
   pickLabel,
   routineHref,
   routinePdfHref,
-  samePick,
   savedRoutine,
-  saveRoutine,
   sectionChoices,
   weekDates,
   weekDays,
   type RoutinePick,
 } from "~/lib/routine";
 import { pageMeta } from "~/lib/seo";
-import { cn } from "~/lib/utils";
 import type { Route } from "./+types/routine-section";
 
 export const meta: Route.MetaFunction = ({ loaderData }) => {
@@ -127,29 +125,6 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   };
 }
 
-function MySectionButton({
-  pick,
-  saved,
-}: {
-  pick: RoutinePick;
-  saved: RoutinePick | null;
-}) {
-  const [mine, setMine] = useState(samePick(pick, saved));
-  return (
-    <Button
-      variant="secondary"
-      aria-pressed={mine}
-      onClick={() => {
-        saveRoutine(mine ? null : pick);
-        setMine(!mine);
-      }}
-    >
-      <Star className={cn(mine && "fill-current")} aria-hidden />
-      {mine ? "My section" : "Make it my section"}
-    </Button>
-  );
-}
-
 type Missing = Extract<Route.ComponentProps["loaderData"], { kind: "missing" }>;
 
 /** A section that isn't in the routine: the search, and sections like it. */
@@ -215,148 +190,155 @@ export default function RoutineSectionPage({
   return (
     // Wide screens: who and today side by side, then the week across the page, then
     // the courses with their teachers. Phones: the same, one under another.
-    <div className="space-y-12">
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-end lg:gap-12">
-        <div className="min-w-0 space-y-6">
-          <Breadcrumbs
-            crumbs={[
-              {
-                label: `${version.department} Class Routine`,
-                to: `/routine/${pick.department}`,
-              },
-              { label: pickLabel(pick) },
-            ]}
-          />
-          <div className="space-y-3">
-            <h1 className="font-display-xl text-6xl break-words sm:text-7xl">
-              {pickLabel(pick)}
-            </h1>
-            <p className="text-muted-foreground">
-              {[
-                `${version.department}${group ? ` ${group.name}, section ${group.letter}` : ""}`,
-                pick.group ? `lab group ${pick.group}` : null,
-                `${courseCount} courses`,
-                `${classes.length} classes a week`,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <MySectionButton key={pickLabel(pick)} pick={pick} saved={saved} />
-            <a
-              href={routinePdfHref(pick)}
-              download
-              aria-label="Download PDF"
-              className={buttonVariants()}
-            >
-              <Download aria-hidden />
-              {/* One row on a phone: "PDF" says enough beside the icon. */}
-              <span className="sm:hidden">PDF</span>
-              <span className="max-sm:hidden">Download PDF</span>
-            </a>
-            <ShareButton title={`${pickLabel(pick)} class routine`} />
-          </div>
-          {routine.labGroups.length > 0 && (
-            <div className="space-y-2">
-              <GroupChips routine={routine} pick={pick} />
-              {!pick.group && (
-                <p className="text-sm text-muted-foreground">
-                  {routine.section} has lab groups. Pick yours to see only your
-                  own labs, here and in the PDF.
-                </p>
-              )}
+    <RoutineLinks value={pick.department}>
+      <div className="space-y-12">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-end lg:gap-12">
+          <div className="min-w-0 space-y-6">
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: `${version.department} Class Routine`,
+                  to: `/routine/${pick.department}`,
+                },
+                { label: pickLabel(pick) },
+              ]}
+            />
+            <div className="space-y-3">
+              <h1 className="font-display-xl text-6xl break-words sm:text-7xl">
+                {pickLabel(pick)}
+              </h1>
+              <p className="text-muted-foreground">
+                {[
+                  `${version.department}${group ? ` ${group.name}, section ${group.letter}` : ""}`,
+                  pick.group ? `lab group ${pick.group}` : null,
+                  `${courseCount} courses`,
+                  `${classes.length} classes a week`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
             </div>
-          )}
-        </div>
-
-        {isRegularSection(routine.section) ? (
-          <TodayCard
-            classes={classes}
-            section={routine.section}
-            today={today}
-            now={now}
-          />
-        ) : (
-          <Alert variant="info">
-            <AlertTitle>A retake section</AlertTitle>
-            <AlertDescription>
-              {routine.section} gathers the classes of several courses, often at
-              the same time. You attend only the courses you’re retaking: look
-              for their codes in the week below.
-            </AlertDescription>
-          </Alert>
-        )}
-      </div>
-
-      <section aria-labelledby="week" className="space-y-4">
-        <h2 id="week" className="font-expressive text-3xl">
-          The week
-        </h2>
-        <div
-          // A routine with many slots (EEE's nine hours) needs a wide screen for its
-          // grid; narrower ones show a day at a time.
-          className={
-            routine.slots.length > 6 ? "max-xl:hidden" : "max-md:hidden"
-          }
-        >
-          <WeekGrid
-            classes={classes}
-            section={routine.section}
-            slots={routine.slots}
-            days={days}
-            today={days.includes(today) ? today : null}
-            now={now}
-          />
-        </div>
-        <div className={routine.slots.length > 6 ? "xl:hidden" : "md:hidden"}>
-          <DayTabs
-            key={pickLabel(pick)}
-            classes={classes}
-            days={days}
-            dates={dates}
-            section={routine.section}
-            today={days.includes(today) ? today : null}
-            now={now}
-          />
-        </div>
-      </section>
-
-      <section aria-labelledby="courses" className="space-y-4">
-        <h2 id="courses" className="font-expressive text-3xl">
-          Courses and teachers
-        </h2>
-        <CourseList classes={classes} section={routine.section} />
-        <p className="max-w-3xl text-sm text-pretty text-muted-foreground">
-          DIU’s {version.department} class routine, version {version.version}
-          {version.publishedOn &&
-            `, published ${formatDate(version.publishedOn)}`}
-          . Routines change during the semester; when a new one comes out, this
-          page follows it.{" "}
-          {version.source && (
-            <>
+            <div className="flex flex-wrap items-center gap-2">
+              <MyRoutineButton
+                key={pickLabel(pick)}
+                pick={pick}
+                saved={saved}
+                words={["Make it my section", "My section"]}
+              />
               <a
-                href={version.source}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 font-semibold text-primary underline-offset-4 hover:underline"
+                href={routinePdfHref(pick)}
+                download
+                aria-label="Download PDF"
+                className={buttonVariants()}
               >
-                DIU’s original PDF
-                <ExternalLink className="size-3.5" aria-hidden />
+                <Download aria-hidden />
+                {/* One row on a phone: "PDF" says enough beside the icon. */}
+                <span className="sm:hidden">PDF</span>
+                <span className="max-sm:hidden">Download PDF</span>
               </a>
-              .{" "}
-            </>
+              <ShareButton title={`${pickLabel(pick)} class routine`} />
+            </div>
+            {routine.labGroups.length > 0 && (
+              <div className="space-y-2">
+                <GroupChips routine={routine} pick={pick} />
+                {!pick.group && (
+                  <p className="text-sm text-muted-foreground">
+                    {routine.section} has lab groups. Pick yours to see only
+                    your own labs, here and in the PDF.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {isRegularSection(routine.section) ? (
+            <TodayCard
+              classes={classes}
+              section={routine.section}
+              today={today}
+              now={now}
+            />
+          ) : (
+            <Alert variant="info">
+              <AlertTitle>A retake section</AlertTitle>
+              <AlertDescription>
+                {routine.section} gathers the classes of several courses, often
+                at the same time. You attend only the courses you’re retaking:
+                look for their codes in the week below.
+              </AlertDescription>
+            </Alert>
           )}
-          Something looks wrong?{" "}
-          <Link
-            to="/contact"
-            className="font-semibold text-primary underline-offset-4 hover:underline"
+        </div>
+
+        <section aria-labelledby="week" className="space-y-4">
+          <h2 id="week" className="font-expressive text-3xl">
+            The week
+          </h2>
+          <div
+            // A routine with many slots (EEE's nine hours) needs a wide screen for its
+            // grid; narrower ones show a day at a time.
+            className={
+              routine.slots.length > 6 ? "max-xl:hidden" : "max-md:hidden"
+            }
           >
-            Tell us
-          </Link>
-          .
-        </p>
-      </section>
-    </div>
+            <WeekGrid
+              classes={classes}
+              section={routine.section}
+              slots={routine.slots}
+              days={days}
+              today={days.includes(today) ? today : null}
+              now={now}
+            />
+          </div>
+          <div className={routine.slots.length > 6 ? "xl:hidden" : "md:hidden"}>
+            <DayTabs
+              key={pickLabel(pick)}
+              classes={classes}
+              days={days}
+              dates={dates}
+              section={routine.section}
+              today={days.includes(today) ? today : null}
+              now={now}
+            />
+          </div>
+        </section>
+
+        <section aria-labelledby="courses" className="space-y-4">
+          <h2 id="courses" className="font-expressive text-3xl">
+            Courses and teachers
+          </h2>
+          <CourseList classes={classes} section={routine.section} />
+          <p className="max-w-3xl text-sm text-pretty text-muted-foreground">
+            DIU’s {version.department} class routine, version {version.version}
+            {version.publishedOn &&
+              `, published ${formatDate(version.publishedOn)}`}
+            . Routines change during the semester; when a new one comes out,
+            this page follows it.{" "}
+            {version.source && (
+              <>
+                <a
+                  href={version.source}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 font-semibold text-primary underline-offset-4 hover:underline"
+                >
+                  DIU’s original PDF
+                  <ExternalLink className="size-3.5" aria-hidden />
+                </a>
+                .{" "}
+              </>
+            )}
+            Something looks wrong?{" "}
+            <Link
+              to="/contact"
+              className="font-semibold text-primary underline-offset-4 hover:underline"
+            >
+              Tell us
+            </Link>
+            .
+          </p>
+        </section>
+      </div>
+    </RoutineLinks>
   );
 }

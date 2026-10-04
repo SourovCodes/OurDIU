@@ -1,10 +1,20 @@
-import type { RoutineSection, RoutineSectionList } from "@ourdiu/shared";
+import type {
+  RoutineSection,
+  RoutineSectionList,
+  RoutineTeacherList,
+  RoutineTeacherWeek,
+} from "@ourdiu/shared";
 import { ROUTINE_DEPARTMENT_SLUGS } from "@ourdiu/shared/constants";
 import { CalendarClock, Download, Star } from "lucide-react";
 import { data, Link } from "react-router";
 import { ComingSoon } from "~/components/coming-soon";
 import { ExamShape } from "~/components/exam-badge";
-import { SectionSearch, TodayCard, useDhakaNow } from "~/components/routine";
+import {
+  RoutineLinks,
+  SectionSearch,
+  TodayCard,
+  useDhakaNow,
+} from "~/components/routine";
 import { apiFetch, apiGetJson, readJson } from "~/lib/api.server";
 import { formatDate } from "~/lib/dates";
 import { product as findProduct } from "~/lib/products";
@@ -12,12 +22,15 @@ import {
   classesFor,
   dhakaNow,
   isRoutineDepartment,
+  isTeacherPick,
   pickLabel,
   routineHref,
   savedRoutine,
   sectionChoices,
   sectionGroup,
   sectionGroups,
+  teacherClass,
+  teacherHref,
   type RoutineDepartmentSlug,
 } from "~/lib/routine";
 import { pageMeta } from "~/lib/seo";
@@ -33,8 +46,8 @@ export const meta: Route.MetaFunction = ({ loaderData, params }) => {
       ? `DIU ${name} Class Routine — your section's classes | OurDIU`
       : "DIU Class Routine — your section's classes | OurDIU",
     description: params.department
-      ? `The DIU ${name} class routine by section: today's classes, your week with lab groups, rooms and teachers, and a PDF to download.`
-      : "DIU's class routines by section (CSE and EEE): today's classes, your week with lab groups, rooms and teachers, and a PDF to download.",
+      ? `The DIU ${name} class routine by section or teacher: today's classes, the week with lab groups, rooms and teachers, and a PDF to download.`
+      : "DIU's class routines by section or teacher (CSE and EEE): today's classes, the week with lab groups, rooms and teachers, and a PDF to download.",
   });
 };
 
@@ -69,20 +82,55 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     "cse";
   const list = lists.find((l) => l.department === department)!.list;
 
-  // "My section", with its week for the Today card. Gone from a new version, it's
-  // just left out.
+  // For the search: the department's teachers, by initials or name.
+  const teachers = list
+    ? await apiGetJson<RoutineTeacherList>(
+        request,
+        `/api/v1/routine/${department}/teachers`,
+      )
+        .then((t) => t.teachers)
+        .catch(() => [])
+    : [];
+
+  // "My section" (or a teacher's "My routine"), with its week for the Today card.
+  // Gone from a new version, it's just left out.
   const savedList =
     saved && lists.find((l) => l.department === saved.department)?.list;
-  const mine =
-    saved && savedList?.sections.some((s) => s.section === saved.section)
-      ? {
-          pick: saved,
-          routine: await apiGetJson<RoutineSection>(
-            request,
-            `/api/v1/routine/${saved.department}/sections/${encodeURIComponent(saved.section)}`,
-          ).catch(() => null),
-        }
-      : null;
+  let mine: Mine | null = null;
+  if (saved && savedList && isTeacherPick(saved)) {
+    const week = await apiGetJson<RoutineTeacherWeek>(
+      request,
+      `/api/v1/routine/${saved.department}/teachers/${encodeURIComponent(saved.teacher)}`,
+    ).catch(() => null);
+    if (week) {
+      mine = {
+        department: saved.department,
+        label: `My routine · ${saved.department.toUpperCase()} ${week.teacher.name ?? week.teacher.initials}`,
+        href: teacherHref(saved),
+        classes: week.classes.map(teacherClass),
+        section: null,
+      };
+    }
+  } else if (
+    saved &&
+    !isTeacherPick(saved) &&
+    savedList?.sections.some((s) => s.section === saved.section)
+  ) {
+    const routine = await apiGetJson<RoutineSection>(
+      request,
+      `/api/v1/routine/${saved.department}/sections/${encodeURIComponent(saved.section)}`,
+    ).catch(() => null);
+    if (routine) {
+      mine = {
+        department: saved.department,
+        label: `My section · ${saved.department.toUpperCase()} ${pickLabel(saved)}`,
+        href: routineHref(saved),
+        classes: classesFor(routine.classes, saved.group),
+        section: routine.section,
+        pick: saved,
+      };
+    }
+  }
   return {
     department,
     // Until any routine is live, the space stays "coming soon".
@@ -92,11 +140,24 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       version: l.list?.version.version ?? null,
     })),
     list,
-    mine: mine?.routine ? { pick: mine.pick, routine: mine.routine } : null,
+    teachers,
+    mine,
     serverDay: dhakaNow().day,
     serverMinute: Math.floor(Date.now() / 60_000),
   };
 }
+
+/** The routine a visitor made theirs, for the Today card. */
+type Mine = {
+  department: RoutineDepartmentSlug;
+  label: string;
+  href: string;
+  classes: ReturnType<typeof teacherClass>[];
+  /** The saved section's name; null for a teacher's routine. */
+  section: string | null;
+  /** The saved section, to highlight it among the department's sections. */
+  pick?: { department: RoutineDepartmentSlug; section: string };
+};
 
 /** The departments, CSE and EEE, as links to their routines. */
 function DepartmentSwitch({
@@ -161,7 +222,7 @@ function ShapeCluster() {
 
 /** /routine: your section's day, or find it in your department's routine. */
 export default function Routine({ loaderData }: Route.ComponentProps) {
-  const { department, anyLive, departments, list, mine, serverDay } =
+  const { department, anyLive, departments, list, teachers, mine, serverDay } =
     loaderData;
   const now = useDhakaNow(loaderData.serverMinute);
   if (!anyLive) return <ComingSoon product={product} />;
@@ -188,7 +249,7 @@ export default function Routine({ loaderData }: Route.ComponentProps) {
             </h1>
             <p className="max-w-xl text-lg text-pretty text-muted-foreground">
               {list
-                ? `Find your section in DIU’s ${name} routine: today’s classes, your week with rooms and teachers, and a PDF to keep.`
+                ? `Find your section, or a teacher, in DIU’s ${name} routine: today’s classes, the week with rooms and teachers, and a PDF to keep.`
                 : `DIU’s ${name} routine is coming soon. Until then, pick another department above.`}
             </p>
           </div>
@@ -198,6 +259,7 @@ export default function Routine({ loaderData }: Route.ComponentProps) {
                 key={department}
                 department={department}
                 choices={sectionChoices(list.sections)}
+                teachers={teachers}
                 size="lg"
               />
             </div>
@@ -206,14 +268,16 @@ export default function Routine({ loaderData }: Route.ComponentProps) {
         {mine ? (
           // A returning student's day comes first on phones.
           <div className="max-lg:order-first">
-            <TodayCard
-              classes={classesFor(mine.routine.classes, mine.pick.group)}
-              section={mine.routine.section}
-              today={now?.day ?? serverDay}
-              now={now}
-              label={`My section · ${mine.pick.department.toUpperCase()} ${pickLabel(mine.pick)}`}
-              href={routineHref(mine.pick)}
-            />
+            <RoutineLinks value={mine.department}>
+              <TodayCard
+                classes={mine.classes}
+                section={mine.section ?? ""}
+                today={now?.day ?? serverDay}
+                now={now}
+                label={mine.label}
+                href={mine.href}
+              />
+            </RoutineLinks>
           </div>
         ) : (
           <ShapeCluster />
@@ -249,7 +313,7 @@ export default function Routine({ loaderData }: Route.ComponentProps) {
                         prefetch="intent"
                         className={cn(
                           "inline-flex h-10 items-center rounded-xl border px-3.5 text-sm font-semibold transition-colors",
-                          mine?.pick.department === department &&
+                          mine?.pick?.department === department &&
                             mine.pick.section === section
                             ? "border-primary-container bg-primary-container text-primary-container-foreground"
                             : "border-input bg-background hover:state-layer",

@@ -9,10 +9,13 @@ import type {
   RoutineFileProblem,
   RoutineSection,
   RoutineSectionList,
+  RoutineTeacherList,
+  RoutineTeacherWeek,
 } from "@ourdiu/shared";
 import { PDFDocument } from "pdf-lib";
 import { beforeAll, describe, expect, it } from "vitest";
 import { routineChanges, routineWarnings } from "../src/services/routine/check";
+import { teacherClasses } from "../src/services/routine/teachers";
 import { cseRoutinePdf } from "./cse-routine-pdf";
 import { api, jsonRequest, signIn, signInAdmin } from "./helpers";
 
@@ -431,6 +434,83 @@ describe("routine versions", () => {
     );
   });
 
+  it("lists the live routine's teachers, and shows a teacher's week", async () => {
+    const list = await api("/api/v1/routine/cse/teachers");
+    expect(list.status).toBe(200);
+    const { teachers } = await list.json<RoutineTeacherList>();
+    expect(teachers.map((t) => t.initials)).toEqual([
+      "AS",
+      "IK",
+      "MRR",
+      "SMAH",
+      "STA",
+    ]);
+    expect(teachers.find((t) => t.initials === "STA")).toEqual({
+      initials: "STA",
+      name: "Test Teacher",
+      courses: ["CSE321", "CSE322"],
+      classCount: 4,
+    });
+
+    // Found regardless of case, with its details and the sections attending.
+    const res = await api("/api/v1/routine/cse/teachers/sta");
+    expect(res.status).toBe(200);
+    const week = await res.json<RoutineTeacherWeek>();
+    expect(week.teacher).toEqual({
+      initials: "STA",
+      name: "Test Teacher",
+      phone: "01712-345678",
+      email: "sta@diu.edu.bd",
+      room: "KT-712",
+    });
+    expect(week.slots).toEqual(SLOTS);
+    expect(
+      week.classes.map(
+        (c) =>
+          `${c.day} ${c.start} ${c.course.code} ${c.sections.map((s) => s.section + (s.labGroup ?? "")).join("+")}`,
+      ),
+    ).toEqual([
+      "SAT 13:00 CSE321 67_B",
+      "MON 08:30 CSE322 67_BB2",
+      "MON 14:30 CSE322 67_BB1",
+      "WED 16:00 CSE321 67_B",
+    ]);
+    expect(week.classes[0]).toEqual({
+      day: "SAT",
+      start: "13:00",
+      end: "14:30",
+      course: { code: "CSE321", title: "Computer Networks" },
+      room: "KT-222",
+      roomType: null,
+      sections: [{ section: "67_B", labGroup: null }],
+    });
+
+    const missing = await api("/api/v1/routine/cse/teachers/XYZ");
+    expect(missing.status).toBe(404);
+    expect((await missing.json<ApiError>()).error.code).toBe(
+      "TEACHER_NOT_FOUND",
+    );
+    // Not initials at all.
+    expect((await api("/api/v1/routine/cse/teachers/1-2")).status).toBe(422);
+    // EEE has no live routine.
+    const eee = await api("/api/v1/routine/eee/teachers");
+    expect((await eee.json<ApiError>()).error.code).toBe("NO_ROUTINE");
+  });
+
+  it("downloads a teacher's week as a PDF", async () => {
+    const res = await api("/api/v1/routine/cse/teachers/sta/pdf");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("application/pdf");
+    expect(res.headers.get("content-disposition")).toBe(
+      'attachment; filename="STA_routine_v4.1.pdf"',
+    );
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe("%PDF-");
+    expect((await api("/api/v1/routine/cse/teachers/XYZ/pdf")).status).toBe(
+      404,
+    );
+  });
+
   it("pages and searches courses and teachers, and removes them in bulk", async () => {
     const page = await (
       await adminCall("GET", "/courses?department=CSE&pageSize=2&page=2")
@@ -723,5 +803,36 @@ describe("routine checks", () => {
       [cls({ teacher: "NEW" }), cls({ day: "TUE" })],
     );
     expect(changes).toMatchObject({ teacher: 1, moved: 1, room: 0 });
+  });
+});
+
+describe("a teacher's week", () => {
+  const row = {
+    day: "SUN" as const,
+    start: 600,
+    end: 690,
+    course: "CSE431",
+    title: null,
+    labGroup: null,
+    room: "KT-208",
+    roomType: null,
+  };
+
+  it("makes sections sharing a class one class, in day and time order", () => {
+    const week = teacherClasses([
+      { ...row, day: "MON", section: "65_A" },
+      { ...row, section: "65_B" },
+      { ...row, section: "65_A" },
+      // Same time, another room: another class.
+      { ...row, section: "65_C", room: "KT-209" },
+    ]);
+    expect(
+      week.map((c) => [c.day, c.room, c.sections.map((s) => s.section)]),
+    ).toEqual([
+      ["SUN", "KT-208", ["65_A", "65_B"]],
+      ["SUN", "KT-209", ["65_C"]],
+      ["MON", "KT-208", ["65_A"]],
+    ]);
+    expect(week[0]).toMatchObject({ start: "10:00", end: "11:30" });
   });
 });

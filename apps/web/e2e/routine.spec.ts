@@ -3,6 +3,7 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { cseRoutinePdf, onePagePdf } from "../../api/test/cse-routine-pdf";
 import { eeeRoutinePdf } from "../../api/test/eee-routine-pdf";
+import { sweRoutineXlsx } from "../../api/test/swe-routine-xlsx";
 import {
   clickUntilUrl,
   failOnConsoleErrors,
@@ -97,7 +98,9 @@ test("a student finds their section, makes it theirs and downloads it", async ({
   await page.goto("/routine");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Today");
   await expect(page.getByText("My section:")).toContainText("CSE 67_B1");
-  await expect(page.getByRole("region", { name: "Today" })).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Today", exact: true }),
+  ).toBeVisible();
   // Today is today (or the next class day): the week is on the section's page.
   await expect(page.getByRole("tablist", { name: "Day" })).toHaveCount(0);
   await expect(
@@ -231,7 +234,7 @@ test("an admin uploads CSE's routine PDF, reviews it and makes it live", async (
     }).toPass();
   };
   const choose = (name: string, buffer: Uint8Array) =>
-    dialog.getByLabel("Routine PDF").setInputFiles({
+    dialog.getByLabel("Routine file").setInputFiles({
       name,
       mimeType: "application/pdf",
       buffer: Buffer.from(buffer),
@@ -322,7 +325,7 @@ test("an admin uploads EEE's routine PDF, and EEE students find their section", 
     await page.getByRole("button", { name: "Upload routine" }).click();
     await expect(dialog).toBeVisible({ timeout: 1_000 });
   }).toPass();
-  await dialog.getByLabel("Routine PDF").setInputFiles({
+  await dialog.getByLabel("Routine file").setInputFiles({
     name: `eee-class-routine-v${version}.pdf`,
     mimeType: "application/pdf",
     buffer: Buffer.from(await eeeRoutinePdf(version)),
@@ -334,9 +337,9 @@ test("an admin uploads EEE's routine PDF, and EEE students find their section", 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     `EEE v${version}`,
   );
-  await expect(page.getByText("2 places in DIU’s PDF to check")).toBeVisible();
+  await expect(page.getByText("2 places in DIU’s file to check")).toBeVisible();
   await expect(page.getByText(/says 1-3 A but 0541-131 B/)).toBeVisible();
-  await expect(page.getByRole("link", { name: "DIU’s PDF" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "DIU’s file" })).toBeVisible();
   await page.getByRole("button", { name: `Make v${version} live` }).click();
   await page.getByRole("button", { name: "Make live" }).click();
   await expect(page.getByText(`v${version} is live`)).toBeVisible();
@@ -435,4 +438,58 @@ test("an admin uploads EEE's routine PDF, and EEE students find their section", 
   await expect(
     page.getByText("DIU’s EEE routine is coming soon", { exact: false }),
   ).toBeVisible();
+});
+
+test("an admin uploads SWE's routine sheet, and SWE students find their section", async ({
+  page,
+}) => {
+  test.skip(
+    test.info().project.name === "mobile",
+    "Makes a version live: runs in one project",
+  );
+  const version = uniqueVersion();
+  await logInAs(page, SEED_ADMIN, "/admin/routine/versions");
+  const dialog = page.getByRole("dialog", { name: "Upload a routine" });
+  await expect(async () => {
+    await page.getByRole("button", { name: "Upload routine" }).click();
+    await expect(dialog).toBeVisible({ timeout: 1_000 });
+  }).toPass();
+  // An Excel sheet; its version number is in the file's name only.
+  await dialog.getByLabel("Routine file").setInputFiles({
+    name: `swe-routine-fall-2026-studentversion${version}.xlsx`,
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    buffer: Buffer.from(await sweRoutineXlsx()),
+  });
+  await dialog.getByRole("button", { name: "Upload" }).click();
+
+  await expect(page).toHaveURL(/\/admin\/routine\/versions\/\d+$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    `SWE v${version}`,
+  );
+  await expect(page.getByText("2 places in DIU’s file to check")).toBeVisible();
+  await page.getByRole("button", { name: `Make v${version} live` }).click();
+  await page.getByRole("button", { name: "Make live" }).click();
+  await expect(page.getByText(`v${version} is live`)).toBeVisible();
+
+  // Students switch to SWE and find 44_G1 as they write it.
+  await page.goto("/routine/cse");
+  await expect(async () => {
+    await page
+      .getByRole("navigation", { name: "Departments" })
+      .getByRole("link", { name: "SWE" })
+      .click();
+    await expect(page).toHaveURL(/\/routine\/swe$/, { timeout: 2_000 });
+  }).toPass();
+  const search = page.getByRole("combobox", { name: /Your section/ });
+  await expect(async () => {
+    await search.fill("");
+    await search.fill("44g1");
+    await expect(page.getByRole("option", { name: /44_G1/ })).toBeVisible({
+      timeout: 1_000,
+    });
+  }).toPass();
+  await search.press("Enter");
+  await expect(page).toHaveURL(/\/routine\/swe\/44_G\?group=G1$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("44_G1");
 });

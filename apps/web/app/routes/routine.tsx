@@ -27,7 +27,7 @@ export const meta: Route.MetaFunction = () =>
   pageMeta({
     title: "DIU Class Routine — your section's or a teacher's week | OurDIU",
     description:
-      "DIU's class routines (CSE and EEE) by section or teacher: today's classes, the week with lab groups, rooms and teachers, and a PDF to download.",
+      "DIU's class routines (CSE, EEE and SWE) by section or teacher: today's classes, the week with lab groups, rooms and teachers, and a PDF to download.",
   });
 
 /**

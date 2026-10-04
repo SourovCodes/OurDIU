@@ -238,12 +238,12 @@ export const MAX_SEARCH_LENGTH = 100;
 // ── Class Routine ────────────────────────────────────────────────────────────
 
 /** Departments with a class routine. Each has its own versions, one live at a time. */
-export const ROUTINE_DEPARTMENTS = ["CSE", "EEE"] as const;
+export const ROUTINE_DEPARTMENTS = ["CSE", "EEE", "SWE"] as const;
 /** The same departments as they appear in URLs: /routine/cse/67_B. */
-export const ROUTINE_DEPARTMENT_SLUGS = ["cse", "eee"] as const;
+export const ROUTINE_DEPARTMENT_SLUGS = ["cse", "eee", "swe"] as const;
 /**
- * How each department writes a section, for examples in the search: CSE by batch
- * ("67_B", lab group "67_B1"), EEE by level, term and section ("1-2 B", "1-2 B1").
+ * How each department writes a section, for examples in the search: CSE and SWE by
+ * batch ("67_B", lab group "67_B1"), EEE by level, term and section ("1-2 B", "1-2 B1").
  */
 export const ROUTINE_SECTION_EXAMPLES: Record<
   (typeof ROUTINE_DEPARTMENT_SLUGS)[number],
@@ -251,6 +251,7 @@ export const ROUTINE_SECTION_EXAMPLES: Record<
 > = {
   cse: { section: "67_B", group: "67_B1" },
   eee: { section: "1-2 B", group: "1-2 B1" },
+  swe: { section: "44_G", group: "44_G1" },
 };
 
 /** The routine file's format, `"format": 1`. Raise it only for an incompatible change. */
@@ -294,7 +295,7 @@ export const ROUTINE_WARNING_KINDS = [
 
 /** A routine holds at most this many classes (CSE's has about 1,600). */
 export const MAX_ROUTINE_CLASSES = 6000;
-/** The largest routine PDF accepted, in bytes (CSE's and EEE's are under 300 KB). */
+/** The largest routine file accepted, in bytes (CSE's and EEE's PDFs are under 300 KB, SWE's sheet 70 KB). */
 export const MAX_ROUTINE_PDF_BYTES = 10 * 1024 * 1024;
 
 /** Course codes as printed in the routine: CSE321, ACT327, or EEE's 0713-121. */
@@ -347,15 +348,16 @@ export function routineTimeRange(start: string, end: string): string {
 }
 
 /**
- * What a lab group is called: "67_B1" for group B1 of 67_B ("1-2 B1" of 1-2 B), as
- * students write it; "RE_A(3C) (G1)" when the group doesn't continue the section's
- * letter.
+ * What a lab group is called: "67_B1" for group B1 of 67_B ("1-2 B1" of 1-2 B, SWE's
+ * "41_DSA1" of 41_DSA), as students write it; "RE_A(3C) (G1)" when the group
+ * doesn't continue the section's letters.
  */
 export function routineGroupLabel(section: string, group: string): string {
-  return (section.endsWith(`_${group[0]}`) ||
-    section.endsWith(` ${group[0]}`)) &&
-    /^[A-Z]\d+$/.test(group)
-    ? `${section}${group.slice(1)}`
+  const letters = /[_ ]([A-Za-z]+)$/.exec(section)?.[1];
+  return letters &&
+    group.startsWith(letters) &&
+    /^\d+$/.test(group.slice(letters.length))
+    ? `${section}${group.slice(letters.length)}`
     : `${section} (${group})`;
 }
 

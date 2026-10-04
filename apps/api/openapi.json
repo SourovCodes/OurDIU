@@ -1649,7 +1649,8 @@
         "type": "string",
         "enum": [
           "CSE",
-          "EEE"
+          "EEE",
+          "SWE"
         ]
       },
       "RoutineSectionSummary": {
@@ -1678,7 +1679,8 @@
         "type": "string",
         "enum": [
           "cse",
-          "eee"
+          "eee",
+          "swe"
         ]
       },
       "RoutineSection": {
@@ -4905,8 +4907,8 @@
         "tags": [
           "Admin: routine"
         ],
-        "summary": "Read DIU's routine PDF into a draft",
-        "description": "Each department's PDF has its own reader (CSE's and EEE's so far), found by the heading on its first page; another PDF is answered with 422 `UNKNOWN_ROUTINE_PDF`. What's read is checked: if the PDF's layout changed so it can't be used, 422 `INVALID_ROUTINE_FILE` with the problems in `details` (`{ path, message }`). Cells that couldn't be read, or were read with a guess, are the draft's first warnings (`unreadable`); possible slips in the routine (clashes, untitled courses) follow.",
+        "summary": "Read DIU's routine file into a draft",
+        "description": "Each department's file has its own reader (CSE's and EEE's PDFs, SWE's Excel sheet), found by the heading on its first page or at the top of the sheet; another file is answered with 422 `UNKNOWN_ROUTINE_PDF`. SWE's sheet has no version number: `version` is used, else one in the file's name (\"…version04.xlsx\"), else 422 `NO_VERSION`. What's read is checked: if the PDF's layout changed so it can't be used, 422 `INVALID_ROUTINE_FILE` with the problems in `details` (`{ path, message }`). Cells that couldn't be read, or were read with a guess, are the draft's first warnings (`unreadable`); possible slips in the routine (clashes, untitled courses) follow.",
         "requestBody": {
           "required": true,
           "content": {
@@ -4982,7 +4984,7 @@
             }
           },
           "413": {
-            "description": "The PDF is too large",
+            "description": "The file is too large",
             "content": {
               "application/json": {
                 "schema": {
@@ -4992,7 +4994,7 @@
             }
           },
           "422": {
-            "description": "Not a routine PDF OurDIU can read",
+            "description": "Not a routine file OurDIU can read",
             "content": {
               "application/json": {
                 "schema": {
@@ -5348,7 +5350,7 @@
         "tags": [
           "Admin: routine"
         ],
-        "summary": "Download DIU's PDF a version was read from",
+        "summary": "Download DIU's file a version was read from",
         "parameters": [
           {
             "schema": {
@@ -5362,9 +5364,15 @@
         ],
         "responses": {
           "200": {
-            "description": "The PDF",
+            "description": "The PDF, or SWE's Excel sheet",
             "content": {
               "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
                 "schema": {
                   "type": "string",
                   "format": "binary"

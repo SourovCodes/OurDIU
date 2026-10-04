@@ -60,11 +60,11 @@ export function deleteDescription(
   v: Pick<AdminRoutineVersion, "status" | "department">,
 ) {
   return v.status === "live"
-    ? `It’s the live version: students will see no ${v.department} routine (“coming soon”) until you make another version live. Its classes and its PDF are deleted for good.`
-    : "Its classes and its PDF are deleted for good. Students don’t notice: they only see the live version. You can upload the PDF again later.";
+    ? `It’s the live version: students will see no ${v.department} routine (“coming soon”) until you make another version live. Its classes and DIU’s file are deleted for good.`
+    : "Its classes and DIU’s file are deleted for good. Students don’t notice: they only see the live version. You can upload the file again later.";
 }
 
-/** Gives a version another number, e.g. when DIU's PDF has a wrong one. */
+/** Gives a version another number, e.g. when DIU's file has a wrong one. */
 export function RenumberDialog({
   version,
   open,
@@ -116,11 +116,11 @@ export function RenumberDialog({
 /** The review page of an uploaded routine version. */
 export const versionUrl = (id: number) => `/admin/routine/versions/${id}`;
 
-/** DIU's PDF a version was read from, straight from the API. */
+/** DIU's file a version was read from, straight from the API. */
 export const versionPdfHref = (v: Pick<AdminRoutineVersion, "id">) =>
   `/api/v1/admin/routine/versions/${v.id}/pdf`;
 
-/** What the upload action answers when the PDF can't be used. */
+/** What the upload action answers when the file can't be used. */
 export type UploadResult = {
   ok: false;
   intent: "upload";
@@ -131,7 +131,7 @@ export type UploadResult = {
 const MAX_MB = MAX_ROUTINE_PDF_BYTES / 1024 / 1024;
 
 /**
- * Uploads DIU's routine PDF, read on the server. One it can't read is answered with
+ * Uploads DIU's routine file (a PDF, or SWE's Excel sheet), read on the server. One it can't read is answered with
  * why; one that's read opens as a draft (the action redirects to its review).
  */
 export function UploadRoutineDialog() {
@@ -154,9 +154,10 @@ export function UploadRoutineDialog() {
         <DialogHeader>
           <DialogTitle>Upload a routine</DialogTitle>
           <DialogDescription>
-            DIU’s routine PDF as the department publishes it, CSE’s or EEE’s.
-            It’s read and checked, then kept as a draft for you to review;
-            students see nothing until you make it live.
+            DIU’s routine file as the department publishes it: CSE’s or EEE’s
+            PDF, or SWE’s Excel sheet. It’s read and checked, then kept as a
+            draft for you to review; students see nothing until you make it
+            live.
           </DialogDescription>
         </DialogHeader>
         <fetcher.Form
@@ -181,7 +182,7 @@ export function UploadRoutineDialog() {
           >
             <FileUp className="size-7 text-primary" aria-hidden />
             <span className="font-semibold">
-              {file ? file.name : "Choose or drop the routine PDF"}
+              {file ? file.name : "Choose or drop the routine file"}
             </span>
             <span className="text-muted-foreground">
               {file
@@ -192,9 +193,9 @@ export function UploadRoutineDialog() {
               id="routine-file"
               name="file"
               type="file"
-              accept="application/pdf,.pdf"
+              accept="application/pdf,.pdf,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               required
-              aria-label="Routine PDF"
+              aria-label="Routine file"
               onChange={(event) => setFile(event.target.files?.[0] ?? null)}
               onDragEnter={() => setDragging(true)}
               onDragLeave={() => setDragging(false)}
@@ -203,19 +204,19 @@ export function UploadRoutineDialog() {
             />
           </div>
           {tooLarge && (
-            <FormMessage message={`The PDF is larger than ${MAX_MB} MB.`} />
+            <FormMessage message={`The file is larger than ${MAX_MB} MB.`} />
           )}
           <FormField
             label="Version (optional)"
             name="version"
-            placeholder="As printed on the PDF, e.g. 4.1"
+            placeholder="As printed on the file, e.g. 4.1"
             pattern="\d{1,3}(\.\d{1,3}){0,2}"
             title="Numbers and dots, like 4.1"
             inputMode="decimal"
           />
           <p className="-mt-2 text-sm text-muted-foreground">
-            Leave it empty to use the number printed on the PDF. You can change
-            it later too.
+            Leave it empty to use the number printed on the PDF (for SWE’s
+            sheet, the one in its file name). You can change it later too.
           </p>
           {result && !result.ok && (
             <Alert variant="destructive" role="alert">
@@ -237,14 +238,15 @@ export function UploadRoutineDialog() {
                   </ul>
                 )}
                 <p className="mt-2">
-                  Nothing was saved. If this is the department’s routine PDF,
+                  Nothing was saved. If this is the department’s routine file,
                   its layout may have changed: tell the developers.
                 </p>
               </AlertDescription>
             </Alert>
           )}
           <p className="text-sm text-muted-foreground">
-            Course titles and teachers’ details aren’t in the PDFs: add them on{" "}
+            Course titles and teachers’ details aren’t in DIU’s files: add them
+            on{" "}
             <Link
               to="/admin/routine/courses"
               className="font-medium text-primary underline"
@@ -267,7 +269,7 @@ export function UploadRoutineDialog() {
               </Button>
             </DialogClose>
             <Button type="submit" disabled={busy}>
-              {busy ? "Reading the PDF…" : "Upload"}
+              {busy ? "Reading the file…" : "Upload"}
             </Button>
           </DialogFooter>
         </fetcher.Form>

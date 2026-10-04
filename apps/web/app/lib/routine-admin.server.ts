@@ -16,13 +16,13 @@ function uploadFailed(error: string, problems: RoutineFileProblem[] = []) {
 }
 
 /**
- * Sends DIU's routine PDF to the API, to be read there, and opens the draft's
+ * Sends DIU's routine file (a PDF, or SWE's Excel sheet) to the API, to be read there, and opens the draft's
  * review, or answers with why it can't be used.
  */
 async function uploadVersion(request: Request, form: FormData) {
   const file = form.get("file");
   if (!(file instanceof File) || file.size === 0) {
-    return uploadFailed("Choose the routine PDF.");
+    return uploadFailed("Choose the routine file.");
   }
   const body = new FormData();
   body.set("file", file);

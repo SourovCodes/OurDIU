@@ -121,7 +121,7 @@ function RowActions({
           <DropdownMenuItem asChild>
             <a href={versionPdfHref(version)} download>
               <Download />
-              Download DIU’s PDF
+              Download DIU’s file
             </a>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -180,7 +180,7 @@ export default function AdminRoutineVersions({
     <>
       <AdminPageHeader
         title="Routine versions"
-        description="Upload a department’s routine PDF as DIU publishes it; it’s read and kept as a draft. Review it, then make it live: students only see the live version, one per department."
+        description="Upload a department’s routine file as DIU publishes it; it’s read and kept as a draft. Review it, then make it live: students only see the live version, one per department."
         actions={
           <>
             <UploadRoutineDialog />
@@ -194,11 +194,12 @@ export default function AdminRoutineVersions({
           description={
             <ol className="mx-auto mt-1 grid max-w-md list-decimal gap-1 pl-5 text-left">
               <li>
-                Upload the department’s routine PDF (CSE’s or EEE’s) as DIU
-                publishes it. It’s read, checked and kept as a draft.
+                Upload the department’s routine file as DIU publishes it: CSE’s
+                or EEE’s PDF, SWE’s Excel sheet. It’s read, checked and kept as
+                a draft.
               </li>
               <li>
-                Add course titles and teachers’ details, which the PDFs don’t
+                Add course titles and teachers’ details, which DIU’s files don’t
                 have, on{" "}
                 <Link
                   to="/admin/routine/courses"

@@ -34,7 +34,7 @@ import {
   setRoutineCourseTitle,
   setRoutineTeacher,
 } from "../services/routine/catalog";
-import { readRoutinePdf } from "../services/routine/import";
+import { readRoutineFile } from "../services/routine/import";
 import { sectionOfVersion } from "../services/routine/sections";
 import {
   deleteRoutineVersion,
@@ -76,9 +76,9 @@ const uploadVersionRoute = createRoute({
   method: "post",
   path: "/versions",
   tags,
-  summary: "Read DIU's routine PDF into a draft",
+  summary: "Read DIU's routine file into a draft",
   description:
-    "Each department's PDF has its own reader (CSE's and EEE's so far), found by the heading on its first page; another PDF is answered with 422 `UNKNOWN_ROUTINE_PDF`. What's read is checked: if the PDF's layout changed so it can't be used, 422 `INVALID_ROUTINE_FILE` with the problems in `details` (`{ path, message }`). Cells that couldn't be read, or were read with a guess, are the draft's first warnings (`unreadable`); possible slips in the routine (clashes, untitled courses) follow.",
+    "Each department's file has its own reader (CSE's and EEE's PDFs, SWE's Excel sheet), found by the heading on its first page or at the top of the sheet; another file is answered with 422 `UNKNOWN_ROUTINE_PDF`. SWE's sheet has no version number: `version` is used, else one in the file's name (\"…version04.xlsx\"), else 422 `NO_VERSION`. What's read is checked: if the PDF's layout changed so it can't be used, 422 `INVALID_ROUTINE_FILE` with the problems in `details` (`{ path, message }`). Cells that couldn't be read, or were read with a guess, are the draft's first warnings (`unreadable`); possible slips in the routine (clashes, untitled courses) follow.",
   middleware: [
     requireAdmin,
     bodyLimit({
@@ -87,7 +87,7 @@ const uploadVersionRoute = createRoute({
         c.json(
           errorBody(
             "FILE_TOO_LARGE",
-            `The PDF is larger than ${MAX_ROUTINE_PDF_BYTES / 1024 / 1024} MB`,
+            `The file is larger than ${MAX_ROUTINE_PDF_BYTES / 1024 / 1024} MB`,
           ),
           413,
         ),
@@ -100,7 +100,7 @@ const uploadVersionRoute = createRoute({
         "multipart/form-data": {
           schema: z.object({
             file: z
-              .instanceof(File, { error: "Choose the routine PDF" })
+              .instanceof(File, { error: "Choose the routine file" })
               .openapi({ type: "string", format: "binary" }),
             /** The version number to use instead of the one printed on the PDF. */
             version: routineVersionInputSchema.shape.version.optional(),
@@ -114,8 +114,8 @@ const uploadVersionRoute = createRoute({
     400: errorResponse("No file"),
     ...denied,
     409: errorResponse("The version is already uploaded"),
-    413: errorResponse("The PDF is too large"),
-    422: errorResponse("Not a routine PDF OurDIU can read"),
+    413: errorResponse("The file is too large"),
+    422: errorResponse("Not a routine file OurDIU can read"),
   },
 });
 
@@ -214,14 +214,17 @@ const versionPdfRoute = createRoute({
   method: "get",
   path: "/versions/{id}/pdf",
   tags,
-  summary: "Download DIU's PDF a version was read from",
+  summary: "Download DIU's file a version was read from",
   middleware,
   request: { params },
   responses: {
     200: {
-      description: "The PDF",
+      description: "The PDF, or SWE's Excel sheet",
       content: {
         "application/pdf": {
+          schema: z.string().openapi({ format: "binary" }),
+        },
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
           schema: z.string().openapi({ format: "binary" }),
         },
       },
@@ -378,14 +381,15 @@ export const adminRoutineRoutes = new OpenAPIHono<AppEnv>()
   )
   .openapi(uploadVersionRoute, async (c) => {
     const { file, version } = c.req.valid("form");
-    const pdf = new Uint8Array(await file.arrayBuffer());
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const read = await readRoutineFile(bytes, { version, name: file.name });
     return c.json(
       await uploadRoutineVersion(
         c.var.db,
         c.env.BUCKET,
         c.var.session!.user.id,
-        await readRoutinePdf(pdf, { version }),
-        pdf,
+        read,
+        { bytes, kind: read.kind },
       ),
       201,
     );

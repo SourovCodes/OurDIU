@@ -31,8 +31,15 @@ import type { RoutineImport } from "./import/types";
 /** Classes go into D1 in chunks, each one JSON parameter (D1 takes 100 per query). */
 const INSERT_CHUNK = 1000;
 
-/** Where a version's PDF goes in R2. */
-const newFileKey = () => `routine/versions/${crypto.randomUUID()}.pdf`;
+/** DIU's files a routine is read from: CSE's and EEE's PDFs, SWE's Excel sheet. */
+const FILE_TYPES = {
+  pdf: "application/pdf",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+} as const;
+
+/** Where a version's file goes in R2. */
+const newFileKey = (kind: keyof typeof FILE_TYPES) =>
+  `routine/versions/${crypto.randomUUID()}.${kind}`;
 
 const iso = (d: Date | null) => (d ? d.toISOString() : null);
 
@@ -111,16 +118,16 @@ const checkedClasses = (file: RoutineFile): CheckedClass[] =>
   }));
 
 /**
- * Saves a routine read from DIU's PDF as a draft: the PDF in R2, its classes in D1,
- * and the warnings found in it, after what couldn't be read from the PDF (`notes`).
- * Students see nothing until it's made live.
+ * Saves a routine read from DIU's file as a draft: the file in R2, its classes in
+ * D1, and the warnings found in it, after what couldn't be read from the file
+ * (`notes`). Students see nothing until it's made live.
  */
 export async function uploadRoutineVersion(
   db: Database,
   bucket: R2Bucket,
   userId: string,
   { file, notes }: RoutineImport,
-  pdf: Uint8Array,
+  original: { bytes: Uint8Array; kind: keyof typeof FILE_TYPES },
 ): Promise<AdminRoutineVersionDetail> {
   const exists = await db
     .select({ id: routineVersions.id })
@@ -158,10 +165,10 @@ export async function uploadRoutineVersion(
         ]
       : found;
 
-  const fileKey = newFileKey();
+  const fileKey = newFileKey(original.kind);
   const removeFiles = () => bucket.delete(fileKey);
-  await bucket.put(fileKey, pdf, {
-    httpMetadata: { contentType: "application/pdf" },
+  await bucket.put(fileKey, original.bytes, {
+    httpMetadata: { contentType: FILE_TYPES[original.kind] },
   });
 
   let versionId: number;
@@ -375,7 +382,7 @@ export async function renumberRoutineVersion(
   return getRoutineVersion(db, id);
 }
 
-/** DIU's PDF a version was read from. */
+/** DIU's file a version was read from: a PDF, or SWE's Excel sheet. */
 export async function getRoutineVersionPdf(
   db: Database,
   bucket: R2Bucket,
@@ -384,11 +391,12 @@ export async function getRoutineVersionPdf(
   const row = await findVersion(db, id);
   const object = await bucket.get(row.fileKey);
   if (!object) {
-    throw new AppError(404, "NOT_FOUND", "The version's PDF is missing");
+    throw new AppError(404, "NOT_FOUND", "The version's file is missing");
   }
+  const extension = row.fileKey.endsWith(".xlsx") ? "xlsx" : "pdf";
   return {
     object,
-    filename: `${row.department.toLowerCase()}-routine-${row.version}.pdf`,
+    filename: `${row.department.toLowerCase()}-routine-${row.version}.${extension}`,
   };
 }
 

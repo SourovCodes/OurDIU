@@ -8,7 +8,7 @@ import type {
 import { PDFDocument } from "pdf-lib";
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
-import { readRoutinePdf } from "../src/services/routine/import";
+import { readRoutineFile } from "../src/services/routine/import";
 import { cseRoutinePdf } from "./cse-routine-pdf";
 import { eeeRoutinePdf } from "./eee-routine-pdf";
 import { api, jsonRequest, pdfFile, signIn, signInAdmin } from "./helpers";
@@ -47,7 +47,7 @@ const adminCall = (method: string, path: string, body?: unknown) =>
 
 describe("reading EEE's routine PDF", () => {
   it("reads the version, the slots, the teachers and every class", async () => {
-    const { file, notes } = await readRoutinePdf(pdf);
+    const { file, notes } = await readRoutineFile(pdf);
     expect(file).toMatchObject({
       department: "EEE",
       version: "4.0",
@@ -103,12 +103,12 @@ describe("reading EEE's routine PDF", () => {
 
   it("refuses files that aren't a PDF it can read", async () => {
     await expect(
-      readRoutinePdf(new TextEncoder().encode('{"format":1}')),
+      readRoutineFile(new TextEncoder().encode('{"format":1}')),
     ).rejects.toMatchObject({ code: "NOT_A_PDF" });
 
     const other = await PDFDocument.create();
     other.addPage().drawText("Department of Computer Science and Engineering");
-    await expect(readRoutinePdf(await other.save())).rejects.toMatchObject({
+    await expect(readRoutineFile(await other.save())).rejects.toMatchObject({
       code: "UNKNOWN_ROUTINE_PDF",
     });
   });
@@ -168,7 +168,7 @@ describe("reading CSE's routine PDF", () => {
     });
     expect(await PDFDocument.load(pdf).then((d) => d.getPageCount())).toBe(2);
 
-    const { file, notes } = await readRoutinePdf(pdf);
+    const { file, notes } = await readRoutineFile(pdf);
     expect(file).toMatchObject({
       department: "CSE",
       version: "4.1",

@@ -8,13 +8,14 @@ import '../api/generated/export.dart';
 import 'prefs.dart';
 
 // The Class Routine (docs/PLAN.md, decisions 29, 33 and 34): each department's live
-// routine (CSE and EEE), its sections and teachers, and the section or teacher's
+// routine (CSE, EEE and SWE), its sections and teachers, and the section or teacher's
 // week someone made theirs, kept on the phone so Today works offline.
 
 /// The departments with a routine, in the order the app shows them.
 const routineDepartments = [
   RoutineDepartmentSlug.cse,
   RoutineDepartmentSlug.eee,
+  RoutineDepartmentSlug.swe,
 ];
 
 /// "CSE" for [RoutineDepartmentSlug.cse].
@@ -75,13 +76,16 @@ String timeRange(String start, String end) {
       : '$a – $b';
 }
 
-/// "67_B1" for lab group B1 of 67_B (EEE's "1-2 B1" of 1-2 B), as students
-/// write it.
-String groupLabel(String section, String group) =>
-    (section.endsWith('_${group[0]}') || section.endsWith(' ${group[0]}')) &&
-        RegExp(r'^[A-Z]\d+$').hasMatch(group)
-    ? '$section${group.substring(1)}'
-    : '$section ($group)';
+/// "67_B1" for lab group B1 of 67_B (EEE's "1-2 B1" of 1-2 B, SWE's "41_DSA1"
+/// of 41_DSA), as students write it, like the website's `routineGroupLabel`.
+String groupLabel(String section, String group) {
+  final letters = RegExp(r'[_ ]([A-Za-z]+)$').firstMatch(section)?.group(1);
+  return letters != null &&
+          group.startsWith(letters) &&
+          RegExp(r'^\d+$').hasMatch(group.substring(letters.length))
+      ? '$section${group.substring(letters.length)}'
+      : '$section ($group)';
+}
 
 /// A batch's (or EEE level-term's) own section ("67_B", "1-2 B"), not a retake
 /// section like "RE_A(3C)", which gathers many courses at the same times.

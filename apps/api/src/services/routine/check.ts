@@ -111,7 +111,8 @@ export function routineWarnings(classes: CheckedClass[]): RoutineWarning[] {
     });
   }
   for (const [a, b] of clashes(
-    groupBy(seen, (c) => c.room),
+    // Online classes (SWE's) share no room.
+    groupBy(seen, (c) => (c.room === "Online" ? null : c.room)),
     // The same course for two sections in one room is a combined class.
     (a, b) => a.course !== b.course,
   )) {

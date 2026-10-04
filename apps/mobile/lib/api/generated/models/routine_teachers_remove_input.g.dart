@@ -25,5 +25,6 @@ Map<String, dynamic> _$RoutineTeachersRemoveInputToJson(
 const _$RoutineDepartmentEnumMap = {
   RoutineDepartment.cse: 'CSE',
   RoutineDepartment.eee: 'EEE',
+  RoutineDepartment.swe: 'SWE',
   RoutineDepartment.$unknown: r'$unknown',
 };

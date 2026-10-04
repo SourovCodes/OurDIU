@@ -202,7 +202,7 @@ function NamesCard({ v }: { v: AdminRoutineVersionDetail }) {
           Course titles and teachers
         </h2>
         <p className="text-sm text-muted-foreground">
-          DIU’s PDF gives codes and initials. Students see titles and names
+          DIU’s file gives codes and initials. Students see titles and names
           wherever they’re added, in every {v.department} version.
         </p>
       </div>
@@ -354,7 +354,7 @@ export default function AdminRoutineVersion({
             <Button variant="ghost" asChild>
               <a href={versionPdfHref(v)} download>
                 <Download aria-hidden />
-                DIU’s PDF
+                DIU’s file
               </a>
             </Button>
             <ConfirmAction
@@ -449,7 +449,7 @@ export default function AdminRoutineVersion({
         <Alert variant="destructive">
           <FileWarning aria-hidden />
           <AlertTitle>
-            {unread.length} place{unread.length === 1 ? "" : "s"} in DIU’s PDF
+            {unread.length} place{unread.length === 1 ? "" : "s"} in DIU’s file
             to check
           </AlertTitle>
           <AlertDescription>
@@ -461,7 +461,7 @@ export default function AdminRoutineVersion({
             <p className="mt-2">
               Cells that couldn’t be read are left out, so students won’t see
               those classes; others were read with a guess. Compare them with
-              DIU’s PDF before making this version live.
+              DIU’s file before making this version live.
             </p>
           </AlertDescription>
         </Alert>

@@ -154,6 +154,8 @@ describe("routine helpers", () => {
   it("names lab groups and times as students write them", () => {
     expect(routineGroupLabel("67_B", "B1")).toBe("67_B1");
     expect(routineGroupLabel("1-2 B", "B1")).toBe("1-2 B1");
+    expect(routineGroupLabel("41_DSA", "DSA1")).toBe("41_DSA1");
+    expect(routineGroupLabel("RE_A(3C)", "G1")).toBe("RE_A(3C) (G1)");
     expect(routineGroupLabel("RE_A(3C)", "G1")).toBe("RE_A(3C) (G1)");
     expect(routineTimeRange("10:00", "11:30")).toBe("10:00 – 11:30 am");
     expect(routineTimeRange("11:30", "13:00")).toBe("11:30 am – 1:00 pm");

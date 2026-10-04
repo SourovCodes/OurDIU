@@ -36,9 +36,9 @@ abstract class AdminRoutineClient {
   @GET('/api/v1/admin/routine/versions')
   Future<AdminRoutineVersionList> getApiV1AdminRoutineVersions();
 
-  /// Read DIU's routine PDF into a draft.
+  /// Read DIU's routine file into a draft.
   ///
-  /// Each department's PDF has its own reader (CSE's and EEE's so far), found by the heading on its first page; another PDF is answered with 422 `UNKNOWN_ROUTINE_PDF`. What's read is checked: if the PDF's layout changed so it can't be used, 422 `INVALID_ROUTINE_FILE` with the problems in `details` (`{ path, message }`). Cells that couldn't be read, or were read with a guess, are the draft's first warnings (`unreadable`); possible slips in the routine (clashes, untitled courses) follow.
+  /// Each department's file has its own reader (CSE's and EEE's PDFs, SWE's Excel sheet), found by the heading on its first page or at the top of the sheet; another file is answered with 422 `UNKNOWN_ROUTINE_PDF`. SWE's sheet has no version number: `version` is used, else one in the file's name ("…version04.xlsx"), else 422 `NO_VERSION`. What's read is checked: if the PDF's layout changed so it can't be used, 422 `INVALID_ROUTINE_FILE` with the problems in `details` (`{ path, message }`). Cells that couldn't be read, or were read with a guess, are the draft's first warnings (`unreadable`); possible slips in the routine (clashes, untitled courses) follow.
   @MultiPart()
   @POST('/api/v1/admin/routine/versions')
   Future<AdminRoutineVersionDetail> postApiV1AdminRoutineVersions({
@@ -86,7 +86,7 @@ abstract class AdminRoutineClient {
     @Path('section') required String section,
   });
 
-  /// Download DIU's PDF a version was read from
+  /// Download DIU's file a version was read from
   @GET('/api/v1/admin/routine/versions/{id}/pdf')
   @DioResponseType(ResponseType.stream)
   Stream<String> getApiV1AdminRoutineVersionsIdPdf({

@@ -99,7 +99,7 @@ class _Heading extends StatelessWidget {
   }
 }
 
-/// CSE or EEE, for Students and Teachers; a department without a live routine
+/// CSE, EEE or SWE, for Students and Teachers; a department without a live routine
 /// says "soon".
 class _DepartmentPicker extends ConsumerWidget {
   const _DepartmentPicker();
@@ -588,9 +588,12 @@ class _RoutineSectionsScreenState extends ConsumerState<RoutineSectionsScreen> {
             const SizedBox(height: 12),
             SearchBar(
               controller: _query,
-              hintText: department == RoutineDepartmentSlug.eee
-                  ? 'Your section, e.g. 1-2 B or 1-2 B1'
-                  : 'Your section, e.g. 67_B or 67_B1',
+              hintText: switch (department) {
+                RoutineDepartmentSlug.eee =>
+                  'Your section, e.g. 1-2 B or 1-2 B1',
+                RoutineDepartmentSlug.swe => 'Your section, e.g. 44_G or 44_G1',
+                _ => 'Your section, e.g. 67_B or 67_B1',
+              },
               leading: const Icon(Icons.search_rounded),
               textCapitalization: TextCapitalization.characters,
               elevation: const WidgetStatePropertyAll(0),

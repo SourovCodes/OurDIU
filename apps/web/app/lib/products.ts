@@ -66,7 +66,7 @@ export const PRODUCTS: Product[] = [
     id: "routine",
     name: "Class Routine",
     title: "My class routine",
-    tagline: "Today’s classes, your week, free rooms",
+    tagline: "Today’s classes, your section’s or a teacher’s week",
     description:
       "Your section's week, a teacher's classes, and which rooms are free right now.",
     icon: CalendarClock,

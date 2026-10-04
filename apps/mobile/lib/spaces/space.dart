@@ -30,7 +30,7 @@ enum Space {
   routine(
     label: 'Class Routine',
     title: 'My class routine',
-    tagline: "Today's classes, your week, free rooms",
+    tagline: "Today's classes, your section's or a teacher's week",
     icon: Icons.calendar_month_outlined,
     home: '/routine',
     live: false,

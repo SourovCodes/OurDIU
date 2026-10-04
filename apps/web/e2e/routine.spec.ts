@@ -376,7 +376,7 @@ test("an admin uploads EEE's routine PDF, and EEE students find their section", 
       .click();
     await expect(page).toHaveURL(/\/routine\/eee$/, { timeout: 2_000 });
   }).toPass();
-  await expect(page.getByRole("heading", { name: "Sections" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Students" })).toBeVisible();
   const search = page.getByRole("combobox", { name: /Your section/ });
   await expect(async () => {
     await search.fill("");

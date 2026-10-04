@@ -109,6 +109,8 @@ class ClassPlace extends StatelessWidget {
         item(Icons.place_outlined, c.room, 'Room'),
         if (c.teacher case final t?)
           item(Icons.person_outline_rounded, t.name ?? t.initials, 'Teacher'),
+        if (c case AttendedClass(:final sections))
+          item(Icons.groups_outlined, attendingLabel(sections), 'Sections'),
       ],
     );
   }
@@ -120,6 +122,7 @@ class ClassTile extends StatelessWidget {
     super.key,
     required this.c,
     required this.section,
+    required this.department,
     this.state,
     this.isNext = false,
     this.now,
@@ -127,6 +130,7 @@ class ClassTile extends StatelessWidget {
 
   final RoutineClass c;
   final String section;
+  final RoutineDepartmentSlug department;
   final ClassState? state;
   final bool isNext;
   final DhakaNow? now;
@@ -152,7 +156,12 @@ class ClassTile extends StatelessWidget {
         color: on ? scheme.primaryContainer : scheme.surfaceContainer,
         // Its details: the room, and the teacher with how to reach them.
         child: InkWell(
-          onTap: () => showClassSheet(context, c: c, section: section),
+          onTap: () => showClassSheet(
+            context,
+            c: c,
+            section: section,
+            department: department,
+          ),
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
@@ -213,11 +222,13 @@ class DayClasses extends StatelessWidget {
     super.key,
     required this.classes,
     required this.section,
+    required this.department,
     this.now,
   });
 
   final List<RoutineClass> classes;
   final String section;
+  final RoutineDepartmentSlug department;
   final DhakaNow? now;
 
   @override
@@ -231,6 +242,7 @@ class DayClasses extends StatelessWidget {
           ClassTile(
             c: c,
             section: section,
+            department: department,
             state: now == null ? null : classState(c, now!),
             isNext: i == next,
             now: now,
@@ -239,6 +251,14 @@ class DayClasses extends StatelessWidget {
     );
   }
 }
+
+/// A class in a few words: "CSE321, KT-222", with the sections in a teacher's
+/// week.
+String _briefly(RoutineClass c) => [
+  c.course.title ?? c.course.code,
+  if (c case AttendedClass(:final sections)) attendingLabel(sections),
+  c.room,
+].join(', ');
 
 /// The one thing to know now, as a tile in the space's colour: the class you're
 /// in, the next one today, or (after the last, or on a day off) the next class.
@@ -279,8 +299,7 @@ class TodayCard extends StatelessWidget {
       focus = current;
       detail = '${minutesOf(current.end) - now.minutes} min left';
       if (next != null && next.daysAhead == 0) {
-        after =
-            'Next at ${clockTime(next.c.start)}: ${next.c.course.title ?? next.c.course.code}, ${next.c.room}';
+        after = 'Next at ${clockTime(next.c.start)}: ${_briefly(next.c)}';
       }
     } else if (next != null && next.daysAhead == 0) {
       eyebrow =
@@ -293,7 +312,7 @@ class TodayCard extends StatelessWidget {
       headline = todays.isEmpty ? 'No classes today' : 'Done for today';
       if (next != null) {
         after =
-            '${dayWord(next.c.day, next.daysAhead)} at ${clockTime(next.c.start)}: ${next.c.course.title ?? next.c.course.code}, ${next.c.room}';
+            '${dayWord(next.c.day, next.daysAhead)} at ${clockTime(next.c.start)}: ${_briefly(next.c)}';
       }
     }
 
@@ -461,25 +480,34 @@ class DayStrip extends StatelessWidget {
   }
 }
 
-/// A section's week: the day strip over the chosen day's classes, opening on
-/// today.
-class SectionWeek extends ConsumerStatefulWidget {
-  const SectionWeek({super.key, required this.routine, required this.group});
+/// A week (a section's, a lab group's or a teacher's): the day strip over the
+/// chosen day's classes, opening on today, or on the next class's day once
+/// today's are over.
+class RoutineWeek extends ConsumerStatefulWidget {
+  const RoutineWeek({
+    super.key,
+    required this.classes,
+    required this.section,
+    required this.department,
+  });
 
-  final RoutineSection routine;
-  final String? group;
+  final List<RoutineClass> classes;
+
+  /// The section's name, for lab groups' labels; "" in a teacher's week.
+  final String section;
+  final RoutineDepartmentSlug department;
 
   @override
-  ConsumerState<SectionWeek> createState() => _SectionWeekState();
+  ConsumerState<RoutineWeek> createState() => _RoutineWeekState();
 }
 
-class _SectionWeekState extends ConsumerState<SectionWeek> {
+class _RoutineWeekState extends ConsumerState<RoutineWeek> {
   RoutineDay? _picked;
 
   @override
   Widget build(BuildContext context) {
     final now = watchNow(ref);
-    final classes = classesFor(widget.routine.classes, widget.group);
+    final classes = widget.classes;
     final days = weekDays(classes);
     final today = days.contains(now.day) ? now.day : null;
     // Today while it has a class to come; once they're over (or on a day off), the
@@ -551,7 +579,8 @@ class _SectionWeekState extends ConsumerState<SectionWeek> {
         else
           DayClasses(
             classes: onDay,
-            section: widget.routine.section,
+            section: widget.section,
+            department: widget.department,
             now: day == today ? now : null,
           ),
       ],
@@ -623,10 +652,16 @@ class _PdfSheetState extends ConsumerState<_PdfSheet> {
   late String? _group = widget.group;
   var _busy = false;
 
-  RoutinePick get _pick => (section: widget.routine.section, group: _group);
+  RoutinePick get _pick => (
+    department: departmentOf(widget.routine.version),
+    section: widget.routine.section,
+    group: _group,
+  );
+
+  String get _label => pickLabel(_pick.section, _pick.group);
 
   String get _fileName =>
-      '${pickLabel(_pick).replaceAll(RegExp(r'[^A-Za-z0-9_.-]+'), '_')}_routine_v${widget.routine.version.version}.pdf';
+      '${_label.replaceAll(RegExp(r'[^A-Za-z0-9_.-]+'), '_')}_routine_v${widget.routine.version.version}.pdf';
 
   Future<void> _share(BuildContext button) async {
     setState(() => _busy = true);
@@ -671,7 +706,7 @@ class _PdfSheetState extends ConsumerState<_PdfSheet> {
               style: expressive(26, color: theme.colorScheme.onSurface),
             ),
             Text(
-              'One A4 page of ${pickLabel(_pick)}’s week, with the routine’s version (v${routine.version.version}) and a code that opens the latest one.',
+              'One A4 page of $_label’s week, with the routine’s version (v${routine.version.version}) and a code that opens the latest one.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -713,6 +748,38 @@ class _PdfSheetState extends ConsumerState<_PdfSheet> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A teacher's week as a PDF, to save or share.
+Future<void> shareTeacherPdf(
+  BuildContext button,
+  WidgetRef ref,
+  RoutineTeacherWeek week,
+) async {
+  final messenger = ScaffoldMessenger.of(button);
+  final pick = (
+    department: departmentOf(week.version),
+    initials: week.teacher.initials,
+  );
+  try {
+    await sharePaper(
+      button,
+      dio: ref.read(dioProvider),
+      url: teacherPdfUrl(pick),
+      fileName:
+          '${week.teacher.initials.replaceAll(RegExp(r'[^A-Za-z0-9_.-]+'), '_')}_routine_v${week.version.version}.pdf',
+    );
+  } on Object catch (error) {
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          isOffline(error)
+              ? "You're offline. Connect to download the PDF."
+              : "Couldn't make the PDF. Try again.",
         ),
       ),
     );

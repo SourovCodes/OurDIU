@@ -1,4 +1,4 @@
-import { ArrowRight, LayoutGrid, UsersRound } from "lucide-react";
+import { ArrowRight, GraduationCap, UsersRound } from "lucide-react";
 import { Link } from "react-router";
 import { ComingSoon } from "~/components/coming-soon";
 import { ExamShape } from "~/components/exam-badge";
@@ -85,7 +85,7 @@ function WayIn({
   description,
 }: {
   to: string;
-  icon: typeof LayoutGrid;
+  icon: typeof GraduationCap;
   eyebrow: string;
   title: string;
   description: string;
@@ -149,7 +149,7 @@ export default function RoutineToday({ loaderData }: Route.ComponentProps) {
         <div className="grid gap-3 md:grid-cols-2">
           <WayIn
             to={`/routine/${department}`}
-            icon={LayoutGrid}
+            icon={GraduationCap}
             eyebrow="For students"
             title="Find your section"
             description="Your batch’s week and your lab group’s labs, with rooms, teachers and where they sit."

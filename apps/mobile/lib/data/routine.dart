@@ -7,11 +7,26 @@ import '../api/api.dart';
 import '../api/generated/export.dart';
 import 'prefs.dart';
 
-// The Class Routine (docs/PLAN.md, decision 29): the live routine of CSE, the only
-// department for now, and the section a student made theirs, kept on the phone so
-// Today and Week work offline.
+// The Class Routine (docs/PLAN.md, decisions 29, 33 and 34): each department's live
+// routine (CSE and EEE), its sections and teachers, and the section or teacher's
+// week someone made theirs, kept on the phone so Today works offline.
 
-const routineDepartment = RoutineDepartmentSlug.cse;
+/// The departments with a routine, in the order the app shows them.
+const routineDepartments = [
+  RoutineDepartmentSlug.cse,
+  RoutineDepartmentSlug.eee,
+];
+
+/// "CSE" for [RoutineDepartmentSlug.cse].
+String departmentName(RoutineDepartmentSlug d) => d.json!.toUpperCase();
+
+RoutineDepartmentSlug? departmentFrom(String? json) =>
+    routineDepartments.where((d) => d.json == json).firstOrNull;
+
+/// The department a routine version is of, as in addresses.
+RoutineDepartmentSlug departmentOf(RoutineVersion v) =>
+    departmentFrom(v.department.json?.toLowerCase()) ??
+    RoutineDepartmentSlug.cse;
 
 /// Days of the university week, Saturday first.
 const routineWeek = [
@@ -60,16 +75,18 @@ String timeRange(String start, String end) {
       : '$a – $b';
 }
 
-/// "67_B1" for lab group B1 of 67_B, as students write it.
+/// "67_B1" for lab group B1 of 67_B (EEE's "1-2 B1" of 1-2 B), as students
+/// write it.
 String groupLabel(String section, String group) =>
-    section.endsWith('_${group[0]}') && RegExp(r'^[A-Z]\d+$').hasMatch(group)
+    (section.endsWith('_${group[0]}') || section.endsWith(' ${group[0]}')) &&
+        RegExp(r'^[A-Z]\d+$').hasMatch(group)
     ? '$section${group.substring(1)}'
     : '$section ($group)';
 
-/// A batch's own section ("67_B"), not a retake section like "RE_A(3C)", which
-/// gathers many courses at the same times.
+/// A batch's (or EEE level-term's) own section ("67_B", "1-2 B"), not a retake
+/// section like "RE_A(3C)", which gathers many courses at the same times.
 bool isRegularSection(String section) =>
-    RegExp(r'^\d+_[A-Za-z]+$').hasMatch(section);
+    RegExp(r'^(?:\d+_[A-Za-z]+|\d-\d [A-Z]+)$').hasMatch(section);
 
 /// The day and minute in Dhaka, where DIU's classes are (UTC+6, no summer time).
 typedef DhakaNow = ({RoutineDay day, int minutes, DateTime date});
@@ -150,23 +167,73 @@ String dayWord(RoutineDay day, int daysAhead) => switch (daysAhead) {
 };
 
 /// A section to show, and maybe one of its lab groups.
-typedef RoutinePick = ({String section, String? group});
+typedef RoutinePick = ({
+  RoutineDepartmentSlug department,
+  String section,
+  String? group,
+});
 
-String pickLabel(RoutinePick pick) =>
-    pick.group == null ? pick.section : groupLabel(pick.section, pick.group!);
+/// "67_B1": a section with its lab group, as students write it.
+String pickLabel(String section, String? group) =>
+    group == null ? section : groupLabel(section, group);
 
 /// The PDF of a section's week (`GET /api/v1/routine/…/pdf`).
 Uri routinePdfUrl(RoutinePick pick) => Uri.parse(apiBaseUrl).replace(
-  path:
-      '/api/v1/routine/${routineDepartment.json}/sections/${pick.section}/pdf',
+  path: '/api/v1/routine/${pick.department.json}/sections/${pick.section}/pdf',
   queryParameters: pick.group == null ? null : {'group': pick.group},
 );
 
-/// The section's page on the website, for sharing.
+/// The section's page on the website, for sharing; EEE's "1-2 B" is "1-2_B".
 Uri routinePageUrl(RoutinePick pick) => Uri.parse(apiBaseUrl).replace(
-  path: '/routine/${routineDepartment.json}/${pick.section}',
+  path: '/routine/${pick.department.json}/${pick.section.replaceAll(' ', '_')}',
   queryParameters: pick.group == null ? null : {'group': pick.group},
 );
+
+/// A teacher's week to show: their department and initials as printed.
+typedef TeacherPick = ({RoutineDepartmentSlug department, String initials});
+
+/// The PDF of a teacher's week.
+Uri teacherPdfUrl(TeacherPick pick) => Uri.parse(apiBaseUrl).replace(
+  path: '/api/v1/routine/${pick.department.json}/teachers/${pick.initials}/pdf',
+);
+
+/// The teacher's page on the website, for sharing.
+Uri teacherPageUrl(TeacherPick pick) => Uri.parse(
+  apiBaseUrl,
+).replace(path: '/routine/${pick.department.json}/teachers/${pick.initials}');
+
+/// A teacher's name, or their initials until admins add it.
+String teacherName(String initials, String? name) => name ?? initials;
+
+/// Who attends a teacher's class, as students write them: "67_B1, 67_C".
+String attendingLabel(List<RoutineAttendingSection> sections) => [
+  for (final s in sections)
+    s.labGroup == null ? s.section : groupLabel(s.section, s.labGroup!),
+].join(', ');
+
+/// A teacher's class in a section's class's shape, so the same tiles, cards and
+/// sheets show it: no teacher, and the sections attending it instead. A lab
+/// group's class is a lab.
+class AttendedClass extends RoutineClass {
+  AttendedClass(RoutineTeacherClass c)
+    : sections = c.sections,
+      super(
+        day: c.day,
+        start: c.start,
+        end: c.end,
+        course: c.course,
+        labGroup: null,
+        room: c.room,
+        roomType:
+            c.roomType ??
+            (c.sections.any((s) => s.labGroup != null)
+                ? RoutineRoomType.lab
+                : null),
+        teacher: null,
+      );
+
+  final List<RoutineAttendingSection> sections;
+}
 
 /// Whether a request failed because there's no live routine (or no such section).
 bool isMissing(Object error) =>
@@ -178,71 +245,177 @@ Duration? _retry(int count, Object error) => isMissing(error) || count >= 3
     ? null
     : Duration(milliseconds: 500 * (1 << count));
 
-/// Every section of the live routine, for finding yours. A 404: no routine yet.
-final routineSectionsProvider = FutureProvider<RoutineSectionList>(
-  (ref) => ref
-      .watch(qbApiProvider)
-      .routine
-      .getApiV1RoutineDepartmentSections(department: routineDepartment),
-  retry: _retry,
-);
+/// A department's sections, for finding yours. A 404: no routine there yet.
+final routineSectionsProvider =
+    FutureProvider.family<RoutineSectionList, RoutineDepartmentSlug>(
+      (ref, department) => ref
+          .watch(qbApiProvider)
+          .routine
+          .getApiV1RoutineDepartmentSections(department: department),
+      retry: _retry,
+    );
+
+/// The departments with a live routine; none means the space is coming soon.
+final liveDepartmentsProvider = FutureProvider<List<RoutineDepartmentSlug>>((
+  ref,
+) async {
+  final live = <RoutineDepartmentSlug>[];
+  for (final d in routineDepartments) {
+    try {
+      await ref.watch(routineSectionsProvider(d).future);
+      live.add(d);
+    } on Object catch (error) {
+      if (!isMissing(error)) rethrow;
+    }
+  }
+  return live;
+});
 
 /// One section's week, from the network.
-final routineSectionProvider = FutureProvider.family<RoutineSection, String>(
-  (ref, section) => ref
-      .watch(qbApiProvider)
-      .routine
-      .getApiV1RoutineDepartmentSectionsSection(
-        department: routineDepartment,
-        section: section,
-      ),
-  retry: _retry,
-);
+final routineSectionProvider =
+    FutureProvider.family<
+      RoutineSection,
+      ({RoutineDepartmentSlug department, String section})
+    >(
+      (ref, of) => ref
+          .watch(qbApiProvider)
+          .routine
+          .getApiV1RoutineDepartmentSectionsSection(
+            department: of.department,
+            section: of.section,
+          ),
+      retry: _retry,
+    );
 
+/// A department's teachers, for finding one's week.
+final routineTeachersProvider =
+    FutureProvider.family<RoutineTeacherList, RoutineDepartmentSlug>(
+      (ref, department) => ref
+          .watch(qbApiProvider)
+          .routine
+          .getApiV1RoutineDepartmentTeachers(department: department),
+      retry: _retry,
+    );
+
+/// One teacher's week, from the network.
+final routineTeacherProvider =
+    FutureProvider.family<RoutineTeacherWeek, TeacherPick>(
+      (ref, pick) => ref
+          .watch(qbApiProvider)
+          .routine
+          .getApiV1RoutineDepartmentTeachersInitials(
+            department: pick.department,
+            initials: pick.initials,
+          ),
+      retry: _retry,
+    );
+
+const _departmentKey = 'routine_department';
 const _pickKey = 'routine_section';
 const _groupKey = 'routine_group';
+const _teacherKey = 'routine_teacher';
 const _cacheKey = 'routine_cache';
+const _teacherCacheKey = 'routine_teacher_cache';
+const _browseKey = 'routine_browse_department';
 
-/// The section the student made theirs ("My section"), kept on the phone.
-class MySection extends Notifier<RoutinePick?> {
+/// What someone made theirs: a section (maybe one lab group) or a teacher's week.
+sealed class SavedRoutine {
+  const SavedRoutine(this.department);
+
+  final RoutineDepartmentSlug department;
+}
+
+class SavedSection extends SavedRoutine {
+  const SavedSection(super.department, this.section, this.group);
+
+  final String section;
+  final String? group;
+
+  RoutinePick get pick =>
+      (department: department, section: section, group: group);
+}
+
+class SavedTeacher extends SavedRoutine {
+  const SavedTeacher(super.department, this.initials);
+
+  final String initials;
+
+  TeacherPick get pick => (department: department, initials: initials);
+}
+
+/// The section or teacher's week made "mine", kept on the phone. Phones from
+/// before EEE have a CSE section without a department.
+class MyRoutineChoice extends Notifier<SavedRoutine?> {
   @override
-  RoutinePick? build() {
+  SavedRoutine? build() {
     final prefs = ref.watch(prefsProvider);
+    final department =
+        departmentFrom(prefs.getString(_departmentKey)) ??
+        RoutineDepartmentSlug.cse;
+    if (prefs.getString(_teacherKey) case final initials?) {
+      return SavedTeacher(department, initials);
+    }
     final section = prefs.getString(_pickKey);
     return section == null
         ? null
-        : (section: section, group: prefs.getString(_groupKey));
+        : SavedSection(department, section, prefs.getString(_groupKey));
   }
 
-  void set(RoutinePick? pick) {
+  void set(SavedRoutine? saved) {
     final prefs = ref.read(prefsProvider);
-    state = pick;
-    if (pick == null) {
-      prefs
-        ..remove(_pickKey)
-        ..remove(_groupKey)
-        ..remove(_cacheKey);
-    } else {
-      prefs.setString(_pickKey, pick.section);
-      if (pick.group == null) {
-        prefs.remove(_groupKey);
-      } else {
-        prefs.setString(_groupKey, pick.group!);
-      }
+    state = saved;
+    for (final key in [
+      _departmentKey,
+      _pickKey,
+      _groupKey,
+      _teacherKey,
+      _cacheKey,
+      _teacherCacheKey,
+    ]) {
+      prefs.remove(key);
     }
+    switch (saved) {
+      case null:
+        return;
+      case SavedSection(:final section, :final group):
+        prefs.setString(_pickKey, section);
+        if (group != null) prefs.setString(_groupKey, group);
+      case SavedTeacher(:final initials):
+        prefs.setString(_teacherKey, initials);
+    }
+    prefs.setString(_departmentKey, saved.department.json!);
   }
 }
 
-final mySectionProvider = NotifierProvider<MySection, RoutinePick?>(
-  MySection.new,
-);
+final myRoutineChoiceProvider =
+    NotifierProvider<MyRoutineChoice, SavedRoutine?>(MyRoutineChoice.new);
 
-/// My section's week: fresh from the network when there is one, else the copy
-/// kept from last time ([offline]). [updatedFrom] is the version the phone had
-/// before, when the routine changed since.
+/// Whether [saved] is the section [pick].
+bool isMySection(SavedRoutine? saved, RoutinePick pick) =>
+    saved is SavedSection &&
+    saved.department == pick.department &&
+    saved.section == pick.section &&
+    saved.group == pick.group;
+
+/// Whether [saved] is the teacher [pick].
+bool isMyTeacher(SavedRoutine? saved, TeacherPick pick) =>
+    saved is SavedTeacher &&
+    saved.department == pick.department &&
+    saved.initials == pick.initials;
+
+/// My routine's week for Today: fresh from the network when there is one, else
+/// the copy kept from last time ([offline]). [updatedFrom] is the version the
+/// phone had before, when the routine changed since.
 typedef MyRoutine = ({
-  RoutineSection routine,
-  RoutinePick pick,
+  SavedRoutine saved,
+
+  /// "67_B1", or the teacher's name.
+  String name,
+  List<RoutineClass> classes,
+
+  /// The section's name; "" for a teacher's week.
+  String section,
+  RoutineVersion version,
   bool offline,
   String? updatedFrom,
 });
@@ -250,43 +423,111 @@ typedef MyRoutine = ({
 final myRoutineProvider = FutureProvider<MyRoutine?>(retry: _retry, (
   ref,
 ) async {
-  final pick = ref.watch(mySectionProvider);
-  if (pick == null) return null;
+  final saved = ref.watch(myRoutineChoiceProvider);
+  if (saved == null) return null;
   final prefs = ref.read(prefsProvider);
-  RoutineSection? cached;
+  final cacheKey = saved is SavedTeacher ? _teacherCacheKey : _cacheKey;
+
+  MyRoutine of(Object routine, {required bool offline, String? before}) {
+    final version = switch (routine) {
+      RoutineSection r => r.version,
+      RoutineTeacherWeek w => w.version,
+      _ => throw StateError('$routine'),
+    };
+    return (
+      saved: saved,
+      name: switch (routine) {
+        RoutineTeacherWeek w => teacherName(w.teacher.initials, w.teacher.name),
+        _ => pickLabel((saved as SavedSection).section, saved.group),
+      },
+      classes: switch (routine) {
+        RoutineSection r => classesFor(
+          r.classes,
+          (saved as SavedSection).group,
+        ),
+        RoutineTeacherWeek w => [for (final c in w.classes) AttendedClass(c)],
+        _ => const [],
+      },
+      section: routine is RoutineSection ? routine.section : '',
+      version: version,
+      offline: offline,
+      updatedFrom: before != null && before != version.version ? before : null,
+    );
+  }
+
+  Object? cached;
   try {
-    final json = prefs.getString(_cacheKey);
+    final json = prefs.getString(cacheKey);
     if (json != null) {
-      final copy = RoutineSection.fromJson(
-        jsonDecode(json) as Map<String, Object?>,
-      );
-      if (copy.section == pick.section) cached = copy;
+      final map = jsonDecode(json) as Map<String, Object?>;
+      cached = switch (saved) {
+        SavedSection(:final section) => RoutineSection.fromJson(
+          map,
+        ).let((r) => r.section == section ? r : null),
+        SavedTeacher(:final initials) => RoutineTeacherWeek.fromJson(
+          map,
+        ).let((w) => w.teacher.initials == initials ? w : null),
+      };
     }
   } on Object {
     // An old or broken copy: fetched again below.
   }
+  final before = switch (cached) {
+    RoutineSection r => r.version.version,
+    RoutineTeacherWeek w => w.version.version,
+    _ => null,
+  };
   try {
-    final routine = await ref.watch(
-      routineSectionProvider(pick.section).future,
+    final Object routine = switch (saved) {
+      SavedSection(:final department, :final section) => await ref.watch(
+        routineSectionProvider((department: department, section: section))
+            .future,
+      ),
+      SavedTeacher(:final pick) => await ref.watch(
+        routineTeacherProvider(pick).future,
+      ),
+    };
+    await prefs.setString(
+      cacheKey,
+      jsonEncode(switch (routine) {
+        RoutineSection r => r.toJson(),
+        RoutineTeacherWeek w => w.toJson(),
+        _ => const <String, Object?>{},
+      }),
     );
-    await prefs.setString(_cacheKey, jsonEncode(routine.toJson()));
-    final before = cached?.version.version;
-    return (
-      routine: routine,
-      pick: pick,
-      offline: false,
-      updatedFrom: before != null && before != routine.version.version
-          ? before
-          : null,
-    );
+    return of(routine, offline: false, before: before);
   } on Object catch (error) {
     // Offline: last time's copy. Gone from a new routine (404): say so.
-    if (cached != null && !isMissing(error)) {
-      return (routine: cached, pick: pick, offline: true, updatedFrom: null);
-    }
+    if (cached != null && !isMissing(error)) return of(cached, offline: true);
     rethrow;
   }
 });
+
+/// The department Students and Teachers show: the one last picked there, else
+/// the saved routine's, else CSE.
+class BrowseDepartment extends Notifier<RoutineDepartmentSlug> {
+  @override
+  RoutineDepartmentSlug build() {
+    final prefs = ref.watch(prefsProvider);
+    return departmentFrom(prefs.getString(_browseKey)) ??
+        ref.read(myRoutineChoiceProvider)?.department ??
+        RoutineDepartmentSlug.cse;
+  }
+
+  void set(RoutineDepartmentSlug department) {
+    state = department;
+    ref.read(prefsProvider).setString(_browseKey, department.json!);
+  }
+}
+
+final browseDepartmentProvider =
+    NotifierProvider<BrowseDepartment, RoutineDepartmentSlug>(
+      BrowseDepartment.new,
+    );
+
+extension _Let<T> on T {
+  R let<R>(R Function(T it) f) => f(this);
+}
 
 /// One choice in the section search: a section, or one of its lab groups.
 typedef SectionChoice = ({
@@ -318,7 +559,7 @@ String _squash(String text) =>
     text.toUpperCase().replaceAll(RegExp(r'[\s_-]+'), '');
 
 /// Choices matching what was typed, ignoring case, spaces and underscores ("67b",
-/// "67 B1"): those starting with it first.
+/// "67 B1", EEE's "12b"): those starting with it first.
 List<SectionChoice> matchSections(
   List<SectionChoice> choices,
   String query, {
@@ -339,22 +580,78 @@ List<SectionChoice> matchSections(
   return [...starts, ...contains].take(limit).toList();
 }
 
-/// Sections by batch, newest batch first; retakes and others last.
-List<({String batch, List<String> sections})> sectionsByBatch(
-  List<RoutineSectionSummary> sections,
+/// What a section belongs to: CSE's batch ("67" of 67_B) or EEE's level and
+/// term ("1-2" of 1-2 B), with the section's letter; null for retakes and others.
+({String key, String title, String name, String letter})? sectionGroup(
+  String section,
 ) {
-  final batches = <String, List<String>>{};
-  for (final s in sections) {
-    final batch = RegExp(r'^(\d+)_').firstMatch(s.section)?.group(1) ?? '';
-    (batches[batch] ??= []).add(s.section);
+  if (RegExp(r'^(\d+)_([A-Za-z]+)$').firstMatch(section) case final m?) {
+    return (key: m[1]!, title: m[1]!, name: 'Batch ${m[1]}', letter: m[2]!);
   }
-  final keys = batches.keys.toList()
-    ..sort(
-      (a, b) => a.isEmpty
-          ? 1
-          : b.isEmpty
-          ? -1
-          : int.parse(b).compareTo(int.parse(a)),
+  if (RegExp(r'^(\d)-(\d) ([A-Z]+)$').firstMatch(section) case final m?) {
+    return (
+      key: '${m[1]}-${m[2]}',
+      title: '${m[1]}-${m[2]}',
+      name: 'Level ${m[1]}, term ${m[2]}',
+      letter: m[3]!,
     );
-  return [for (final k in keys) (batch: k, sections: batches[k]!)];
+  }
+  return null;
+}
+
+/// Sections by batch (the newest first) or level and term (the first first);
+/// retakes and others last.
+List<({String key, String title, String? name, List<String> sections})>
+sectionGroups(List<RoutineSectionSummary> sections) {
+  final groups = <String, List<String>>{};
+  final names = <String, ({String title, String name})>{};
+  for (final s in sections) {
+    final of = sectionGroup(s.section);
+    final key = of?.key ?? '';
+    (groups[key] ??= []).add(s.section);
+    if (of != null) names[key] = (title: of.title, name: of.name);
+  }
+  final keys = groups.keys.toList()
+    ..sort((a, b) {
+      if (a.isEmpty || b.isEmpty) return a.isEmpty ? 1 : (b.isEmpty ? -1 : 0);
+      return a.contains('-')
+          ? a.compareTo(b)
+          : int.parse(b).compareTo(int.parse(a));
+    });
+  return [
+    for (final k in keys)
+      (
+        key: k,
+        title: names[k]?.title ?? 'Retakes',
+        name: names[k]?.name,
+        sections: groups[k]!,
+      ),
+  ];
+}
+
+/// Teachers matching what was typed: by initials ("sta", those starting with it
+/// first), then by a word of their name ("sample"), then anywhere in the name.
+List<RoutineTeacherSummary> matchTeachers(
+  List<RoutineTeacherSummary> teachers,
+  String query,
+) {
+  final q = query.trim().toLowerCase();
+  if (q.isEmpty) return teachers;
+  final ranked = <(RoutineTeacherSummary, int)>[];
+  for (final t in teachers) {
+    final initials = t.initials.toLowerCase();
+    final name = t.name?.toLowerCase() ?? '';
+    final rank = initials == q
+        ? 0
+        : initials.startsWith(q)
+        ? 1
+        : name.split(RegExp(r'[\s.]+')).any((w) => w.startsWith(q))
+        ? 2
+        : name.contains(q)
+        ? 3
+        : -1;
+    if (rank >= 0) ranked.add((t, rank));
+  }
+  ranked.sort((a, b) => a.$2.compareTo(b.$2));
+  return [for (final (t, _) in ranked) t];
 }

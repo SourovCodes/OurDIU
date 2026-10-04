@@ -2,7 +2,7 @@
 
 pnpm monorepo, one Cloudflare Worker: `apps/web` (React Router SSR) runs `@ourdiu/api` (Hono, a library in `apps/api`) under `/api/*` and its queue handlers. The Worker config (bindings, vars, `.dev.vars`, local state) lives in `apps/web`. See README.md for the architecture and **docs/PLAN.md for the project plan: the decisions, the roadmap and what's in progress. Read it first, and keep it up to date** (tick off steps, record new decisions).
 
-Products: the Question Bank (`/questions`, moved in from diuqbank.com), the Class Routine (`/routine`: students' and teachers' routines read from DIU's PDFs, a reader per department's layout (CSE, EEE), with course titles and teachers' details kept by admins, docs/PLAN.md decisions 29–34; its menu is Today, Sections and Teachers; "coming soon" until a version is live) and the Marketplace (`/market`, a "coming soon" placeholder).
+Products: the Question Bank (`/questions`, moved in from diuqbank.com), the Class Routine (`/routine`: students' and teachers' routines read from DIU's PDFs, a reader per department's layout (CSE, EEE), with course titles and teachers' details kept by admins, docs/PLAN.md decisions 29–34; its menu (and the app's tabs) is Today, Students and Teachers; "coming soon" until a version is live) and the Marketplace (`/market`, a "coming soon" placeholder).
 
 ## Commands
 

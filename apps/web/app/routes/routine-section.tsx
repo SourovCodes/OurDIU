@@ -197,7 +197,7 @@ export default function RoutineSectionPage({
             <Breadcrumbs
               crumbs={[
                 {
-                  label: `${version.department} sections`,
+                  label: `${version.department} students`,
                   to: `/routine/${pick.department}`,
                 },
                 { label: pickLabel(pick) },

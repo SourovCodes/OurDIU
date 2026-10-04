@@ -1,4 +1,4 @@
-import { CalendarClock, LayoutGrid, UsersRound } from "lucide-react";
+import { CalendarClock, GraduationCap, UsersRound } from "lucide-react";
 import { useEffect, useSyncExternalStore } from "react";
 import { Link, useLocation, useMatches } from "react-router";
 import {
@@ -9,14 +9,14 @@ import {
 } from "~/lib/routine";
 import { cn } from "~/lib/utils";
 
-// The Class Routine's three places (docs/PLAN.md, decision 34): Today, Sections
+// The Class Routine's three places (docs/PLAN.md, decision 34): Today, Students
 // and Teachers, in the header on wide screens and a bottom bar on phones.
 
 // The cookie only changes in the effect below, after a navigation.
 const subscribe = () => () => {};
 
 /**
- * Today, Sections and Teachers, with Sections and Teachers in the department the
+ * Today, Students and Teachers, with Students and Teachers in the department the
  * page is in, else the one last looked at (CSE before any).
  */
 export function useRoutinePlaces() {
@@ -41,7 +41,7 @@ export function useRoutinePlaces() {
 
 const ICONS = {
   today: CalendarClock,
-  sections: LayoutGrid,
+  sections: GraduationCap,
   teachers: UsersRound,
 } as const;
 

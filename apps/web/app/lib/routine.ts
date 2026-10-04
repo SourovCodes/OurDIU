@@ -66,7 +66,7 @@ export function routineDepartmentAt(pathname: string) {
 }
 
 /**
- * The department the visitor last looked at, so Sections and Teachers in the menu
+ * The department the visitor last looked at, so Students and Teachers in the menu
  * open it again.
  */
 export const ROUTINE_DEPARTMENT_COOKIE = "ourdiu_routine_department";
@@ -91,8 +91,9 @@ export const teachersHref = (department: RoutineDepartmentSlug) =>
   `/routine/${department}/teachers`;
 
 /**
- * The Class Routine's own places: today's classes, a department's sections and its
- * teachers. Sections covers the section pages, Teachers the teachers' pages.
+ * The Class Routine's own places: today's classes, a department's sections
+ * (Students) and its teachers. Students covers the section pages, Teachers the
+ * teachers' pages.
  */
 export function routinePlaces(
   pathname: string,
@@ -111,7 +112,7 @@ export function routinePlaces(
     {
       id: "sections",
       to: `/routine/${department}`,
-      label: "Sections",
+      label: "Students",
       active: at !== null && !teachers,
     },
     {

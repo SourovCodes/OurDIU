@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Class Routine's home-screen widgets, in the routine's teal (lib/theme). -->
+<resources>
+    <color name="routine_widget_surface">#F6FBF8</color>
+    <color name="routine_widget_on_surface">#171D1B</color>
+    <color name="routine_widget_muted">#3F4946</color>
+    <color name="routine_widget_row">#EAF1EE</color>
+    <color name="routine_widget_container">#B9EEDF</color>
+    <color name="routine_widget_on_container">#00201A</color>
+    <color name="routine_widget_teal">#006B5B</color>
+    <color name="routine_widget_on_teal">#FFFFFF</color>
+    <color name="routine_widget_shape">#29006B5B</color>
+
+    <string name="routine_widget_now_name">Now and next</string>
+    <string name="routine_widget_now_description">The class you\'re in, or the next one, and its room.</string>
+    <string name="routine_widget_today_name">Today\'s classes</string>
+    <string name="routine_widget_today_description">Today\'s classes with their times and rooms.</string>
+    <string name="routine_widget_week_name">This week</string>
+    <string name="routine_widget_week_description">Each day\'s classes this week, and today\'s.</string>
+</resources>

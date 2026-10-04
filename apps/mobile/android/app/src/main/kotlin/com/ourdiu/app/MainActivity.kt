@@ -19,6 +19,10 @@ class MainActivity : FlutterActivity() {
     private var channel: MethodChannel? = null
     private var pending: Map<String, Any?>? = null
 
+    /** The Class Routine's widgets: the week to show, and taps that open Today. */
+    private var routineChannel: MethodChannel? = null
+    private var openRoutine = false
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).apply {
@@ -32,11 +36,30 @@ class MainActivity : FlutterActivity() {
             }
         }
         pending = takeSharedPdf(intent)
+
+        routineChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, ROUTINE_CHANNEL).apply {
+            setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "save" -> {
+                        RoutineWidgets.save(applicationContext, call.arguments as String?)
+                        result.success(null)
+                    }
+                    // Whether the app was opened from a widget, once.
+                    "take" -> {
+                        result.success(openRoutine)
+                        openRoutine = false
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+        }
+        openRoutine = intent?.action == RoutineWidgets.ACTION_OPEN
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         takeSharedPdf(intent)?.let { channel?.invokeMethod("shared", it) }
+        if (intent.action == RoutineWidgets.ACTION_OPEN) routineChannel?.invokeMethod("open", null)
     }
 
     /** The PDF an intent shares, copied where the app can read it; null if none. */
@@ -84,6 +107,7 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val CHANNEL = "diuqbank/shared_pdf"
+        private const val ROUTINE_CHANNEL = "ourdiu/routine_widget"
 
         /** Past the API's 20 MB limit, with room for rounding. */
         private const val MAX_BYTES = 21L * 1024 * 1024

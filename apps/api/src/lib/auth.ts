@@ -1,4 +1,5 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import { splitStudentId } from "@ourdiu/shared/constants";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { bearer } from "better-auth/plugins";
@@ -84,6 +85,8 @@ export function authOptions(env: Env, db: Database) {
         },
         // Changed through /api/v1/me/username, which validates it.
         username: { type: "string", required: false, input: false },
+        // Changed through /api/v1/me/student-id, which validates it.
+        studentId: { type: "string", required: false, input: false },
       },
     },
     hooks: {
@@ -103,9 +106,13 @@ export function authOptions(env: Env, db: Database) {
         create: {
           before: async (created) => {
             const isAdmin = adminEmails(env).has(created.email.toLowerCase());
+            // DIU accounts' Google names often end in the student ID.
+            const { name, studentId } = splitStudentId(created.name);
             return {
               data: {
                 ...created,
+                name,
+                ...(studentId ? { studentId } : {}),
                 username: await freshUsername(db),
                 ...(isAdmin ? { role: "admin" } : {}),
               },

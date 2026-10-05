@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { USERNAME_PATTERN, USERNAME_RULES } from "../constants";
+import {
+  STUDENT_ID_PATTERN,
+  STUDENT_ID_RULES,
+  USERNAME_PATTERN,
+  USERNAME_RULES,
+} from "../constants";
 import { analysisSummarySchema, submissionAnalysisSchema } from "./analysis";
 import { nullableRef } from "./common";
 import { contributorSubmissionSchema } from "./contributor";
@@ -85,6 +90,19 @@ export const updateUsernameInputSchema = z
   .meta({ id: "UpdateUsernameInput" });
 export type UpdateUsernameInput = z.infer<typeof updateUsernameInputSchema>;
 
+/** The signed-in user's student ID, optional and private. */
+export const updateStudentIdInputSchema = z
+  .object({
+    /** Like 241-15-047 or 0242220005101255; null to remove it. */
+    studentId: z
+      .string()
+      .trim()
+      .regex(STUDENT_ID_PATTERN, STUDENT_ID_RULES)
+      .nullable(),
+  })
+  .meta({ id: "UpdateStudentIdInput" });
+export type UpdateStudentIdInput = z.infer<typeof updateStudentIdInputSchema>;
+
 /** The signed-in user, with the counts their contributor page shows. */
 export const profileSchema = z
   .object({
@@ -95,6 +113,8 @@ export const profileSchema = z
     username: z.string(),
     /** An avatar URL: the files domain for images we store (relative `/api/v1/avatars/…` locally or when set before that). */
     image: z.string().nullable(),
+    /** Optional and private, like 241-15-047 or 0242220005101255. */
+    studentId: z.string().nullable(),
     publishedCount: z.number().int(),
     /** Views of all their published papers. */
     viewCount: z.number().int(),

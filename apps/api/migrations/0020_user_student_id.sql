@@ -1,0 +1,1 @@
+ALTER TABLE `user` ADD `student_id` text;

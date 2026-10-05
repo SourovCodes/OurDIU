@@ -17,6 +17,7 @@ import '../models/post_review_message_input.dart';
 import '../models/profile.dart';
 import '../models/resubmit_input.dart';
 import '../models/review_activity.dart';
+import '../models/update_student_id_input.dart';
 import '../models/update_username_input.dart';
 
 part 'account_client.g.dart';
@@ -93,5 +94,13 @@ abstract class AccountClient {
   @PUT('/api/v1/me/username')
   Future<UpdateUsernameInput> putApiV1MeUsername({
     @Body() required UpdateUsernameInput body,
+  });
+
+  /// Set or clear your student ID.
+  ///
+  /// Optional and private: it isn't shown on your contributor page. Send null to clear it.
+  @PUT('/api/v1/me/student-id')
+  Future<UpdateStudentIdInput> putApiV1MeStudentId({
+    @Body() required UpdateStudentIdInput body,
   });
 }

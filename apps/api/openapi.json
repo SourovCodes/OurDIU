@@ -1010,6 +1010,12 @@
               "null"
             ]
           },
+          "studentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "publishedCount": {
             "type": "integer"
           },
@@ -1026,6 +1032,7 @@
           "email",
           "username",
           "image",
+          "studentId",
           "publishedCount",
           "viewCount",
           "canContribute"
@@ -1590,6 +1597,21 @@
         },
         "required": [
           "username"
+        ]
+      },
+      "UpdateStudentIdInput": {
+        "type": "object",
+        "properties": {
+          "studentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^(?:\\d{3}-\\d{2}-\\d{3,5}|\\d{16})$"
+          }
+        },
+        "required": [
+          "studentId"
         ]
       },
       "RoutineSectionList": {
@@ -4560,6 +4582,57 @@
           },
           "422": {
             "description": "Not a valid username",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/student-id": {
+      "put": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Set or clear your student ID",
+        "description": "Optional and private: it isn't shown on your contributor page. Send null to clear it.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStudentIdInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Your student ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateStudentIdInput"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not a student ID",
             "content": {
               "application/json": {
                 "schema": {

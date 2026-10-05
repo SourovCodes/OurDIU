@@ -54,11 +54,12 @@ function testAuth() {
 }
 
 /** Creates a fresh user and returns a Cookie header value for authenticated requests. */
-export async function signIn(email = `user-${crypto.randomUUID()}@diu.edu.bd`) {
+export async function signIn(
+  email = `user-${crypto.randomUUID()}@diu.edu.bd`,
+  name = "Test User",
+) {
   const { test } = await testAuth().$context;
-  const saved = await test.saveUser(
-    test.createUser({ name: "Test User", email }),
-  );
+  const saved = await test.saveUser(test.createUser({ name, email }));
   const { headers } = await test.login({ userId: saved.id });
   return { email, cookie: headers.get("cookie")!, id: saved.id };
 }

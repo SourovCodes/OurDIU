@@ -21,7 +21,8 @@
     "db:generate": "pnpm --filter @ourdiu/api db:generate",
     "db:migrate": "pnpm --filter @ourdiu/api db:migrate:local",
     "db:seed": "pnpm --filter @ourdiu/api db:seed:local",
-    "make-admin": "pnpm --filter @ourdiu/api make-admin"
+    "make-admin": "pnpm --filter @ourdiu/api make-admin",
+    "student-ids-from-names": "pnpm --filter @ourdiu/api student-ids-from-names"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

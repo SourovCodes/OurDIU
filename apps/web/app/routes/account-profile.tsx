@@ -1,4 +1,9 @@
-import { USERNAME_PATTERN, USERNAME_RULES } from "@ourdiu/shared/constants";
+import {
+  STUDENT_ID_PATTERN,
+  STUDENT_ID_RULES,
+  USERNAME_PATTERN,
+  USERNAME_RULES,
+} from "@ourdiu/shared/constants";
 import type { ApiError } from "@ourdiu/shared";
 import { Check } from "lucide-react";
 import { useEffect, useId, useState } from "react";
@@ -39,12 +44,16 @@ async function updateProfile(request: Request, form: FormData) {
   const username = String(form.get("username") ?? "")
     .trim()
     .toLowerCase();
+  const studentId = String(form.get("studentId") ?? "").trim();
   const fieldErrors: Record<string, string> = {};
   if (!name || name.length > MAX_NAME) {
     fieldErrors.name = `Enter a name of up to ${MAX_NAME} characters.`;
   }
   if (!USERNAME_PATTERN.test(username)) {
     fieldErrors.username = `Use ${USERNAME_RULES}.`;
+  }
+  if (studentId && !STUDENT_ID_PATTERN.test(studentId)) {
+    fieldErrors.studentId = `${STUDENT_ID_RULES}.`;
   }
   if (Object.keys(fieldErrors).length > 0) {
     return invalid("profile", fieldErrors);
@@ -67,6 +76,21 @@ async function updateProfile(request: Request, form: FormData) {
         error: "Could not update your profile. Please try again.",
       },
       { status: usernameRes.status },
+    );
+  }
+
+  const studentRes = await apiFetch(request, "/api/v1/me/student-id", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ studentId: studentId || null }),
+  });
+  if (!studentRes.ok) {
+    return data<ActionResult>(
+      {
+        intent: "profile",
+        error: "Could not update your profile. Please try again.",
+      },
+      { status: studentRes.status },
     );
   }
 
@@ -272,6 +296,7 @@ function ProfileSection({
     email: string;
     image?: string | null;
     username?: string | null;
+    studentId?: string | null;
   };
   avatar?: ActionResult;
   profile?: ActionResult;
@@ -323,6 +348,22 @@ function ProfileSection({
             <p className="text-xs text-muted-foreground">
               Your public profile: /contributors/
               {user.username ?? "your-username"}. {USERNAME_RULES}.
+            </p>
+          </div>
+          <div className="grid gap-1.5">
+            <FormField
+              label="Student ID"
+              name="studentId"
+              defaultValue={user.studentId ?? ""}
+              placeholder="241-15-047"
+              inputMode="numeric"
+              autoComplete="off"
+              spellCheck={false}
+              maxLength={16}
+              error={profile?.fieldErrors?.studentId}
+            />
+            <p className="text-xs text-muted-foreground">
+              Optional. Private: only you see it.
             </p>
           </div>
           <div className="grid gap-1.5">

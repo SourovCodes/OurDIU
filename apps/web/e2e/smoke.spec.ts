@@ -885,6 +885,17 @@ test("a contributor can manage their submissions and profile", async ({
   await page.getByLabel("Username").fill("no spaces allowed");
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText(/^Use 3–50 lowercase letters/)).toBeVisible();
+  await page.getByLabel("Username").fill(username);
+
+  // The optional student ID.
+  await page.getByLabel("Student ID").fill("241-15");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText(/^Like 241-15-047/)).toBeVisible();
+  await page.getByLabel("Student ID").fill("241-15-047");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Profile updated")).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Student ID")).toHaveValue("241-15-047");
 
   // The email comes from Google and can't be changed on the account page.
   await page.goto("/account");

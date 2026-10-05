@@ -4,6 +4,7 @@ import {
   idQuerySchema,
   postReviewMessageInputSchema,
   resubmitInputSchema,
+  updateStudentIdInputSchema,
   updateUsernameInputSchema,
   USERNAME_RULES,
   mySubmissionDetailSchema,
@@ -26,6 +27,7 @@ import {
   reclassifyOwnSubmission,
   replaceOwnSubmissionFile,
   resubmitOwnSubmission,
+  updateStudentId,
   updateUsername,
   withdrawSubmission,
 } from "../services/account";
@@ -262,6 +264,27 @@ const updateUsernameRoute = createRoute({
   },
 });
 
+const updateStudentIdRoute = createRoute({
+  method: "put",
+  path: "/student-id",
+  tags,
+  summary: "Set or clear your student ID",
+  description:
+    "Optional and private: it isn't shown on your contributor page. Send null to clear it.",
+  middleware: [requireAuth] as const,
+  request: {
+    body: {
+      required: true,
+      content: { "application/json": { schema: updateStudentIdInputSchema } },
+    },
+  },
+  responses: {
+    200: jsonResponse(updateStudentIdInputSchema, "Your student ID"),
+    401: errorResponse("Not signed in"),
+    422: errorResponse("Not a student ID"),
+  },
+});
+
 export const meRoutes = new OpenAPIHono<AppEnv>({
   defaultHook: validationHook,
 })
@@ -364,6 +387,18 @@ export const meRoutes = new OpenAPIHono<AppEnv>({
           c.var.db,
           c.var.session!.user.id,
           c.req.valid("json").username,
+        ),
+      },
+      200,
+    ),
+  )
+  .openapi(updateStudentIdRoute, async (c) =>
+    c.json(
+      {
+        studentId: await updateStudentId(
+          c.var.db,
+          c.var.session!.user.id,
+          c.req.valid("json").studentId,
         ),
       },
       200,

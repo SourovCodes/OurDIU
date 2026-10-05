@@ -9,4 +9,6 @@ export type SessionUser = {
   role?: UserRole;
   /** In their contributor page's URL; null only for rows made without one. */
   username?: string | null;
+  /** Optional and private, like 241-15-047. */
+  studentId?: string | null;
 };

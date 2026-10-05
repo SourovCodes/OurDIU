@@ -134,6 +134,42 @@ export const USERNAME_PATTERN = /^[a-z0-9_.-]{3,50}$/;
 export const USERNAME_RULES =
   "3–50 lowercase letters, digits, dots, dashes or underscores";
 
+/**
+ * DIU student IDs: `241-15-047` (a 4- or, before 2019, 5-digit serial in the last
+ * part) or 16 digits, `0242220005101255`.
+ */
+export const STUDENT_ID_PATTERN = /^(?:\d{3}-\d{2}-\d{3,5}|\d{16})$/;
+export const STUDENT_ID_RULES = "Like 241-15-047 or 0242220005101255";
+
+/** A student ID inside a name, with the brackets or dots around it. */
+const ID_IN_NAME = /[([]?\s*(?<!\d)(\d{3}-\d{2}-\d{3,5}|\d{16})(?!\d)\s*[)\]]?/;
+
+/**
+ * Takes a student ID out of a name, as many DIU Google accounts carry one
+ * ("Md. Samir 262-35-490"). The name is left as it is when it has no ID, or when
+ * nothing but the ID would be left.
+ */
+export function splitStudentId(fullName: string): {
+  name: string;
+  studentId: string | null;
+} {
+  const match = ID_IN_NAME.exec(fullName);
+  if (!match) return { name: fullName, studentId: null };
+  const name = (
+    fullName.slice(0, match.index) +
+    " " +
+    fullName.slice(match.index + match[0].length)
+  )
+    .replace(/\s+/g, " ")
+    // Separators left at either end: "Mim....251-33-054", "Name - 241-15-047".
+    .replace(/^[\s.,:;|_-]+|[\s.,:;|_-]+$/g, "")
+    // "261-15-462 (Oikko)" leaves only the bracketed nickname.
+    .replace(/^\((.*)\)$/, "$1")
+    .trim();
+  if (!/\p{L}/u.test(name)) return { name: fullName, studentId: null };
+  return { name, studentId: match[1]! };
+}
+
 /** The error code for a contribution from an account that isn't on a DIU address. */
 export const DIU_EMAIL_REQUIRED = "DIU_EMAIL_REQUIRED";
 

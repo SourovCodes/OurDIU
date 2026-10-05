@@ -46,6 +46,7 @@ export async function getProfile(
       role: user.role,
       username: user.username,
       image: user.image,
+      studentId: user.studentId,
       publishedCount: user.publishedSubmissionCount,
       viewCount: user.publishedViewCount,
     })
@@ -435,4 +436,14 @@ export async function updateUsername(
     throw err;
   }
   return username;
+}
+
+/** Sets or clears the user's student ID (already validated). */
+export async function updateStudentId(
+  db: Database,
+  userId: string,
+  studentId: string | null,
+): Promise<string | null> {
+  await db.update(user).set({ studentId }).where(eq(user.id, userId));
+  return studentId;
 }

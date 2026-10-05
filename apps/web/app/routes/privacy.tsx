@@ -45,7 +45,13 @@ export default function Privacy() {
           name, email address, profile photo and Google account ID. Your photo
           is copied to the site’s own storage. Each sign-in keeps a session with
           the IP address and browser it came from, and the tokens Google issues
-          for signing in. You also get a username, which you can change.
+          for signing in. You also get a username, which you can change. If your
+          Google name ends in a student ID (as many DIU accounts’ do), the ID is
+          moved out of your name into your profile’s student ID.
+        </p>
+        <p>
+          <strong>On your profile</strong> you can add your student ID. It is
+          optional.
         </p>
         <p>
           <strong>When you upload a paper</strong> (this needs a DIU email
@@ -132,9 +138,9 @@ export default function Privacy() {
           </li>
         </ul>
         <p>
-          Your email address, papers that are pending or rejected, review
-          messages, and who liked, disliked or reported a paper are never shown
-          publicly. The site’s admins can see them to review uploads and
+          Your email address, student ID, papers that are pending or rejected,
+          review messages, and who liked, disliked or reported a paper are never
+          shown publicly. The site’s admins can see them to review uploads and
           reports.
         </p>
       </LegalSection>
@@ -205,7 +211,7 @@ export default function Privacy() {
       <LegalSection id="your-rights" title="What you can do">
         <ul>
           <li>
-            Change your name, photo and username on{" "}
+            Change your name, photo, username and student ID on{" "}
             <Link to="/account">your account</Link>.
           </li>
           <li>

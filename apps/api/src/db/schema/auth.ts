@@ -30,6 +30,11 @@ export const user = sqliteTable(
      * only because SQLite can't add a NOT NULL column without rebuilding the table.
      */
     username: text().unique(),
+    /**
+     * Optional, kept private (STUDENT_ID_PATTERN). Set through /api/v1/me/student-id, or
+     * taken from the Google name at sign-up (`splitStudentId`).
+     */
+    studentId: text(),
     // Published papers and their views, kept in sync from submissions by triggers
     // (migration 0006) for the contributor pages; never write them from application code.
     publishedSubmissionCount: integer().notNull().default(0),

@@ -14,6 +14,7 @@ class Profile {
     required this.email,
     required this.username,
     required this.image,
+    required this.studentId,
     required this.publishedCount,
     required this.viewCount,
     required this.canContribute,
@@ -27,6 +28,7 @@ class Profile {
   final String email;
   final String username;
   final String? image;
+  final String? studentId;
   final int publishedCount;
   final int viewCount;
   final bool canContribute;

@@ -113,6 +113,12 @@ describe("POST /api/v1/cover-page/{template}/docx", () => {
     expect(
       Object.keys(zip.files).filter((f) => /^word\/media\/.+\.png$/.test(f)),
     ).toHaveLength(2);
+    // The cover's frame is on its page only, and the document goes on to a plain
+    // page: the date's box isn't the last paragraph, so the cursor can leave it.
+    expect(xml).toContain('w:display="firstPage"');
+    const last = xml.slice(xml.lastIndexOf("<w:p>"));
+    expect(last).toContain("<w:pageBreakBefore/>");
+    expect(last).not.toContain("<w:pBdr>");
     if (t === "group-assignment") {
       expect(xml).toContain("First Member");
     } else {

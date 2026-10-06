@@ -107,6 +107,7 @@ export async function sectionOfVersion(
       roomType: routineClasses.roomType,
       teacher: routineClasses.teacher,
       teacherName: routineTeachers.name,
+      teacherDesignation: routineTeachers.designation,
       teacherPhone: routineTeachers.phone,
       teacherEmail: routineTeachers.email,
       teacherRoom: routineTeachers.room,
@@ -169,6 +170,7 @@ export async function sectionOfVersion(
         ? {
             initials: c.teacher,
             name: c.teacherName,
+            designation: c.teacherDesignation,
             phone: c.teacherPhone,
             email: c.teacherEmail,
             room: c.teacherRoom,

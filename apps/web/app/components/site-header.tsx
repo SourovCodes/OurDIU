@@ -68,6 +68,8 @@ const NAV_ITEMS: Record<Product["id"], NavItem[]> = {
   ],
   // Today, Sections and Teachers depend on the department: `useNavItems`.
   routine: [],
+  // One page: the maker itself.
+  cover: [],
   market: [],
 };
 

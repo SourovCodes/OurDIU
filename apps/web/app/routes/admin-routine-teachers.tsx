@@ -80,7 +80,7 @@ export const action = ({ request }: Route.ActionArgs) =>
 
 export { AdminRouteError as ErrorBoundary };
 
-/** A teacher's details: name, room, email, phone. New with initials too. */
+/** A teacher's details: name, designation, room, email, phone. New with initials too. */
 function TeacherDialog({
   department,
   teacher,
@@ -142,6 +142,14 @@ function TeacherDialog({
             error={fieldErrors.name}
           />
           <FormField
+            label="Designation"
+            name="designation"
+            defaultValue={teacher?.designation ?? ""}
+            placeholder="e.g. Assistant Professor"
+            maxLength={80}
+            error={fieldErrors.designation}
+          />
+          <FormField
             label="Room where they sit"
             name="room"
             defaultValue={teacher?.room ?? ""}
@@ -198,9 +206,13 @@ function RowActions({
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem onSelect={() => setDialog("edit")}>
             <Pencil />
-            Room, email and phone
+            Edit details
           </DropdownMenuItem>
-          {(teacher.name || teacher.room || teacher.email || teacher.phone) && (
+          {(teacher.name ||
+            teacher.designation ||
+            teacher.room ||
+            teacher.email ||
+            teacher.phone) && (
             <DropdownMenuItem
               variant="destructive"
               onSelect={() => setDialog("forget")}
@@ -221,7 +233,7 @@ function RowActions({
         open={dialog === "forget"}
         onOpenChange={onOpenChange}
         title={`Remove ${teacher.initials}’s details?`}
-        description="Their name, room, email and phone are removed; students see only the initials."
+        description="Their name, designation, room, email and phone are removed; students see only the initials."
         confirmLabel="Remove"
         destructive
         successMessage={`${teacher.initials}’s details removed`}
@@ -317,7 +329,7 @@ function Teachers({
         open={removing}
         onOpenChange={setRemoving}
         title={`Remove ${picked.length === 1 ? "1 teacher’s" : `${picked.length} teachers’`} details?`}
-        description={`Their names, rooms, emails and phones are removed; students see only the initials: ${picked.join(", ")}.`}
+        description={`Their names, designations, rooms, emails and phones are removed; students see only the initials: ${picked.join(", ")}.`}
         confirmLabel="Remove"
         destructive
         successMessage={
@@ -431,6 +443,7 @@ function Teachers({
                         intent: "teacher",
                         department,
                         initials: t.initials,
+                        designation: t.designation ?? "",
                         room: t.room ?? "",
                         email: t.email ?? "",
                         phone: t.phone ?? "",
@@ -494,7 +507,7 @@ export default function AdminRoutineTeachers({
     <>
       <AdminPageHeader
         title="Teachers"
-        description="DIU’s routine PDFs give teachers’ initials (EEE’s also lists names, phones and emails). Type a name and press Enter to save it and go on to the next; the room where a teacher sits, their email and phone are in each row’s menu. Students see them right away."
+        description="DIU’s routine PDFs give teachers’ initials (EEE’s also lists names, phones and emails). Type a name and press Enter to save it and go on to the next; a teacher’s designation (for cover pages), the room where they sit, their email and phone are under Edit details in each row’s menu. Students see them right away."
       />
       <UrlTabs
         label="Departments"

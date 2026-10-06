@@ -117,6 +117,8 @@ export const routineTeachers = sqliteTable(
     department: text({ enum: ROUTINE_DEPARTMENTS }).notNull(),
     initials: text().notNull(),
     name: text().notNull(),
+    /** "Associate Professor", for cover pages (docs/PLAN.md, decision 39). */
+    designation: text(),
     phone: text(),
     email: text(),
     /** Where the teacher sits: "KT-712". */

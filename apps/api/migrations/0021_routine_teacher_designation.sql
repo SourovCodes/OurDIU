@@ -1,0 +1,1 @@
+ALTER TABLE `routine_teachers` ADD `designation` text;

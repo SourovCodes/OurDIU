@@ -170,6 +170,36 @@ export function splitStudentId(fullName: string): {
   return { name, studentId: match[1]! };
 }
 
+/**
+ * The department in a student ID (its middle part, e.g. 15 in 241-15-047), by
+ * its short name. Checked against what each code's students upload (docs/PLAN.md,
+ * decision 39). 16-digit IDs carry a program code instead: 101 is CSE.
+ */
+export const ID_DEPARTMENT_CODES: Record<string, string> = {
+  "11": "BA",
+  "15": "CSE",
+  "16": "CIS",
+  "23": "TE",
+  "33": "EEE",
+  "34": "NFE",
+  "35": "SWE",
+  "47": "CE",
+  "55": "AS",
+  "58": "ACC",
+  "59": "GEB",
+};
+const PROGRAM_CODES: Record<string, string> = { "101": "CSE" };
+
+/** A student ID's department's short name ("CSE"), or null when it's not known. */
+export function departmentOfStudentId(studentId: string): string | null {
+  const dashed = /^\d{3}-(\d{2})-\d{3,5}$/.exec(studentId);
+  if (dashed) return ID_DEPARTMENT_CODES[dashed[1]!] ?? null;
+  if (/^\d{16}$/.test(studentId)) {
+    return PROGRAM_CODES[studentId.slice(10, 13)] ?? null;
+  }
+  return null;
+}
+
 /** The error code for a contribution from an account that isn't on a DIU address. */
 export const DIU_EMAIL_REQUIRED = "DIU_EMAIL_REQUIRED";
 

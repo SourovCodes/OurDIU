@@ -14,6 +14,7 @@ class AdminRoutineTeacher {
     required this.department,
     required this.initials,
     required this.name,
+    required this.designation,
     required this.phone,
     required this.email,
     required this.room,
@@ -27,6 +28,7 @@ class AdminRoutineTeacher {
   final RoutineDepartment department;
   final String initials;
   final String? name;
+  final String? designation;
   final String? phone;
   final String? email;
   final String? room;

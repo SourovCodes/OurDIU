@@ -169,6 +169,7 @@ export async function getRoutineTeacherWeek(
     teacher: {
       initials: printed,
       name: details?.name ?? null,
+      designation: details?.designation ?? null,
       phone: details?.phone ?? null,
       email: details?.email ?? null,
       room: details?.room ?? null,

@@ -217,6 +217,20 @@
   --primary-container-foreground: #b9f0e3;
   --ring: #7fd8c3;
 }
+[data-space="cover"] {
+  --primary: #805600;
+  --primary-container: #ffddb3;
+  --primary-container-foreground: #291800;
+  --ring: #805600;
+}
+.dark [data-space="cover"],
+.dark[data-space="cover"] {
+  --primary: #ffb951;
+  --primary-foreground: #442b00;
+  --primary-container: #614000;
+  --primary-container-foreground: #ffddb3;
+  --ring: #ffb951;
+}
 [data-space="market"] {
   --primary: #8e3a5a;
   --primary-container: #ffd9e3;

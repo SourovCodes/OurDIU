@@ -100,8 +100,16 @@ export function shouldRevalidate({
     : false;
 }
 
-/** Set `handle = { ownShell: true }` on a route that brings its own shell (the admin panel). */
-export type RouteHandle = { ownShell?: boolean };
+/**
+ * Set `handle = { ownShell: true }` on a route that brings its own shell (the admin
+ * panel), `ogImage` (a path, 1200×630) for a link preview of its own, and
+ * `samePage` when moving between its paths shouldn't start the page afresh.
+ */
+export type RouteHandle = {
+  ownShell?: boolean;
+  ogImage?: string;
+  samePage?: boolean;
+};
 
 /**
  * The head tags every page shares: its canonical URL (so diuqbank.com's links,
@@ -111,13 +119,19 @@ export type RouteHandle = { ownShell?: boolean };
 function SeoLinks({ origin }: { origin: string }) {
   const { pathname, search } = useLocation();
   const url = canonicalUrl(origin, pathname, search);
+  // The deepest route's own image, if it has one.
+  const image =
+    useMatches()
+      .map((m) => (m.handle as RouteHandle | undefined)?.ogImage)
+      .filter(Boolean)
+      .at(-1) ?? OG_IMAGE;
   return (
     <>
       <link rel="canonical" href={url} />
       <meta property="og:url" content={url} />
       <meta property="og:type" content="website" />
       <meta property="og:site_name" content={SITE_NAME} />
-      <meta property="og:image" content={origin + OG_IMAGE} />
+      <meta property="og:image" content={origin + image} />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
       <meta name="twitter:card" content="summary_large_image" />

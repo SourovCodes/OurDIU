@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { useLocation, useNavigation } from "react-router";
+import { useLocation, useMatches, useNavigation } from "react-router";
+import type { RouteHandle } from "~/root";
 import { cn } from "~/lib/utils";
 
 export const MAIN_ID = "main";
@@ -48,6 +49,12 @@ export function PageTransition({
   const mainRef = useRef<HTMLElement>(null);
   const announcerRef = useRef<HTMLParagraphElement>(null);
   const navigated = arrivedByNavigation(pathname);
+  // A new page starts afresh; moving within a page that spans several paths
+  // (`samePage`, e.g. the cover page maker's templates) keeps what's on it.
+  const deepest = useMatches().at(-1);
+  const pageKey = (deepest?.handle as RouteHandle | undefined)?.samePage
+    ? deepest!.id
+    : pathname;
 
   useEffect(() => {
     if (!navigated) return;
@@ -74,7 +81,7 @@ export function PageTransition({
         )}
       >
         <div
-          key={pathname}
+          key={pageKey}
           className={cn(navigated && "motion-safe:animate-page-in")}
         >
           {children}

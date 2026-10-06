@@ -218,7 +218,7 @@ INSERT INTO routine_courses (department, code, title) VALUES
   ('CSE', 'CSE413', 'Compiler Design'),
   ('CSE', 'CSE431', 'Artificial Intelligence'),
   ('CSE', 'CSE432', 'Artificial Intelligence Lab');
-INSERT INTO routine_teachers (department, initials, name, phone, email, room) VALUES
-  ('CSE', 'STA', 'Dr. Sample Teacher', '01700000001', 'sta@example.com', 'KT-712'),
-  ('CSE', 'MRR', 'Md. Sample Rahman', NULL, 'mrr@example.com', 'KT-708'),
-  ('CSE', 'IK', 'Sample Islam Khan', NULL, NULL, NULL);
+INSERT INTO routine_teachers (department, initials, name, designation, phone, email, room) VALUES
+  ('CSE', 'STA', 'Dr. Sample Teacher', 'Associate Professor', '01700000001', 'sta@example.com', 'KT-712'),
+  ('CSE', 'MRR', 'Md. Sample Rahman', NULL, NULL, 'mrr@example.com', 'KT-708'),
+  ('CSE', 'IK', 'Sample Islam Khan', NULL, NULL, NULL, NULL);

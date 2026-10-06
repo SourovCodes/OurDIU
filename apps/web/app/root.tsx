@@ -1,7 +1,6 @@
-// Roboto Flex, as in the app: the weight and width axes (headings are wide).
-import "@fontsource-variable/roboto-flex/standard.css";
-// The one subset every page needs; the CSS alone would find it only after it loads.
-import robotoFlexLatin from "@fontsource-variable/roboto-flex/files/roboto-flex-latin-standard-normal.woff2?url";
+// Roboto Flex's latin subset (its @font-face rules are in app.css): the one every
+// page needs; the CSS alone would find it only after it loads.
+import robotoFlexLatin from "./fonts/roboto-flex-latin.woff2?url";
 import type { ReviewActivity } from "@ourdiu/shared";
 import { FileQuestion, GraduationCap, TriangleAlert } from "lucide-react";
 import {
@@ -30,12 +29,7 @@ import { buttonVariants } from "~/components/ui/button";
 import { TopLoader } from "~/components/top-loader";
 import { routineIsLive } from "~/lib/routine.server";
 import { Toaster } from "~/components/ui/sonner";
-import {
-  analyticsEnabled,
-  GA_MEASUREMENT_ID,
-  GTAG_SCRIPT,
-  usePageViews,
-} from "~/lib/analytics";
+import { analyticsEnabled, GTAG_SCRIPT, usePageViews } from "~/lib/analytics";
 import { androidInvite } from "~/lib/android-app";
 import { AUTHOR } from "~/lib/author";
 import { LEGAL_PAGES } from "~/lib/legal";
@@ -161,13 +155,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         {analyticsEnabled && (
-          <>
-            <script
-              async
-              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-            />
-            <script dangerouslySetInnerHTML={{ __html: GTAG_SCRIPT }} />
-          </>
+          <script dangerouslySetInnerHTML={{ __html: GTAG_SCRIPT }} />
         )}
         <Meta />
         {data && <SeoLinks origin={data.origin} />}

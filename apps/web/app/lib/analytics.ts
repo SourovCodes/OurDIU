@@ -10,8 +10,12 @@ export const analyticsEnabled = import.meta.env.PROD;
 /**
  * Defines `gtag` and configures the property. Its own page views are off: they'd
  * only count full page loads, so `usePageViews` reports every navigation instead.
+ *
+ * gtag.js itself (175 KB, the page's largest script) loads once the page has and
+ * the browser is idle, so it never competes with the page on a slow phone. Until
+ * then `gtag()` queues in `dataLayer`, which gtag.js reads when it arrives.
  */
-export const GTAG_SCRIPT = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}',{send_page_view:false});`;
+export const GTAG_SCRIPT = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}',{send_page_view:false});(function(){function load(){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}';document.head.appendChild(s)}function idle(){(window.requestIdleCallback||setTimeout)(load)}if(document.readyState==='complete')idle();else addEventListener('load',idle,{once:true})})();`;
 
 declare global {
   interface Window {

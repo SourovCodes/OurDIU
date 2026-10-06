@@ -378,6 +378,7 @@ class _MakerState extends ConsumerState<_Maker> {
               const SizedBox(height: 24),
               _Question(switch (_template) {
                 CoverPageTemplate.labReport => 'Which experiment?',
+                CoverPageTemplate.projectReport => 'What’s the project?',
                 _ when titlePage => 'What’s the title?',
                 _ => 'What’s the topic?',
               }),
@@ -413,7 +414,11 @@ class _MakerState extends ConsumerState<_Maker> {
                   _fields[CoverField.topic]!,
                   CoverField.topic,
                   label: 'Topic',
-                  hint: titlePage ? 'The report’s title' : null,
+                  hint: titlePage
+                      ? 'The report’s title'
+                      : _template == CoverPageTemplate.projectReport
+                      ? 'Your project’s title'
+                      : null,
                   floating: false,
                   highlight: _value(CoverField.topic).trim().isEmpty,
                   lines: 4,

@@ -956,6 +956,13 @@ function CoverPageMaker({
                     <Field
                       key={f}
                       field={f}
+                      // A project report's topic is its title, as it prints.
+                      {...(template === "project-report" && f === "topic"
+                        ? {
+                            label: "Project title",
+                            placeholder: "Your project’s title",
+                          }
+                        : {})}
                       value={value(f)}
                       onChange={set(f)}
                       highlight={!value(f)}

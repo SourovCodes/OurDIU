@@ -1,3 +1,4 @@
+import type { RoutineClass, RoutineSection } from "@ourdiu/shared";
 import { departmentOfStudentId } from "@ourdiu/shared/constants";
 import {
   COVER_PAGE_FIELDS,
@@ -13,19 +14,28 @@ import {
   type CoverPageValues,
 } from "@ourdiu/shared/cover-pages";
 import { ChevronDown, Download, Plus, X } from "lucide-react";
-import { useId, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useEffectEvent,
+  useId,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { CoverPagePreview } from "~/components/cover-page-preview";
+import { SuggestInput, type Suggestion } from "~/components/suggest-input";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
 import { isTeacherPick, savedRoutine } from "~/lib/routine";
-import { myRoutine } from "~/lib/routine.server";
+import { myRoutine, routineLists } from "~/lib/routine.server";
 import { pageMeta } from "~/lib/seo";
 import { getUser } from "~/lib/session.server";
+import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/cover-page";
 
@@ -66,51 +76,96 @@ const ownCourse = (code: string, department: string) =>
     new RegExp(`^${prefix}\\s?\\d`, "i").test(code),
   );
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const cookie = request.headers.get("cookie");
-  const saved = savedRoutine(cookie);
-  const [user, mine] = await Promise.all([
-    getUser(request),
-    // A teacher's week has no section to fill in.
-    saved && !isTeacherPick(saved)
-      ? myRoutine(request, saved, [saved.department])
-      : null,
-  ]);
+/** "Department of Computer Science and Engineering", by short name ("CSE"). */
+type DepartmentNames = Record<string, string>;
 
-  const routineDepartment = mine?.department.toUpperCase() ?? null;
+const departmentLabel = (short: string, names: DepartmentNames) =>
+  `Department of ${names[short.toUpperCase()] ?? short}`;
+
+/** A section's courses, once each, with who takes them, by code. */
+function routineCourses(
+  classes: Pick<RoutineClass, "course" | "teacher">[],
+  department: string,
+  names: DepartmentNames,
+): RoutineCourse[] {
   const courses = new Map<string, RoutineCourse>();
-  for (const c of mine?.classes ?? []) {
+  for (const c of classes) {
     if (courses.has(c.course.code)) continue;
     courses.set(c.course.code, {
       code: c.course.code,
       title: c.course.title ?? "",
       teacherName: c.teacher?.name ?? "",
       teacherDesignation: c.teacher?.designation ?? "",
-      teacherDepartment:
-        routineDepartment && ownCourse(c.course.code, routineDepartment)
-          ? `Department of ${routineDepartment}`
-          : "",
+      teacherDepartment: ownCourse(c.course.code, department)
+        ? departmentLabel(department, names)
+        : "",
     });
   }
+  return [...courses.values()].sort((a, b) => a.code.localeCompare(b.code));
+}
 
+/** A section in a live routine, to pick as "Your section". */
+type SectionChoice = { slug: string; department: string; section: string };
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const cookie = request.headers.get("cookie");
+  const saved = savedRoutine(cookie);
+  const [user, mine, taxonomy, routines] = await Promise.all([
+    getUser(request),
+    // A teacher's week has no section to fill in.
+    saved && !isTeacherPick(saved)
+      ? myRoutine(request, saved, [saved.department])
+      : null,
+    loadTaxonomy(request),
+    // Without the routines the sections just aren't suggested.
+    routineLists(request).catch(() => null),
+  ]);
+
+  const names: DepartmentNames = Object.fromEntries(
+    taxonomy.departments.map((d) => [d.shortName.toUpperCase(), d.name]),
+  );
+  const routineDepartment = mine?.department.toUpperCase() ?? null;
   const studentId = user?.studentId ?? "";
-  const department =
-    departmentOfStudentId(studentId) ?? routineDepartment ?? null;
+  const department = departmentOfStudentId(studentId) ?? routineDepartment;
   const now = new Date();
   const defaults: CoverPageValues = {
     studentName: user?.name ?? "",
     studentId,
     section: mine?.section ?? "",
     semester: semesterOn(now),
-    studentDepartment: department ? `Department of ${department}` : "",
+    studentDepartment: department ? departmentLabel(department, names) : "",
     date: dhakaDate(now),
   };
   return {
     signedIn: !!user,
     section: mine?.section ?? null,
-    courses: [...courses.values()].sort((a, b) => a.code.localeCompare(b.code)),
+    courses:
+      mine && routineDepartment
+        ? routineCourses(mine.classes, routineDepartment, names)
+        : [],
+    names,
+    departments: taxonomy.departments
+      .map((d) => ({ name: d.name, shortName: d.shortName }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    sections: (routines?.lists ?? []).flatMap(
+      ({ department: slug, list }): SectionChoice[] =>
+        (list?.sections ?? []).map((s) => ({
+          slug,
+          department: slug.toUpperCase(),
+          section: s.section,
+        })),
+    ),
     defaults,
   };
+}
+
+/** A section's week in the live routine, from the API. */
+async function fetchWeek(choice: SectionChoice): Promise<RoutineSection> {
+  const res = await fetch(
+    `/api/v1/routine/${choice.slug}/sections/${encodeURIComponent(choice.section)}`,
+  );
+  if (!res.ok) throw new Error(String(res.status));
+  return (await res.json()) as RoutineSection;
 }
 
 /** What "Remember my details" keeps on the device: the student's own, never the work's. */
@@ -178,10 +233,10 @@ const PLACEHOLDERS: Partial<Record<CoverPageField, string>> = {
   experimentNo: "e.g. 2",
   experimentName: "e.g. Round-robin scheduling",
   teacherDesignation: "e.g. Assistant Professor",
-  teacherDepartment: "e.g. Department of CSE",
+  teacherDepartment: "e.g. Department of Software Engineering",
   studentId: "e.g. 241-15-047",
-  section: "e.g. 65_A",
-  studentDepartment: "e.g. Department of CSE",
+  section: "e.g. 67_B",
+  studentDepartment: "e.g. Department of Software Engineering",
 };
 
 /** A labelled text box for one field. */
@@ -190,16 +245,41 @@ function Field({
   value,
   onChange,
   highlight,
+  label,
+  suggestions,
+  onPick,
 }: {
   field: CoverPageField;
   value: string;
   onChange: (value: string) => void;
   highlight?: boolean;
+  label?: string;
+  /** Suggested as the student types; anything typed is still taken. */
+  suggestions?: Suggestion[];
+  onPick?: (suggestion: Suggestion) => void;
 }) {
   const id = useId();
+  if (suggestions) {
+    return (
+      <div className="grid gap-1.5">
+        <Label htmlFor={id}>{label ?? LABELS[field]}</Label>
+        <SuggestInput
+          id={id}
+          name={field}
+          value={value}
+          onChange={onChange}
+          onPick={onPick}
+          suggestions={suggestions}
+          placeholder={PLACEHOLDERS[field]}
+          maxLength={COVER_PAGE_FIELDS[field]}
+          className={cn("bg-background", highlight && "border-primary")}
+        />
+      </div>
+    );
+  }
   return (
     <div className="grid gap-1.5">
-      <Label htmlFor={id}>{LABELS[field]}</Label>
+      <Label htmlFor={id}>{label ?? LABELS[field]}</Label>
       <Input
         id={id}
         name={field}
@@ -281,7 +361,10 @@ export default function CoverPage({ loaderData }: Route.ComponentProps) {
 function CoverPageMaker({
   signedIn,
   section,
-  courses,
+  courses: savedCourses,
+  names,
+  departments,
+  sections,
   defaults,
   raw,
 }: Route.ComponentProps["loaderData"] & { raw: string | null }) {
@@ -301,6 +384,9 @@ function CoverPageMaker({
     },
   ]);
   const [course, setCourse] = useState<string | null>(null);
+  // The courses to pick from: the saved routine's section's, or the one picked here.
+  const [courses, setCourses] = useState(savedCourses);
+  const [coursesOf, setCoursesOf] = useState(section);
   const [remember, setRemember] = useState(true);
   const [busy, setBusy] = useState(false);
 
@@ -319,6 +405,77 @@ function CoverPageMaker({
       teacherDepartment: c?.teacherDepartment ?? "",
     }));
   };
+
+  const departmentSuggestions = useMemo(
+    () =>
+      departments.map((d) => ({
+        value: `Department of ${d.name}`,
+        label: d.name,
+        hint: d.shortName,
+      })),
+    [departments],
+  );
+  const sectionSuggestions = useMemo(
+    () =>
+      sections.map((s) => ({
+        value: s.section,
+        hint: s.department,
+      })),
+    [sections],
+  );
+
+  /** Shows a section's courses, from its week in the routine. */
+  function showWeek(week: RoutineSection, choice: SectionChoice) {
+    setCourses(routineCourses(week.classes, choice.department, names));
+    setCoursesOf(week.section);
+    setCourse(null);
+    setValues((v) =>
+      v.studentDepartment
+        ? v
+        : {
+            ...v,
+            studentDepartment: departmentLabel(choice.department, names),
+          },
+    );
+  }
+
+  async function loadSection(choice: SectionChoice) {
+    try {
+      showWeek(await fetchWeek(choice), choice);
+    } catch {
+      toast.error("Couldn’t load that section’s courses. Please try again.");
+    }
+  }
+
+  /** The routine's section a typed or picked name is, if exactly one. */
+  const findSection = (name: string, department?: string) => {
+    const matches = sections.filter(
+      (s) =>
+        s.section.toLowerCase() === name.trim().toLowerCase() &&
+        (!department || s.department === department),
+    );
+    return matches.length === 1 ? matches[0]! : null;
+  };
+
+  // A section remembered on this device, without a saved routine: its courses
+  // come up too, once its week arrives.
+  const rememberedSection = useEffectEvent(() =>
+    savedCourses.length ? null : findSection(values.section ?? ""),
+  );
+  const shownWeek = useEffectEvent(showWeek);
+  useEffect(() => {
+    const choice = rememberedSection();
+    if (!choice) return;
+    let current = true;
+    fetchWeek(choice)
+      .then((week) => current && shownWeek(week, choice))
+      .catch(() => {
+        // The student can still pick the section again.
+      });
+    return () => {
+      current = false;
+    };
+  }, []);
 
   const fields = COVER_PAGE_TEMPLATE_FIELDS[template];
   const shown: CoverPageValues = {
@@ -379,7 +536,7 @@ function CoverPageMaker({
               >
                 Log in
               </Link>{" "}
-              and save your section in the Class Routine to have them filled in.
+              to have your name and ID filled in.
             </>
           )}
         </p>
@@ -413,10 +570,28 @@ function CoverPageMaker({
         >
           <section className="space-y-4 rounded-3xl bg-surface p-5">
             <h2 className="font-expressive text-lg">Course</h2>
+            <Field
+              field="section"
+              label="Your section"
+              value={value("section")}
+              onChange={(name) => {
+                set("section")(name);
+                // Typed in full: its courses come up as if picked.
+                const choice = findSection(name);
+                if (choice && choice.section !== coursesOf) {
+                  void loadSection(choice);
+                }
+              }}
+              suggestions={sectionSuggestions}
+              onPick={(s) => {
+                const choice = findSection(s.value, s.hint);
+                if (choice) void loadSection(choice);
+              }}
+            />
             {courses.length > 0 && (
               <div className="space-y-2">
                 <p className="text-sm font-medium">
-                  Pick from your routine ({section})
+                  Pick from {coursesOf}’s courses
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {courses.map((c) => (
@@ -484,7 +659,7 @@ function CoverPageMaker({
             title="Submitted to"
             hint={
               course
-                ? `Who takes ${course}${section ? ` for ${section}` : ""}, from the routine`
+                ? `Who takes ${course}${coursesOf ? ` for ${coursesOf}` : ""}, from the routine`
                 : undefined
             }
             summary={value("teacherName")}
@@ -508,6 +683,7 @@ function CoverPageMaker({
               field="teacherDepartment"
               value={value("teacherDepartment")}
               onChange={set("teacherDepartment")}
+              suggestions={departmentSuggestions}
             />
           </Group>
 
@@ -523,12 +699,7 @@ function CoverPageMaker({
             }
             startOpen={
               template === "group" ||
-              !filled(
-                "studentName",
-                "studentId",
-                "section",
-                "studentDepartment",
-              )
+              !filled("studentName", "studentId", "studentDepartment")
             }
           >
             {template === "group" ? (
@@ -547,22 +718,16 @@ function CoverPageMaker({
                 />
               </div>
             )}
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field
-                field="section"
-                value={value("section")}
-                onChange={set("section")}
-              />
-              <Field
-                field="semester"
-                value={value("semester")}
-                onChange={set("semester")}
-              />
-            </div>
+            <Field
+              field="semester"
+              value={value("semester")}
+              onChange={set("semester")}
+            />
             <Field
               field="studentDepartment"
               value={value("studentDepartment")}
               onChange={set("studentDepartment")}
+              suggestions={departmentSuggestions}
             />
           </Group>
 

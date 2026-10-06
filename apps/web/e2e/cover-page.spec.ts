@@ -44,11 +44,28 @@ test("the cover page maker works signed out, as a product of its own", async ({
   await page.getByLabel("Name", { exact: true }).fill("Cover Tester");
   await expect(preview(page)).toContainText("Round-robin scheduling");
 
+  // With nothing saved, a section typed in brings up its courses.
+  await page.getByLabel("Your section").fill("67_B");
+  const cse321 = page.getByRole("button", { name: "CSE321" });
+  await expect(cse321).toBeVisible();
+  await cse321.click();
+  await expect(page.getByLabel("Teacher")).toHaveValue("Dr. Sample Teacher");
+
+  // Departments are suggested as they're typed.
+  const department = page.getByLabel("Department").last();
+  await department.fill("electrical");
+  await page
+    .getByRole("option", { name: /Electrical and Electronic Engineering/ })
+    .click();
+  await expect(department).toHaveValue(
+    "Department of Electrical and Electronic Engineering",
+  );
+
   const res = await download(page);
   expect(res.status()).toBe(200);
   expect(res.headers()["content-type"]).toBe("application/pdf");
   expect(res.headers()["content-disposition"]).toContain(
-    "CSE323-lab-report-cover.pdf",
+    "CSE321-lab-report-cover.pdf",
   );
 
   // "Remember my details" keeps the student's own on this device, not the work's.
@@ -57,6 +74,9 @@ test("the cover page maker works signed out, as a product of its own", async ({
     "Cover Tester",
   );
   await expect(page.getByLabel("Course code")).toHaveValue("");
+  // The remembered section's courses come back too.
+  await expect(page.getByLabel("Your section")).toHaveValue("67_B");
+  await expect(page.getByRole("button", { name: "CSE321" })).toBeVisible();
 });
 
 test("it fills in the student, the course and the teacher", async ({
@@ -77,10 +97,10 @@ test("it fills in the student, the course and the teacher", async ({
 
   await page.goto("/cover-page");
   await expect(page.getByLabel("Student ID")).toHaveValue("241-15-047");
-  await expect(page.getByLabel("Section")).toHaveValue("67_B");
+  await expect(page.getByLabel("Your section")).toHaveValue("67_B");
   // The department comes from the ID: 15 is CSE.
   await expect(page.getByLabel("Department").last()).toHaveValue(
-    "Department of CSE",
+    "Department of Computer Science and Engineering",
   );
 
   // Picking a course from the routine brings its title and teacher.
@@ -98,9 +118,9 @@ test("it fills in the student, the course and the teacher", async ({
   await expect(page.getByLabel("Designation")).toHaveValue(
     "Associate Professor",
   );
-  // CSE321 is CSE's own course: its teacher is in the Department of CSE.
+  // CSE321 is CSE's own course: its teacher is in the department.
   await expect(page.getByLabel("Department").first()).toHaveValue(
-    "Department of CSE",
+    "Department of Computer Science and Engineering",
   );
   await page.getByLabel("Topic").fill("Subnetting");
 

@@ -110,3 +110,22 @@ describe("taxonomy routes", () => {
     ]).toEqual(separate);
   });
 });
+
+describe("DIU's departments", () => {
+  it("are all in the catalog (migration 0022)", async () => {
+    const res = await api("/api/v1/taxonomy");
+    const { departments } = await res.json<Taxonomy>();
+    const names = departments.map((d) => d.name);
+    for (const name of [
+      "Artificial Intelligence and Data Engineering",
+      "English",
+      "Pharmacy",
+      "Fisheries",
+    ]) {
+      expect(names).toContain(name);
+    }
+    // Short names stay unique.
+    const shorts = departments.map((d) => d.shortName.toLowerCase());
+    expect(new Set(shorts).size).toBe(shorts.length);
+  });
+});

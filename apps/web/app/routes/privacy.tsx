@@ -161,7 +161,8 @@ export default function Privacy() {
           each class’s teacher by their initials. Next to them it shows a
           teacher’s{" "}
           <strong>
-            name, the room where they sit, work email and phone number
+            name, designation, the room where they sit, work email and phone
+            number
           </strong>{" "}
           where the department’s routine lists them or the site’s admins add
           them from what the university publishes. Each teacher also has a page

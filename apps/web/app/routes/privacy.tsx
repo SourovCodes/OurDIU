@@ -55,9 +55,13 @@ export default function Privacy() {
         </p>
         <p>
           <strong>When you make a cover page</strong>, what you type is sent to
-          the site to make the PDF and isn’t kept. If you tick “Remember my
-          details”, your name, ID, section and department are kept in your
-          browser, on your device only.
+          the site to make the PDF or Word file and isn’t kept. If you tick
+          “Remember my details”, your name, ID, section and department are kept
+          in your browser, on your device only. If you choose “Open in Google
+          Docs”, Google asks you to let OurDIU create files in your Google Drive
+          (only files it creates, not the rest of your Drive); the cover page
+          goes from your browser to your Drive, and the access Google gives
+          stays in your browser, never on OurDIU’s servers.
         </p>
         <p>
           <strong>When you upload a paper</strong> (this needs a DIU email

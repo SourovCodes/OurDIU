@@ -26,7 +26,7 @@ export const coverPagePath = (template: CoverPageTemplate) =>
   template === "assignment" ? "/cover-page" : `/cover-page/${template}`;
 
 /** The heading printed on each template's page. */
-const TITLES: Record<CoverPageTemplate, string> = {
+export const COVER_PAGE_HEADINGS: Record<CoverPageTemplate, string> = {
   assignment: "ASSIGNMENT",
   "lab-report": "LAB REPORT",
   "group-assignment": "GROUP ASSIGNMENT",
@@ -126,6 +126,26 @@ export const COVER_PAGE_TEMPLATE_FIELDS: Record<
     "date",
   ],
 };
+
+/** The lines under a template's heading: what the work is. */
+export function coverPageDetails(
+  template: CoverPageTemplate,
+): [label: string, field: CoverPageField][] {
+  const work: [string, CoverPageField][] =
+    template === "lab-report"
+      ? [
+          ["Experiment No", "experimentNo"],
+          ["Experiment Name", "experimentName"],
+        ]
+      : template === "final-lab-report"
+        ? []
+        : [["Topic Name", "topic"]];
+  return [
+    ["Course Code", "courseCode"],
+    ["Course Title", "courseTitle"],
+    ...work,
+  ];
+}
 
 /** Whether a template has a group's members instead of one student. */
 export const isGroupTemplate = (template: CoverPageTemplate) =>
@@ -431,7 +451,7 @@ export function coverPageLayout(
   };
   image("logo", 58, 260, 1);
   image("crest", 300, 230, 0.12);
-  const title = TITLES[template];
+  const title = COVER_PAGE_HEADINGS[template];
   const titleWidth = centred(186, title, 16, true, "navy");
   underline((A4_WIDTH - titleWidth) / 2, 186, titleWidth, "navy");
 
@@ -440,13 +460,8 @@ export function coverPageLayout(
   const detail = (label: string, v: string) => {
     y = labelled(MARGIN, y, CONTENT, label, v, 14, 21) + 6;
   };
-  detail("Course Code", value("courseCode"));
-  detail("Course Title", value("courseTitle"));
-  if (template === "lab-report") {
-    detail("Experiment No", value("experimentNo"));
-    detail("Experiment Name", value("experimentName"));
-  } else if (template !== "final-lab-report") {
-    detail("Topic Name", value("topic"));
+  for (const [label, field] of coverPageDetails(template)) {
+    detail(label, value(field));
   }
 
   // Submitted to and submitted by, side by side near the foot.

@@ -5105,6 +5105,58 @@
         }
       }
     },
+    "/api/v1/cover-page/{template}/docx": {
+      "post": {
+        "tags": [
+          "Cover Page"
+        ],
+        "summary": "Make a cover page as a Word document",
+        "description": "The same page as the PDF, as a .docx to edit in Word or Google Docs. It keeps any script (Bangla too), which the PDF can't. Nothing is kept.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/CoverPageTemplate"
+            },
+            "required": true,
+            "name": "template",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoverPageInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Word document",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unknown template, or a detail too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/routine/versions": {
       "get": {
         "tags": [

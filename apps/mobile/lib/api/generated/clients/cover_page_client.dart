@@ -26,4 +26,14 @@ abstract class CoverPageClient {
     @Path('template') required CoverPageTemplate template,
     @Body() required CoverPageInput body,
   });
+
+  /// Make a cover page as a Word document.
+  ///
+  /// The same page as the PDF, as a .docx to edit in Word or Google Docs. It keeps any script (Bangla too), which the PDF can't. Nothing is kept.
+  @POST('/api/v1/cover-page/{template}/docx')
+  @DioResponseType(ResponseType.stream)
+  Stream<String> postApiV1CoverPageTemplateDocx({
+    @Path('template') required CoverPageTemplate template,
+    @Body() required CoverPageInput body,
+  });
 }

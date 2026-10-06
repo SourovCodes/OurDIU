@@ -52,6 +52,38 @@ class _CoverPageClient implements CoverPageClient {
     yield* _value;
   }
 
+  @override
+  Stream<String> postApiV1CoverPageTemplateDocx({
+    required CoverPageTemplate template,
+    required CoverPageInput body,
+  }) async* {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = <String, dynamic>{};
+    _data.addAll(body.toJson());
+    final _options = _setStreamType<String>(
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            responseType: ResponseType.stream,
+          )
+          .compose(
+            _dio.options,
+            '/api/v1/cover-page/${template}/docx',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = _dio.fetch<ResponseBody>(_options);
+    final _value = _result.asStream().asyncExpand(
+      (response) => utf8.decoder.bind(response.data!.stream),
+    );
+    yield* _value;
+  }
+
   RequestOptions _setStreamType<T>(RequestOptions requestOptions) {
     if (T != dynamic &&
         !(requestOptions.responseType == ResponseType.bytes ||

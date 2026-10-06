@@ -1,4 +1,5 @@
 import { COVER_PAGE_TEMPLATES } from "@ourdiu/shared/cover-pages";
+import JSZip from "jszip";
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it } from "vitest";
 import { api, jsonRequest } from "./helpers";
@@ -88,5 +89,43 @@ describe("the preview's text widths", () => {
       near(textWidth(s, 11, false), regular.widthOfTextAtSize(s, 11));
       near(textWidth(s, 14, true), bold.widthOfTextAtSize(s, 14));
     }
+  });
+});
+
+describe("POST /api/v1/cover-page/{template}/docx", () => {
+  it.each(COVER_PAGE_TEMPLATES)("makes a Word %s cover", async (t) => {
+    const res = await api(
+      `/api/v1/cover-page/${t}/docx`,
+      jsonRequest("POST", { ...details, studentName: "সৌরভ বিশ্বাস" }),
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe(
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    );
+    expect(res.headers.get("content-disposition")).toBe(
+      `attachment; filename="CSE311-${t}-cover.docx"`,
+    );
+    const zip = await JSZip.loadAsync(await res.arrayBuffer());
+    const xml = await zip.file("word/document.xml")!.async("string");
+    expect(xml).toContain("CSE311");
+    expect(xml).toContain("Test Teacher");
+    // The logo and the faint crest.
+    expect(
+      Object.keys(zip.files).filter((f) => /^word\/media\/.+\.png$/.test(f)),
+    ).toHaveLength(2);
+    if (t === "group-assignment") {
+      expect(xml).toContain("First Member");
+    } else {
+      // Word keeps Bangla, which the PDF can't print.
+      expect(xml).toContain("সৌরভ বিশ্বাস");
+    }
+  });
+
+  it("refuses unknown templates", async () => {
+    const res = await api(
+      "/api/v1/cover-page/thesis/docx",
+      jsonRequest("POST", details),
+    );
+    expect(res.status).toBe(422);
   });
 });

@@ -11,6 +11,21 @@ failOnConsoleErrors();
 const preview = (page: Page) =>
   page.getByRole("img", { name: "Preview of the cover page" });
 
+/** Downloads the Word file (a button on wide screens, a menu on phones). */
+async function downloadWord(page: Page) {
+  const response = page.waitForResponse(
+    (r) => r.url().includes("/api/v1/cover-page/") && r.url().endsWith("/docx"),
+  );
+  const button = page.getByRole("button", { name: "Word (.docx)" });
+  if (await button.isVisible()) {
+    await button.click();
+  } else {
+    await page.getByRole("button", { name: "Other formats" }).click();
+    await page.getByRole("menuitem", { name: "Word file (.docx)" }).click();
+  }
+  return response;
+}
+
 /** Clicks Download PDF (the phone's or the wide screen's) and returns the PDF. */
 async function download(page: Page) {
   const response = page.waitForResponse((r) =>
@@ -159,6 +174,17 @@ test("it fills in the student, the course and the teacher", async ({
   expect(res.status()).toBe(200);
   expect(res.headers()["content-disposition"]).toContain(
     "CSE321-assignment-cover.pdf",
+  );
+
+  // The same page as a Word file, to edit. "Open in Google Docs" is off until
+  // the Drive API is set up (COVER_PAGE_GOOGLE_DOCS).
+  const word = await downloadWord(page);
+  expect(word.status()).toBe(200);
+  expect(word.headers()["content-disposition"]).toContain(
+    "CSE321-assignment-cover.docx",
+  );
+  await expect(page.getByRole("button", { name: "Google Docs" })).toHaveCount(
+    0,
   );
 
   // A course another department teaches (accounting, in CSE's routine): the

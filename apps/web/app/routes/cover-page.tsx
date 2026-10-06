@@ -15,12 +15,21 @@ import {
   type CoverPageTemplate,
   type CoverPageValues,
 } from "@ourdiu/shared/cover-pages";
-import { ChevronDown, Download, Plus, X } from "lucide-react";
+import {
+  ChevronDown,
+  Download,
+  EllipsisVertical,
+  ExternalLink,
+  FileText,
+  Plus,
+  X,
+} from "lucide-react";
 import {
   useEffect,
   useEffectEvent,
   useId,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -36,11 +45,23 @@ import { CoverPagePreview } from "~/components/cover-page-preview";
 import { SuggestInput, type Suggestion } from "~/components/suggest-input";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { isTeacherPick, savedRoutine } from "~/lib/routine";
 import { myRoutine, routineLists } from "~/lib/routine.server";
 import { breadcrumbJsonLd, originOf, pageMeta } from "~/lib/seo";
+import {
+  driveToken,
+  loadGoogleIdentity,
+  saveAsGoogleDoc,
+} from "~/lib/google-docs";
+import { googleDocsClientId } from "~/lib/google-docs.server";
 import { getUser } from "~/lib/session.server";
 import type { RouteHandle } from "~/root";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
@@ -62,44 +83,45 @@ const PAGES: Record<
   { title: string; heading: string; description: string; intro: string }
 > = {
   assignment: {
-    title: "DIU Cover Page Maker: Assignment Cover Page (Free PDF) | OurDIU",
+    title:
+      "DIU Cover Page Maker: Assignment Cover Page (Free PDF and Word) | OurDIU",
     heading: "DIU Cover Page Maker",
     description:
-      "Make a Daffodil International University (DIU) assignment cover page in DIU's format, free: DIU's logo, course code and title, topic, and Submitted to and Submitted by filled in from your class routine. Download it as a PDF to print. Lab report, group assignment, final lab report and presentation cover pages too.",
+      "Make a Daffodil International University (DIU) assignment cover page in DIU's format, free: DIU's logo, course code and title, topic, and Submitted to and Submitted by filled in from your class routine. Download it as a PDF to print, or as a Word file to edit. Lab report, group assignment, final lab report and presentation cover pages too.",
     intro:
-      "Assignment cover pages (front pages) in DIU’s format, with DIU’s logo, filled in for you and ready to print as a PDF.",
+      "Assignment cover pages (front pages) in DIU’s format, with DIU’s logo, filled in for you, as a PDF to print or a Word file to edit.",
   },
   "lab-report": {
-    title: "DIU Lab Report Cover Page Maker (Free PDF) | OurDIU",
+    title: "DIU Lab Report Cover Page Maker (Free PDF and Word) | OurDIU",
     heading: "DIU Lab Report Cover Page",
     description:
-      "Make a DIU lab report cover page in Daffodil International University's format, free: experiment no. and name, course code and title, your teacher and your details, as a PDF to print. For CSE, SWE, EEE and every department.",
+      "Make a DIU lab report cover page in Daffodil International University's format, free: experiment no. and name, course code and title, your teacher and your details, as a PDF or Word file. For CSE, SWE, EEE and every department.",
     intro:
-      "Lab report cover pages (front pages) in DIU’s format: the experiment, the course, your teacher and you, as a PDF to print.",
+      "Lab report cover pages (front pages) in DIU’s format: the experiment, the course, your teacher and you, as a PDF or a Word file.",
   },
   "group-assignment": {
-    title: "DIU Group Assignment Cover Page Maker (Free PDF) | OurDIU",
+    title: "DIU Group Assignment Cover Page Maker (Free PDF and Word) | OurDIU",
     heading: "DIU Group Assignment Cover Page",
     description:
-      "Make a DIU group assignment cover page in Daffodil International University's format, free: every member's name and ID, the course, the topic and your teacher, as a PDF to print.",
+      "Make a DIU group assignment cover page in Daffodil International University's format, free: every member's name and ID, the course, the topic and your teacher, as a PDF or Word file.",
     intro:
-      "Group assignment cover pages in DIU’s format, with every member’s name and ID, as a PDF to print.",
+      "Group assignment cover pages in DIU’s format, with every member’s name and ID, as a PDF or a Word file.",
   },
   "final-lab-report": {
-    title: "DIU Final Lab Report Cover Page Maker (Free PDF) | OurDIU",
+    title: "DIU Final Lab Report Cover Page Maker (Free PDF and Word) | OurDIU",
     heading: "DIU Final Lab Report Cover Page",
     description:
-      "Make a DIU final lab report cover page in Daffodil International University's format, free: the course, your teacher and your details, as a PDF to print.",
+      "Make a DIU final lab report cover page in Daffodil International University's format, free: the course, your teacher and your details, as a PDF or Word file.",
     intro:
-      "Final lab report cover pages in DIU’s format, for the lab’s report at the end of the semester, as a PDF to print.",
+      "Final lab report cover pages in DIU’s format, for the lab’s report at the end of the semester, as a PDF or a Word file.",
   },
   presentation: {
-    title: "DIU Presentation Cover Page Maker (Free PDF) | OurDIU",
+    title: "DIU Presentation Cover Page Maker (Free PDF and Word) | OurDIU",
     heading: "DIU Presentation Cover Page",
     description:
-      "Make a DIU presentation cover page in Daffodil International University's format, free: the topic, the course, your teacher and your details, as a PDF to print or put first in your slides.",
+      "Make a DIU presentation cover page in Daffodil International University's format, free: the topic, the course, your teacher and your details, as a PDF or Word file.",
     intro:
-      "Presentation cover pages in DIU’s format, as a PDF to print or to put first in your slides.",
+      "Presentation cover pages in DIU’s format, as a PDF or a Word file to put first in your slides.",
   },
 };
 
@@ -261,6 +283,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   };
   return {
     signedIn: !!user,
+    // "Open in Google Docs", when it's on (decision 43).
+    googleClientId: googleDocsClientId(),
     section: mine?.section ?? null,
     courses:
       mine && routineDepartment
@@ -489,6 +513,7 @@ function CoverPageMaker({
   departments,
   sections,
   defaults,
+  googleClientId,
   raw,
 }: Route.ComponentProps["loaderData"] & { raw: string | null }) {
   // What this device remembers wins over the account's: the student may write
@@ -512,7 +537,7 @@ function CoverPageMaker({
   const [courses, setCourses] = useState(savedCourses);
   const [coursesOf, setCoursesOf] = useState(section);
   const [remember, setRemember] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"pdf" | "docx" | "docs" | null>(null);
 
   const set = (field: CoverPageField) => (value: string) =>
     setValues((v) => ({ ...v, [field]: value }));
@@ -607,20 +632,33 @@ function CoverPageMaker({
     ...(isGroupTemplate(template) ? { members } : {}),
   };
 
-  async function download() {
-    setBusy(true);
+  /** The cover page from the API, as a PDF or a Word file, with its name. */
+  async function make(format: "pdf" | "docx") {
+    const res = await fetch(`/api/v1/cover-page/${template}/${format}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(shown),
+    });
+    if (!res.ok) throw new Error(String(res.status));
+    const name =
+      /filename="([^"]+)"/.exec(
+        res.headers.get("content-disposition") ?? "",
+      )?.[1] ?? `cover-page.${format}`;
+    return { blob: await res.blob(), name };
+  }
+
+  const keepDetails = () =>
+    writeRemembered(
+      remember
+        ? Object.fromEntries(REMEMBERED.map((f) => [f, value(f)]))
+        : null,
+    );
+
+  async function download(format: "pdf" | "docx") {
+    setBusy(format);
     try {
-      const res = await fetch(`/api/v1/cover-page/${template}/pdf`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(shown),
-      });
-      if (!res.ok) throw new Error(String(res.status));
-      const name =
-        /filename="([^"]+)"/.exec(
-          res.headers.get("content-disposition") ?? "",
-        )?.[1] ?? "cover-page.pdf";
-      const url = URL.createObjectURL(await res.blob());
+      const { blob, name } = await make(format);
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = name;
@@ -628,15 +666,60 @@ function CoverPageMaker({
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      writeRemembered(
-        remember
-          ? Object.fromEntries(REMEMBERED.map((f) => [f, value(f)]))
-          : null,
-      );
+      keepDetails();
     } catch {
-      toast.error("Couldn’t make the PDF. Please try again.");
+      toast.error(
+        `Couldn’t make the ${format === "pdf" ? "PDF" : "Word file"}. Please try again.`,
+      );
     } finally {
-      setBusy(false);
+      setBusy(null);
+    }
+  }
+
+  // Google's script loads ahead, so a click can open its popup straight away.
+  const google = useRef<Awaited<ReturnType<typeof loadGoogleIdentity>> | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!googleClientId) return;
+    loadGoogleIdentity()
+      .then((oauth2) => {
+        google.current = oauth2;
+      })
+      .catch(() => {
+        // The button says so when it's clicked.
+      });
+  }, [googleClientId]);
+
+  /** Saves the Word file to the student's Google Drive as a Google Doc. */
+  async function openInGoogleDocs() {
+    if (!googleClientId || !google.current) {
+      toast.error("Google Docs isn’t ready yet. Please try again.");
+      return;
+    }
+    // Asked first, inside the click, or the browser blocks Google's popup.
+    const access = driveToken(google.current, googleClientId);
+    setBusy("docs");
+    try {
+      const token = await access;
+      const { blob, name } = await make("docx");
+      const link = await saveAsGoogleDoc(
+        token,
+        blob,
+        name.replace(/\.docx$/, "").replaceAll("-", " "),
+      );
+      keepDetails();
+      toast.success("Saved to your Google Drive", {
+        action: {
+          label: "Open in Google Docs",
+          onClick: () => window.open(link, "_blank", "noopener"),
+        },
+        duration: 15_000,
+      });
+    } catch {
+      toast.error("Couldn’t save it to Google Docs. Please try again.");
+    } finally {
+      setBusy(null);
     }
   }
 
@@ -882,17 +965,43 @@ function CoverPageMaker({
           </section>
 
           {/* On phones the button stays at the bottom of the screen. */}
-          <div className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/95 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur lg:hidden">
+          <div className="fixed inset-x-0 bottom-0 z-20 flex gap-2 border-t bg-background/95 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur lg:hidden">
             <Button
               type="button"
               size="lg"
-              className="w-full rounded-full"
-              disabled={busy}
-              onClick={() => void download()}
+              className="flex-1 rounded-full"
+              disabled={!!busy}
+              onClick={() => void download("pdf")}
             >
               <Download aria-hidden />
-              {busy ? "Making the PDF…" : "Download PDF"}
+              {busy === "pdf" ? "Making the PDF…" : "Download PDF"}
             </Button>
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  size="icon-lg"
+                  variant="outline"
+                  className="rounded-full"
+                  disabled={!!busy}
+                  aria-label="Other formats"
+                >
+                  <EllipsisVertical />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" side="top" className="w-56">
+                <DropdownMenuItem onSelect={() => void download("docx")}>
+                  <FileText />
+                  Word file (.docx)
+                </DropdownMenuItem>
+                {googleClientId && (
+                  <DropdownMenuItem onSelect={() => void openInGoogleDocs()}>
+                    <ExternalLink />
+                    Open in Google Docs
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </form>
 
@@ -903,16 +1012,42 @@ function CoverPageMaker({
             values={shown}
             className="w-full rounded-md shadow-md ring-1 ring-black/5"
           />
-          <Button
-            type="button"
-            size="lg"
-            className="hidden w-full rounded-full lg:flex"
-            disabled={busy}
-            onClick={() => void download()}
-          >
-            <Download aria-hidden />
-            {busy ? "Making the PDF…" : "Download PDF"}
-          </Button>
+          <div className="hidden gap-2 lg:grid">
+            <Button
+              type="button"
+              size="lg"
+              className="w-full rounded-full"
+              disabled={!!busy}
+              onClick={() => void download("pdf")}
+            >
+              <Download aria-hidden />
+              {busy === "pdf" ? "Making the PDF…" : "Download PDF"}
+            </Button>
+            <div className={cn("grid gap-2", googleClientId && "grid-cols-2")}>
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-full"
+                disabled={!!busy}
+                onClick={() => void download("docx")}
+              >
+                <FileText aria-hidden />
+                {busy === "docx" ? "Making it…" : "Word (.docx)"}
+              </Button>
+              {googleClientId && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-full"
+                  disabled={!!busy}
+                  onClick={() => void openInGoogleDocs()}
+                >
+                  <ExternalLink aria-hidden />
+                  {busy === "docs" ? "Saving…" : "Google Docs"}
+                </Button>
+              )}
+            </div>
+          </div>
         </aside>
       </div>
 
@@ -950,9 +1085,9 @@ function AboutCoverPages() {
         account; type your section (like 67_B) and pick a course, and its title
         and your teacher come from DIU’s class routine (CSE, SWE and EEE so
         far). Everything can be changed. The preview is the page as it prints:
-        download it as a PDF, print it or put it first in your file. It’s free,
-        and works for every department without logging in. What you type isn’t
-        kept on the site.
+        download it as a PDF to print, or as a Word file to edit in Word or
+        Google Docs. It’s free, and works for every department without logging
+        in. What you type isn’t kept on the site.
       </p>
       <p>
         Cover pages for an{" "}

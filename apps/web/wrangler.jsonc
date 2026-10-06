@@ -28,6 +28,11 @@
     // Reads published papers' text (the cron backfill and the admin's "read all"):
     // a lighter model with a free quota of its own, separate from the upload check's.
     "GEMINI_TEXT_MODEL": "gemini-3.5-flash-lite",
+    // "on" shows "Open in Google Docs" on the cover page maker: it uploads the
+    // .docx to the student's Google Drive (the drive.file scope) with Google's
+    // token client. Needs the Google Drive API enabled in the ourdiu Cloud
+    // project and drive.file on its OAuth consent screen (docs/PLAN.md, decision 43).
+    "COVER_PAGE_GOOGLE_DOCS": "off",
     // The oldest Android app version that still works (GET /api/v1/app/android):
     // older ones show "Time to update". Raise it only for a breaking change or a
     // serious bug; /api/v1 otherwise stays backward compatible. 1.6.0 is the first

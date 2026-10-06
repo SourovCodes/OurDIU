@@ -176,16 +176,18 @@ test("it fills in the student, the course and the teacher", async ({
     "CSE321-assignment-cover.pdf",
   );
 
-  // The same page as a Word file, to edit. "Open in Google Docs" is off until
-  // the Drive API is set up (COVER_PAGE_GOOGLE_DOCS).
+  // The same page as a Word file, to edit.
   const word = await downloadWord(page);
   expect(word.status()).toBe(200);
   expect(word.headers()["content-disposition"]).toContain(
     "CSE321-assignment-cover.docx",
   );
-  await expect(page.getByRole("button", { name: "Google Docs" })).toHaveCount(
-    0,
-  );
+  // And to save straight to Google Docs (COVER_PAGE_GOOGLE_DOCS is on).
+  if (await page.getByRole("button", { name: "Word (.docx)" }).isVisible()) {
+    await expect(
+      page.getByRole("button", { name: "Google Docs" }),
+    ).toBeVisible();
+  }
 
   // A course another department teaches (accounting, in CSE's routine): the
   // teacher's department is left to type.

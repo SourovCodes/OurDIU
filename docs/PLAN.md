@@ -262,7 +262,7 @@ Then:
 - [x] Search (decision 42): a page per template with search titles, structured data, a share image, the about section, sitemap and `llms.txt`; final lab report and presentation added.
 - [ ] Owner, after the deploy: Search Console, request indexing of `/cover-page` and the template pages; watch "diu cover page" and "diu lab report cover page" over the following weeks.
 - [x] A Word (.docx) download beside the PDF, and "Open in Google Docs" (decision 43, off until set up).
-- [ ] Owner: in the `ourdiu` Google Cloud project, enable the Google Drive API and add the `drive.file` scope to the OAuth consent screen; then set `COVER_PAGE_GOOGLE_DOCS` to "on" in `apps/web/wrangler.jsonc` and deploy.
+- [x] Owner (6 October 2026): the Google Drive API enabled in the `ourdiu` Cloud project and `drive.file` on its consent screen; `COVER_PAGE_GOOGLE_DOCS` is "on". Sign-in still asks only for name, email and photo: the Drive permission is asked only when a student chooses Google Docs, and declining points them to the Word file.
 - [ ] Next, from the searches: project report, internship report and lab report index templates.
 - Later, an idea: printing for students in the halls. With the hall authority's permission, a printer in a hall: students send a cover page (or any PDF) from OurDIU, and pick the printout up or have it delivered. Needs the hall's agreement, payment, and someone to run it; closer to the Marketplace than to the cover page maker.
 

@@ -47,6 +47,25 @@ enum Space {
       onContainer: Color(0xFFB9F0E3),
     ),
   ),
+  cover(
+    label: 'Cover Page',
+    title: 'Cover page maker',
+    tagline: 'Cover pages for assignments and lab reports',
+    icon: Icons.edit_document,
+    home: '/cover-page',
+    live: true,
+    shape: ExamKind.lab,
+    light: SpaceColors(
+      accent: Color(0xFF805600),
+      container: Color(0xFFFFDDB3),
+      onContainer: Color(0xFF291800),
+    ),
+    dark: SpaceColors(
+      accent: Color(0xFFFFB951),
+      container: Color(0xFF614000),
+      onContainer: Color(0xFFFFDDB3),
+    ),
+  ),
   market(
     label: 'Marketplace',
     title: 'Marketplace',

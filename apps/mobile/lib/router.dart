@@ -22,6 +22,8 @@ import 'shell/app_shell.dart';
 import 'spaces/choose_screen.dart';
 import 'features/contributors/contributor_screen.dart';
 import 'features/contributors/contributors_screen.dart';
+import 'features/cover_page/cover_page_screen.dart';
+import 'features/cover_page/cover_preview_screen.dart';
 import 'spaces/coming_soon_screen.dart';
 import 'spaces/space.dart';
 
@@ -124,6 +126,21 @@ GoRouter buildRouter({String initialLocation = '/home'}) => GoRouter(
               ],
             ),
           ],
+        ),
+      ],
+    ),
+    // The Cover Page space: the maker, and its preview over it.
+    GoRoute(
+      path: '/cover-page',
+      builder: (context, state) => const CoverPageScreen(),
+      routes: [
+        GoRoute(
+          parentNavigatorKey: _rootKey,
+          path: 'preview',
+          redirect: (context, state) =>
+              state.extra is CoverPreview ? null : '/cover-page',
+          builder: (context, state) =>
+              CoverPreviewScreen(preview: state.extra! as CoverPreview),
         ),
       ],
     ),

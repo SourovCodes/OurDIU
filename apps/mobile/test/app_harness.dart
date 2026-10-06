@@ -7,10 +7,12 @@ import 'package:diuqbank/api/generated/export.dart';
 import 'package:diuqbank/auth/session.dart';
 import 'package:diuqbank/auth/token.dart';
 import 'package:diuqbank/data/app_update.dart';
+import 'package:diuqbank/data/cover_page.dart';
 import 'package:diuqbank/data/prefs.dart';
 import 'package:diuqbank/data/questions.dart';
 import 'package:diuqbank/data/routine.dart';
 import 'package:diuqbank/data/taxonomy.dart';
+import 'package:diuqbank/features/cover_page/cover_preview_screen.dart';
 import 'package:diuqbank/features/questions/question_providers.dart';
 import 'package:diuqbank/features/routine/routine_widgets.dart';
 import 'package:diuqbank/features/upload/papers.dart';
@@ -149,6 +151,7 @@ Future<FakeViewCounter> pumpApp(
   TokenStore? tokens,
   PaperSources? sources,
   SharedPdfs? shared,
+  List<({String name, CoverFormat format})>? coverShares,
   // A returning user in the Question Bank; `{}` is a first launch.
   Map<String, String> prefs = const {'space': 'questions'},
 }) async {
@@ -190,6 +193,16 @@ Future<FakeViewCounter> pumpApp(
         paperSourcesProvider.overrideWithValue(sources ?? FakePaperSources()),
         sharedPdfsProvider.overrideWithValue(shared ?? FakeSharedPdfs()),
         pdfThumbnailProvider.overrideWithValue((path) => const SizedBox()),
+        coverPageViewerProvider.overrideWithValue(
+          (file) => Text('Cover PDF ${file.name}'),
+        ),
+        coverPageSharerProvider.overrideWithValue(
+          (file, format, origin) async =>
+              coverShares?.add((name: file.name, format: format)),
+        ),
+        coverPageClockProvider.overrideWithValue(
+          () => DateTime.utc(2026, 10, 5, 3),
+        ),
         savedSessionTokenProvider.overrideWithValue(token),
         paperViewerProvider.overrideWithValue(
           (url, events) => GestureDetector(

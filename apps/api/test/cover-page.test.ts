@@ -1,4 +1,8 @@
-import { COVER_PAGE_TEMPLATES } from "@ourdiu/shared/cover-pages";
+import {
+  COVER_PAGE_TEMPLATES,
+  isGroupTemplate,
+  isTitlePageTemplate,
+} from "@ourdiu/shared/cover-pages";
 import JSZip from "jszip";
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it } from "vitest";
@@ -22,9 +26,19 @@ const details = {
   semester: "Fall 2026",
   studentDepartment: "Department of CSE",
   date: "06/10/2026",
+  degree: "Bachelor of Science in Computer Science and Engineering",
+  monthYear: "October 2026",
   members: [
     { name: "First Member", id: "241-15-001" },
     { name: "Second Member", id: "241-15-002" },
+  ],
+  experiments: [
+    {
+      no: "1",
+      name: "Static routing",
+      performedOn: "13/09/2026",
+      submittedOn: "20/09/2026",
+    },
   ],
 };
 
@@ -64,6 +78,19 @@ describe("POST /api/v1/cover-page/{template}/pdf", () => {
             name: `M${i}`,
             id: "",
           })),
+        })
+      ).status,
+    ).toBe(422);
+    const experiment = {
+      no: "1",
+      name: "x",
+      performedOn: "",
+      submittedOn: "",
+    };
+    expect(
+      (
+        await make("lab-report-index", {
+          experiments: Array.from({ length: 13 }, () => experiment),
         })
       ).status,
     ).toBe(422);
@@ -107,19 +134,36 @@ describe("POST /api/v1/cover-page/{template}/docx", () => {
     );
     const zip = await JSZip.loadAsync(await res.arrayBuffer());
     const xml = await zip.file("word/document.xml")!.async("string");
-    expect(xml).toContain("CSE311");
     expect(xml).toContain("Test Teacher");
-    // The logo and the faint crest.
-    expect(
-      Object.keys(zip.files).filter((f) => /^word\/media\/.+\.png$/.test(f)),
-    ).toHaveLength(2);
+    const images = Object.keys(zip.files).filter((f) =>
+      /^word\/media\/.+\.png$/.test(f),
+    );
+    if (isTitlePageTemplate(t)) {
+      // DIU's thesis format: the title, the degree, the month; no course.
+      expect(xml).toContain("CPU scheduling algorithms");
+      expect(xml).toContain(
+        "Requirements for the Degree of Bachelor of Science in Computer Science and Engineering",
+      );
+      expect(xml).toContain("OCTOBER 2026");
+      expect(xml).not.toContain("CSE311");
+      expect(images).toHaveLength(1);
+    } else if (t === "lab-report-index") {
+      expect(xml).toContain("CSE311");
+      expect(xml).toContain("Static routing");
+      expect(xml).toContain("Date of Submission");
+      expect(images).toHaveLength(1);
+    } else {
+      expect(xml).toContain("CSE311");
+      // The logo and the faint crest.
+      expect(images).toHaveLength(2);
+    }
     // The cover's frame is on its page only, and the document goes on to a plain
     // page: the date's box isn't the last paragraph, so the cursor can leave it.
     expect(xml).toContain('w:display="firstPage"');
     const last = xml.slice(xml.lastIndexOf("<w:p>"));
     expect(last).toContain("<w:pageBreakBefore/>");
     expect(last).not.toContain("<w:pBdr>");
-    if (t === "group-assignment") {
+    if (isGroupTemplate(t)) {
       expect(xml).toContain("First Member");
     } else {
       // Word keeps Bangla, which the PDF can't print.

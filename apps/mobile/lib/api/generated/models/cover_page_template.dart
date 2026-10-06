@@ -16,6 +16,14 @@ enum CoverPageTemplate {
   finalLabReport('final-lab-report'),
   @JsonValue('presentation')
   presentation('presentation'),
+  @JsonValue('project-report')
+  projectReport('project-report'),
+  @JsonValue('lab-report-index')
+  labReportIndex('lab-report-index'),
+  @JsonValue('internship-report')
+  internshipReport('internship-report'),
+  @JsonValue('final-year-project')
+  finalYearProject('final-year-project'),
 
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);

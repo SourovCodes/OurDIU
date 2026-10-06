@@ -4,7 +4,9 @@ import {
   A4_WIDTH,
   coverPageLayout,
   coverPagePath,
+  degreeFor,
   dhakaDate,
+  monthYearOn,
   printableText,
   semesterOn,
   textWidth,
@@ -14,6 +16,69 @@ import {
 
 const texts = (items: CoverPageItem[]) =>
   items.flatMap((i) => (i.kind === "text" ? [i] : []));
+
+describe("the report and index templates", () => {
+  it("print a title page in DIU's thesis format", () => {
+    const page = texts(
+      coverPageLayout("internship-report", {
+        topic: "Web development at an agency",
+        studentName: "Test Student",
+        studentId: "241-15-047",
+        degree: "Bachelor of Science in Software Engineering",
+        teacherName: "Test Teacher",
+        monthYear: "October 2026",
+        courseCode: "CSE311",
+      }),
+    ).map((t) => t.text);
+    expect(page).toContain("INTERNSHIP REPORT");
+    expect(page).toContain("Web development at an agency");
+    expect(page).toContain("ID: 241-15-047");
+    expect(page.join(" ")).toContain(
+      "This Internship Report Presented in Partial Fulfillment",
+    );
+    expect(page.join(" ")).toContain("Bachelor of Science in Software");
+    expect(page).toContain("Supervised By");
+    expect(page).toContain("OCTOBER 2026");
+    // Not a course's cover.
+    expect(page).not.toContain("CSE311");
+  });
+
+  it("print the index's experiments, with blank rows to write in", () => {
+    const items = coverPageLayout("lab-report-index", {
+      courseCode: "CSE322",
+      experiments: [
+        {
+          no: "1",
+          name: "Static routing",
+          performedOn: "13/09/2026",
+          submittedOn: "",
+        },
+      ],
+    });
+    const page = texts(items).map((t) => t.text);
+    expect(page).toContain("LAB REPORT INDEX");
+    expect(page).toContain("CSE322");
+    expect(page).toContain("Static routing");
+    expect(page).toContain("13/09/2026");
+    // A row for each of 12 experiments, under the header: 14 rules across.
+    const across = items.filter(
+      (i) => i.kind === "line" && i.y1 === i.y2 && i.x2 - i.x1 > 400,
+    );
+    expect(across).toHaveLength(14);
+  });
+
+  it("guess a department's degree", () => {
+    expect(degreeFor("Department of Computer Science and Engineering")).toBe(
+      "Bachelor of Science in Computer Science and Engineering",
+    );
+    expect(degreeFor("Business Administration")).toBe(
+      "Bachelor of Business Administration",
+    );
+    expect(degreeFor("Law")).toBe("Bachelor of Laws");
+    expect(degreeFor("")).toBe("");
+    expect(monthYearOn(new Date("2026-09-30T20:00:00Z"))).toBe("October 2026");
+  });
+});
 
 describe("coverPageLayout", () => {
   it("prints each template's heading and details", () => {

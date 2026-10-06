@@ -25,6 +25,10 @@ String coverTemplateName(CoverPageTemplate t) => switch (t) {
   CoverPageTemplate.groupAssignment => 'Group assignment',
   CoverPageTemplate.finalLabReport => 'Final lab report',
   CoverPageTemplate.presentation => 'Presentation',
+  CoverPageTemplate.projectReport => 'Project report',
+  CoverPageTemplate.labReportIndex => 'Lab report index',
+  CoverPageTemplate.internshipReport => 'Internship report',
+  CoverPageTemplate.finalYearProject => 'Final-year project',
   CoverPageTemplate.$unknown => 'Cover page',
 };
 
@@ -51,7 +55,9 @@ enum CoverField {
     'Department',
     'e.g. Department of Software Engineering',
   ),
-  date(20, 'Date of submission', null);
+  date(20, 'Date of submission', null),
+  degree(120, 'Degree', 'e.g. Bachelor of Science in Software Engineering'),
+  monthYear(20, 'Month and year', 'e.g. October 2026');
 
   const CoverField(this.maxLength, this.label, this.hint);
 
@@ -64,8 +70,20 @@ const maxCoverMembers = 6;
 const maxMemberName = 80;
 const maxMemberId = 20;
 
+/// The lab report index's rows: those typed, then blank ones to write in.
+const maxCoverExperiments = 12;
+
 bool isGroupTemplate(CoverPageTemplate t) =>
-    t == CoverPageTemplate.groupAssignment;
+    t == CoverPageTemplate.groupAssignment ||
+    t == CoverPageTemplate.projectReport;
+
+/// A report's title page in DIU's thesis format, not a course's cover.
+bool isTitlePage(CoverPageTemplate t) =>
+    t == CoverPageTemplate.internshipReport ||
+    t == CoverPageTemplate.finalYearProject;
+
+/// The lab report index: a table of experiments.
+bool isIndex(CoverPageTemplate t) => t == CoverPageTemplate.labReportIndex;
 
 /// What the work is, under the course: a topic, or the experiment.
 List<CoverField> workFields(CoverPageTemplate t) => switch (t) {
@@ -73,12 +91,37 @@ List<CoverField> workFields(CoverPageTemplate t) => switch (t) {
     CoverField.experimentNo,
     CoverField.experimentName,
   ],
-  CoverPageTemplate.finalLabReport => const [],
+  CoverPageTemplate.finalLabReport ||
+  CoverPageTemplate.labReportIndex => const [],
   _ => const [CoverField.topic],
 };
 
 /// The fields a template prints (`COVER_PAGE_TEMPLATE_FIELDS`).
-List<CoverField> templateFields(CoverPageTemplate t) => [
+List<CoverField> templateFields(CoverPageTemplate t) => switch (t) {
+  CoverPageTemplate.internshipReport ||
+  CoverPageTemplate.finalYearProject => const [
+    CoverField.topic,
+    CoverField.studentName,
+    CoverField.studentId,
+    CoverField.degree,
+    CoverField.teacherName,
+    CoverField.teacherDesignation,
+    CoverField.teacherDepartment,
+    CoverField.monthYear,
+  ],
+  CoverPageTemplate.labReportIndex => const [
+    CoverField.courseCode,
+    CoverField.courseTitle,
+    CoverField.teacherName,
+    CoverField.studentName,
+    CoverField.studentId,
+    CoverField.section,
+    CoverField.semester,
+  ],
+  _ => _coverFields(t),
+};
+
+List<CoverField> _coverFields(CoverPageTemplate t) => [
   CoverField.courseCode,
   CoverField.courseTitle,
   ...workFields(t),
@@ -94,12 +137,20 @@ List<CoverField> templateFields(CoverPageTemplate t) => [
 
 typedef CoverMember = ({String name, String id});
 
+typedef CoverExperiment = ({
+  String no,
+  String name,
+  String performedOn,
+  String submittedOn,
+});
+
 /// What the API makes the page from: only the template's fields, so a topic
 /// typed for an assignment doesn't reach a final lab report's page.
 CoverPageInput coverPageInput(
   CoverPageTemplate t,
   Map<CoverField, String> values, {
   List<CoverMember> members = const [],
+  List<CoverExperiment> experiments = const [],
 }) {
   final fields = templateFields(t);
   String? v(CoverField f) =>
@@ -119,6 +170,19 @@ CoverPageInput coverPageInput(
     semester: v(CoverField.semester),
     studentDepartment: v(CoverField.studentDepartment),
     date: v(CoverField.date),
+    degree: v(CoverField.degree),
+    monthYear: v(CoverField.monthYear),
+    experiments: isIndex(t)
+        ? [
+            for (final e in experiments.take(maxCoverExperiments))
+              CoverPageExperiment(
+                no: e.no.trim(),
+                name: e.name.trim(),
+                performedOn: e.performedOn.trim(),
+                submittedOn: e.submittedOn.trim(),
+              ),
+          ]
+        : null,
     members: isGroupTemplate(t)
         ? [
             for (final m in members)
@@ -133,12 +197,20 @@ CoverPageInput coverPageInput(
 /// it: "topic", "your ID".
 List<String> coverBlanks(CoverPageTemplate t, CoverPageInput i) {
   bool blank(String? v) => v == null || v.trim().isEmpty;
+  final fields = templateFields(t);
   return [
-    if (blank(i.courseCode) && blank(i.courseTitle)) 'course',
-    if (workFields(t).contains(CoverField.topic) && blank(i.topic)) 'topic',
+    if (fields.contains(CoverField.courseCode) &&
+        blank(i.courseCode) &&
+        blank(i.courseTitle))
+      'course',
+    if (isTitlePage(t) && blank(i.topic)) 'title',
+    if (workFields(t).contains(CoverField.topic) &&
+        !isTitlePage(t) &&
+        blank(i.topic))
+      'topic',
     if (t == CoverPageTemplate.labReport && blank(i.experimentName))
       'experiment',
-    if (blank(i.teacherName)) 'teacher',
+    if (blank(i.teacherName)) isTitlePage(t) ? 'supervisor' : 'teacher',
     if (isGroupTemplate(t)) ...[
       if (i.members?.isEmpty ?? true) 'members',
     ] else ...[
@@ -167,6 +239,48 @@ String semesterOn(DateTime at) {
       ? 'Summer'
       : 'Fall';
   return '$term ${d.year}';
+}
+
+const _monthNames = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+/// "October 2026", in Dhaka.
+String monthYearOn(DateTime at) {
+  final d = _dhaka(at);
+  return '${_monthNames[d.month - 1]} ${d.year}';
+}
+
+/// The degree a department's students take, as title pages write it (the
+/// shared package's `degreeFor`): a guess the student can change.
+String degreeFor(String departmentName) {
+  final name = departmentName
+      .replaceFirst(RegExp('^Department of ', caseSensitive: false), '')
+      .trim();
+  if (name.isEmpty) return '';
+  if (RegExp(
+    'business|accounting|finance|management|marketing|real estate|tourism|'
+    'entrepreneurship|banking',
+    caseSensitive: false,
+  ).hasMatch(name)) {
+    return 'Bachelor of Business Administration';
+  }
+  final lower = name.toLowerCase();
+  if (lower == 'law') return 'Bachelor of Laws';
+  if (lower == 'pharmacy') return 'Bachelor of Pharmacy';
+  if (lower == 'english') return 'Bachelor of Arts in English';
+  return 'Bachelor of Science in $name';
 }
 
 /// A date as DIU's forms write it, dd/mm/yyyy, in Dhaka.
@@ -399,6 +513,10 @@ final coverStartProvider = FutureProvider.autoDispose<CoverStart>((ref) async {
           ? ''
           : departmentLabel(department, names),
       CoverField.date: dhakaDate(now),
+      CoverField.degree: department == null
+          ? ''
+          : degreeFor(names[department.toUpperCase()] ?? department),
+      CoverField.monthYear: monthYearOn(now),
       // What the phone kept wins over the account's: the student may write their
       // name differently on covers.
       ...readRemembered(kept),
@@ -435,11 +553,11 @@ Future<CoverFile> makeCoverPage(
     '/api/v1/cover-page/${template.json}/${format.name}',
     // The API takes a missing field, not null, for a blank one.
     data: {
-      for (final MapEntry(:key, :value) in input.toJson().entries)
-        if (value != null)
-          key: value is List<CoverPageMember>
-              ? [for (final m in value) m.toJson()]
-              : value,
+      // Through JSON, so the members and experiments are maps too.
+      for (final MapEntry(:key, :value) in (jsonDecode(
+        jsonEncode(input.toJson()),
+      ) as Map<String, Object?>).entries)
+        key: ?value,
     },
     options: Options(responseType: ResponseType.bytes),
   );

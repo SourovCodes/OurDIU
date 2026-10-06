@@ -204,3 +204,73 @@ test("the hub offers the Cover Page", async ({ page }) => {
     .click();
   await expect(page).toHaveURL(/\/cover-page$/);
 });
+
+test("a final-year project's title page: title, degree, supervisor", async ({
+  page,
+}) => {
+  await page.goto("/cover-page/final-year-project");
+  await expect(
+    page.getByRole("heading", { name: "DIU Final Year Project Cover Page" }),
+  ).toBeVisible();
+  // A report, not a course: no course to pick, no date of submission.
+  await expect(page.getByLabel("Your section")).toHaveCount(0);
+  await expect(page.getByLabel("Date of submission")).toHaveCount(0);
+  await expect(page.getByLabel("Month and year")).not.toHaveValue("");
+
+  // Retried: typing before hydration is lost.
+  await expect(async () => {
+    // Cleared first: React takes text typed before hydration as already there.
+    await page.getByLabel("Title", { exact: true }).fill("");
+    await page
+      .getByLabel("Title", { exact: true })
+      .fill("A smart attendance system");
+    await expect(preview(page)).toContainText("A smart attendance system", {
+      timeout: 1_000,
+    });
+  }).toPass();
+  await page.getByLabel("Supervisor").fill("Dr. Sample Teacher");
+  await page.getByLabel("Degree").fill("Bachelor of Science in CSE");
+  await expect(preview(page)).toContainText("A smart attendance system");
+  await expect(preview(page)).toContainText("Supervised By");
+
+  const res = await download(page);
+  expect(res.status()).toBe(200);
+  expect(res.request().postDataJSON()).toMatchObject({
+    topic: "A smart attendance system",
+    teacherName: "Dr. Sample Teacher",
+    degree: "Bachelor of Science in CSE",
+  });
+});
+
+test("the lab report index: experiments, then blank rows", async ({ page }) => {
+  await page.goto("/cover-page/lab-report-index");
+  // Retried: typing before hydration is lost.
+  await expect(async () => {
+    // Cleared first: React takes text typed before hydration as already there.
+    await page.getByLabel("Experiment 1's name").fill("");
+    await page.getByLabel("Experiment 1's name").fill("Static routing");
+    await expect(preview(page)).toContainText("Static routing", {
+      timeout: 1_000,
+    });
+  }).toPass();
+  await page
+    .getByLabel("Experiment 1's date", { exact: true })
+    .fill("13/09/2026");
+  await page.getByRole("button", { name: "Add an experiment" }).click();
+  await expect(page.getByLabel("Experiment 2's number")).toHaveValue("2");
+  await page.getByLabel("Experiment 2's name").fill("VLAN setup");
+  await expect(preview(page)).toContainText("LAB REPORT INDEX");
+  await expect(preview(page)).toContainText("VLAN setup");
+
+  const res = await download(page);
+  expect(res.status()).toBe(200);
+  expect(res.request().postDataJSON().experiments).toEqual([
+    {
+      no: "1",
+      name: "Static routing",
+      performedOn: "13/09/2026",
+      submittedOn: "",
+    },
+    { no: "2", name: "VLAN setup", performedOn: "", submittedOn: "" },
+  ]);
+});

@@ -2043,7 +2043,11 @@
           "lab-report",
           "group-assignment",
           "final-lab-report",
-          "presentation"
+          "presentation",
+          "project-report",
+          "lab-report-index",
+          "internship-report",
+          "final-year-project"
         ]
       },
       "CoverPageInput": {
@@ -2105,12 +2109,27 @@
             "type": "string",
             "maxLength": 20
           },
+          "degree": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "monthYear": {
+            "type": "string",
+            "maxLength": 20
+          },
           "members": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CoverPageMember"
             },
             "maxItems": 6
+          },
+          "experiments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoverPageExperiment"
+            },
+            "maxItems": 12
           }
         }
       },
@@ -2129,6 +2148,33 @@
         "required": [
           "name",
           "id"
+        ]
+      },
+      "CoverPageExperiment": {
+        "type": "object",
+        "properties": {
+          "no": {
+            "type": "string",
+            "maxLength": 10
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "performedOn": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "submittedOn": {
+            "type": "string",
+            "maxLength": 20
+          }
+        },
+        "required": [
+          "no",
+          "name",
+          "performedOn",
+          "submittedOn"
         ]
       },
       "AdminRoutineVersionList": {
@@ -5059,7 +5105,7 @@
           "Cover Page"
         ],
         "summary": "Make a cover page as a PDF",
-        "description": "One A4 page in DIU's format for an assignment, a lab report or a group assignment, from the details sent. Blank details are left blank. Nothing is kept.",
+        "description": "One A4 page in DIU's format (a cover for an assignment, lab report, group assignment, final lab report, presentation or project report; a lab report index; or a title page for an internship report or final-year project), from the details sent. Blank details are left blank. Nothing is kept.",
         "parameters": [
           {
             "schema": {

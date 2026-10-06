@@ -192,7 +192,8 @@ export async function coverPageDocx(
             },
             borders: {
               pageBorders: {
-                display: PageBorderDisplay.ALL_PAGES,
+                // The cover only: the work that follows has no frame.
+                display: PageBorderDisplay.FIRST_PAGE,
                 offsetFrom: PageBorderOffsetFrom.PAGE,
               },
               pageBorderTop: {
@@ -321,6 +322,10 @@ export async function coverPageDocx(
               }),
             ],
           }),
+          // A plain page after the cover, for the work itself. Without it the
+          // date's box is the document's last paragraph, and in Word and Google
+          // Docs the cursor can't get out of it.
+          new Paragraph({ pageBreakBefore: true, children: [] }),
         ],
       },
     ],

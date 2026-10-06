@@ -57,6 +57,7 @@ import { isTeacherPick, savedRoutine } from "~/lib/routine";
 import { myRoutine, routineLists } from "~/lib/routine.server";
 import { breadcrumbJsonLd, originOf, pageMeta } from "~/lib/seo";
 import {
+  DriveAccessError,
   driveToken,
   loadGoogleIdentity,
   saveAsGoogleDoc,
@@ -716,8 +717,31 @@ function CoverPageMaker({
         },
         duration: 15_000,
       });
-    } catch {
-      toast.error("Couldn’t save it to Google Docs. Please try again.");
+    } catch (error) {
+      // Without Drive access there's still the Word file, which Docs opens too.
+      const word = {
+        label: "Download Word",
+        onClick: () => void download("docx"),
+      };
+      if (error instanceof DriveAccessError && error.reason === "blocked") {
+        toast.error(
+          "Your browser blocked Google’s window. Allow pop-ups for ourdiu.com and try again.",
+        );
+      } else if (error instanceof DriveAccessError) {
+        toast(
+          "Google Docs needs your permission to save the cover page to your Drive.",
+          {
+            description:
+              "It only gets the files OurDIU makes, not the rest of your Drive. Or download the Word file instead.",
+            action: word,
+            duration: 10_000,
+          },
+        );
+      } else {
+        toast.error("Couldn’t save it to Google Docs. Please try again.", {
+          action: word,
+        });
+      }
     } finally {
       setBusy(null);
     }

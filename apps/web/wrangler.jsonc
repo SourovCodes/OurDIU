@@ -32,7 +32,7 @@
     // .docx to the student's Google Drive (the drive.file scope) with Google's
     // token client. Needs the Google Drive API enabled in the ourdiu Cloud
     // project and drive.file on its OAuth consent screen (docs/PLAN.md, decision 43).
-    "COVER_PAGE_GOOGLE_DOCS": "off",
+    "COVER_PAGE_GOOGLE_DOCS": "on",
     // The oldest Android app version that still works (GET /api/v1/app/android):
     // older ones show "Time to update". Raise it only for a breaking change or a
     // serious bug; /api/v1 otherwise stays backward compatible. 1.6.0 is the first

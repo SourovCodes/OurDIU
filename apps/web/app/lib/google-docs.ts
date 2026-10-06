@@ -57,6 +57,16 @@ export function loadGoogleIdentity(): Promise<GoogleOAuth> {
 let token: { value: string; expires: number } | null = null;
 
 /**
+ * Why Google gave no access: the student said no or closed its window
+ * ("declined"), or the browser blocked the window ("blocked").
+ */
+export class DriveAccessError extends Error {
+  constructor(readonly reason: "declined" | "blocked") {
+    super(`Google Drive access ${reason}`);
+  }
+}
+
+/**
  * Asks Google for Drive access (a popup the first time; later ones reuse the
  * token while it lasts). Must start from a click, with the script loaded.
  */
@@ -73,7 +83,8 @@ export function driveToken(
       scope: SCOPE,
       callback: (response) => {
         if (!response.access_token) {
-          reject(new Error(response.error ?? "No access given"));
+          // "access_denied" when the student says no.
+          reject(new DriveAccessError("declined"));
           return;
         }
         token = {
@@ -83,7 +94,11 @@ export function driveToken(
         resolve(response.access_token);
       },
       error_callback: (error) =>
-        reject(new Error(error.type ?? "The Google window closed")),
+        reject(
+          new DriveAccessError(
+            error.type === "popup_failed_to_open" ? "blocked" : "declined",
+          ),
+        ),
     });
     client.requestAccessToken();
   });

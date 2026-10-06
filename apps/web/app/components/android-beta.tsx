@@ -6,7 +6,7 @@ import {
   useNavigate,
   useRouteLoaderData,
 } from "react-router";
-import { toast } from "sonner";
+import { toast } from "~/lib/toast";
 import { Button } from "~/components/ui/button";
 import {
   ANDROID_BETA,

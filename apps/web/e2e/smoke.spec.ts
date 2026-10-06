@@ -454,10 +454,13 @@ test("a department lists its courses A to Z, filtered as you type", async ({
   const menu = page.getByRole("dialog", { name: "Menu" });
   await expect(async () => {
     if (test.info().project.name === "mobile") {
-      await page.getByRole("button", { name: "Open menu" }).click();
+      // The menu's code loads on the first tap, so it may take a moment to open.
+      if (!(await menu.isVisible())) {
+        await page.getByRole("button", { name: "Open menu" }).click();
+      }
       await menu
         .getByRole("link", { name: "Browse" })
-        .click({ timeout: 1_000 });
+        .click({ timeout: 3_000 });
     } else {
       await page
         .getByRole("banner")

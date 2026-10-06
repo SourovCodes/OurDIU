@@ -8,7 +8,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Link } from "react-router";
-import { toast } from "sonner";
+import { toast } from "~/lib/toast";
 import { LINK_CARD, STRETCHED_LINK } from "~/components/question-cards";
 import { SocialIcon } from "~/components/social-icons";
 import { Button, buttonVariants } from "~/components/ui/button";

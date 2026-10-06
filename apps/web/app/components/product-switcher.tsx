@@ -1,24 +1,20 @@
-import { Check, House, LayoutGrid } from "lucide-react";
-import { Link } from "react-router";
-import { Badge } from "~/components/ui/badge";
+import { LayoutGrid } from "lucide-react";
+import { onFirstUse } from "~/components/on-first-use";
 import { Button } from "~/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
-import { HUB_LIVE, type Product } from "~/lib/products";
-import { useProducts } from "~/lib/use-products";
+import type { Product } from "~/lib/products";
+
+// The menu's code loads on first use (components/on-first-use.tsx).
+const LazyMenu = onFirstUse(
+  () => import("~/components/product-switcher-menu"),
+  "menu",
+);
 
 /** The way between OurDIU's products: the hub, and each product's space. */
 export function ProductSwitcher({ current }: { current: Product | null }) {
-  const products = useProducts();
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <LazyMenu
+      current={current}
+      trigger={
         <Button
           variant="ghost"
           size="icon"
@@ -27,51 +23,7 @@ export function ProductSwitcher({ current }: { current: Product | null }) {
         >
           <LayoutGrid aria-hidden />
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-72 rounded-lg">
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-          OurDIU
-        </DropdownMenuLabel>
-        {products.map((product) => {
-          const { id, icon: Icon, name, tagline, href, status } = product;
-          const isCurrent = current?.id === id;
-          return (
-            <DropdownMenuItem key={id} asChild>
-              <Link
-                to={href}
-                aria-current={isCurrent ? "page" : undefined}
-                className="gap-3 py-2"
-              >
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                  <Icon aria-hidden />
-                </span>
-                <span className="grid flex-1 leading-tight">
-                  <span className="font-medium">{name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {tagline}
-                  </span>
-                </span>
-                {isCurrent ? (
-                  <Check aria-label="Current" />
-                ) : (
-                  status === "soon" && <Badge variant="secondary">Soon</Badge>
-                )}
-              </Link>
-            </DropdownMenuItem>
-          );
-        })}
-        {HUB_LIVE && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link to="/">
-                <House aria-hidden />
-                All of OurDIU
-              </Link>
-            </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      }
+    />
   );
 }

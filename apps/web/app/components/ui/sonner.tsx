@@ -7,11 +7,15 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react";
+import { useEffect } from "react";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 import { useIsDark } from "~/lib/theme";
+import { toasterMounted } from "~/lib/toast";
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const dark = useIsDark();
+  // After sonner's own effects, so it is listening (lib/toast.ts).
+  useEffect(() => toasterMounted(), []);
   return (
     <Sonner
       theme={dark ? "dark" : "light"}

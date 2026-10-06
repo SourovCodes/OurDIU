@@ -40,7 +40,7 @@ import {
   useParams,
   type ShouldRevalidateFunctionArgs,
 } from "react-router";
-import { toast } from "sonner";
+import { toast } from "~/lib/toast";
 import { CoverPagePreview } from "~/components/cover-page-preview";
 import { SuggestInput, type Suggestion } from "~/components/suggest-input";
 import { Button } from "~/components/ui/button";

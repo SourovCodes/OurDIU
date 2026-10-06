@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Fragment, useEffect, useId, useRef } from "react";
 import { useFetcher } from "react-router";
-import { toast } from "sonner";
+import { toast } from "~/lib/toast";
 import { ContributorAvatar } from "~/components/contributor-avatar";
 import { RelativeTime } from "~/components/relative-time";
 import { Button } from "~/components/ui/button";

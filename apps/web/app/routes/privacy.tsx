@@ -36,9 +36,9 @@ export default function Privacy() {
           <strong>When you browse</strong>, without signing in, nothing is
           linked to you by name. Google Analytics records which pages are
           visited, from what kind of device and roughly where (country or city),
-          so I can see what’s useful. Cloudflare, which hosts the site, handles
-          your IP address and browser details to deliver pages and block
-          attacks.
+          and how quickly pages load and respond, so I can see what’s useful and
+          what’s slow. Cloudflare, which hosts the site, handles your IP address
+          and browser details to deliver pages and block attacks.
         </p>
         <p>
           <strong>When you sign in with Google</strong>, the site receives your

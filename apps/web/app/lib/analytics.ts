@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router";
+import type { MetricWithAttribution } from "web-vitals/attribution";
 
 /** The Google Analytics 4 property, the same one the old site reported to. */
 export const GA_MEASUREMENT_ID = "G-QPKSEMRTZ2";
@@ -34,4 +35,69 @@ export function usePageViews() {
       page_title: document.title,
     });
   }, [pathname, search]);
+}
+
+/** What each metric's report says about its cause (web-vitals' attribution build). */
+function attribution(metric: MetricWithAttribution) {
+  switch (metric.name) {
+    case "CLS":
+      return {
+        debug_target: metric.attribution.largestShiftTarget,
+        debug_load_state: metric.attribution.loadState,
+      };
+    case "INP":
+      return {
+        debug_target: metric.attribution.interactionTarget,
+        debug_event: metric.attribution.interactionType,
+        debug_load_state: metric.attribution.loadState,
+        debug_input_delay: Math.round(metric.attribution.inputDelay),
+        debug_processing: Math.round(metric.attribution.processingDuration),
+        debug_presentation: Math.round(metric.attribution.presentationDelay),
+      };
+    case "LCP":
+      return {
+        debug_target: metric.attribution.target,
+        debug_ttfb: Math.round(metric.attribution.timeToFirstByte),
+        debug_load_delay: Math.round(metric.attribution.resourceLoadDelay),
+        debug_load_time: Math.round(metric.attribution.resourceLoadDuration),
+        debug_render_delay: Math.round(metric.attribution.elementRenderDelay),
+      };
+    default:
+      return {};
+  }
+}
+
+/**
+ * Reports how fast pages load and respond for real visitors (LCP, INP, CLS,
+ * FCP, TTFB) to Analytics, with the element and phase behind each, so a slow tap
+ * or a shift can be traced to its cause (docs/PLAN.md, decision 47). The library
+ * loads after the page has; its observers read the entries buffered before then.
+ */
+export function useWebVitals() {
+  useEffect(() => {
+    if (!analyticsEnabled) return;
+    void import("web-vitals/attribution").then(
+      ({ onCLS, onFCP, onINP, onLCP, onTTFB }) => {
+        const send = (metric: MetricWithAttribution) =>
+          window.gtag?.("event", metric.name, {
+            // Analytics wants whole numbers; CLS is a small fraction.
+            value: Math.round(
+              metric.name === "CLS" ? metric.delta * 1000 : metric.delta,
+            ),
+            metric_id: metric.id,
+            metric_value: metric.value,
+            metric_rating: metric.rating,
+            metric_navigation: metric.navigationType,
+            page_path: window.location.pathname,
+            non_interaction: true,
+            ...attribution(metric),
+          });
+        onCLS(send);
+        onFCP(send);
+        onINP(send);
+        onLCP(send);
+        onTTFB(send);
+      },
+    );
+  }, []);
 }

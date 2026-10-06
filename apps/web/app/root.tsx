@@ -28,8 +28,13 @@ import { SocialIcon } from "~/components/social-icons";
 import { buttonVariants } from "~/components/ui/button";
 import { TopLoader } from "~/components/top-loader";
 import { routineIsLive } from "~/lib/routine.server";
-import { Toaster } from "~/components/ui/sonner";
-import { analyticsEnabled, GTAG_SCRIPT, usePageViews } from "~/lib/analytics";
+import { LazyToaster } from "~/components/lazy-toaster";
+import {
+  analyticsEnabled,
+  GTAG_SCRIPT,
+  usePageViews,
+  useWebVitals,
+} from "~/lib/analytics";
 import { androidInvite } from "~/lib/android-app";
 import { AUTHOR } from "~/lib/author";
 import { LEGAL_PAGES } from "~/lib/legal";
@@ -247,7 +252,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {productAt(pathname)?.id === "routine" && <RoutineBottomBar />}
           </div>
         )}
-        <Toaster position="top-center" />
+        <LazyToaster position="top-center" />
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -283,6 +288,7 @@ function FooterColumn({
 
 export default function App() {
   usePageViews();
+  useWebVitals();
   useRememberSpace();
   return <Outlet />;
 }

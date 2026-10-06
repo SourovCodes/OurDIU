@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { data, Link, redirect, useSearchParams } from "react-router";
-import { toast } from "sonner";
+import { toast } from "~/lib/toast";
 import { ActionDialog, ConfirmAction } from "~/components/actions";
 import {
   ClassificationFields,

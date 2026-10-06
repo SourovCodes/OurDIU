@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useFetcher, type FetcherWithComponents } from "react-router";
-import { toast } from "sonner";
+import { toast } from "~/lib/toast";
 import { FormMessage } from "~/components/form";
 import {
   AlertDialog,

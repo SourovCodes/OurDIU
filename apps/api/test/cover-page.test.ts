@@ -58,7 +58,7 @@ describe("POST /api/v1/cover-page/{template}/pdf", () => {
     );
     expect(
       (
-        await make("group", {
+        await make("group-assignment", {
           members: Array.from({ length: 7 }, (_, i) => ({
             name: `M${i}`,
             id: "",

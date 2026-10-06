@@ -3,6 +3,7 @@ import { departmentOfStudentId } from "./constants";
 import {
   A4_WIDTH,
   coverPageLayout,
+  coverPagePath,
   dhakaDate,
   printableText,
   semesterOn,
@@ -35,6 +36,24 @@ describe("coverPageLayout", () => {
     expect(lab).toContain("LAB REPORT");
     expect(lab).toContain("Experiment Name: ");
     expect(lab).not.toContain("Topic Name: ");
+
+    const final = texts(coverPageLayout("final-lab-report", {})).map(
+      (t) => t.text,
+    );
+    expect(final).toContain("FINAL LAB REPORT");
+    expect(final).not.toContain("Topic Name: ");
+    expect(final).not.toContain("Experiment Name: ");
+
+    const presentation = texts(
+      coverPageLayout("presentation", { topic: "Cloud computing" }),
+    ).map((t) => t.text);
+    expect(presentation).toContain("PRESENTATION");
+    expect(presentation).toContain("Cloud computing");
+  });
+
+  it("gives each template its page, the assignment's at the maker's home", () => {
+    expect(coverPagePath("assignment")).toBe("/cover-page");
+    expect(coverPagePath("lab-report")).toBe("/cover-page/lab-report");
   });
 
   it("keeps every line inside the frame, wrapping long titles", () => {
@@ -57,7 +76,7 @@ describe("coverPageLayout", () => {
       name: `Member ${i + 1}`,
       id: `241-15-00${i + 1}`,
     }));
-    const shown = texts(coverPageLayout("group", { members })).map(
+    const shown = texts(coverPageLayout("group-assignment", { members })).map(
       (t) => t.text,
     );
     expect(shown).toContain("Member 6");

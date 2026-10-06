@@ -3,24 +3,35 @@
 // SVG for the website's live preview and as a PDF by the API, so they match. No
 // Zod here: browser code imports it (`@ourdiu/shared/cover-pages`).
 
+/** In the order students search for them; each is a page at `coverPagePath`. */
 export const COVER_PAGE_TEMPLATES = [
   "assignment",
   "lab-report",
-  "group",
+  "group-assignment",
+  "final-lab-report",
+  "presentation",
 ] as const;
 export type CoverPageTemplate = (typeof COVER_PAGE_TEMPLATES)[number];
 
 export const COVER_PAGE_TEMPLATE_NAMES: Record<CoverPageTemplate, string> = {
   assignment: "Assignment",
   "lab-report": "Lab report",
-  group: "Group assignment",
+  "group-assignment": "Group assignment",
+  "final-lab-report": "Final lab report",
+  presentation: "Presentation",
 };
+
+/** The maker's page for a template: the assignment's is the maker's home. */
+export const coverPagePath = (template: CoverPageTemplate) =>
+  template === "assignment" ? "/cover-page" : `/cover-page/${template}`;
 
 /** The heading printed on each template's page. */
 const TITLES: Record<CoverPageTemplate, string> = {
   assignment: "ASSIGNMENT",
   "lab-report": "LAB REPORT",
-  group: "GROUP ASSIGNMENT",
+  "group-assignment": "GROUP ASSIGNMENT",
+  "final-lab-report": "FINAL LAB REPORT",
+  presentation: "PRESENTATION",
 };
 
 export const MAX_COVER_PAGE_MEMBERS = 6;
@@ -54,6 +65,19 @@ export type CoverPageValues = Partial<Record<CoverPageField, string>> & {
   members?: CoverPageMember[];
 };
 
+const TEACHER: CoverPageField[] = [
+  "teacherName",
+  "teacherDesignation",
+  "teacherDepartment",
+];
+const STUDENT: CoverPageField[] = [
+  "studentName",
+  "studentId",
+  "section",
+  "semester",
+  "studentDepartment",
+];
+
 /** The fields each template uses, in the order the form asks for them. */
 export const COVER_PAGE_TEMPLATE_FIELDS: Record<
   CoverPageTemplate,
@@ -63,14 +87,8 @@ export const COVER_PAGE_TEMPLATE_FIELDS: Record<
     "courseCode",
     "courseTitle",
     "topic",
-    "teacherName",
-    "teacherDesignation",
-    "teacherDepartment",
-    "studentName",
-    "studentId",
-    "section",
-    "semester",
-    "studentDepartment",
+    ...TEACHER,
+    ...STUDENT,
     "date",
   ],
   "lab-report": [
@@ -78,29 +96,40 @@ export const COVER_PAGE_TEMPLATE_FIELDS: Record<
     "courseTitle",
     "experimentNo",
     "experimentName",
-    "teacherName",
-    "teacherDesignation",
-    "teacherDepartment",
-    "studentName",
-    "studentId",
-    "section",
-    "semester",
-    "studentDepartment",
+    ...TEACHER,
+    ...STUDENT,
     "date",
   ],
-  group: [
+  "group-assignment": [
     "courseCode",
     "courseTitle",
     "topic",
-    "teacherName",
-    "teacherDesignation",
-    "teacherDepartment",
+    ...TEACHER,
     "section",
     "semester",
     "studentDepartment",
     "date",
   ],
+  "final-lab-report": [
+    "courseCode",
+    "courseTitle",
+    ...TEACHER,
+    ...STUDENT,
+    "date",
+  ],
+  presentation: [
+    "courseCode",
+    "courseTitle",
+    "topic",
+    ...TEACHER,
+    ...STUDENT,
+    "date",
+  ],
 };
+
+/** Whether a template has a group's members instead of one student. */
+export const isGroupTemplate = (template: CoverPageTemplate) =>
+  template === "group-assignment";
 
 export const UNIVERSITY = "Daffodil International University";
 
@@ -416,14 +445,14 @@ export function coverPageLayout(
   if (template === "lab-report") {
     detail("Experiment No", value("experimentNo"));
     detail("Experiment Name", value("experimentName"));
-  } else {
+  } else if (template !== "final-lab-report") {
     detail("Topic Name", value("topic"));
   }
 
   // Submitted to and submitted by, side by side near the foot.
   const SIZE = 11;
   const LINE = 16;
-  const top = template === "group" ? 520 : 570;
+  const top = isGroupTemplate(template) ? 520 : 570;
   const heading = (x: number, t: string) => {
     text(x, top, t, 12.5, true, "navy");
     underline(x, top, textWidth(t, 12.5, true), "navy");
@@ -448,7 +477,7 @@ export function coverPageLayout(
   const right = MARGIN + COLUMN + COLUMN_GAP;
   heading(right, "Submitted By");
   let ry = top + 24;
-  if (template === "group") {
+  if (isGroupTemplate(template)) {
     const members = (values.members ?? [])
       .slice(0, MAX_COVER_PAGE_MEMBERS)
       .map((m) => ({ name: printableText(m.name), id: printableText(m.id) }))

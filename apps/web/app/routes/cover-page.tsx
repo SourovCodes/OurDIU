@@ -5,7 +5,9 @@ import {
   COVER_PAGE_TEMPLATE_FIELDS,
   COVER_PAGE_TEMPLATE_NAMES,
   COVER_PAGE_TEMPLATES,
+  coverPagePath,
   dhakaDate,
+  isGroupTemplate,
   MAX_COVER_PAGE_MEMBERS,
   semesterOn,
   type CoverPageField,
@@ -22,7 +24,13 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { Link } from "react-router";
+import {
+  data,
+  Link,
+  redirect,
+  useParams,
+  type ShouldRevalidateFunctionArgs,
+} from "react-router";
 import { toast } from "sonner";
 import { CoverPagePreview } from "~/components/cover-page-preview";
 import { SuggestInput, type Suggestion } from "~/components/suggest-input";
@@ -30,11 +38,11 @@ import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
 import { isTeacherPick, savedRoutine } from "~/lib/routine";
 import { myRoutine, routineLists } from "~/lib/routine.server";
-import { pageMeta } from "~/lib/seo";
+import { breadcrumbJsonLd, originOf, pageMeta } from "~/lib/seo";
 import { getUser } from "~/lib/session.server";
+import type { RouteHandle } from "~/root";
 import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/cover-page";
@@ -44,12 +52,122 @@ import type { Route } from "./+types/cover-page";
 // made into a PDF by the API. Nothing is kept on the server; "Remember my
 // details" keeps the student's own on this device.
 
-export const meta: Route.MetaFunction = () =>
-  pageMeta({
-    title: "DIU Cover Page Maker – Assignment and Lab Report | OurDIU",
+/**
+ * Each template's page, in the words students search for (Google's suggestions,
+ * docs/PLAN.md, decision 39): "diu assignment cover page", "diu lab report cover
+ * page", "front page", "maker", "pdf".
+ */
+const PAGES: Record<
+  CoverPageTemplate,
+  { title: string; heading: string; description: string; intro: string }
+> = {
+  assignment: {
+    title: "DIU Cover Page Maker: Assignment Cover Page (Free PDF) | OurDIU",
+    heading: "DIU Cover Page Maker",
     description:
-      "Make a DIU-format cover page for an assignment, a lab report or a group assignment: your name, ID, course and teacher filled in from your class routine, as a PDF to print.",
-  });
+      "Make a Daffodil International University (DIU) assignment cover page in DIU's format, free: DIU's logo, course code and title, topic, and Submitted to and Submitted by filled in from your class routine. Download it as a PDF to print. Lab report, group assignment, final lab report and presentation cover pages too.",
+    intro:
+      "Assignment cover pages (front pages) in DIU’s format, with DIU’s logo, filled in for you and ready to print as a PDF.",
+  },
+  "lab-report": {
+    title: "DIU Lab Report Cover Page Maker (Free PDF) | OurDIU",
+    heading: "DIU Lab Report Cover Page",
+    description:
+      "Make a DIU lab report cover page in Daffodil International University's format, free: experiment no. and name, course code and title, your teacher and your details, as a PDF to print. For CSE, SWE, EEE and every department.",
+    intro:
+      "Lab report cover pages (front pages) in DIU’s format: the experiment, the course, your teacher and you, as a PDF to print.",
+  },
+  "group-assignment": {
+    title: "DIU Group Assignment Cover Page Maker (Free PDF) | OurDIU",
+    heading: "DIU Group Assignment Cover Page",
+    description:
+      "Make a DIU group assignment cover page in Daffodil International University's format, free: every member's name and ID, the course, the topic and your teacher, as a PDF to print.",
+    intro:
+      "Group assignment cover pages in DIU’s format, with every member’s name and ID, as a PDF to print.",
+  },
+  "final-lab-report": {
+    title: "DIU Final Lab Report Cover Page Maker (Free PDF) | OurDIU",
+    heading: "DIU Final Lab Report Cover Page",
+    description:
+      "Make a DIU final lab report cover page in Daffodil International University's format, free: the course, your teacher and your details, as a PDF to print.",
+    intro:
+      "Final lab report cover pages in DIU’s format, for the lab’s report at the end of the semester, as a PDF to print.",
+  },
+  presentation: {
+    title: "DIU Presentation Cover Page Maker (Free PDF) | OurDIU",
+    heading: "DIU Presentation Cover Page",
+    description:
+      "Make a DIU presentation cover page in Daffodil International University's format, free: the topic, the course, your teacher and your details, as a PDF to print or put first in your slides.",
+    intro:
+      "Presentation cover pages in DIU’s format, as a PDF to print or to put first in your slides.",
+  },
+};
+
+const isTemplate = (t: string | undefined): t is CoverPageTemplate =>
+  (COVER_PAGE_TEMPLATES as readonly string[]).includes(t ?? "");
+
+const templateOf = (param: string | undefined): CoverPageTemplate =>
+  isTemplate(param) ? param : "assignment";
+
+export const handle: RouteHandle = {
+  ogImage: "/cover-page/og.png",
+  // The templates are pages for search, but one maker: moving keeps what's typed.
+  samePage: true,
+};
+
+export const meta: Route.MetaFunction = ({ params, matches }) => {
+  const template = templateOf(params.template);
+  const page = PAGES[template];
+  const origin = originOf(matches);
+  const url = origin + coverPagePath(template);
+  return [
+    ...pageMeta({ title: page.title, description: page.description }),
+    {
+      "script:ld+json": {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        name: page.heading,
+        url,
+        description: page.description,
+        applicationCategory: "EducationalApplication",
+        operatingSystem: "Any",
+        browserRequirements: "Requires JavaScript",
+        isAccessibleForFree: true,
+        offers: { "@type": "Offer", price: "0", priceCurrency: "BDT" },
+        inLanguage: "en",
+        audience: {
+          "@type": "EducationalAudience",
+          educationalRole: "student",
+        },
+        provider: { "@type": "Organization", name: "OurDIU", url: origin },
+      },
+    },
+    breadcrumbJsonLd(origin, [
+      { name: "OurDIU", path: "/" },
+      { name: "Cover Page", path: "/cover-page" },
+      ...(template === "assignment"
+        ? []
+        : [
+            {
+              name: COVER_PAGE_TEMPLATE_NAMES[template],
+              path: coverPagePath(template),
+            },
+          ]),
+    ]),
+  ];
+};
+
+// Moving between templates keeps what's typed: the page's data doesn't change.
+export function shouldRevalidate({
+  currentUrl,
+  nextUrl,
+  formMethod,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  const here = (url: URL) => url.pathname.startsWith("/cover-page");
+  if (!formMethod && here(currentUrl) && here(nextUrl)) return false;
+  return defaultShouldRevalidate;
+}
 
 /** A course in the saved section's week, with who takes it. */
 type RoutineCourse = {
@@ -107,7 +225,12 @@ function routineCourses(
 /** A section in a live routine, to pick as "Your section". */
 type SectionChoice = { slug: string; department: string; section: string };
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, params }: Route.LoaderArgs) {
+  // The assignment's page is the maker's home; other names aren't pages.
+  if (params.template === "assignment") throw redirect("/cover-page", 301);
+  if (params.template !== undefined && !isTemplate(params.template)) {
+    throw data("Not found", { status: 404 });
+  }
   const cookie = request.headers.get("cookie");
   const saved = savedRoutine(cookie);
   const [user, mine, taxonomy, routines] = await Promise.all([
@@ -371,7 +494,8 @@ function CoverPageMaker({
   // What this device remembers wins over the account's: the student may write
   // their name differently on covers.
   const kept = parseRemembered(raw);
-  const [template, setTemplate] = useState<CoverPageTemplate>("assignment");
+  const template = templateOf(useParams().template);
+  const page = PAGES[template];
   const [values, setValues] = useState<CoverPageValues>(() => {
     const start = { ...defaults };
     for (const f of REMEMBERED) if (kept?.[f]) start[f] = kept[f];
@@ -480,7 +604,7 @@ function CoverPageMaker({
   const fields = COVER_PAGE_TEMPLATE_FIELDS[template];
   const shown: CoverPageValues = {
     ...Object.fromEntries(fields.map((f) => [f, value(f)])),
-    ...(template === "group" ? { members } : {}),
+    ...(isGroupTemplate(template) ? { members } : {}),
   };
 
   async function download() {
@@ -517,21 +641,25 @@ function CoverPageMaker({
   }
 
   const courseFields: CoverPageField[] =
-    template === "lab-report" ? ["experimentNo", "experimentName"] : ["topic"];
+    template === "lab-report"
+      ? ["experimentNo", "experimentName"]
+      : template === "final-lab-report"
+        ? []
+        : ["topic"];
   const filled = (...f: CoverPageField[]) => f.every((x) => value(x).trim());
 
   return (
     <div className="space-y-6 pt-2 pb-28 sm:pt-6 lg:pb-10">
       <header className="space-y-2">
-        <h1 className="font-expressive text-4xl sm:text-5xl">Cover page</h1>
+        <h1 className="font-expressive text-4xl sm:text-5xl">{page.heading}</h1>
         <p className="max-w-2xl text-muted-foreground">
+          {page.intro}{" "}
           {signedIn ? (
-            "Assignment and lab report covers in DIU’s format, filled in from your account and your class routine."
+            "Your details come from your account."
           ) : (
             <>
-              Assignment and lab report covers in DIU’s format.{" "}
               <Link
-                to="/login?redirectTo=%2Fcover-page"
+                to={`/login?redirectTo=${encodeURIComponent(coverPagePath(template))}`}
                 className="font-medium text-primary underline-offset-4 hover:underline"
               >
                 Log in
@@ -542,23 +670,25 @@ function CoverPageMaker({
         </p>
       </header>
 
-      <ToggleGroup
-        type="single"
-        value={template}
-        onValueChange={(t) => t && setTemplate(t as CoverPageTemplate)}
-        aria-label="Template"
-        className="flex flex-wrap gap-2"
-      >
+      {/* Each template is a page of its own (for search); moving keeps what's typed. */}
+      <nav aria-label="Cover page templates" className="flex flex-wrap gap-2">
         {COVER_PAGE_TEMPLATES.map((t) => (
-          <ToggleGroupItem
+          <Link
             key={t}
-            value={t}
-            className="rounded-full border px-4 data-[state=on]:border-primary data-[state=on]:bg-primary-container data-[state=on]:text-primary-container-foreground"
+            to={coverPagePath(t)}
+            replace
+            preventScrollReset
+            aria-current={t === template ? "page" : undefined}
+            className={cn(
+              "inline-flex h-9 items-center rounded-full border px-4 text-sm font-medium hover:state-layer",
+              t === template &&
+                "border-primary bg-primary-container text-primary-container-foreground",
+            )}
           >
             {COVER_PAGE_TEMPLATE_NAMES[t]}
-          </ToggleGroupItem>
+          </Link>
         ))}
-      </ToggleGroup>
+      </nav>
 
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
         <form
@@ -691,18 +821,18 @@ function CoverPageMaker({
             title="Submitted by"
             hint={signedIn ? "From your account" : undefined}
             summary={
-              template === "group"
+              isGroupTemplate(template)
                 ? `${members.filter((m) => m.name).length} members`
                 : [value("studentName"), value("studentId")]
                     .filter(Boolean)
                     .join(", ")
             }
             startOpen={
-              template === "group" ||
+              isGroupTemplate(template) ||
               !filled("studentName", "studentId", "studentDepartment")
             }
           >
-            {template === "group" ? (
+            {isGroupTemplate(template) ? (
               <Members members={members} onChange={setMembers} />
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
@@ -785,7 +915,62 @@ function CoverPageMaker({
           </Button>
         </aside>
       </div>
+
+      <AboutCoverPages />
     </div>
+  );
+}
+
+/**
+ * A few lines on what's made and how, under the maker: what search engines read
+ * of the page, and the questions students ask. Kept short (decision 36).
+ */
+function AboutCoverPages() {
+  return (
+    <section
+      aria-labelledby="about-cover-pages"
+      className="max-w-3xl space-y-4 pt-6 text-sm text-muted-foreground"
+    >
+      <h2
+        id="about-cover-pages"
+        className="font-expressive text-xl text-foreground"
+      >
+        About DIU cover pages
+      </h2>
+      <p>
+        A cover page (or front page) goes first on every assignment, lab report
+        and presentation handed in at Daffodil International University (DIU).
+        DIU’s format has the university’s logo, what the work is (course code
+        and title, topic or experiment), who it’s submitted to (the teacher,
+        with their designation and department), who submits it (name, student
+        ID, section, semester and department) and the date of submission.
+      </p>
+      <p>
+        Here it’s filled in for you. Your name and student ID come from your
+        account; type your section (like 67_B) and pick a course, and its title
+        and your teacher come from DIU’s class routine (CSE, SWE and EEE so
+        far). Everything can be changed. The preview is the page as it prints:
+        download it as a PDF, print it or put it first in your file. It’s free,
+        and works for every department without logging in. What you type isn’t
+        kept on the site.
+      </p>
+      <p>
+        Cover pages for an{" "}
+        {COVER_PAGE_TEMPLATES.map((t, i) => (
+          <span key={t}>
+            {i > 0 &&
+              (i === COVER_PAGE_TEMPLATES.length - 1 ? " and a " : ", a ")}
+            <Link
+              to={coverPagePath(t)}
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              {COVER_PAGE_TEMPLATE_NAMES[t].toLowerCase()}
+            </Link>
+          </span>
+        ))}
+        .
+      </p>
+    </section>
   );
 }
 

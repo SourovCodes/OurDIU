@@ -2041,7 +2041,9 @@
         "enum": [
           "assignment",
           "lab-report",
-          "group"
+          "group-assignment",
+          "final-lab-report",
+          "presentation"
         ]
       },
       "CoverPageInput": {

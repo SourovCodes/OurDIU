@@ -20,28 +20,48 @@ async function download(page: Page) {
   return response;
 }
 
-test("the cover page maker works signed out, as a product of its own", async ({
+test("the cover page maker works signed out, a page per template", async ({
   page,
 }) => {
   await page.goto("/cover-page");
-  await expect(page.getByRole("heading", { name: "Cover page" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "DIU Cover Page Maker" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Log in" }).first(),
   ).toBeVisible();
 
-  // The preview follows what's typed and the template picked.
-  // Retried: a click before hydration does nothing.
-  const lab = page.getByRole("radio", { name: "Lab report" });
+  // Each template is a page of its own, with its own heading. (Opened directly:
+  // links are followed below, once the page is running.)
+  await page.goto("/cover-page/lab-report");
+  await expect(
+    page.getByRole("heading", { name: "DIU Lab Report Cover Page" }),
+  ).toBeVisible();
+  await expect(preview(page)).toContainText("LAB REPORT");
+  // The preview follows what's typed (retried: typing before hydration is lost).
   await expect(async () => {
-    await lab.click();
-    await expect(lab).toHaveAttribute("aria-checked", "true", {
+    await page.getByLabel("Experiment name").fill("Round-robin scheduling");
+    await expect(preview(page)).toContainText("Round-robin scheduling", {
       timeout: 1_000,
     });
   }).toPass();
-  await expect(preview(page)).toContainText("LAB REPORT");
-  await page.getByLabel("Experiment name").fill("Round-robin scheduling");
   await page.getByLabel("Course code").fill("CSE323");
   await page.getByLabel("Name", { exact: true }).fill("Cover Tester");
+
+  // Moving to another template keeps what's typed.
+  await page.getByRole("link", { name: "Final lab report" }).first().click();
+  await expect(page).toHaveURL(/\/cover-page\/final-lab-report$/);
+  await expect(preview(page)).toContainText("FINAL LAB REPORT");
+  await expect(page.getByLabel("Name", { exact: true })).toHaveValue(
+    "Cover Tester",
+  );
+  await page
+    .getByRole("link", { name: "Lab report", exact: true })
+    .first()
+    .click();
+  await expect(page.getByLabel("Experiment name")).toHaveValue(
+    "Round-robin scheduling",
+  );
   await expect(preview(page)).toContainText("Round-robin scheduling");
 
   // With nothing saved, a section typed in brings up its courses.

@@ -10,8 +10,12 @@ enum CoverPageTemplate {
   assignment('assignment'),
   @JsonValue('lab-report')
   labReport('lab-report'),
-  @JsonValue('group')
-  group('group'),
+  @JsonValue('group-assignment')
+  groupAssignment('group-assignment'),
+  @JsonValue('final-lab-report')
+  finalLabReport('final-lab-report'),
+  @JsonValue('presentation')
+  presentation('presentation'),
 
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);

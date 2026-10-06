@@ -160,7 +160,11 @@ describe("llmsTxt", () => {
       { path: "/diuqbank", date: "1 October 2026", faq: [] },
       [{ department: "cse", sections: ["67_B", "67_C"], teachers: ["STA"] }],
     );
-    expect(txt).toContain("and the Class Routine");
+    expect(txt).toContain("the Class Routine and a cover page maker");
+    expect(txt).toContain(`- The Cover Page maker is at ${SITE}/cover-page:`);
+    expect(txt).toContain(
+      `- [DIU lab report cover page](${SITE}/cover-page/lab-report)`,
+    );
     expect(txt).toContain(`- The Class Routine is at ${SITE}/routine:`);
     expect(txt).toContain(
       `- [DIU CSE class routine](${SITE}/routine/cse): 2 sections, by batch or level and term`,

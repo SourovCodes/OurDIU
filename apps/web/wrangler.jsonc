@@ -20,6 +20,11 @@
     // watermarked copies are read from. Empty locally: files go through the API.
     // CI sets the production value at deploy time (`--var FILES_URL:…`).
     "FILES_URL": "",
+    // "on" answers anonymous public API reads from the edge cache (the API's
+    // middleware/public-cache.ts; docs/PLAN.md, decision 46). Off locally and in
+    // tests, whose flows write and read back at once; CI turns it on at deploy time
+    // (`--var PUBLIC_CACHE:on`).
+    "PUBLIC_CACHE": "off",
     // AI analysis of uploads: PDFs are compressed (only to cut Gemini's input cost),
     // then read by Gemini. Published papers are watermarked by the same PDF processor.
     // Keys are the GEMINI_API_KEY and COMPRESSOR_API_KEY secrets.

@@ -4,6 +4,7 @@ import { secureHeaders } from "hono/secure-headers";
 import { handleError, handleNotFound, validationHook } from "./lib/errors";
 import { openApiConfig } from "./lib/openapi";
 import { contextMiddleware } from "./middleware/context";
+import { publicCache } from "./middleware/public-cache";
 import { adminRoutes } from "./routes/admin";
 import { adminRoutineRoutes } from "./routes/admin-routine";
 import { appRoutes } from "./routes/app";
@@ -24,6 +25,11 @@ export function createApp() {
   const app = new OpenAPIHono<AppEnv>({ defaultHook: validationHook });
 
   app.use("*", secureHeaders());
+  // Before the context, so a cached answer builds neither database nor auth.
+  app.use(
+    "/api/v1/*",
+    publicCache(async (request, env) => app.fetch(request, env)),
+  );
   app.use("*", contextMiddleware);
 
   // Better Auth owns everything under /api/auth (sign-up, sign-in, sessions, ...).

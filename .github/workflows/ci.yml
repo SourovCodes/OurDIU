@@ -184,7 +184,7 @@ jobs:
         run: pnpm --filter @ourdiu/api db:migrate:remote
       - name: Deploy the Worker
         working-directory: apps/web
-        run: pnpm build && pnpm exec wrangler deploy --var "SITE_URL:${{ vars.SITE_URL }}" --var "FILES_URL:${{ vars.FILES_URL }}"
+        run: pnpm build && pnpm exec wrangler deploy --var "SITE_URL:${{ vars.SITE_URL }}" --var "FILES_URL:${{ vars.FILES_URL }}" --var "PUBLIC_CACHE:on"
 
   # The single required check: fails if any job failed or was cancelled.
   ci:

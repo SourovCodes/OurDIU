@@ -8,6 +8,7 @@
 // interfaces, so everything is added to both.
 // GEMINI_API_KEY and COMPRESSOR_API_KEY may be unset locally; AI analysis then fails
 // as "not configured".
+// PUBLIC_CACHE: "on" caches anonymous public reads (middleware/public-cache.ts).
 // GOOGLE_EXTRA_CLIENT_IDS: other Google clients whose app sign-ins are accepted
 // (see googleClientIds in lib/auth.ts).
 // ADMIN_EMAILS is optional: a comma-separated list of addresses that are made admins
@@ -24,6 +25,7 @@ interface Env {
   VIEW_LIMITER: RateLimit;
   SITE_URL: string;
   FILES_URL: string;
+  PUBLIC_CACHE: string;
   PDF_PROCESSOR_URL: string;
   GEMINI_MODEL: string;
   GEMINI_TEXT_MODEL: string;
@@ -50,6 +52,7 @@ declare namespace Cloudflare {
     VIEW_LIMITER: RateLimit;
     SITE_URL: string;
     FILES_URL: string;
+    PUBLIC_CACHE: string;
     PDF_PROCESSOR_URL: string;
     GEMINI_MODEL: string;
     GEMINI_TEXT_MODEL: string;

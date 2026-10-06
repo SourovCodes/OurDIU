@@ -11,6 +11,7 @@ class RoutineTeacher {
   const RoutineTeacher({
     required this.initials,
     required this.name,
+    required this.designation,
     required this.phone,
     required this.email,
     required this.room,
@@ -21,6 +22,7 @@ class RoutineTeacher {
 
   final String initials;
   final String? name;
+  final String? designation;
   final String? phone;
   final String? email;
   final String? room;

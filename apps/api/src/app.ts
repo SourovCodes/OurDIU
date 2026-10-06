@@ -9,6 +9,7 @@ import { adminRoutineRoutes } from "./routes/admin-routine";
 import { appRoutes } from "./routes/app";
 import { avatarRoutes } from "./routes/avatars";
 import { contributorRoutes } from "./routes/contributors";
+import { coverPageRoutes } from "./routes/cover-page";
 import { engagementRoutes } from "./routes/engagement";
 import { healthRoutes } from "./routes/health";
 import { meRoutes } from "./routes/me";
@@ -37,6 +38,7 @@ export function createApp() {
     .route("/contributors", contributorRoutes)
     .route("/me", meRoutes)
     .route("/routine", routineRoutes)
+    .route("/cover-page", coverPageRoutes)
     .route("/admin/routine", adminRoutineRoutes)
     .route("/admin", adminRoutes)
     .route("/app", appRoutes)

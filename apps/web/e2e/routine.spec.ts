@@ -366,7 +366,7 @@ test("an admin uploads EEE's routine PDF, and EEE students find their section", 
       .getByRole("row", { name: /\bMW\b/ })
       .getByRole("button", { name: "Actions for MW" }),
   );
-  await page.getByRole("menuitem", { name: "Room, email and phone" }).click();
+  await page.getByRole("menuitem", { name: "Edit details" }).click();
   const teacherDialog = page.getByRole("dialog");
   // From the PDF's list of teachers.
   await expect(teacherDialog.getByLabel("Name")).toHaveValue("Test Wahid");

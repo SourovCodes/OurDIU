@@ -313,6 +313,7 @@ describe("routine versions", () => {
     ]);
     const sta = await adminCall("PUT", "/teachers/CSE/STA", {
       name: "Test Teacher",
+      designation: "Assistant Professor",
       phone: "01712-345678",
       email: "sta@diu.edu.bd",
       room: "KT-712",
@@ -321,6 +322,7 @@ describe("routine versions", () => {
       department: "CSE",
       initials: "STA",
       name: "Test Teacher",
+      designation: "Assistant Professor",
       phone: "01712-345678",
       email: "sta@diu.edu.bd",
       room: "KT-712",
@@ -408,6 +410,7 @@ describe("routine versions", () => {
       teacher: {
         initials: "STA",
         name: "Test Teacher",
+        designation: "Assistant Professor",
         phone: "01712-345678",
         email: "sta@diu.edu.bd",
         room: "KT-712",
@@ -417,6 +420,7 @@ describe("routine versions", () => {
     expect(week.classes[2]!.teacher).toEqual({
       initials: "AS",
       name: null,
+      designation: null,
       phone: null,
       email: null,
       room: null,
@@ -459,6 +463,7 @@ describe("routine versions", () => {
     expect(week.teacher).toEqual({
       initials: "STA",
       name: "Test Teacher",
+      designation: "Assistant Professor",
       phone: "01712-345678",
       email: "sta@diu.edu.bd",
       room: "KT-712",

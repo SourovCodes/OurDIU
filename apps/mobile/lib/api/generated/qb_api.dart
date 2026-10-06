@@ -11,6 +11,7 @@ import 'clients/submissions_client.dart';
 import 'clients/contributors_client.dart';
 import 'clients/account_client.dart';
 import 'clients/routine_client.dart';
+import 'clients/cover_page_client.dart';
 import 'clients/admin_routine_client.dart';
 import 'clients/app_client.dart';
 import 'clients/engagement_client.dart';
@@ -33,6 +34,7 @@ class QbApi {
   ContributorsClient? _contributors;
   AccountClient? _account;
   RoutineClient? _routine;
+  CoverPageClient? _coverPage;
   AdminRoutineClient? _adminRoutine;
   AppClient? _app;
   EngagementClient? _engagement;
@@ -58,6 +60,9 @@ class QbApi {
 
   RoutineClient get routine =>
       _routine ??= RoutineClient(_dio, baseUrl: _baseUrl);
+
+  CoverPageClient get coverPage =>
+      _coverPage ??= CoverPageClient(_dio, baseUrl: _baseUrl);
 
   AdminRoutineClient get adminRoutine =>
       _adminRoutine ??= AdminRoutineClient(_dio, baseUrl: _baseUrl);

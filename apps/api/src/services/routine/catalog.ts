@@ -132,7 +132,7 @@ export async function listRoutineTeachers(
       where c.version_id = (${currentVersion(department)})
       group by c.teacher
     )
-    select initials.initials as initials, t.name as name, t.phone as phone,
+    select initials.initials as initials, t.name as name, t.designation as designation, t.phone as phone,
       t.email as email, t.room as room, coalesce(live.classes, 0) as classes,
       live.courses as courses
     from initials
@@ -157,6 +157,7 @@ export async function setRoutineTeacher(
 ): Promise<AdminRoutineTeacher> {
   const values = {
     name: input.name,
+    designation: input.designation ?? null,
     phone: input.phone ?? null,
     email: input.email ?? null,
     room: input.room ?? null,
@@ -240,6 +241,7 @@ export async function pageRoutineTeachers(
         query.q,
         t.initials,
         t.name,
+        t.designation,
         t.room,
         t.email,
         t.phone,

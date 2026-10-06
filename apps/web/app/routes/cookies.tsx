@@ -74,6 +74,12 @@ const PREFERENCES: CookieRow[] = [
     lasts: "1 year",
   },
   {
+    names: ["ourdiu_cover_page"],
+    purpose:
+      "Not a cookie but your browser’s storage: if you tick “Remember my details” on a cover page, your name, ID, section and department, so the next one is filled in. Never sent to the site.",
+    lasts: "Until you untick it or clear the site’s data",
+  },
+  {
     names: ["ourdiu_android_invite"],
     purpose:
       "Set if you close the invitation to test the Android app, so it stays closed.",

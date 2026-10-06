@@ -10,6 +10,7 @@ part 'routine_teacher_input.g.dart';
 class RoutineTeacherInput {
   const RoutineTeacherInput({
     required this.name,
+    this.designation,
     this.phone,
     this.email,
     this.room,
@@ -19,6 +20,7 @@ class RoutineTeacherInput {
       _$RoutineTeacherInputFromJson(json);
 
   final String name;
+  final String? designation;
   final String? phone;
   final String? email;
   final String? room;

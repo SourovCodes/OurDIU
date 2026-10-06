@@ -1,0 +1,119 @@
+import { expect, test, type Page } from "@playwright/test";
+import { E2E_ORIGIN } from "./env";
+import { failOnConsoleErrors, logInAs, NEW_USER } from "./helpers";
+
+// The Cover Page maker (docs/PLAN.md, decisions 39 and 40). The seed
+// has CSE routine v4.1 live with section 67_B, where STA ("Dr. Sample Teacher",
+// an Associate Professor) takes CSE321 (Computer Networks).
+
+failOnConsoleErrors();
+
+const preview = (page: Page) =>
+  page.getByRole("img", { name: "Preview of the cover page" });
+
+/** Clicks Download PDF (the phone's or the wide screen's) and returns the PDF. */
+async function download(page: Page) {
+  const response = page.waitForResponse((r) =>
+    r.url().includes("/api/v1/cover-page/"),
+  );
+  await page.getByRole("button", { name: "Download PDF" }).first().click();
+  return response;
+}
+
+test("the cover page maker works signed out, as a product of its own", async ({
+  page,
+}) => {
+  await page.goto("/cover-page");
+  await expect(page.getByRole("heading", { name: "Cover page" })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Log in" }).first(),
+  ).toBeVisible();
+
+  // The preview follows what's typed and the template picked.
+  // Retried: a click before hydration does nothing.
+  const lab = page.getByRole("radio", { name: "Lab report" });
+  await expect(async () => {
+    await lab.click();
+    await expect(lab).toHaveAttribute("aria-checked", "true", {
+      timeout: 1_000,
+    });
+  }).toPass();
+  await expect(preview(page)).toContainText("LAB REPORT");
+  await page.getByLabel("Experiment name").fill("Round-robin scheduling");
+  await page.getByLabel("Course code").fill("CSE323");
+  await page.getByLabel("Name", { exact: true }).fill("Cover Tester");
+  await expect(preview(page)).toContainText("Round-robin scheduling");
+
+  const res = await download(page);
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"]).toBe("application/pdf");
+  expect(res.headers()["content-disposition"]).toContain(
+    "CSE323-lab-report-cover.pdf",
+  );
+
+  // "Remember my details" keeps the student's own on this device, not the work's.
+  await page.reload();
+  await expect(page.getByLabel("Name", { exact: true })).toHaveValue(
+    "Cover Tester",
+  );
+  await expect(page.getByLabel("Course code")).toHaveValue("");
+});
+
+test("it fills in the student, the course and the teacher", async ({
+  page,
+}) => {
+  await logInAs(page, NEW_USER, "/");
+  const set = await page.request.put("/api/v1/me/student-id", {
+    data: { studentId: "241-15-047" },
+    headers: { origin: E2E_ORIGIN },
+  });
+  expect(set.ok()).toBe(true);
+  // Section 67_B saved in the Class Routine.
+  await page
+    .context()
+    .addCookies([
+      { name: "ourdiu_routine", value: "cse%2F67_B%2F", url: E2E_ORIGIN },
+    ]);
+
+  await page.goto("/cover-page");
+  await expect(page.getByLabel("Student ID")).toHaveValue("241-15-047");
+  await expect(page.getByLabel("Section")).toHaveValue("67_B");
+  // The department comes from the ID: 15 is CSE.
+  await expect(page.getByLabel("Department").last()).toHaveValue(
+    "Department of CSE",
+  );
+
+  // Picking a course from the routine brings its title and teacher.
+  const cse321 = page.getByRole("button", { name: "CSE321" });
+  await expect(async () => {
+    await cse321.click();
+    await expect(cse321).toHaveAttribute("aria-pressed", "true", {
+      timeout: 1_000,
+    });
+  }).toPass();
+  await expect(page.getByLabel("Course title")).toHaveValue(
+    "Computer Networks",
+  );
+  await expect(page.getByLabel("Teacher")).toHaveValue("Dr. Sample Teacher");
+  await expect(page.getByLabel("Designation")).toHaveValue(
+    "Associate Professor",
+  );
+  await page.getByLabel("Topic").fill("Subnetting");
+  await expect(preview(page)).toContainText("Dr. Sample Teacher");
+  await expect(preview(page)).toContainText("Subnetting");
+
+  const res = await download(page);
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-disposition"]).toContain(
+    "CSE321-assignment-cover.pdf",
+  );
+});
+
+test("the hub offers the Cover Page", async ({ page }) => {
+  await page.goto("/");
+  await page
+    .getByRole("link", { name: /Cover Page/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/cover-page$/);
+});

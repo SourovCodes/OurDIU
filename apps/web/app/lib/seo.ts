@@ -112,6 +112,7 @@ const STATIC_PATHS = [
   "/admission",
   "/questions/contributors",
   "/routine",
+  "/cover-page",
   "/app",
   "/about",
   "/contact",

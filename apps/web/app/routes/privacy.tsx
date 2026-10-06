@@ -54,6 +54,12 @@ export default function Privacy() {
           optional.
         </p>
         <p>
+          <strong>When you make a cover page</strong>, what you type is sent to
+          the site to make the PDF and isn’t kept. If you tick “Remember my
+          details”, your name, ID, section and department are kept in your
+          browser, on your device only.
+        </p>
+        <p>
           <strong>When you upload a paper</strong> (this needs a DIU email
           address), the site stores the PDF, the details you chose (department,
           course, semester, exam type and the optional section or batch) and

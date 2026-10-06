@@ -1,5 +1,6 @@
 import {
   CalendarClock,
+  FileSignature,
   FileText,
   ShoppingBag,
   type LucideIcon,
@@ -11,7 +12,7 @@ import { loginReturnPath } from "~/lib/redirect";
  * its own header and menu, and none shows another's data.
  */
 export type Product = {
-  id: "questions" | "routine" | "market";
+  id: "questions" | "routine" | "cover" | "market";
   name: string;
   /** What it is, in the app's words, e.g. "Question papers". */
   title: string;
@@ -24,7 +25,7 @@ export type Product = {
   /** The Class Routine's is "soon" here; `useProducts` makes it live once a routine is. */
   status: "live" | "soon";
   /** Its shape (one of the exam shapes) and colours, as in the app's spaces. */
-  shape: "final" | "midterm" | "quiz";
+  shape: "final" | "midterm" | "quiz" | "lab";
   tone: {
     /** The space's container colour with its text colour. */
     container: string;
@@ -79,6 +80,24 @@ export const PRODUCTS: Product[] = [
         "bg-[#b9f0e3] text-[#00382f] dark:bg-[#005145] dark:text-[#b9f0e3]",
       accent: "text-[#006b5b] dark:text-[#80d5c4]",
       onAccent: "text-white dark:text-[#005145]",
+    },
+  },
+  {
+    id: "cover",
+    name: "Cover Page",
+    title: "Cover page maker",
+    tagline: "Cover pages for assignments and lab reports",
+    description:
+      "Cover pages for assignments and lab reports in DIU's format, filled in for you.",
+    icon: FileSignature,
+    href: "/cover-page",
+    status: "live",
+    shape: "lab",
+    tone: {
+      container:
+        "bg-[#ffddb3] text-[#291800] dark:bg-[#614000] dark:text-[#ffddb3]",
+      accent: "text-[#805600] dark:text-[#ffb951]",
+      onAccent: "text-white dark:text-[#614000]",
     },
   },
   {

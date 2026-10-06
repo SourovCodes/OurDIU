@@ -1863,6 +1863,12 @@
               "null"
             ]
           },
+          "designation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "phone": {
             "type": [
               "string",
@@ -1885,6 +1891,7 @@
         "required": [
           "initials",
           "name",
+          "designation",
           "phone",
           "email",
           "room"
@@ -2027,6 +2034,99 @@
         "required": [
           "section",
           "labGroup"
+        ]
+      },
+      "CoverPageTemplate": {
+        "type": "string",
+        "enum": [
+          "assignment",
+          "lab-report",
+          "group"
+        ]
+      },
+      "CoverPageInput": {
+        "type": "object",
+        "properties": {
+          "courseCode": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "courseTitle": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "topic": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "experimentNo": {
+            "type": "string",
+            "maxLength": 10
+          },
+          "experimentName": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "teacherName": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "teacherDesignation": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "teacherDepartment": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "studentName": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "studentId": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "section": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "semester": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "studentDepartment": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "date": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoverPageMember"
+            },
+            "maxItems": 6
+          }
+        }
+      },
+      "CoverPageMember": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "id": {
+            "type": "string",
+            "maxLength": 20
+          }
+        },
+        "required": [
+          "name",
+          "id"
         ]
       },
       "AdminRoutineVersionList": {
@@ -2620,6 +2720,12 @@
               "null"
             ]
           },
+          "designation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "phone": {
             "type": [
               "string",
@@ -2652,6 +2758,7 @@
           "department",
           "initials",
           "name",
+          "designation",
           "phone",
           "email",
           "room",
@@ -2687,6 +2794,13 @@
             "type": "string",
             "minLength": 2,
             "maxLength": 120
+          },
+          "designation": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 80
           },
           "phone": {
             "type": [
@@ -4926,6 +5040,58 @@
           },
           "404": {
             "description": "No live routine, or no such teacher",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cover-page/{template}/pdf": {
+      "post": {
+        "tags": [
+          "Cover Page"
+        ],
+        "summary": "Make a cover page as a PDF",
+        "description": "One A4 page in DIU's format for an assignment, a lab report or a group assignment, from the details sent. Blank details are left blank. Nothing is kept.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/CoverPageTemplate"
+            },
+            "required": true,
+            "name": "template",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoverPageInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "PDF file",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unknown template, or a detail too long",
             "content": {
               "application/json": {
                 "schema": {

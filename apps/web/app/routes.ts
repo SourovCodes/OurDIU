@@ -34,6 +34,7 @@ export default [
   route("routine/:department/:section", "routes/routine-section.tsx"),
 
   // Coming soon.
+  route("cover-page", "routes/cover-page.tsx"),
   route("market", "routes/market.tsx"),
 
   // Platform.

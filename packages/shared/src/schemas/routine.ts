@@ -224,6 +224,8 @@ export const routineTeacherSchema = z
   .object({
     initials: z.string(),
     name: z.string().nullable(),
+    /** "Associate Professor"; null until an admin adds it. */
+    designation: z.string().nullable(),
     phone: z.string().nullable(),
     email: z.string().nullable(),
     /** Where the teacher sits: "KT-712". */
@@ -529,6 +531,7 @@ export const adminRoutineTeacherSchema = z
     department: routineDepartmentSchema,
     initials: z.string(),
     name: z.string().nullable(),
+    designation: z.string().nullable(),
     phone: z.string().nullable(),
     email: z.string().nullable(),
     room: z.string().nullable(),
@@ -571,6 +574,8 @@ const optionalText = (max: number) =>
 export const routineTeacherInputSchema = z
   .object({
     name: z.string().trim().min(2).max(120),
+    /** "Associate Professor". */
+    designation: optionalText(80),
     phone: optionalText(40).refine((v) => !v || /^\+?[\d\s-]{7,20}$/.test(v), {
       error: "Use digits, e.g. 01712345678",
     }),

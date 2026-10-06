@@ -22,8 +22,13 @@ CoverPageInput _$CoverPageInputFromJson(Map<String, dynamic> json) =>
       semester: json['semester'] as String?,
       studentDepartment: json['studentDepartment'] as String?,
       date: json['date'] as String?,
+      degree: json['degree'] as String?,
+      monthYear: json['monthYear'] as String?,
       members: (json['members'] as List<dynamic>?)
           ?.map((e) => CoverPageMember.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      experiments: (json['experiments'] as List<dynamic>?)
+          ?.map((e) => CoverPageExperiment.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
 
@@ -43,5 +48,8 @@ Map<String, dynamic> _$CoverPageInputToJson(CoverPageInput instance) =>
       'semester': instance.semester,
       'studentDepartment': instance.studentDepartment,
       'date': instance.date,
+      'degree': instance.degree,
+      'monthYear': instance.monthYear,
       'members': instance.members,
+      'experiments': instance.experiments,
     };

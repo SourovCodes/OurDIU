@@ -20,7 +20,7 @@ const coverPagePdfRoute = createRoute({
   tags,
   summary: "Make a cover page as a PDF",
   description:
-    "One A4 page in DIU's format for an assignment, a lab report or a group assignment, from the details sent. Blank details are left blank. Nothing is kept.",
+    "One A4 page in DIU's format (a cover for an assignment, lab report, group assignment, final lab report, presentation or project report; a lab report index; or a title page for an internship report or final-year project), from the details sent. Blank details are left blank. Nothing is kept.",
   request: {
     params: z.object({ template: coverPageTemplateSchema }),
     body: {

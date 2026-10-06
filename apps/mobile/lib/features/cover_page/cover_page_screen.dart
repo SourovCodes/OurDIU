@@ -58,6 +58,11 @@ class _MakerState extends ConsumerState<_Maker> {
     ),
   ];
 
+  /// The lab report index's experiments, numbered from 1.
+  late final List<_ExperimentFields> _experiments = [
+    _ExperimentFields(no: '1'),
+  ];
+
   /// The section whose courses are offered, and its courses.
   late CoverSection? _section = widget.start.section;
   late List<CoverCourse> _courses = widget.start.courses;
@@ -70,7 +75,11 @@ class _MakerState extends ConsumerState<_Maker> {
   @override
   void initState() {
     super.initState();
-    for (final c in [..._fields.values, for (final m in _members) ...m.both]) {
+    for (final c in [
+      ..._fields.values,
+      for (final m in _members) ...m.both,
+      for (final e in _experiments) ...e.all,
+    ]) {
       c.addListener(_changed);
     }
   }
@@ -105,6 +114,9 @@ class _MakerState extends ConsumerState<_Maker> {
     }
     for (final m in _members) {
       m.dispose();
+    }
+    for (final e in _experiments) {
+      e.dispose();
     }
     super.dispose();
   }
@@ -222,6 +234,7 @@ class _MakerState extends ConsumerState<_Maker> {
           _template,
           values,
           members: [for (final m in _members) m.value],
+          experiments: [for (final e in _experiments) e.value],
         ),
       ),
     );
@@ -254,16 +267,33 @@ class _MakerState extends ConsumerState<_Maker> {
     m.dispose();
   }
 
+  void _addExperiment() {
+    final e = _ExperimentFields(no: '${_experiments.length + 1}');
+    for (final c in e.all) {
+      c.addListener(_changed);
+    }
+    setState(() => _experiments.add(e));
+  }
+
+  void _removeExperiment(_ExperimentFields e) {
+    setState(() => _experiments.remove(e));
+    e.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final group = isGroupTemplate(_template);
     final work = workFields(_template);
+    final titlePage = isTitlePage(_template);
+    final index = isIndex(_template);
+    final fields = templateFields(_template);
+    bool has(CoverField f) => fields.contains(f);
     final teacher = [
       CoverField.teacherName,
       CoverField.teacherDesignation,
       CoverField.teacherDepartment,
-    ];
+    ].where(has).toList();
     // The routine knows only the teacher's initials: their name is asked for.
     final initialsOnly =
         _course != null &&
@@ -272,7 +302,7 @@ class _MakerState extends ConsumerState<_Maker> {
         ? _course!.teacherInitials
         : null;
     // Until a course is picked from the list, the teacher waits for it.
-    final chosen = _course != null || _other || _courses.isEmpty;
+    final chosen = titlePage || _course != null || _other || _courses.isEmpty;
     final signedOut = ref.watch(sessionTokenProvider) == null;
     return Scaffold(
       body: SafeArea(
@@ -299,56 +329,58 @@ class _MakerState extends ConsumerState<_Maker> {
                   ),
               ],
             ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                const Expanded(child: _Question('Which course?')),
-                if (_section case final s? when _courses.isNotEmpty)
-                  TextButton(
-                    onPressed: _loadingSection ? null : _chooseSection,
-                    child: Text('${s.section} · Change'),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            if (_courses.isEmpty)
-              _NoSection(
-                loading: _loadingSection,
-                onChoose: _chooseSection,
-                code: _fields[CoverField.courseCode]!,
-                title: _fields[CoverField.courseTitle]!,
-              )
-            else if (_course case final c?)
-              _PickedCourse(course: c, onChange: _changeCourse)
-            else if (_other)
-              _Card(
+            if (!titlePage) ...[
+              const SizedBox(height: 24),
+              Row(
                 children: [
-                  _CourseFields(
-                    code: _fields[CoverField.courseCode]!,
-                    title: _fields[CoverField.courseTitle]!,
-                  ),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton(
-                      onPressed: _changeCourse,
-                      child: Text('Pick from ${_section?.section}’s courses'),
+                  const Expanded(child: _Question('Which course?')),
+                  if (_section case final s? when _courses.isNotEmpty)
+                    TextButton(
+                      onPressed: _loadingSection ? null : _chooseSection,
+                      child: Text('${s.section} · Change'),
                     ),
-                  ),
                 ],
-              )
-            else
-              _CourseList(
-                courses: _courses,
-                onPick: _pickCourse,
-                onOther: () => _pickCourse(null),
               ),
+              const SizedBox(height: 10),
+              if (_courses.isEmpty)
+                _NoSection(
+                  loading: _loadingSection,
+                  onChoose: _chooseSection,
+                  code: _fields[CoverField.courseCode]!,
+                  title: _fields[CoverField.courseTitle]!,
+                )
+              else if (_course case final c?)
+                _PickedCourse(course: c, onChange: _changeCourse)
+              else if (_other)
+                _Card(
+                  children: [
+                    _CourseFields(
+                      code: _fields[CoverField.courseCode]!,
+                      title: _fields[CoverField.courseTitle]!,
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: _changeCourse,
+                        child: Text('Pick from ${_section?.section}’s courses'),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                _CourseList(
+                  courses: _courses,
+                  onPick: _pickCourse,
+                  onOther: () => _pickCourse(null),
+                ),
+            ],
             if (work.isNotEmpty) ...[
               const SizedBox(height: 24),
-              _Question(
-                _template == CoverPageTemplate.labReport
-                    ? 'Which experiment?'
-                    : 'What’s the topic?',
-              ),
+              _Question(switch (_template) {
+                CoverPageTemplate.labReport => 'Which experiment?',
+                _ when titlePage => 'What’s the title?',
+                _ => 'What’s the topic?',
+              }),
               const SizedBox(height: 10),
               if (_template == CoverPageTemplate.labReport)
                 Row(
@@ -381,22 +413,52 @@ class _MakerState extends ConsumerState<_Maker> {
                   _fields[CoverField.topic]!,
                   CoverField.topic,
                   label: 'Topic',
+                  hint: titlePage ? 'The report’s title' : null,
                   floating: false,
                   highlight: _value(CoverField.topic).trim().isEmpty,
                   lines: 4,
                 ),
             ],
+            if (index) ...[
+              const SizedBox(height: 24),
+              const _Question('Experiments'),
+              const SizedBox(height: 4),
+              Text(
+                'The rest of the $maxCoverExperiments rows print blank, to '
+                'write in.',
+                style: TextStyle(color: scheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 10),
+              _Experiments(
+                experiments: _experiments,
+                onAdd: _experiments.length < maxCoverExperiments
+                    ? _addExperiment
+                    : null,
+                onRemove: _experiments.length > 1 ? _removeExperiment : null,
+              ),
+            ],
             const SizedBox(height: 24),
             _Group(
               // Picking a course can leave it blank: it opens again.
-              key: ValueKey(('to', _course?.code, _other, _courses.isEmpty)),
-              title: 'Submitted to',
+              key: ValueKey((
+                'to',
+                _template,
+                _course?.code,
+                _other,
+                _courses.isEmpty,
+              )),
+              title: titlePage
+                  ? 'Supervised by'
+                  : index
+                  ? 'Course teacher'
+                  : 'Submitted to',
               summary: _value(CoverField.teacherName),
               startOpen: chosen && (!_filled(teacher) || initialsOnly != null),
               children: [
                 _Field(
                   _fields[CoverField.teacherName]!,
                   CoverField.teacherName,
+                  label: titlePage ? 'Supervisor' : null,
                   highlight:
                       initialsOnly != null &&
                       _value(CoverField.teacherName).trim().isEmpty,
@@ -405,20 +467,22 @@ class _MakerState extends ConsumerState<_Maker> {
                       : 'The routine only has their initials, $initialsOnly.',
                   words: true,
                 ),
-                _Field(
-                  _fields[CoverField.teacherDesignation]!,
-                  CoverField.teacherDesignation,
-                  words: true,
-                ),
-                _Field(
-                  _fields[CoverField.teacherDepartment]!,
-                  CoverField.teacherDepartment,
-                ),
+                if (has(CoverField.teacherDesignation))
+                  _Field(
+                    _fields[CoverField.teacherDesignation]!,
+                    CoverField.teacherDesignation,
+                    words: true,
+                  ),
+                if (has(CoverField.teacherDepartment))
+                  _Field(
+                    _fields[CoverField.teacherDepartment]!,
+                    CoverField.teacherDepartment,
+                  ),
               ],
             ),
             const SizedBox(height: 12),
             _Group(
-              key: ValueKey(('by', group)),
+              key: ValueKey(('by', _template)),
               title: 'Submitted by',
               summary: group
                   ? '${_members.where((m) => m.value.name.trim().isNotEmpty).length} members'
@@ -428,12 +492,15 @@ class _MakerState extends ConsumerState<_Maker> {
                     ].where((s) => s.trim().isNotEmpty).join(', '),
               startOpen:
                   group ||
-                  !_filled(const [
-                    CoverField.studentName,
-                    CoverField.studentId,
-                    CoverField.section,
-                    CoverField.studentDepartment,
-                  ]),
+                  !_filled(
+                    const [
+                      CoverField.studentName,
+                      CoverField.studentId,
+                      CoverField.section,
+                      CoverField.studentDepartment,
+                      CoverField.degree,
+                    ].where(has).toList(),
+                  ),
               children: [
                 if (signedOut &&
                     (_value(CoverField.studentName).trim().isEmpty ||
@@ -466,34 +533,56 @@ class _MakerState extends ConsumerState<_Maker> {
                     keyboard: TextInputType.visiblePassword,
                   ),
                 ],
-                Row(
-                  spacing: 10,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _Field(
-                        _fields[CoverField.section]!,
-                        CoverField.section,
-                        caps: true,
+                if (has(CoverField.section))
+                  Row(
+                    spacing: 10,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _Field(
+                          _fields[CoverField.section]!,
+                          CoverField.section,
+                          caps: true,
+                        ),
                       ),
-                    ),
-                    Expanded(
-                      child: _Field(
-                        _fields[CoverField.semester]!,
-                        CoverField.semester,
-                        words: true,
+                      Expanded(
+                        child: _Field(
+                          _fields[CoverField.semester]!,
+                          CoverField.semester,
+                          words: true,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                _Field(
-                  _fields[CoverField.studentDepartment]!,
-                  CoverField.studentDepartment,
-                ),
+                    ],
+                  ),
+                if (has(CoverField.studentDepartment))
+                  _Field(
+                    _fields[CoverField.studentDepartment]!,
+                    CoverField.studentDepartment,
+                  ),
+                if (has(CoverField.degree))
+                  _Field(
+                    _fields[CoverField.degree]!,
+                    CoverField.degree,
+                    lines: 2,
+                  ),
               ],
             ),
-            const SizedBox(height: 12),
-            _DateRow(label: _dateLabel(), onTap: _pickDate),
+            if (has(CoverField.date)) ...[
+              const SizedBox(height: 12),
+              _DateRow(label: _dateLabel(), onTap: _pickDate),
+            ],
+            if (has(CoverField.monthYear)) ...[
+              const SizedBox(height: 12),
+              _Card(
+                children: [
+                  _Field(
+                    _fields[CoverField.monthYear]!,
+                    CoverField.monthYear,
+                    words: true,
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -562,6 +651,127 @@ class _MemberFields {
   }
 }
 
+/// An experiment's boxes on the lab report index.
+class _ExperimentFields {
+  _ExperimentFields({String no = ''})
+    : no = TextEditingController(text: no),
+      name = TextEditingController(),
+      performedOn = TextEditingController(),
+      submittedOn = TextEditingController();
+
+  final TextEditingController no;
+  final TextEditingController name;
+  final TextEditingController performedOn;
+  final TextEditingController submittedOn;
+
+  List<TextEditingController> get all => [no, name, performedOn, submittedOn];
+  CoverExperiment get value => (
+    no: no.text,
+    name: name.text,
+    performedOn: performedOn.text,
+    submittedOn: submittedOn.text,
+  );
+
+  void dispose() {
+    for (final c in all) {
+      c.dispose();
+    }
+  }
+}
+
+/// The index's experiments, a card each: no. and name, then its two dates.
+class _Experiments extends StatelessWidget {
+  const _Experiments({
+    required this.experiments,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  final List<_ExperimentFields> experiments;
+  final VoidCallback? onAdd;
+  final void Function(_ExperimentFields)? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    InputDecoration box(String label) => InputDecoration(
+      labelText: label,
+      counterText: '',
+      border: const OutlineInputBorder(),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 10,
+      children: [
+        for (final (i, e) in experiments.indexed)
+          _Card(
+            key: ObjectKey(e),
+            children: [
+              Row(
+                spacing: 8,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 72,
+                    child: TextField(
+                      controller: e.no,
+                      maxLength: 10,
+                      decoration: box('No.'),
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: e.name,
+                      maxLength: 160,
+                      minLines: 1,
+                      maxLines: 3,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: box('Experiment ${i + 1}'),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Remove experiment ${i + 1}',
+                    onPressed: onRemove == null ? null : () => onRemove!(e),
+                    icon: const Icon(Icons.remove_circle_outline),
+                  ),
+                ],
+              ),
+              Row(
+                spacing: 8,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: e.performedOn,
+                      maxLength: 20,
+                      keyboardType: TextInputType.datetime,
+                      decoration: box('Done on'),
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: e.submittedOn,
+                      maxLength: 20,
+                      keyboardType: TextInputType.datetime,
+                      decoration: box('Submitted on'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        if (onAdd != null)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add an experiment'),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 /// One of the maker's questions.
 class _Question extends StatelessWidget {
   const _Question(this.text);
@@ -584,7 +794,7 @@ class _Question extends StatelessWidget {
 
 /// A tonal card.
 class _Card extends StatelessWidget {
-  const _Card({required this.children, this.padding});
+  const _Card({super.key, required this.children, this.padding});
 
   final List<Widget> children;
   final EdgeInsets? padding;
@@ -891,6 +1101,7 @@ class _Field extends StatelessWidget {
     this.lines = 1,
     this.keyboard,
     this.helper,
+    this.hint,
   });
 
   final TextEditingController controller;
@@ -908,6 +1119,9 @@ class _Field extends StatelessWidget {
   final TextInputType? keyboard;
   final String? helper;
 
+  /// In place of the field's own hint.
+  final String? hint;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -924,7 +1138,7 @@ class _Field extends StatelessWidget {
           : TextCapitalization.sentences,
       decoration: InputDecoration(
         labelText: floating ? (label ?? field.label) : null,
-        hintText: floating ? field.hint : field.hint ?? label,
+        hintText: hint ?? (floating ? field.hint : field.hint ?? label),
         helperText: helper,
         helperMaxLines: 2,
         counterText: '',

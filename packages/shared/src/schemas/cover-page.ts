@@ -1,7 +1,9 @@
 import { z } from "zod";
 import {
+  COVER_PAGE_EXPERIMENT_FIELDS,
   COVER_PAGE_FIELDS,
   COVER_PAGE_TEMPLATES,
+  MAX_COVER_PAGE_EXPERIMENTS,
   MAX_COVER_PAGE_MEMBER_ID,
   MAX_COVER_PAGE_MEMBER_NAME,
   MAX_COVER_PAGE_MEMBERS,
@@ -33,6 +35,26 @@ export const coverPageInputSchema = z
           .meta({ id: "CoverPageMember" }),
       )
       .max(MAX_COVER_PAGE_MEMBERS)
+      .optional(),
+    /** The lab report index's experiments, in order; the rest print blank. */
+    experiments: z
+      .array(
+        z
+          .object({
+            no: z.string().trim().max(COVER_PAGE_EXPERIMENT_FIELDS.no),
+            name: z.string().trim().max(COVER_PAGE_EXPERIMENT_FIELDS.name),
+            performedOn: z
+              .string()
+              .trim()
+              .max(COVER_PAGE_EXPERIMENT_FIELDS.performedOn),
+            submittedOn: z
+              .string()
+              .trim()
+              .max(COVER_PAGE_EXPERIMENT_FIELDS.submittedOn),
+          })
+          .meta({ id: "CoverPageExperiment" }),
+      )
+      .max(MAX_COVER_PAGE_EXPERIMENTS)
       .optional(),
   })
   .meta({ id: "CoverPageInput" });

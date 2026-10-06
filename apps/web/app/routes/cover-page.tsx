@@ -6,10 +6,16 @@ import {
   COVER_PAGE_TEMPLATE_NAMES,
   COVER_PAGE_TEMPLATES,
   coverPagePath,
+  degreeFor,
   dhakaDate,
   isGroupTemplate,
+  isIndexTemplate,
+  isTitlePageTemplate,
+  MAX_COVER_PAGE_EXPERIMENTS,
   MAX_COVER_PAGE_MEMBERS,
+  monthYearOn,
   semesterOn,
+  type CoverPageExperiment,
   type CoverPageField,
   type CoverPageMember,
   type CoverPageTemplate,
@@ -123,6 +129,40 @@ const PAGES: Record<
       "Make a DIU presentation cover page in Daffodil International University's format, free: the topic, the course, your teacher and your details, as a PDF or Word file.",
     intro:
       "Presentation cover pages in DIU’s format, as a PDF or a Word file to put first in your slides.",
+  },
+  "project-report": {
+    title: "DIU Project Report Cover Page Maker (Free PDF and Word) | OurDIU",
+    heading: "DIU Project Report Cover Page",
+    description:
+      "Make a DIU project report cover page for a course project in Daffodil International University's format, free: the project title, the course, your teacher and every group member's name and ID, as a PDF or Word file.",
+    intro:
+      "Cover pages for a course’s project report in DIU’s format, with the project title and the whole group, as a PDF or a Word file.",
+  },
+  "lab-report-index": {
+    title: "DIU Lab Report Index Page Maker (Free PDF and Word) | OurDIU",
+    heading: "DIU Lab Report Index",
+    description:
+      "Make a DIU lab report index page, free: the course, your details and a table of experiments (no., name, date of experiment, date of submission, signature), with the rest left blank to write in, as a PDF or Word file.",
+    intro:
+      "The index page for your lab reports: the experiments you’ve done, with blank rows to write in as the semester goes, as a PDF or a Word file.",
+  },
+  "internship-report": {
+    title:
+      "DIU Internship Report Cover Page Maker (Free PDF and Word) | OurDIU",
+    heading: "DIU Internship Report Cover Page",
+    description:
+      "Make a DIU internship report cover page (title page) in Daffodil International University's format, free: the report's title, your name and ID, your degree, your supervisor, and the month, as a PDF or Word file.",
+    intro:
+      "The title page of your internship report in DIU’s format, by your name and supervised by your supervisor, as a PDF or a Word file.",
+  },
+  "final-year-project": {
+    title:
+      "DIU Final Year Project Report Cover Page Maker (Free PDF and Word) | OurDIU",
+    heading: "DIU Final Year Project Cover Page",
+    description:
+      "Make a DIU final year project (thesis) report cover page in Daffodil International University's format, free: the project's title, your name and ID, the degree, your supervisor and the month, as a PDF or Word file.",
+    intro:
+      "The title page of your final-year project (or thesis) report in DIU’s format, as a PDF or a Word file.",
   },
 };
 
@@ -281,6 +321,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     semester: semesterOn(now),
     studentDepartment: department ? departmentLabel(department, names) : "",
     date: dhakaDate(now),
+    degree: department ? degreeFor(names[department.toUpperCase()] ?? "") : "",
+    monthYear: monthYearOn(now),
   };
   return {
     signedIn: !!user,
@@ -372,6 +414,8 @@ const LABELS: Record<CoverPageField, string> = {
   semester: "Semester",
   studentDepartment: "Department",
   date: "Date of submission",
+  degree: "Degree",
+  monthYear: "Month and year",
 };
 
 const PLACEHOLDERS: Partial<Record<CoverPageField, string>> = {
@@ -385,6 +429,8 @@ const PLACEHOLDERS: Partial<Record<CoverPageField, string>> = {
   studentId: "e.g. 241-15-047",
   section: "e.g. 67_B",
   studentDepartment: "e.g. Department of Software Engineering",
+  degree: "e.g. Bachelor of Science in Software Engineering",
+  monthYear: "e.g. October 2026",
 };
 
 /** A labelled text box for one field. */
@@ -394,6 +440,7 @@ function Field({
   onChange,
   highlight,
   label,
+  placeholder,
   suggestions,
   onPick,
 }: {
@@ -402,6 +449,8 @@ function Field({
   onChange: (value: string) => void;
   highlight?: boolean;
   label?: string;
+  /** In place of the field's own placeholder. */
+  placeholder?: string;
   /** Suggested as the student types; anything typed is still taken. */
   suggestions?: Suggestion[];
   onPick?: (suggestion: Suggestion) => void;
@@ -418,7 +467,7 @@ function Field({
           onChange={onChange}
           onPick={onPick}
           suggestions={suggestions}
-          placeholder={PLACEHOLDERS[field]}
+          placeholder={placeholder ?? PLACEHOLDERS[field]}
           maxLength={COVER_PAGE_FIELDS[field]}
           className={cn("bg-background", highlight && "border-primary")}
         />
@@ -433,7 +482,7 @@ function Field({
         name={field}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={PLACEHOLDERS[field]}
+        placeholder={placeholder ?? PLACEHOLDERS[field]}
         maxLength={COVER_PAGE_FIELDS[field]}
         autoComplete="off"
         className={cn("bg-background", highlight && "border-primary")}
@@ -533,6 +582,10 @@ function CoverPageMaker({
       id: kept?.studentId || defaults.studentId || "",
     },
   ]);
+  // The lab report index's experiments: those typed, then blank rows.
+  const [experiments, setExperiments] = useState<CoverPageExperiment[]>([
+    { no: "1", name: "", performedOn: "", submittedOn: "" },
+  ]);
   const [course, setCourse] = useState<string | null>(null);
   // The courses to pick from: the saved routine's section's, or the one picked here.
   const [courses, setCourses] = useState(savedCourses);
@@ -631,7 +684,10 @@ function CoverPageMaker({
   const shown: CoverPageValues = {
     ...Object.fromEntries(fields.map((f) => [f, value(f)])),
     ...(isGroupTemplate(template) ? { members } : {}),
+    ...(isIndexTemplate(template) ? { experiments } : {}),
   };
+  const has = (f: CoverPageField) => fields.includes(f);
+  const titlePage = isTitlePageTemplate(template);
 
   /** The cover page from the API, as a PDF or a Word file, with its name. */
   async function make(format: "pdf" | "docx") {
@@ -750,329 +806,411 @@ function CoverPageMaker({
   const courseFields: CoverPageField[] =
     template === "lab-report"
       ? ["experimentNo", "experimentName"]
-      : template === "final-lab-report"
+      : template === "final-lab-report" || isIndexTemplate(template)
         ? []
         : ["topic"];
   const filled = (...f: CoverPageField[]) => f.every((x) => value(x).trim());
 
   return (
-    <div className="space-y-6 pt-2 pb-28 sm:pt-6 lg:pb-10">
-      <header className="space-y-2">
-        <h1 className="font-expressive text-4xl sm:text-5xl">{page.heading}</h1>
-        <p className="max-w-2xl text-muted-foreground">
-          {page.intro}{" "}
-          {signedIn ? (
-            "Your details come from your account."
-          ) : (
-            <>
-              <Link
-                to={`/login?redirectTo=${encodeURIComponent(coverPagePath(template))}`}
-                className="font-medium text-primary underline-offset-4 hover:underline"
-              >
-                Log in
-              </Link>{" "}
-              to have your name and ID filled in.
-            </>
-          )}
-        </p>
-      </header>
-
-      {/* Each template is a page of its own (for search); moving keeps what's typed. */}
-      <nav aria-label="Cover page templates" className="flex flex-wrap gap-2">
-        {COVER_PAGE_TEMPLATES.map((t) => (
-          <Link
-            key={t}
-            to={coverPagePath(t)}
-            replace
-            preventScrollReset
-            aria-current={t === template ? "page" : undefined}
-            className={cn(
-              "inline-flex h-9 items-center rounded-full border px-4 text-sm font-medium hover:state-layer",
-              t === template &&
-                "border-primary bg-primary-container text-primary-container-foreground",
+    <div className="space-y-6 pt-2 pb-10 sm:pt-6">
+      <div className="space-y-6">
+        <header className="space-y-2">
+          <h1 className="font-expressive text-4xl sm:text-5xl">
+            {page.heading}
+          </h1>
+          <p className="max-w-2xl text-muted-foreground">
+            {page.intro}{" "}
+            {signedIn ? (
+              "Your details come from your account."
+            ) : (
+              <>
+                <Link
+                  to={`/login?redirectTo=${encodeURIComponent(coverPagePath(template))}`}
+                  className="font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  Log in
+                </Link>{" "}
+                to have your name and ID filled in.
+              </>
             )}
-          >
-            {COVER_PAGE_TEMPLATE_NAMES[t]}
-          </Link>
-        ))}
-      </nav>
+          </p>
+        </header>
 
-      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
-        <form
-          className="space-y-4"
-          // Only the Download buttons make the PDF, not Enter (or a phone's Go)
-          // in a field.
-          onSubmit={(e) => e.preventDefault()}
-          aria-label="Cover page details"
-        >
-          <section className="space-y-4 rounded-3xl bg-surface p-5">
-            <h2 className="font-expressive text-lg">Course</h2>
-            <Field
-              field="section"
-              label="Your section"
-              value={value("section")}
-              onChange={(name) => {
-                set("section")(name);
-                // Typed in full: its courses come up as if picked.
-                const choice = findSection(name);
-                if (choice && choice.section !== coursesOf) {
-                  void loadSection(choice);
-                }
-              }}
-              suggestions={sectionSuggestions}
-              onPick={(s) => {
-                const choice = findSection(s.value, s.hint);
-                if (choice) void loadSection(choice);
-              }}
-            />
-            {courses.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium">
-                  Pick from {coursesOf}’s courses
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {courses.map((c) => (
-                    <button
-                      key={c.code}
-                      type="button"
-                      aria-pressed={course === c.code}
-                      title={c.title || undefined}
-                      onClick={() => pickCourse(c)}
-                      className={cn(
-                        "rounded-xl border px-3 py-2 text-sm font-medium hover:state-layer",
-                        course === c.code
-                          ? "border-primary bg-primary-container text-primary-container-foreground"
-                          : "bg-background",
-                      )}
-                    >
-                      {c.code}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    aria-pressed={course === ""}
-                    onClick={() => pickCourse(null)}
-                    className={cn(
-                      "rounded-xl border border-dashed px-3 py-2 text-sm font-medium text-muted-foreground hover:state-layer",
-                      course === "" && "border-primary text-foreground",
-                    )}
-                  >
-                    Other course
-                  </button>
-                </div>
-              </div>
-            )}
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field
-                field="courseCode"
-                value={value("courseCode")}
-                onChange={set("courseCode")}
-              />
-              <Field
-                field="courseTitle"
-                value={value("courseTitle")}
-                onChange={set("courseTitle")}
-              />
-            </div>
-            <div
+        {/* Each template is a page of its own (for search); moving keeps what's typed. */}
+        <nav aria-label="Cover page templates" className="flex flex-wrap gap-2">
+          {COVER_PAGE_TEMPLATES.map((t) => (
+            <Link
+              key={t}
+              to={coverPagePath(t)}
+              replace
+              preventScrollReset
+              aria-current={t === template ? "page" : undefined}
               className={cn(
-                "grid gap-3",
-                courseFields.length > 1 && "sm:grid-cols-[8rem_1fr]",
+                "inline-flex h-9 items-center rounded-full border px-4 text-sm font-medium hover:state-layer",
+                t === template &&
+                  "border-primary bg-primary-container text-primary-container-foreground",
               )}
             >
-              {courseFields.map((f) => (
+              {COVER_PAGE_TEMPLATE_NAMES[t]}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
+          <form
+            className="space-y-4"
+            // Only the Download buttons make the PDF, not Enter (or a phone's Go)
+            // in a field.
+            onSubmit={(e) => e.preventDefault()}
+            aria-label="Cover page details"
+          >
+            {titlePage ? (
+              <section className="space-y-4 rounded-3xl bg-surface p-5">
+                <h2 className="font-expressive text-lg">Report</h2>
                 <Field
-                  key={f}
-                  field={f}
-                  value={value(f)}
-                  onChange={set(f)}
-                  highlight={!value(f)}
+                  field="topic"
+                  label="Title"
+                  placeholder="The report’s title"
+                  value={value("topic")}
+                  onChange={set("topic")}
+                  highlight={!value("topic")}
                 />
-              ))}
-            </div>
-          </section>
-
-          <Group
-            title="Submitted to"
-            hint={
-              course
-                ? `Who takes ${course}${coursesOf ? ` for ${coursesOf}` : ""}, from the routine`
-                : undefined
-            }
-            summary={value("teacherName")}
-            startOpen={
-              !filled("teacherName", "teacherDesignation", "teacherDepartment")
-            }
-          >
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field
-                field="teacherName"
-                value={value("teacherName")}
-                onChange={set("teacherName")}
-              />
-              <Field
-                field="teacherDesignation"
-                value={value("teacherDesignation")}
-                onChange={set("teacherDesignation")}
-              />
-            </div>
-            <Field
-              field="teacherDepartment"
-              value={value("teacherDepartment")}
-              onChange={set("teacherDepartment")}
-              suggestions={departmentSuggestions}
-            />
-          </Group>
-
-          <Group
-            title="Submitted by"
-            hint={signedIn ? "From your account" : undefined}
-            summary={
-              isGroupTemplate(template)
-                ? `${members.filter((m) => m.name).length} members`
-                : [value("studentName"), value("studentId")]
-                    .filter(Boolean)
-                    .join(", ")
-            }
-            startOpen={
-              isGroupTemplate(template) ||
-              !filled("studentName", "studentId", "studentDepartment")
-            }
-          >
-            {isGroupTemplate(template) ? (
-              <Members members={members} onChange={setMembers} />
+              </section>
             ) : (
+              <section className="space-y-4 rounded-3xl bg-surface p-5">
+                <h2 className="font-expressive text-lg">Course</h2>
+                <Field
+                  field="section"
+                  label="Your section"
+                  value={value("section")}
+                  onChange={(name) => {
+                    set("section")(name);
+                    // Typed in full: its courses come up as if picked.
+                    const choice = findSection(name);
+                    if (choice && choice.section !== coursesOf) {
+                      void loadSection(choice);
+                    }
+                  }}
+                  suggestions={sectionSuggestions}
+                  onPick={(s) => {
+                    const choice = findSection(s.value, s.hint);
+                    if (choice) void loadSection(choice);
+                  }}
+                />
+                {courses.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">
+                      Pick from {coursesOf}’s courses
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {courses.map((c) => (
+                        <button
+                          key={c.code}
+                          type="button"
+                          aria-pressed={course === c.code}
+                          title={c.title || undefined}
+                          onClick={() => pickCourse(c)}
+                          className={cn(
+                            "rounded-xl border px-3 py-2 text-sm font-medium hover:state-layer",
+                            course === c.code
+                              ? "border-primary bg-primary-container text-primary-container-foreground"
+                              : "bg-background",
+                          )}
+                        >
+                          {c.code}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        aria-pressed={course === ""}
+                        onClick={() => pickCourse(null)}
+                        className={cn(
+                          "rounded-xl border border-dashed px-3 py-2 text-sm font-medium text-muted-foreground hover:state-layer",
+                          course === "" && "border-primary text-foreground",
+                        )}
+                      >
+                        Other course
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field
+                    field="courseCode"
+                    value={value("courseCode")}
+                    onChange={set("courseCode")}
+                  />
+                  <Field
+                    field="courseTitle"
+                    value={value("courseTitle")}
+                    onChange={set("courseTitle")}
+                  />
+                </div>
+                <div
+                  className={cn(
+                    "grid gap-3",
+                    courseFields.length > 1 && "sm:grid-cols-[8rem_1fr]",
+                  )}
+                >
+                  {courseFields.map((f) => (
+                    <Field
+                      key={f}
+                      field={f}
+                      value={value(f)}
+                      onChange={set(f)}
+                      highlight={!value(f)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+            {isIndexTemplate(template) && (
+              <section className="space-y-4 rounded-3xl bg-surface p-5">
+                <div className="flex items-baseline gap-2">
+                  <h2 className="font-expressive text-lg">Experiments</h2>
+                  <span className="text-sm text-muted-foreground">
+                    The rest of the {MAX_COVER_PAGE_EXPERIMENTS} rows print
+                    blank, to write in
+                  </span>
+                </div>
+                <Experiments
+                  experiments={experiments}
+                  onChange={setExperiments}
+                />
+              </section>
+            )}
+            <Group
+              title={
+                titlePage
+                  ? "Supervised by"
+                  : isIndexTemplate(template)
+                    ? "Course teacher"
+                    : "Submitted to"
+              }
+              hint={
+                course
+                  ? `Who takes ${course}${coursesOf ? ` for ${coursesOf}` : ""}, from the routine`
+                  : undefined
+              }
+              summary={value("teacherName")}
+              startOpen={
+                !filled(
+                  ...(
+                    [
+                      "teacherName",
+                      "teacherDesignation",
+                      "teacherDepartment",
+                    ] as const
+                  ).filter(has),
+                )
+              }
+            >
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field
-                  field="studentName"
-                  value={value("studentName")}
-                  onChange={set("studentName")}
+                  field="teacherName"
+                  label={titlePage ? "Supervisor" : undefined}
+                  value={value("teacherName")}
+                  onChange={set("teacherName")}
                 />
-                <Field
-                  field="studentId"
-                  value={value("studentId")}
-                  onChange={set("studentId")}
-                />
+                {has("teacherDesignation") && (
+                  <Field
+                    field="teacherDesignation"
+                    value={value("teacherDesignation")}
+                    onChange={set("teacherDesignation")}
+                  />
+                )}
               </div>
-            )}
-            <Field
-              field="semester"
-              value={value("semester")}
-              onChange={set("semester")}
-            />
-            <Field
-              field="studentDepartment"
-              value={value("studentDepartment")}
-              onChange={set("studentDepartment")}
-              suggestions={departmentSuggestions}
-            />
-          </Group>
+              {has("teacherDepartment") && (
+                <Field
+                  field="teacherDepartment"
+                  value={value("teacherDepartment")}
+                  onChange={set("teacherDepartment")}
+                  suggestions={departmentSuggestions}
+                />
+              )}
+            </Group>
 
-          <section className="flex flex-wrap items-end gap-4 rounded-3xl bg-surface p-5">
-            <div className="min-w-48 flex-1">
-              <Field
-                field="date"
-                value={value("date")}
-                onChange={set("date")}
-              />
-            </div>
-            <div className="flex min-h-11 flex-1 items-center gap-3">
-              <Checkbox
-                id="remember"
-                checked={remember}
-                onCheckedChange={(c) => setRemember(c === true)}
-              />
-              <Label htmlFor="remember" className="font-normal">
-                Remember my details on this device
-              </Label>
-            </div>
-          </section>
-
-          {/* On phones the button stays at the bottom of the screen. */}
-          <div className="fixed inset-x-0 bottom-0 z-20 flex gap-2 border-t bg-background/95 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur lg:hidden">
-            <Button
-              type="button"
-              size="lg"
-              className="flex-1 rounded-full"
-              disabled={!!busy}
-              onClick={() => void download("pdf")}
+            <Group
+              title="Submitted by"
+              hint={signedIn ? "From your account" : undefined}
+              summary={
+                isGroupTemplate(template)
+                  ? `${members.filter((m) => m.name).length} members`
+                  : [value("studentName"), value("studentId")]
+                      .filter(Boolean)
+                      .join(", ")
+              }
+              startOpen={
+                isGroupTemplate(template) ||
+                !filled(
+                  ...(
+                    [
+                      "studentName",
+                      "studentId",
+                      "studentDepartment",
+                      "degree",
+                    ] as const
+                  ).filter(has),
+                )
+              }
             >
-              <Download aria-hidden />
-              {busy === "pdf" ? "Making the PDF…" : "Download PDF"}
-            </Button>
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger asChild>
+              {isGroupTemplate(template) ? (
+                <Members members={members} onChange={setMembers} />
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field
+                    field="studentName"
+                    value={value("studentName")}
+                    onChange={set("studentName")}
+                  />
+                  <Field
+                    field="studentId"
+                    value={value("studentId")}
+                    onChange={set("studentId")}
+                  />
+                </div>
+              )}
+              {has("semester") && (
+                <Field
+                  field="semester"
+                  value={value("semester")}
+                  onChange={set("semester")}
+                />
+              )}
+              {has("studentDepartment") && (
+                <Field
+                  field="studentDepartment"
+                  value={value("studentDepartment")}
+                  onChange={set("studentDepartment")}
+                  suggestions={departmentSuggestions}
+                />
+              )}
+              {has("degree") && (
+                <Field
+                  field="degree"
+                  value={value("degree")}
+                  onChange={set("degree")}
+                />
+              )}
+            </Group>
+
+            <section className="flex flex-wrap items-end gap-4 rounded-3xl bg-surface p-5">
+              {(has("date") || has("monthYear")) && (
+                <div className="min-w-48 flex-1">
+                  {has("date") ? (
+                    <Field
+                      field="date"
+                      value={value("date")}
+                      onChange={set("date")}
+                    />
+                  ) : (
+                    <Field
+                      field="monthYear"
+                      value={value("monthYear")}
+                      onChange={set("monthYear")}
+                    />
+                  )}
+                </div>
+              )}
+              <div className="flex min-h-11 flex-1 items-center gap-3">
+                <Checkbox
+                  id="remember"
+                  checked={remember}
+                  onCheckedChange={(c) => setRemember(c === true)}
+                />
+                <Label htmlFor="remember" className="font-normal">
+                  Remember my details on this device
+                </Label>
+              </div>
+            </section>
+          </form>
+
+          <aside aria-label="Preview" className="space-y-4 lg:sticky lg:top-24">
+            <h2 className="font-expressive text-lg lg:sr-only">Preview</h2>
+            <CoverPagePreview
+              template={template}
+              values={shown}
+              className="w-full rounded-md shadow-md ring-1 ring-black/5"
+            />
+            <div className="hidden gap-2 lg:grid">
+              <Button
+                type="button"
+                size="lg"
+                className="w-full rounded-full"
+                disabled={!!busy}
+                onClick={() => void download("pdf")}
+              >
+                <Download aria-hidden />
+                {busy === "pdf" ? "Making the PDF…" : "Download PDF"}
+              </Button>
+              <div
+                className={cn("grid gap-2", googleClientId && "grid-cols-2")}
+              >
                 <Button
                   type="button"
-                  size="icon-lg"
                   variant="outline"
                   className="rounded-full"
                   disabled={!!busy}
-                  aria-label="Other formats"
+                  onClick={() => void download("docx")}
                 >
-                  <EllipsisVertical />
+                  <FileText aria-hidden />
+                  {busy === "docx" ? "Making it…" : "Word (.docx)"}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" side="top" className="w-56">
-                <DropdownMenuItem onSelect={() => void download("docx")}>
-                  <FileText />
-                  Word file (.docx)
-                </DropdownMenuItem>
                 {googleClientId && (
-                  <DropdownMenuItem onSelect={() => void openInGoogleDocs()}>
-                    <ExternalLink />
-                    Open in Google Docs
-                  </DropdownMenuItem>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-full"
+                    disabled={!!busy}
+                    onClick={() => void openInGoogleDocs()}
+                  >
+                    <ExternalLink aria-hidden />
+                    {busy === "docs" ? "Saving…" : "Google Docs"}
+                  </Button>
                 )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </form>
-
-        <aside aria-label="Preview" className="space-y-4 lg:sticky lg:top-24">
-          <h2 className="font-expressive text-lg lg:sr-only">Preview</h2>
-          <CoverPagePreview
-            template={template}
-            values={shown}
-            className="w-full rounded-md shadow-md ring-1 ring-black/5"
-          />
-          <div className="hidden gap-2 lg:grid">
-            <Button
-              type="button"
-              size="lg"
-              className="w-full rounded-full"
-              disabled={!!busy}
-              onClick={() => void download("pdf")}
-            >
-              <Download aria-hidden />
-              {busy === "pdf" ? "Making the PDF…" : "Download PDF"}
-            </Button>
-            <div className={cn("grid gap-2", googleClientId && "grid-cols-2")}>
+              </div>
+            </div>
+          </aside>
+        </div>
+        {/* On phones the buttons stay at the bottom of the screen while the maker and its preview are in view, then scroll away before the page's end. */}
+        <div className="sticky bottom-0 z-20 -mx-4 mt-4 flex gap-2 border-t bg-background/95 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
+          <Button
+            type="button"
+            size="lg"
+            className="flex-1 rounded-full"
+            disabled={!!busy}
+            onClick={() => void download("pdf")}
+          >
+            <Download aria-hidden />
+            {busy === "pdf" ? "Making the PDF…" : "Download PDF"}
+          </Button>
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
               <Button
                 type="button"
+                size="icon-lg"
                 variant="outline"
                 className="rounded-full"
                 disabled={!!busy}
-                onClick={() => void download("docx")}
+                aria-label="Other formats"
               >
-                <FileText aria-hidden />
-                {busy === "docx" ? "Making it…" : "Word (.docx)"}
+                <EllipsisVertical />
               </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="top" className="w-56">
+              <DropdownMenuItem onSelect={() => void download("docx")}>
+                <FileText />
+                Word file (.docx)
+              </DropdownMenuItem>
               {googleClientId && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-full"
-                  disabled={!!busy}
-                  onClick={() => void openInGoogleDocs()}
-                >
-                  <ExternalLink aria-hidden />
-                  {busy === "docs" ? "Saving…" : "Google Docs"}
-                </Button>
+                <DropdownMenuItem onSelect={() => void openInGoogleDocs()}>
+                  <ExternalLink />
+                  Open in Google Docs
+                </DropdownMenuItem>
               )}
-            </div>
-          </div>
-        </aside>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <AboutCoverPages />
@@ -1097,12 +1235,13 @@ function AboutCoverPages() {
         About DIU cover pages
       </h2>
       <p>
-        A cover page (or front page) goes first on every assignment, lab report
-        and presentation handed in at Daffodil International University (DIU).
-        DIU’s format has the university’s logo, what the work is (course code
-        and title, topic or experiment), who it’s submitted to (the teacher,
-        with their designation and department), who submits it (name, student
-        ID, section, semester and department) and the date of submission.
+        A cover page (or front page) goes first on every assignment, lab report,
+        presentation and project handed in at Daffodil International University
+        (DIU). DIU’s format has the university’s logo, what the work is (course
+        code and title, topic or experiment), who it’s submitted to (the
+        teacher, with their designation and department), who submits it (name,
+        student ID, section, semester and department) and the date of
+        submission.
       </p>
       <p>
         Here it’s filled in for you. Your name and student ID come from your
@@ -1114,22 +1253,120 @@ function AboutCoverPages() {
         in. What you type isn’t kept on the site.
       </p>
       <p>
-        Cover pages for an{" "}
-        {COVER_PAGE_TEMPLATES.map((t, i) => (
-          <span key={t}>
-            {i > 0 &&
-              (i === COVER_PAGE_TEMPLATES.length - 1 ? " and a " : ", a ")}
-            <Link
-              to={coverPagePath(t)}
-              className="font-medium text-primary underline-offset-4 hover:underline"
-            >
-              {COVER_PAGE_TEMPLATE_NAMES[t].toLowerCase()}
-            </Link>
-          </span>
-        ))}
+        Internship and final-year project reports start with a title page in
+        DIU’s thesis format instead: the title, your name and ID, the degree,
+        your supervisor and the month. And the lab report index lists your
+        experiments, with blank rows to fill in by hand.
+      </p>
+      <p>
+        Cover pages for{" "}
+        {COVER_PAGE_TEMPLATES.map((t, i) => {
+          const name = COVER_PAGE_TEMPLATE_NAMES[t].toLowerCase();
+          return (
+            <span key={t}>
+              {i > 0 &&
+                (i === COVER_PAGE_TEMPLATES.length - 1 ? " and " : ", ")}
+              {/^[aeiou]/.test(name) ? "an " : "a "}
+              <Link
+                to={coverPagePath(t)}
+                className="font-medium text-primary underline-offset-4 hover:underline"
+              >
+                {name}
+              </Link>
+            </span>
+          );
+        })}
         .
       </p>
     </section>
+  );
+}
+
+/** The index's experiments: no., name and two dates each, up to twelve. */
+function Experiments({
+  experiments,
+  onChange,
+}: {
+  experiments: CoverPageExperiment[];
+  onChange: (experiments: CoverPageExperiment[]) => void;
+}) {
+  const update = (i: number, patch: Partial<CoverPageExperiment>) =>
+    onChange(experiments.map((e, j) => (j === i ? { ...e, ...patch } : e)));
+  return (
+    <div className="space-y-3">
+      {experiments.map((e, i) => (
+        <div
+          key={i}
+          className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] gap-2"
+        >
+          <Input
+            aria-label={`Experiment ${i + 1}'s number`}
+            value={e.no}
+            onChange={(ev) => update(i, { no: ev.target.value })}
+            placeholder="No."
+            maxLength={10}
+            className="bg-background"
+          />
+          <Input
+            aria-label={`Experiment ${i + 1}'s name`}
+            value={e.name}
+            onChange={(ev) => update(i, { name: ev.target.value })}
+            placeholder="Name of the experiment"
+            maxLength={160}
+            className="bg-background"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={`Remove experiment ${i + 1}`}
+            disabled={experiments.length === 1}
+            onClick={() => onChange(experiments.filter((_, j) => j !== i))}
+          >
+            <X />
+          </Button>
+          <div className="col-span-3 grid grid-cols-2 gap-2 sm:col-span-1 sm:col-start-2">
+            <Input
+              aria-label={`Experiment ${i + 1}'s date`}
+              value={e.performedOn}
+              onChange={(ev) => update(i, { performedOn: ev.target.value })}
+              placeholder="Done on"
+              maxLength={20}
+              className="bg-background"
+            />
+            <Input
+              aria-label={`Experiment ${i + 1}'s date of submission`}
+              value={e.submittedOn}
+              onChange={(ev) => update(i, { submittedOn: ev.target.value })}
+              placeholder="Submitted on"
+              maxLength={20}
+              className="bg-background"
+            />
+          </div>
+        </div>
+      ))}
+      {experiments.length < MAX_COVER_PAGE_EXPERIMENTS && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() =>
+            onChange([
+              ...experiments,
+              {
+                no: String(experiments.length + 1),
+                name: "",
+                performedOn: "",
+                submittedOn: "",
+              },
+            ])
+          }
+        >
+          <Plus aria-hidden />
+          Add an experiment
+        </Button>
+      )}
+    </div>
   );
 }
 

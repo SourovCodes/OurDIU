@@ -268,7 +268,7 @@ export function llmsTxt(
     `> ${SITE_NAME} (ourdiu.com) is a free website and Android app for students of Daffodil International University (DIU), Bangladesh. It has the ${QB_NAME}, ${routine.length ? "the Class Routine and " : ""}a cover page maker. The ${QB_NAME}: ${papers.toLocaleString("en-US")} past exam question papers (finals, midterms and quizzes) from ${shownCourses.length} courses in ${shownDepartments.length} departments, shared by students. Until ${move.date} it was DIU QBank at diuqbank.com.`,
     "",
     `- The ${QB_NAME} is at ${origin}/questions. Papers are free to read and download, with no ads and no sign-up to read.`,
-    `- The Cover Page maker is at ${origin}/cover-page: DIU-format cover pages (front pages) for assignments, lab reports, group assignments, final lab reports and presentations, with DIU's logo, filled in from the student's account and class routine, as a free PDF. No login needed.`,
+    `- The Cover Page maker is at ${origin}/cover-page: DIU-format cover pages (front pages) for assignments, lab reports, group assignments, final lab reports, presentations and course project reports, a lab report index, and title pages for internship and final-year project reports, with DIU's logo, filled in from the student's account and class routine, as a free PDF. No login needed.`,
     `- diuqbank.com moved to ourdiu.com on ${move.date}; its pages redirect to the same pages here (diuqbank.com/questions/123 is ${origin}/questions/123).`,
     `- Each course has a page listing its papers by semester and exam type, and each exam has a page with its question papers (PDF).`,
     ...(routine.length

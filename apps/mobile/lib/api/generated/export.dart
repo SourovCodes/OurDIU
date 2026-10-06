@@ -94,6 +94,7 @@ export 'models/routine_attending_section.dart';
 export 'models/cover_page_template.dart';
 export 'models/cover_page_input.dart';
 export 'models/cover_page_member.dart';
+export 'models/cover_page_experiment.dart';
 export 'models/admin_routine_version_list.dart';
 export 'models/admin_routine_version.dart';
 export 'models/routine_version_status.dart';

@@ -204,6 +204,7 @@ void main() {
     expect(find.text('English I'), findsNothing);
     expect(find.text('Change'), findsWidgets);
     // Filled in, "Submitted to" folds to the teacher's name.
+    await _scrollTo(tester, _rich('Dr. Test Teacher'));
     expect(_rich('Dr. Test Teacher'), findsOneWidget);
     await tester.enterText(_topic, 'Deadlock avoidance');
     await _scrollTo(tester, _rich('Submitted by'));
@@ -402,5 +403,94 @@ void main() {
     expect(find.text('What’s it for?'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('space'), 'cover');
+  });
+
+  test('a department tells the degree', () {
+    expect(
+      degreeFor('Department of Software Engineering'),
+      'Bachelor of Science in Software Engineering',
+    );
+    expect(
+      degreeFor('Business Administration'),
+      'Bachelor of Business Administration',
+    );
+    expect(degreeFor(''), '');
+    expect(monthYearOn(DateTime.utc(2026, 9, 30, 20)), 'October 2026');
+  });
+
+  testWidgets('a final-year project: a title page, not a course', (
+    tester,
+  ) async {
+    final backend = _backend();
+    await pumpApp(
+      tester,
+      backend: backend,
+      tokens: MemoryTokenStore('session.sig'),
+      prefs: _student,
+    );
+
+    await tester.tap(find.text('Final-year project'));
+    await tester.pumpAndSettle();
+    expect(find.text('Which course?'), findsNothing);
+    expect(find.text('What’s the title?'), findsOneWidget);
+    await tester.enterText(
+      _field('The report’s title'),
+      'A smart attendance system',
+    );
+    await _scrollTo(tester, _rich('Supervised by'));
+    await tester.enterText(_field('Supervisor'), 'Dr. Test Teacher');
+
+    await tester.tap(find.text('Preview'));
+    await tester.pumpAndSettle();
+    final sent = _sent(
+      backend,
+      'POST /api/v1/cover-page/final-year-project/pdf',
+    );
+    expect(sent['topic'], 'A smart attendance system');
+    expect(sent['teacherName'], 'Dr. Test Teacher');
+    expect(
+      sent['degree'],
+      'Bachelor of Science in Computer Science and Engineering',
+    );
+    expect(sent['monthYear'], 'October 2026');
+    // A title page has no course, section or date.
+    expect(sent.containsKey('courseCode'), isFalse);
+    expect(sent.containsKey('date'), isFalse);
+  });
+
+  testWidgets('the lab report index sends its experiments', (tester) async {
+    final backend = _backend();
+    await pumpApp(
+      tester,
+      backend: backend,
+      tokens: MemoryTokenStore('session.sig'),
+      prefs: _student,
+    );
+
+    await tester.tap(find.text('Lab report index'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Operating Systems'));
+    await tester.pumpAndSettle();
+    await _scrollTo(tester, _field('Experiment 1'));
+    await tester.enterText(_field('Experiment 1'), 'Static routing');
+    await tester.enterText(_field('Done on'), '13/09/2026');
+    await _scrollTo(tester, find.text('Add an experiment'));
+    await tester.tap(find.text('Add an experiment'));
+    await tester.pumpAndSettle();
+    await tester.enterText(_field('Experiment 2'), 'VLAN setup');
+
+    await tester.tap(find.text('Preview'));
+    await tester.pumpAndSettle();
+    final sent = _sent(backend, 'POST /api/v1/cover-page/lab-report-index/pdf');
+    expect(sent['courseCode'], 'CSE311');
+    expect(sent['experiments'], [
+      {
+        'no': '1',
+        'name': 'Static routing',
+        'performedOn': '13/09/2026',
+        'submittedOn': '',
+      },
+      {'no': '2', 'name': 'VLAN setup', 'performedOn': '', 'submittedOn': ''},
+    ]);
   });
 }

@@ -4,6 +4,7 @@
 
 import 'package:json_annotation/json_annotation.dart';
 
+import 'cover_page_experiment.dart';
 import 'cover_page_member.dart';
 
 part 'cover_page_input.g.dart';
@@ -25,7 +26,10 @@ class CoverPageInput {
     this.semester,
     this.studentDepartment,
     this.date,
+    this.degree,
+    this.monthYear,
     this.members,
+    this.experiments,
   });
 
   factory CoverPageInput.fromJson(Map<String, Object?> json) =>
@@ -45,7 +49,10 @@ class CoverPageInput {
   final String? semester;
   final String? studentDepartment;
   final String? date;
+  final String? degree;
+  final String? monthYear;
   final List<CoverPageMember>? members;
+  final List<CoverPageExperiment>? experiments;
 
   Map<String, Object?> toJson() => _$CoverPageInputToJson(this);
 }

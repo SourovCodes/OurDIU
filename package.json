@@ -22,7 +22,8 @@
     "db:migrate": "pnpm --filter @ourdiu/api db:migrate:local",
     "db:seed": "pnpm --filter @ourdiu/api db:seed:local",
     "make-admin": "pnpm --filter @ourdiu/api make-admin",
-    "student-ids-from-names": "pnpm --filter @ourdiu/api student-ids-from-names"
+    "student-ids-from-names": "pnpm --filter @ourdiu/api student-ids-from-names",
+    "teacher-designations": "pnpm --filter @ourdiu/api teacher-designations"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

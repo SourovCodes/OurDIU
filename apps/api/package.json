@@ -19,7 +19,8 @@
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote --cwd ../web",
     "db:seed:local": "node seeds/seed-local.mjs",
     "make-admin": "node scripts/make-admin.mjs",
-    "student-ids-from-names": "tsx scripts/student-ids-from-names.ts"
+    "student-ids-from-names": "tsx scripts/student-ids-from-names.ts",
+    "teacher-designations": "tsx scripts/teacher-designations.ts"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.6",

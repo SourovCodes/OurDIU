@@ -98,7 +98,20 @@ test("it fills in the student, the course and the teacher", async ({
   await expect(page.getByLabel("Designation")).toHaveValue(
     "Associate Professor",
   );
+  // CSE321 is CSE's own course: its teacher is in the Department of CSE.
+  await expect(page.getByLabel("Department").first()).toHaveValue(
+    "Department of CSE",
+  );
   await page.getByLabel("Topic").fill("Subnetting");
+
+  // Enter in a field doesn't make the PDF: only Download does.
+  let made = 0;
+  page.on("request", (r) => {
+    if (r.url().includes("/api/v1/cover-page/")) made++;
+  });
+  await page.getByLabel("Topic").press("Enter");
+  await expect(preview(page)).toContainText("Subnetting");
+  expect(made).toBe(0);
   await expect(preview(page)).toContainText("Dr. Sample Teacher");
   await expect(preview(page)).toContainText("Subnetting");
 
@@ -107,6 +120,12 @@ test("it fills in the student, the course and the teacher", async ({
   expect(res.headers()["content-disposition"]).toContain(
     "CSE321-assignment-cover.pdf",
   );
+
+  // A course another department teaches (accounting, in CSE's routine): the
+  // teacher's department is left to type.
+  await page.getByRole("button", { name: "ACT327" }).click();
+  await expect(page.getByLabel("Teacher")).toHaveValue("Sample Islam Khan");
+  await expect(page.getByLabel("Department").first()).toHaveValue("");
 });
 
 test("the hub offers the Cover Page", async ({ page }) => {

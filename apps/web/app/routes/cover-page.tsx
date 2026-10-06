@@ -50,6 +50,22 @@ type RoutineCourse = {
   teacherDepartment: string;
 };
 
+/**
+ * How each routine's own courses are coded (SWE's are "SE…"). Its routine also
+ * lists courses other departments teach (ENG101, MAT101, ACT327), whose teachers
+ * aren't in the department: their department is left for the student to type.
+ */
+const OWN_COURSE_PREFIXES: Record<string, string[]> = {
+  CSE: ["CSE"],
+  EEE: ["EEE"],
+  SWE: ["SWE", "SE"],
+};
+
+const ownCourse = (code: string, department: string) =>
+  (OWN_COURSE_PREFIXES[department] ?? [department]).some((prefix) =>
+    new RegExp(`^${prefix}\\s?\\d`, "i").test(code),
+  );
+
 export async function loader({ request }: Route.LoaderArgs) {
   const cookie = request.headers.get("cookie");
   const saved = savedRoutine(cookie);
@@ -70,9 +86,10 @@ export async function loader({ request }: Route.LoaderArgs) {
       title: c.course.title ?? "",
       teacherName: c.teacher?.name ?? "",
       teacherDesignation: c.teacher?.designation ?? "",
-      teacherDepartment: routineDepartment
-        ? `Department of ${routineDepartment}`
-        : "",
+      teacherDepartment:
+        routineDepartment && ownCourse(c.course.code, routineDepartment)
+          ? `Department of ${routineDepartment}`
+          : "",
     });
   }
 
@@ -105,9 +122,8 @@ const REMEMBERED: CoverPageField[] = [
 ];
 const STORAGE_KEY = "ourdiu_cover_page";
 
-type Remembered = Partial<Record<CoverPageField, string>> & {
-  members?: CoverPageMember[];
-};
+/** Only the student's own details: never their group's, who are other students. */
+type Remembered = Partial<Record<CoverPageField, string>>;
 
 /** The stored details, as stored: a string, so the store's snapshot is stable. */
 function rememberedRaw(): string | null {
@@ -278,11 +294,12 @@ function CoverPageMaker({
     for (const f of REMEMBERED) if (kept?.[f]) start[f] = kept[f];
     return start;
   });
-  const [members, setMembers] = useState<CoverPageMember[]>(() =>
-    kept?.members?.length
-      ? kept.members
-      : [{ name: defaults.studentName ?? "", id: defaults.studentId ?? "" }],
-  );
+  const [members, setMembers] = useState<CoverPageMember[]>(() => [
+    {
+      name: kept?.studentName || defaults.studentName || "",
+      id: kept?.studentId || defaults.studentId || "",
+    },
+  ]);
   const [course, setCourse] = useState<string | null>(null);
   const [remember, setRemember] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -332,10 +349,7 @@ function CoverPageMaker({
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
       writeRemembered(
         remember
-          ? {
-              ...Object.fromEntries(REMEMBERED.map((f) => [f, value(f)])),
-              members: members.filter((m) => m.name || m.id),
-            }
+          ? Object.fromEntries(REMEMBERED.map((f) => [f, value(f)]))
           : null,
       );
     } catch {
@@ -392,10 +406,9 @@ function CoverPageMaker({
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
         <form
           className="space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void download();
-          }}
+          // Only the Download buttons make the PDF, not Enter (or a phone's Go)
+          // in a field.
+          onSubmit={(e) => e.preventDefault()}
           aria-label="Cover page details"
         >
           <section className="space-y-4 rounded-3xl bg-surface p-5">
@@ -576,10 +589,11 @@ function CoverPageMaker({
           {/* On phones the button stays at the bottom of the screen. */}
           <div className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/95 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur lg:hidden">
             <Button
-              type="submit"
+              type="button"
               size="lg"
               className="w-full rounded-full"
               disabled={busy}
+              onClick={() => void download()}
             >
               <Download aria-hidden />
               {busy ? "Making the PDF…" : "Download PDF"}

@@ -856,7 +856,7 @@ function CoverPageMaker({
           ))}
         </nav>
 
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
           <form
             className="space-y-4"
             // Only the Download buttons make the PDF, not Enter (or a phone's Go)
@@ -934,7 +934,7 @@ function CoverPageMaker({
                     </div>
                   </div>
                 )}
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <Field
                     field="courseCode"
                     value={value("courseCode")}
@@ -1012,7 +1012,7 @@ function CoverPageMaker({
                 )
               }
             >
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field
                   field="teacherName"
                   label={titlePage ? "Supervisor" : undefined}
@@ -1064,7 +1064,7 @@ function CoverPageMaker({
               {isGroupTemplate(template) ? (
                 <Members members={members} onChange={setMembers} />
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <Field
                     field="studentName"
                     value={value("studentName")}

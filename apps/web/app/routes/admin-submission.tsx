@@ -858,7 +858,7 @@ export default function AdminSubmission({ loaderData }: Route.ComponentProps) {
         </Alert>
       )}
 
-      <div className="grid items-start gap-4 @5xl/main:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid grid-cols-1 items-start gap-4 @5xl/main:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="grid gap-4">
           <PdfViewer
             src={adminSubmissionFileUrl(submission.id)}

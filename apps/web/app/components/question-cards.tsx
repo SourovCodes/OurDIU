@@ -6,7 +6,7 @@ import { Card, CardTitle } from "~/components/ui/card";
 import { cn } from "~/lib/utils";
 
 /** Card-grid layout shared by the public lists. */
-export const CARD_GRID = "grid gap-3 sm:grid-cols-2 lg:grid-cols-3";
+export const CARD_GRID = "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3";
 
 /**
  * On phones, a grid of cards becomes one grouped list, like the app's rows:

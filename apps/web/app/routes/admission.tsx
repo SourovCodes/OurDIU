@@ -96,7 +96,7 @@ export default function Admission() {
                 >
                   {i + 1}
                 </span>
-                <div className="space-y-1">
+                <div className="min-w-0 space-y-1 break-words">
                   <h3 className="font-semibold">{step.title}</h3>
                   <p className="text-muted-foreground">{step.text}</p>
                 </div>
@@ -140,7 +140,9 @@ export default function Admission() {
                 {TEST_SLOTS.map((slot) => (
                   <tr key={slot.faculty} className="border-t border-surface">
                     <td className="px-4 py-3">{slot.faculty}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{slot.time}</td>
+                    <td className="px-4 py-3 sm:whitespace-nowrap">
+                      {slot.time}
+                    </td>
                   </tr>
                 ))}
               </tbody>

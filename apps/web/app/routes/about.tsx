@@ -89,7 +89,7 @@ export default function About() {
         <h2 id="promise-heading" className="font-expressive text-3xl">
           The promise
         </h2>
-        <ul className="grid gap-3 sm:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {PROMISES.map(({ icon: Icon, title, description }, index) => (
             <li
               key={title}

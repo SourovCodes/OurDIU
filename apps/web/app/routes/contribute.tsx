@@ -161,7 +161,7 @@ export default function Contribute({
         </p>
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-8">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-8">
         <ContributeForm
           {...taxonomy}
           defaults={

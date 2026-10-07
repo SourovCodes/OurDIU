@@ -77,7 +77,7 @@ export default function RoutineSections({ loaderData }: Route.ComponentProps) {
 
       {list ? (
         <section aria-label={`Every ${name} section`}>
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {groups.map((group) => (
               <li
                 key={group.key}

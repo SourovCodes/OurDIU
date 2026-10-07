@@ -97,9 +97,12 @@ export function DepartmentTile({
             {department.publishedCount === 1 ? "paper" : "papers"}
           </span>
           {courseCount !== undefined && (
-            <span className="whitespace-nowrap">
-              {` · ${formatNumber(courseCount)} ${courseCount === 1 ? "course" : "courses"}`}
-            </span>
+            <>
+              {/* Outside the nowrap spans: a narrow tile wraps here. */}{" "}
+              <span className="whitespace-nowrap">
+                {`· ${formatNumber(courseCount)} ${courseCount === 1 ? "course" : "courses"}`}
+              </span>
+            </>
           )}
         </span>
       </span>

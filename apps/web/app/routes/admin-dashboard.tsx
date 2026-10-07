@@ -190,8 +190,10 @@ function QueueCard({ queue }: { queue: AdminSubmissionList["items"] }) {
                           >
                             {submission.classification.course.name}
                           </Link>
-                          <div className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
-                            {classificationLine(submission.classification)}
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <span className="truncate">
+                              {classificationLine(submission.classification)}
+                            </span>
                             {submission.questionId === null && (
                               <Sparkles className="size-3 text-primary" />
                             )}
@@ -331,13 +333,13 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
         description={`Welcome back, ${user.name.split(" ")[0]}. Here’s what needs your attention.`}
       />
       <SectionCards cards={cards} />
-      <div className="grid gap-4 @5xl/main:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 @5xl/main:grid-cols-3">
         <div className="@5xl/main:col-span-2">
           <UploadsChart days={stats.dailySubmissions} />
         </div>
         <StatusBreakdown counts={submissions} />
       </div>
-      <div className="grid gap-4 @5xl/main:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 @5xl/main:grid-cols-2">
         <QueueCard queue={queue} />
         <ReportsCard reports={reports} />
       </div>

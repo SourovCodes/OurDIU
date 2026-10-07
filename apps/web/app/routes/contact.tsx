@@ -153,7 +153,7 @@ export default function Contact() {
             questions to answer.
           </p>
         </div>
-        <ul className="grid gap-4 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {TOPICS.map(({ icon: Icon, title, description, subject, body }) => (
             <li key={title} className="grid">
               <Card className={cn(LINK_CARD, "py-5")}>

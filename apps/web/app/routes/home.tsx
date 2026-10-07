@@ -118,7 +118,10 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         </p>
       </section>
 
-      <section aria-label="Products" className="grid gap-3 md:grid-cols-2">
+      <section
+        aria-label="Products"
+        className="grid grid-cols-1 gap-3 md:grid-cols-2"
+      >
         {products.map((product) => (
           <ProductTile
             key={product.id}

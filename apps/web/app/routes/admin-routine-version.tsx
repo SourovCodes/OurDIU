@@ -206,7 +206,7 @@ function NamesCard({ v }: { v: AdminRoutineVersionDetail }) {
           wherever they’re added, in every {v.department} version.
         </p>
       </div>
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <NamesCount
           label="Course titles"
           done={catalog.titled}
@@ -247,7 +247,7 @@ function Preview({
             The week as students will see it in v{v.version}.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select
             value={preview.section}
             onValueChange={(section) =>

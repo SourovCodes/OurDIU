@@ -122,7 +122,7 @@ export default function RoutineToday({ loaderData }: Route.ComponentProps) {
   if (!mine) {
     return (
       <div className="space-y-10 pt-2 sm:pt-6">
-        <section className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <section className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
           <div className="space-y-5">
             <h1 className="font-display-xl text-5xl sm:text-7xl xl:text-8xl">
               Your class routine.
@@ -135,7 +135,7 @@ export default function RoutineToday({ loaderData }: Route.ComponentProps) {
           </div>
           <ShapeCluster />
         </section>
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <WayIn
             to={`/routine/${department}`}
             icon={GraduationCap}
@@ -182,7 +182,7 @@ export default function RoutineToday({ loaderData }: Route.ComponentProps) {
 
         {/* The card is now (or next); the list is what comes after it. The week,
             courses and PDF are on the section's (or teacher's) own page. */}
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
           <TodayCard
             plan={plan}
             classes={mine.classes}

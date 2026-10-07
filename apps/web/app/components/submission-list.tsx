@@ -199,7 +199,7 @@ export function PaperSwitcher({
         </span>
       </summary>
       <nav aria-label="Switch paper" className="px-2 pb-2">
-        <ul aria-label="Papers" className="grid gap-0.5">
+        <ul aria-label="Papers" className="grid grid-cols-1 gap-0.5">
           {published.map((submission, i) => {
             const active = submission.id === selectedId;
             return (

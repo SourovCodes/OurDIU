@@ -51,7 +51,7 @@ export default function Departments({ loaderData }: Route.ComponentProps) {
 
       {featured && (
         <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-          <li className="col-span-2 grid">
+          <li className="col-span-2 grid grid-cols-1">
             <DepartmentTile
               department={featured}
               courseCount={courseCounts[featured.id]}
@@ -59,7 +59,7 @@ export default function Departments({ loaderData }: Route.ComponentProps) {
             />
           </li>
           {others.map((department) => (
-            <li key={department.id} className="grid">
+            <li key={department.id} className="grid grid-cols-1">
               <DepartmentTile
                 department={department}
                 courseCount={courseCounts[department.id]}

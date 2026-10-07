@@ -1,5 +1,11 @@
-import { expect, test, type Page } from "@playwright/test";
-import { failOnConsoleErrors, logInAs, SEED_ADMIN } from "./helpers";
+import type { Page } from "@playwright/test";
+import {
+  failOnConsoleErrors,
+  logInAs,
+  SEED_ADMIN,
+  expect,
+  test,
+} from "./helpers";
 
 // No page is wider than a small phone's screen: nothing makes the page scroll
 // sideways, signed out or in (signed in, pages show names, IDs and admin tables

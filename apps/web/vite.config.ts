@@ -32,6 +32,8 @@ export default defineConfig({
       "react-easy-crop",
       "recharts",
       "sonner",
+      // Imported lazily after load (lib/analytics.ts), so the startup scan misses it.
+      "web-vitals/attribution",
     ],
   },
   ...(e2e && { cacheDir: "node_modules/.vite-e2e" }),

@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { expect, test } from "@playwright/test";
 import { cseRoutinePdf, onePagePdf } from "../../api/test/cse-routine-pdf";
 import { eeeRoutinePdf } from "../../api/test/eee-routine-pdf";
 import { sweRoutineXlsx } from "../../api/test/swe-routine-xlsx";
@@ -10,6 +9,8 @@ import {
   logInAs,
   openMenu,
   SEED_ADMIN,
+  expect,
+  test,
 } from "./helpers";
 
 failOnConsoleErrors();

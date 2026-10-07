@@ -1,4 +1,3 @@
-import { expect, test } from "@playwright/test";
 import {
   failOnConsoleErrors,
   logInAs,
@@ -7,6 +6,8 @@ import {
   openMenu,
   SEED_ADMIN,
   uploadPaperWithNewCourse,
+  expect,
+  test,
 } from "./helpers";
 
 failOnConsoleErrors();

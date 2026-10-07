@@ -1,8 +1,57 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import {
+  test as base,
+  expect,
+  type Locator,
+  type Page,
+  type Response,
+} from "@playwright/test";
 import { E2E_ORIGIN } from "./env";
 import { claimSession, type SessionKind } from "./sessions";
 
 // Shared by the e2e specs. They rely on the seed data, which their server gets fresh on every run.
+
+/**
+ * Waits until the page that `response` loaded has hydrated (the root marks
+ * `<html data-hydrated>`). Before then the page is the server's HTML: clicks on
+ * links reload the page, keystrokes and checks are undone by hydration, and while
+ * the dev server's stylesheet is still on its way, elements hidden at this screen
+ * size count as visible. The window is widest on a cold dev server (the first run
+ * after an edit, while Vite transforms the modules again) and under parallel load.
+ */
+export async function untilHydrated(page: Page, response: Response | null) {
+  // Same-document navigations, files and API responses have nothing to hydrate.
+  if (
+    !response ||
+    !response.url().startsWith(E2E_ORIGIN) ||
+    !response.headers()["content-type"]?.startsWith("text/html")
+  ) {
+    return;
+  }
+  await page.locator("html[data-hydrated]").waitFor({ state: "attached" });
+}
+
+/**
+ * Playwright's `test`, whose `page` waits for hydration after `goto` and `reload`
+ * (see `untilHydrated`). Specs import it from here.
+ */
+export const test = base.extend({
+  page: async ({ page }, use) => {
+    const goto = page.goto.bind(page);
+    const reload = page.reload.bind(page);
+    page.goto = async (...args) => {
+      const response = await goto(...args);
+      await untilHydrated(page, response);
+      return response;
+    };
+    page.reload = async (...args) => {
+      const response = await reload(...args);
+      await untilHydrated(page, response);
+      return response;
+    };
+    await use(page);
+  },
+});
+export { expect };
 
 // Fail any test that logs a console error, such as React's duplicate key or hydration
 // warnings, which otherwise go unnoticed while every assertion still passes.
@@ -169,6 +218,7 @@ export async function logInAs(
       sameSite: "Lax",
     },
   ]);
-  await page.goto(redirectTo);
+  // Also for pages a test opens itself, which aren't the `page` fixture.
+  await untilHydrated(page, await page.goto(redirectTo));
   return { id: session.userId, email: session.email };
 }

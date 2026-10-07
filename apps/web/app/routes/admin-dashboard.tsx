@@ -238,7 +238,7 @@ function ReportsCard({ reports }: { reports: AdminReportList["items"] }) {
             No open reports.
           </p>
         ) : (
-          <ul className="grid gap-1">
+          <ul className="grid grid-cols-1 gap-1">
             {reports.map((report) => (
               <li key={report.id}>
                 <Link

@@ -1,6 +1,12 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { E2E_ORIGIN } from "./env";
-import { failOnConsoleErrors, logInAs, NEW_USER } from "./helpers";
+import {
+  failOnConsoleErrors,
+  logInAs,
+  NEW_USER,
+  expect,
+  test,
+} from "./helpers";
 
 // The Cover Page maker (docs/PLAN.md, decisions 39 and 40). The seed
 // has CSE routine v4.1 live with section 67_B, where STA ("Dr. Sample Teacher",

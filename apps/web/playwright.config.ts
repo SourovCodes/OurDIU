@@ -51,5 +51,8 @@ export default defineConfig({
     url: `${E2E_ORIGIN}/api/v1/health`,
     env: { CLOUDFLARE_ENV: "e2e" },
     reuseExistingServer: false,
+    // Migrating, seeding and a cold Vite start (after an install or a config change,
+    // its dep cache is rebuilt) can take longer than the default 60s.
+    timeout: 180_000,
   },
 });

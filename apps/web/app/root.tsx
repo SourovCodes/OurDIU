@@ -3,6 +3,7 @@
 import robotoFlexLatin from "./fonts/roboto-flex-latin.woff2?url";
 import type { ReviewActivity } from "@ourdiu/shared";
 import { FileQuestion, GraduationCap, TriangleAlert } from "lucide-react";
+import { useEffect } from "react";
 import {
   isRouteErrorResponse,
   Link,
@@ -151,6 +152,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
     matches.some(
       (match) => (match.handle as RouteHandle | undefined)?.ownShell,
     );
+  // Tells the e2e tests the page has hydrated: a click or keystroke before then
+  // lands on the server's HTML and is lost (e2e/helpers.ts, `test`).
+  useEffect(() => {
+    document.documentElement.dataset.hydrated = "";
+  }, []);
 
   return (
     // THEME_SCRIPT adds the `dark` class before hydration.

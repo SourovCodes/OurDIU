@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { E2E_ORIGIN } from "./env";
 import {
   clickUntilUrl,
@@ -11,6 +11,8 @@ import {
   openCombobox,
   openQuestionFilters,
   uploadPaperWithNewCourse,
+  expect,
+  test,
 } from "./helpers";
 
 // These tests rely on the seed data, which their server gets fresh on every run.

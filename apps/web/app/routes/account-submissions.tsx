@@ -223,7 +223,7 @@ export default function AccountSubmissions({
   return (
     <section className="space-y-6">
       <div className="space-y-3">
-        <h1 className="font-display-xl text-5xl sm:text-7xl">My submissions</h1>
+        <h1 className="font-display-xl text-4xl sm:text-7xl">My submissions</h1>
         <p className="text-muted-foreground">
           The papers you’ve shared, and where each one is in review.
         </p>

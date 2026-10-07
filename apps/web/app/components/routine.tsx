@@ -1117,7 +1117,7 @@ export function CourseList({
     return { ...course, teachers };
   });
   return (
-    <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {courses.map((c) => (
         <li
           key={c.code}
@@ -1206,7 +1206,7 @@ export function TeacherCourseList({ classes }: { classes: ShownClass[] }) {
     return { ...course, sections };
   });
   return (
-    <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {courses.map((c) => (
         <li
           key={c.code}

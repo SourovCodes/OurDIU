@@ -171,7 +171,7 @@ export default function Login({
     <div
       className={cn(
         NARROW_PAGE,
-        "grid gap-8 py-2 sm:py-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-10",
+        "grid grid-cols-1 gap-8 py-2 sm:py-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-10",
       )}
     >
       <section className="space-y-6">

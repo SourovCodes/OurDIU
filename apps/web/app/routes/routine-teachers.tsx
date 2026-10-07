@@ -152,7 +152,7 @@ export default function RoutineTeachers({ loaderData }: Route.ComponentProps) {
               ? `${shown.length} of ${all.length} teachers`
               : `${all.length} teachers, by initials`}
           </p>
-          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {shown.map((t) => (
               <li key={t.initials}>
                 <Link

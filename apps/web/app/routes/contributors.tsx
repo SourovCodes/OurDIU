@@ -48,7 +48,7 @@ export default function Contributors({ loaderData }: Route.ComponentProps) {
   return (
     <div className="space-y-8">
       <div className="space-y-3">
-        <h1 className="font-display-xl text-5xl sm:text-7xl">Contributors</h1>
+        <h1 className="font-display-xl text-4xl sm:text-7xl">Contributors</h1>
         <p className="max-w-xl text-muted-foreground">
           The {formatNumber(list.total)} students who share question papers with
           everyone. Most papers first.
@@ -65,7 +65,7 @@ export default function Contributors({ loaderData }: Route.ComponentProps) {
         ) : (
           <ul
             aria-label="Contributors"
-            className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
           >
             {list.items.map((contributor, index) => {
               const rank = (list.page - 1) * list.pageSize + index + 1;

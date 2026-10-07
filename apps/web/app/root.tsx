@@ -185,7 +185,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               {children}
             </PageTransition>
             <footer className="mt-12 bg-surface-low">
-              <div className="container grid gap-10 py-12 md:grid-cols-[1fr_auto]">
+              <div className="container grid grid-cols-1 gap-10 py-12 md:grid-cols-[1fr_auto]">
                 <div className="max-w-sm space-y-3">
                   <Link
                     to="/"

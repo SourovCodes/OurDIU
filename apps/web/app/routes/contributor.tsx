@@ -105,7 +105,7 @@ export default function ContributorPage({ loaderData }: Route.ComponentProps) {
             { label: contributor.name },
           ]}
         />
-        <section className="grid gap-6 rounded-[2rem] bg-primary-container p-6 text-primary-container-foreground sm:p-8 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+        <section className="grid grid-cols-1 gap-6 rounded-[2rem] bg-primary-container p-6 text-primary-container-foreground sm:p-8 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
           <div className="flex min-w-0 items-center gap-5">
             <ContributorAvatar
               name={contributor.name}

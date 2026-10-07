@@ -122,7 +122,7 @@ export default function AndroidApp() {
         </p>
       </header>
 
-      <ol className="grid gap-3 sm:grid-cols-3">
+      <ol className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {STEPS.map(({ title, body, action }, index) => (
           <li
             key={title}
@@ -151,7 +151,7 @@ export default function AndroidApp() {
         </span>
       </p>
 
-      <section className="grid gap-3 text-sm sm:grid-cols-2">
+      <section className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
         <div className="space-y-1 rounded-3xl bg-surface p-5">
           <h2 className="font-semibold">“App not available” on Google Play?</h2>
           <p className="text-muted-foreground">

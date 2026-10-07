@@ -149,7 +149,7 @@ export default function Course({ loaderData }: Route.ComponentProps) {
   );
 
   return (
-    <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-12">
+    <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-12">
       <div className="min-w-0 space-y-7">
         <Breadcrumbs
           crumbs={[

@@ -837,7 +837,7 @@ export default function AccountSubmission({
 
       <StatusHero stage={reviewStage(submission)} />
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="grid gap-4 lg:order-2">
           {submission.status === "changes_requested" && (
             <ChangesCard

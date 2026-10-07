@@ -136,7 +136,10 @@ export default function AccountLayout({ loaderData }: Route.ComponentProps) {
         </div>
       </section>
 
-      <nav aria-label="Your things" className="grid gap-2 sm:grid-cols-2">
+      <nav
+        aria-label="Your things"
+        className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+      >
         <QuickLink
           to="/questions/my-submissions"
           icon={FileText}

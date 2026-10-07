@@ -856,7 +856,7 @@ function CoverPageMaker({
           ))}
         </nav>
 
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
           <form
             className="space-y-4"
             // Only the Download buttons make the PDF, not Enter (or a phone's Go)

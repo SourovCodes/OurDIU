@@ -33,12 +33,13 @@ function Brand({ product }: { product: Product | null }) {
   return (
     <Link
       to={product?.href ?? "/"}
-      className="flex min-w-0 shrink-0 items-center gap-2.5 text-primary transition-opacity hover:opacity-80"
+      className="flex min-w-0 items-center gap-2.5 text-primary transition-opacity hover:opacity-80"
     >
       <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
         <Icon className="size-5" aria-hidden />
       </span>
-      <span className="font-expressive text-lg tracking-tight whitespace-nowrap sm:text-xl">
+      {/* Two lines on the narrowest phones, beside the Question Bank's icons. */}
+      <span className="font-expressive text-lg leading-tight tracking-tight sm:text-xl sm:whitespace-nowrap">
         {product?.name ?? "OurDIU"}
       </span>
     </Link>
@@ -65,7 +66,7 @@ export function SiteHeader({
 
   return (
     <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur">
-      <div className="container flex h-16 items-center gap-6">
+      <div className="container flex h-16 items-center gap-3 sm:gap-6">
         <div className="flex min-w-0 items-center gap-1">
           {/* On phones the menu has the other spaces. */}
           <div className="max-sm:hidden">
@@ -94,7 +95,7 @@ export function SiteHeader({
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
           {questions && (
             <>
               <CourseSearchTrigger className="hidden h-10 w-60 items-center gap-2.5 rounded-full bg-surface pr-2 pl-4 text-sm text-muted-foreground transition-colors hover:state-layer xl:flex">

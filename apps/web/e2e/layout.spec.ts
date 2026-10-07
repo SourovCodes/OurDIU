@@ -102,6 +102,18 @@ async function expectNoSidewaysScroll(page: Page, path: string) {
     };
   });
   expect.soft(overflow, `${path} scrolls sideways`).toBeNull();
+
+  // The header's name stays clear of its buttons (overlap isn't overflow).
+  const clash = await page.evaluate(() => {
+    const row = document.querySelector("header .container");
+    const name = row?.querySelector("a .font-expressive");
+    const buttons = row?.querySelector(":scope > .ml-auto");
+    if (!name || !buttons) return null;
+    const gap =
+      buttons.getBoundingClientRect().left - name.getBoundingClientRect().right;
+    return gap < 0 ? `"${name.textContent}" runs ${-gap}px under them` : null;
+  });
+  expect.soft(clash, `${path}: the header's name meets its buttons`).toBeNull();
 }
 
 test("public pages fit a small phone", async ({ page }) => {

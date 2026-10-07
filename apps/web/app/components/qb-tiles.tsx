@@ -72,7 +72,7 @@ export function DepartmentTile({
       to={`/questions/departments/${department.id}`}
       prefetch="intent"
       className={cn(
-        "flex min-h-40 flex-col justify-between gap-6 rounded-[1.75rem] p-5 transition-[background-color,scale] focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:scale-[0.98]",
+        "@container flex min-h-40 flex-col justify-between gap-6 rounded-[1.75rem] p-5 transition-[background-color,scale] focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:scale-[0.98]",
         featured
           ? "bg-primary-container text-primary-container-foreground hover:state-layer"
           : "bg-surface hover:state-layer",
@@ -82,7 +82,8 @@ export function DepartmentTile({
       <span
         className={cn(
           "font-display-xl break-words",
-          featured ? "text-7xl sm:text-8xl" : "text-5xl",
+          // A small tile on a narrow phone: a four-letter name still fits.
+          featured ? "text-7xl sm:text-8xl" : "text-[min(3rem,29cqi)]",
         )}
       >
         {department.shortName}

@@ -6,7 +6,7 @@ import {
   submissionFieldsSchema,
 } from "@ourdiu/shared";
 import { AppError, validationHook } from "../lib/errors";
-import { objectResponse } from "../lib/files";
+import { inlineDisposition, objectResponse } from "../lib/files";
 import { errorResponse, jsonResponse } from "../lib/openapi";
 import { rateLimit } from "../middleware/rate-limit";
 import { requireAuth } from "../middleware/require-auth";
@@ -104,8 +104,10 @@ export const submissionRoutes = new OpenAPIHono<AppEnv>({
     );
     if (!file) throw new AppError(404, "NOT_FOUND", "Submission not found");
     // The original stands in only until the watermarked copy is ready.
-    return objectResponse(
+    const res = objectResponse(
       file.object,
       file.watermarked ? "public, max-age=86400" : "public, max-age=300",
     );
+    res.headers.set("content-disposition", inlineDisposition(file.filename));
+    return res;
   });

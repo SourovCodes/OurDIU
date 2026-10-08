@@ -53,7 +53,11 @@ beforeAll(async () => {
       examTypeId: t.midterm.id,
     })
   ).id;
+  PAPER_NAME = `${t.algorithms.name} - ${t.midterm.name} - ${t.sem1.name}.pdf`;
 });
+
+/** The test question's papers save as "<course> - <exam type> - <semester>.pdf". */
+let PAPER_NAME: string;
 
 const ORIGINAL = "%PDF-1.7\noriginal" + "x".repeat(1000);
 const WATERMARKED = "%PDF-1.7\nwatermarked";
@@ -294,6 +298,10 @@ describe("runWatermark", () => {
     const copy = await env.BUCKET.get(row!.watermarkedFileKey!);
     expect(await copy!.text()).toBe(WATERMARKED);
     expect(copy!.httpMetadata?.contentType).toBe("application/pdf");
+    // Saved under the paper's name, not the random key.
+    expect(copy!.httpMetadata?.contentDisposition).toBe(
+      `inline; filename="${PAPER_NAME}"; filename*=UTF-8''${encodeURIComponent(PAPER_NAME)}`,
+    );
     expect(await (await env.BUCKET.get(paper.fileKey))!.text()).toBe(ORIGINAL);
   });
 
@@ -417,6 +425,9 @@ describe("serving", () => {
     expect(res.status).toBe(200);
     expect(await pdfText(res)).toBe(WATERMARKED);
     expect(res.headers.get("cache-control")).toBe("public, max-age=86400");
+    expect(res.headers.get("content-disposition")).toContain(
+      `filename="${PAPER_NAME}"`,
+    );
   });
 
   it("gives the public the original, briefly cached, until the copy is ready", async () => {
@@ -425,6 +436,9 @@ describe("serving", () => {
     expect(res.status).toBe(200);
     expect(await pdfText(res)).toBe(ORIGINAL);
     expect(res.headers.get("cache-control")).toBe("public, max-age=300");
+    expect(res.headers.get("content-disposition")).toContain(
+      `filename="${PAPER_NAME}"`,
+    );
   });
 
   it("gives admins and the uploader the original", async () => {

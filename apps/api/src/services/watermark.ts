@@ -2,8 +2,16 @@ import type { SubmissionWatermark } from "@ourdiu/shared";
 import { and, eq, isNull, or } from "drizzle-orm";
 import { createDb, type Database } from "../db/client";
 import { inList } from "../db/in-list";
-import { submissions, user } from "../db/schema";
+import {
+  courses,
+  examTypes,
+  questions,
+  semesters,
+  submissions,
+  user,
+} from "../db/schema";
 import { AppError } from "../lib/errors";
+import { inlineDisposition, paperFileName } from "../lib/files";
 import {
   PdfProcessorError,
   watermarkPdf,
@@ -232,8 +240,15 @@ export async function runWatermark(
       fileKey: submissions.fileKey,
       previousKey: submissions.watermarkedFileKey,
       uploaderName: user.name,
+      course: courses.name,
+      examType: examTypes.name,
+      semester: semesters.name,
     })
     .from(submissions)
+    .innerJoin(questions, eq(questions.id, submissions.questionId))
+    .innerJoin(courses, eq(courses.id, questions.courseId))
+    .innerJoin(examTypes, eq(examTypes.id, questions.examTypeId))
+    .innerJoin(semesters, eq(semesters.id, questions.semesterId))
     .leftJoin(user, eq(user.id, submissions.uploaderId))
     .where(eq(submissions.id, job.submissionId));
   // Deleted in the meantime.
@@ -268,7 +283,11 @@ export async function runWatermark(
     );
     const key = newWatermarkedFileKey();
     await env.BUCKET.put(key, pdf, {
-      httpMetadata: { contentType: "application/pdf" },
+      httpMetadata: {
+        contentType: "application/pdf",
+        // The key is random, so browsers would save it under a UUID.
+        contentDisposition: inlineDisposition(paperFileName(row)),
+      },
     });
     const updated = await db
       .update(submissions)

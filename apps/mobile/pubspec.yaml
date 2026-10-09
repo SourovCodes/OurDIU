@@ -43,17 +43,17 @@ dependencies:
   dio_cookie_manager: ^3.5.0
   cookie_jar: ^4.0.9
   path_provider: ^2.1.6
-  share_plus: ^13.3.0
-  url_launcher: ^6.3.2
+  share_plus: ^13.3.1
+  url_launcher: ^6.3.3
   shared_preferences: ^2.5.5
-  package_info_plus: ^10.2.1
+  package_info_plus: ^10.2.2
   google_sign_in: ^7.2.0
   flutter_secure_storage: ^11.2.0
   flutter_svg: ^2.3.0
   file_picker: ^13.1.0
   google_mlkit_document_scanner: ^0.6.1
   in_app_review: ^2.0.12
-  device_info_plus: ^13.2.0
+  device_info_plus: ^13.3.0
   in_app_update: ^5.0.0
 
 dev_dependencies:

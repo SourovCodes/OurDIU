@@ -28,6 +28,7 @@ import {
   trendingQuestions,
   user,
 } from "../db/schema";
+import { paperFileName } from "../lib/files";
 import {
   publicFileSize,
   questionSummaryColumns,
@@ -215,22 +216,39 @@ function publicFileUrl(
 
 /**
  * The public PDF of a published submission: its watermarked copy, or the original
- * until the copy is ready. Null if the submission isn't public.
+ * until the copy is ready, with the name to save it under. Null if the submission
+ * isn't public.
  */
 export async function getPublishedSubmissionFile(
   db: Database,
   bucket: R2Bucket,
   id: number,
-): Promise<{ object: R2ObjectBody; watermarked: boolean } | null> {
-  const submission = await db.query.submissions.findFirst({
-    columns: { fileKey: true, watermarkedFileKey: true },
-    where: and(eq(submissions.id, id), eq(submissions.status, "published")),
-  });
+): Promise<{
+  object: R2ObjectBody;
+  watermarked: boolean;
+  filename: string;
+} | null> {
+  const [submission] = await db
+    .select({
+      fileKey: submissions.fileKey,
+      watermarkedFileKey: submissions.watermarkedFileKey,
+      course: courses.name,
+      examType: examTypes.name,
+      semester: semesters.name,
+    })
+    .from(submissions)
+    .innerJoin(questions, eq(questions.id, submissions.questionId))
+    .innerJoin(courses, eq(courses.id, questions.courseId))
+    .innerJoin(examTypes, eq(examTypes.id, questions.examTypeId))
+    .innerJoin(semesters, eq(semesters.id, questions.semesterId))
+    .where(and(eq(submissions.id, id), eq(submissions.status, "published")))
+    .limit(1);
   if (!submission) return null;
+  const filename = paperFileName(submission);
   if (submission.watermarkedFileKey) {
     const object = await bucket.get(submission.watermarkedFileKey);
-    if (object) return { object, watermarked: true };
+    if (object) return { object, watermarked: true, filename };
   }
   const object = await bucket.get(submission.fileKey);
-  return object ? { object, watermarked: false } : null;
+  return object ? { object, watermarked: false, filename } : null;
 }

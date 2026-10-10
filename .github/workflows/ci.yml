@@ -14,8 +14,10 @@ on:
 permissions:
   contents: read
 
-# A new push to a PR cancels its older run. Runs on main are never cancelled, since
-# one may be halfway through a deploy.
+# A new push to a PR cancels its older run. A running run on main is never cancelled,
+# since it may be halfway through a deploy, but GitHub keeps only the newest waiting
+# one: pushes that land while a run is going are checked (and deployed) together by
+# the last of them (see `changes`).
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -25,6 +27,9 @@ jobs:
     name: Detect changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
     outputs:
       site: ${{ steps.diff.outputs.site }}
       mobile: ${{ steps.diff.outputs.mobile }}
@@ -36,15 +41,27 @@ jobs:
       #   the Flutter app, its release workflow and Markdown.
       # mobile: the Flutter app, its release workflow, and the OpenAPI document its
       #   client is generated from.
-      # This file counts for both. Without a usable base commit, everything runs.
+      # This file counts for both. A PR is compared with its base. A push to main is
+      # compared with the last commit whose run passed, not just the previous push:
+      # runs of pushes in between may have been cancelled while waiting (see
+      # `concurrency`) or failed, and what they changed still needs checking and
+      # deploying. Without a usable base commit, everything runs.
       - id: diff
         env:
           EVENT: ${{ github.event_name }}
           PR_BASE: ${{ github.event.pull_request.base.sha }}
-          PUSH_BEFORE: ${{ github.event.before }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          base=$([ "$EVENT" = pull_request ] && echo "$PR_BASE" || echo "$PUSH_BEFORE")
-          if [ "$EVENT" = workflow_dispatch ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+          if [ "$EVENT" = pull_request ]; then
+            base=$PR_BASE
+          else
+            base=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --branch main \
+              --status success --limit 1 --json headSha --jq '.[0].headSha // ""')
+            echo "Last commit with a passing run: ${base:-none}"
+          fi
+          if [ "$EVENT" = workflow_dispatch ] || [ -z "$base" ] \
+            || ! git cat-file -e "$base^{commit}" 2>/dev/null \
+            || ! git merge-base --is-ancestor "$base" "$GITHUB_SHA"; then
             echo "No base commit to compare with; running everything."
             echo "site=true" >> "$GITHUB_OUTPUT"
             echo "mobile=true" >> "$GITHUB_OUTPUT"

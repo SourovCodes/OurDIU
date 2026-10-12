@@ -277,6 +277,41 @@ describe("the cron's backfill", () => {
     expect(await nextMissingText(db(), weekLater)).toBe(failed.paper.id);
   });
 
+  it("keeps the queue as papers are published, unpublished and read", async () => {
+    const pending = async (id: number) =>
+      (await db().query.submissions.findFirst({
+        where: eq(submissions.id, id),
+      }))!.textPending;
+    const setStatus = (id: number, status: "published" | "pending_review") =>
+      db().update(submissions).set({ status }).where(eq(submissions.id, id));
+
+    const later = await seedPaper(undefined, "pending_review");
+    expect(await pending(later.paper.id)).toBe(false);
+    await setStatus(later.paper.id, "published");
+    expect(await pending(later.paper.id)).toBe(true);
+    await setStatus(later.paper.id, "pending_review");
+    expect(await pending(later.paper.id)).toBe(false);
+
+    // Read while under review (the upload check), so not pending once published.
+    await saveText(db(), later.paper.id, {
+      text: "a",
+      error: null,
+      model: "t",
+    });
+    await setStatus(later.paper.id, "published");
+    expect(await pending(later.paper.id)).toBe(false);
+
+    const unread = await seedPaper();
+    expect(await pending(unread.paper.id)).toBe(true);
+    // A failed read counts as tried: it's retried from `submission_texts`.
+    await saveText(db(), unread.paper.id, {
+      text: null,
+      error: "boom",
+      model: "t",
+    });
+    expect(await pending(unread.paper.id)).toBe(false);
+  });
+
   it("reads one paper per run", async () => {
     await readEverything();
     const first = await seedPaper();

@@ -198,6 +198,12 @@ export const routineVersionSchema = z
   .meta({ id: "RoutineVersion" });
 export type RoutineVersion = z.infer<typeof routineVersionSchema>;
 
+/** The departments whose routine is live, without their sections. */
+export const routineLiveSchema = z
+  .object({ versions: z.array(routineVersionSchema) })
+  .meta({ id: "RoutineLive" });
+export type RoutineLive = z.infer<typeof routineLiveSchema>;
+
 export const routineSectionSummarySchema = z
   .object({
     section: z.string(),

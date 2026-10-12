@@ -141,6 +141,12 @@ export const submissions = sqliteTable(
      */
     uploaderUnread: integer().notNull().default(0),
     adminUnread: integer().notNull().default(0),
+    /**
+     * Published, and its text was never read (no `submission_texts` row): the text
+     * backfill's queue. Maintained by triggers (migration 0024), like the counters;
+     * never write it from application code.
+     */
+    textPending: integer({ mode: "boolean" }).notNull().default(false),
     ...timestamps,
   },
   (t) => [
@@ -180,6 +186,10 @@ export const submissions = sqliteTable(
     index("submissions_course_id_idx").on(t.courseId),
     index("submissions_semester_id_idx").on(t.semesterId),
     index("submissions_exam_type_id_idx").on(t.examTypeId),
+    // The text backfill's next paper, without scanning every published one.
+    index("submissions_text_pending_idx")
+      .on(t.id)
+      .where(sql`${t.textPending} = 1`),
   ],
 );
 

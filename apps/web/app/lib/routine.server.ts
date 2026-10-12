@@ -1,4 +1,5 @@
 import type {
+  RoutineLive,
   RoutineSection,
   RoutineSectionList,
   RoutineTeacherList,
@@ -33,7 +34,7 @@ let liveCache: { value: boolean; expires: number } | null = null;
 export async function routineIsLive(request: Request) {
   if (liveCache && liveCache.expires > Date.now()) return liveCache.value;
   try {
-    const value = (await routineLists(request)).live.length > 0;
+    const value = (await liveRoutines(request)).length > 0;
     liveCache = { value, expires: Date.now() + LIVE_TTL_MS };
     return value;
   } catch {
@@ -43,6 +44,21 @@ export async function routineIsLive(request: Request) {
 
 export function invalidateRoutineLive() {
   liveCache = null;
+}
+
+/**
+ * The departments whose routine is live, in the switches' order. One small read: use
+ * `routineLists` only where the sections are shown.
+ */
+export async function liveRoutines(
+  request: Request,
+): Promise<RoutineDepartmentSlug[]> {
+  const { versions } = await apiGetJson<RoutineLive>(
+    request,
+    "/api/v1/routine/live",
+  );
+  const live = new Set(versions.map((v) => v.department.toLowerCase()));
+  return ROUTINE_DEPARTMENT_SLUGS.filter((d) => live.has(d));
 }
 
 /** Each department's live routine's sections, or null while it's coming soon. */

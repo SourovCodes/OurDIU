@@ -162,6 +162,20 @@
       "when": 1791266804631,
       "tag": "0022_all_diu_departments",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1791832066008,
+      "tag": "0023_text_backfill_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1791832066602,
+      "tag": "0024_text_pending_triggers",
+      "breakpoints": true
     }
   ]
 }

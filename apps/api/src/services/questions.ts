@@ -37,21 +37,23 @@ import {
 } from "./common";
 
 /**
- * Questions joined with their lookup names. The submission counts are columns kept up
- * to date by triggers (migration 0006); today's views come from the cron's list.
+ * A question with its lookup names. The submission counts are columns kept up to date
+ * by triggers (migration 0006); today's views come from the cron's list.
  */
+const questionColumns = {
+  ...questionSummaryColumns,
+  viewCount: questions.viewCount,
+  viewsToday: trendingQuestions.views,
+  submissionCounts: {
+    published: questions.publishedCount,
+    pendingReview: questions.pendingReviewCount,
+    rejected: questions.rejectedCount,
+  },
+};
+
 function selectQuestions(db: Database) {
   return db
-    .select({
-      ...questionSummaryColumns,
-      viewCount: questions.viewCount,
-      viewsToday: trendingQuestions.views,
-      submissionCounts: {
-        published: questions.publishedCount,
-        pendingReview: questions.pendingReviewCount,
-        rejected: questions.rejectedCount,
-      },
-    })
+    .select(questionColumns)
     .from(questions)
     .innerJoin(departments, eq(departments.id, questions.departmentId))
     .innerJoin(courses, eq(courses.id, questions.courseId))
@@ -62,6 +64,25 @@ function selectQuestions(db: Database) {
       eq(trendingQuestions.questionId, questions.id),
     );
 }
+
+/**
+ * Only the questions in the cron's list (at most 100), read from the list. A CROSS
+ * JOIN, which SQLite never reorders, because without table statistics it would rather
+ * start from `questions` and read every published one to keep the few in the list
+ * (about 10,000 rows a query). The join's condition is `onTrendingList`.
+ */
+function selectTrendingQuestions(db: Database) {
+  return db
+    .select(questionColumns)
+    .from(trendingQuestions)
+    .crossJoin(questions)
+    .innerJoin(departments, eq(departments.id, questions.departmentId))
+    .innerJoin(courses, eq(courses.id, questions.courseId))
+    .innerJoin(semesters, eq(semesters.id, questions.semesterId))
+    .innerJoin(examTypes, eq(examTypes.id, questions.examTypeId));
+}
+
+const onTrendingList = eq(questions.id, trendingQuestions.questionId);
 
 /** Set exactly when a question has a published paper; indexed, unlike the count. */
 const hasPublished = isNotNull(questions.latestPublishedAt);
@@ -103,25 +124,33 @@ export async function listQuestions(
   db: Database,
   query: ListQuestionsQuery,
 ): Promise<QuestionList> {
+  // The cron's list holds the top 100 of the last 24 hours; others weren't viewed
+  // enough to be trending.
+  const trending = query.sort === "trending";
   const where = and(
     questionFilters(query),
     hasPublished,
-    // The list holds the top 100 of the last 24 hours; others weren't viewed enough.
-    query.sort === "trending"
-      ? isNotNull(trendingQuestions.questionId)
-      : undefined,
+    trending ? onTrendingList : undefined,
   );
+  const order = [...QUESTION_ORDER[query.sort], desc(questions.id)];
+  const offset = (query.page - 1) * query.pageSize;
   const [items, totals] = await Promise.all([
-    selectQuestions(db)
-      .where(where)
-      .orderBy(...QUESTION_ORDER[query.sort], desc(questions.id))
-      .limit(query.pageSize)
-      .offset((query.page - 1) * query.pageSize),
-    query.sort === "trending"
+    trending
+      ? selectTrendingQuestions(db)
+          .where(where)
+          .orderBy(...order)
+          .limit(query.pageSize)
+          .offset(offset)
+      : selectQuestions(db)
+          .where(where)
+          .orderBy(...order)
+          .limit(query.pageSize)
+          .offset(offset),
+    trending
       ? db
           .select({ total: count() })
           .from(trendingQuestions)
-          .innerJoin(questions, eq(questions.id, trendingQuestions.questionId))
+          .crossJoin(questions)
           .where(where)
       : db.select({ total: count() }).from(questions).where(where),
   ]);

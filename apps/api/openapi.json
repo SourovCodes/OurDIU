@@ -1614,22 +1614,18 @@
           "studentId"
         ]
       },
-      "RoutineSectionList": {
+      "RoutineLive": {
         "type": "object",
         "properties": {
-          "version": {
-            "$ref": "#/components/schemas/RoutineVersion"
-          },
-          "sections": {
+          "versions": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/RoutineSectionSummary"
+              "$ref": "#/components/schemas/RoutineVersion"
             }
           }
         },
         "required": [
-          "version",
-          "sections"
+          "versions"
         ]
       },
       "RoutineVersion": {
@@ -1673,6 +1669,24 @@
           "CSE",
           "EEE",
           "SWE"
+        ]
+      },
+      "RoutineSectionList": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "$ref": "#/components/schemas/RoutineVersion"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutineSectionSummary"
+            }
+          }
+        },
+        "required": [
+          "version",
+          "sections"
         ]
       },
       "RoutineSectionSummary": {
@@ -4799,6 +4813,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/routine/live": {
+      "get": {
+        "tags": [
+          "Routine"
+        ],
+        "summary": "The departments with a live routine",
+        "description": "Each live routine's version, without its sections: whether the Class Routine is live yet, and in which departments.",
+        "responses": {
+          "200": {
+            "description": "Live routines",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineLive"
                 }
               }
             }

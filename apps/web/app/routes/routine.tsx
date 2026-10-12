@@ -17,7 +17,7 @@ import {
   teachersHref,
   todayPlan,
 } from "~/lib/routine";
-import { myRoutine, routineLists } from "~/lib/routine.server";
+import { liveRoutines, myRoutine } from "~/lib/routine.server";
 import { pageMeta } from "~/lib/seo";
 import type { Route } from "./+types/routine";
 
@@ -35,7 +35,7 @@ export const meta: Route.MetaFunction = () =>
  * teacher's week, they made theirs), else the two ways to find one.
  */
 export async function loader({ request }: Route.LoaderArgs) {
-  const { live } = await routineLists(request);
+  const live = await liveRoutines(request);
   const cookie = request.headers.get("cookie");
   const remembered = rememberedDepartment(cookie);
   return {

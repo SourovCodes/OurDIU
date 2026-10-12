@@ -21,6 +21,33 @@ class _RoutineClient implements RoutineClient {
   final ParseErrorLogger? errorLogger;
 
   @override
+  Future<RoutineLive> getApiV1RoutineLive() async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<RoutineLive>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/api/v1/routine/live',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, Object?>>(_options);
+    late RoutineLive _value;
+    try {
+      _value = RoutineLive.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
   Future<RoutineSectionList> getApiV1RoutineDepartmentSections({
     required RoutineDepartmentSlug department,
   }) async {

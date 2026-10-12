@@ -7,6 +7,7 @@ import type {
   ApiError,
   RoutineFile,
   RoutineFileProblem,
+  RoutineLive,
   RoutineSection,
   RoutineSectionList,
   RoutineTeacherList,
@@ -210,6 +211,9 @@ describe("routine versions", () => {
     const res = await api("/api/v1/routine/cse/sections");
     expect(res.status).toBe(404);
     expect((await res.json<ApiError>()).error.code).toBe("NO_ROUTINE");
+    const live = await api("/api/v1/routine/live");
+    expect(live.status).toBe(200);
+    expect(await live.json<RoutineLive>()).toEqual({ versions: [] });
   });
 
   it("turns away PDFs it can't read, saying why", async () => {
@@ -378,6 +382,11 @@ describe("routine versions", () => {
       { section: "65_A", labGroups: [], classCount: 1 },
       { section: "67_B", labGroups: ["B1", "B2"], classCount: 10 },
     ]);
+
+    const liveNow = await (
+      await api("/api/v1/routine/live")
+    ).json<RoutineLive>();
+    expect(liveNow.versions).toEqual([sections.version]);
   });
 
   it("shows a section's week in order, found regardless of case", async () => {
@@ -751,6 +760,10 @@ describe("routine versions", () => {
     const none = await api("/api/v1/routine/cse/sections");
     expect(none.status).toBe(404);
     expect((await none.json<ApiError>()).error.code).toBe("NO_ROUTINE");
+    const noneLive = await (
+      await api("/api/v1/routine/live")
+    ).json<RoutineLive>();
+    expect(noneLive.versions).toEqual([]);
   });
 });
 

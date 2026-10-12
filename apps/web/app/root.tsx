@@ -187,7 +187,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
               needsAttention={data?.needsAttention ?? 0}
             />
             <AndroidBetaStrip />
-            <PageTransition className="@container/main container flex-1 py-8">
+            {/* At least a screen tall, so the footer always starts below the
+                screen: a page that grows or changes never moves it in view, and
+                Chrome counts such moves as layout shifts (docs/PLAN.md, decision 51). */}
+            <PageTransition className="@container/main container min-h-svh flex-1 py-8">
               {children}
             </PageTransition>
             <footer className="mt-12 bg-surface-low">

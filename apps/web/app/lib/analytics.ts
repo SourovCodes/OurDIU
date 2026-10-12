@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation } from "react-router";
 import type { MetricWithAttribution } from "web-vitals/attribution";
 
@@ -37,6 +37,56 @@ export function usePageViews() {
   }, [pathname, search]);
 }
 
+/** A change of page, or of a page's search (a filtered list), without a reload. */
+export type RouteChange = { at: number; kind: "page" | "list" };
+
+/** The visit's route changes and taps or key presses, as `performance.now()` times. */
+const moments = { changes: [] as RouteChange[], inputs: [] as number[] };
+
+function remember<T>(list: T[], item: T) {
+  list.push(item);
+  if (list.length > 20) list.shift();
+}
+
+/** A route change's new page paints within about this long of its effect running. */
+const CHANGE_WINDOW = 1000;
+
+/**
+ * What led to a layout shift at `time`, for the CLS report: the route change it
+ * came with (if any) and how long after the visitor's last tap. Chrome ignores
+ * shifts within 0.5 s of a tap, so a page that arrives later than that counts
+ * (docs/PLAN.md, decision 51).
+ */
+export function shiftContext(
+  time: number | undefined,
+  changes: RouteChange[],
+  inputs: number[],
+) {
+  if (time === undefined) return undefined;
+  const change = changes
+    .filter((c) => Math.abs(c.at - time) <= CHANGE_WINDOW)
+    .sort((a, b) => Math.abs(a.at - time) - Math.abs(b.at - time))[0];
+  const where = change
+    ? `${change.kind} change`
+    : changes.some((c) => c.at < time)
+      ? "later on a page"
+      : "first page";
+  const tap = inputs.filter((at) => at <= time).at(-1);
+  if (tap === undefined) return `${where}, no tap`;
+  const seconds = (time - tap) / 1000;
+  const after =
+    seconds < 0.5
+      ? "under 0.5 s"
+      : seconds < 1
+        ? "0.5–1 s"
+        : seconds < 2
+          ? "1–2 s"
+          : seconds < 5
+            ? "2–5 s"
+            : "over 5 s";
+  return `${where}, ${after} after a tap`;
+}
+
 /** What each metric's report says about its cause (web-vitals' attribution build). */
 function attribution(metric: MetricWithAttribution) {
   switch (metric.name) {
@@ -44,6 +94,11 @@ function attribution(metric: MetricWithAttribution) {
       return {
         debug_target: metric.attribution.largestShiftTarget,
         debug_load_state: metric.attribution.loadState,
+        debug_shift_context: shiftContext(
+          metric.attribution.largestShiftTime,
+          moments.changes,
+          moments.inputs,
+        ),
       };
     case "INP":
       return {
@@ -74,8 +129,25 @@ function attribution(metric: MetricWithAttribution) {
  * loads after the page has; its observers read the entries buffered before then.
  */
 export function useWebVitals() {
+  const { pathname, search } = useLocation();
+  const previous = useRef<string | null>(null);
   useEffect(() => {
     if (!analyticsEnabled) return;
+    if (previous.current !== null) {
+      remember(moments.changes, {
+        at: performance.now(),
+        kind: previous.current === pathname ? "list" : "page",
+      });
+    }
+    previous.current = pathname;
+  }, [pathname, search]);
+
+  useEffect(() => {
+    if (!analyticsEnabled) return;
+    const onInput = (event: Event) => remember(moments.inputs, event.timeStamp);
+    const options = { capture: true, passive: true };
+    addEventListener("pointerdown", onInput, options);
+    addEventListener("keydown", onInput, options);
     void import("web-vitals/attribution").then(
       ({ onCLS, onFCP, onINP, onLCP, onTTFB }) => {
         const send = (metric: MetricWithAttribution) =>
@@ -99,5 +171,9 @@ export function useWebVitals() {
         onTTFB(send);
       },
     );
+    return () => {
+      removeEventListener("pointerdown", onInput, options);
+      removeEventListener("keydown", onInput, options);
+    };
   }, []);
 }

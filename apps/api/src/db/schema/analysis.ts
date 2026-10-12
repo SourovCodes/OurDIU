@@ -1,4 +1,5 @@
 import { ANALYSIS_STATUSES } from "@ourdiu/shared";
+import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { timestamps } from "./columns";
 import { submissions } from "./questions";
@@ -72,15 +73,24 @@ export type SubmissionAnalysisRow = typeof submissionAnalyses.$inferSelect;
  * row exists once a read was tried, with `error` set if it failed. Only published
  * papers' text is ever served.
  */
-export const submissionTexts = sqliteTable("submission_texts", {
-  submissionId: integer()
-    .primaryKey()
-    .references(() => submissions.id, { onDelete: "cascade" }),
-  /** Null if the read failed. */
-  text: text(),
-  error: text(),
-  model: text(),
-  ...timestamps,
-});
+export const submissionTexts = sqliteTable(
+  "submission_texts",
+  {
+    submissionId: integer()
+      .primaryKey()
+      .references(() => submissions.id, { onDelete: "cascade" }),
+    /** Null if the read failed. */
+    text: text(),
+    error: text(),
+    model: text(),
+    ...timestamps,
+  },
+  (t) => [
+    // The failed reads, least recently tried first, for the backfill's retries.
+    index("submission_texts_failed_idx")
+      .on(t.updatedAt)
+      .where(sql`${t.error} is not null`),
+  ],
+);
 
 export type SubmissionTextRow = typeof submissionTexts.$inferSelect;

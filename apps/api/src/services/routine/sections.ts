@@ -3,16 +3,18 @@ import {
   routineSectionSlug,
   routineTime,
   type RoutineDepartment,
+  type RoutineLive,
   type RoutineSection,
   type RoutineSectionList,
   type RoutineVersion,
 } from "@ourdiu/shared";
-import { and, count, eq, sql } from "drizzle-orm";
+import { and, asc, count, eq, sql } from "drizzle-orm";
 import type { Database } from "../../db/client";
 import {
   routineClasses,
   routineCourses,
   routineTeachers,
+  routineVersions,
   type RoutineVersionRow,
 } from "../../db/schema";
 import { AppError } from "../../lib/errors";
@@ -41,6 +43,21 @@ export async function requireLive(db: Database, department: RoutineDepartment) {
     );
   }
   return row;
+}
+
+/**
+ * The departments with a live routine: at most one row each, read off the partial
+ * index of live versions. For the product switchers on every page, which only ask
+ * whether the routine is live, so they don't read each department's sections.
+ */
+export async function listLiveRoutines(db: Database): Promise<RoutineLive> {
+  const rows = await db
+    .select()
+    .from(routineVersions)
+    // A literal, as in the index: SQLite can't use a partial index for a parameter.
+    .where(sql`${routineVersions.status} = 'live'`)
+    .orderBy(asc(routineVersions.department));
+  return { versions: rows.map(toVersion) };
 }
 
 const splitGroups = (groups: string | null) =>

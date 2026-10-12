@@ -1,4 +1,4 @@
-import { and, asc, eq, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, eq, isNotNull, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createDb, type Database } from "../db/client";
 import { submissions, submissionTexts } from "../db/schema";
@@ -42,6 +42,13 @@ export type TextJob = { kind: "text"; submissionId: number };
 /** First delivery plus `max_retries` (3) of the analysis queue's consumer. */
 export const TEXT_MAX_ATTEMPTS = 4;
 
+/**
+ * Published papers whose text was never read (`text_pending`, kept by triggers), off
+ * their partial index. A literal, as in the index: SQLite can't use a partial index
+ * for a parameter.
+ */
+const textPending = sql`${submissions.textPending} = 1`;
+
 /** Queue `sendBatch` takes at most 100 messages. */
 const QUEUE_BATCH_SIZE = 100;
 
@@ -83,21 +90,20 @@ export async function readMissingTexts(
   db: Database,
   queue: Queue<TextJob>,
 ): Promise<number> {
-  const rows = await db
-    .select({ id: submissions.id })
-    .from(submissions)
-    .leftJoin(submissionTexts, eq(submissionTexts.submissionId, submissions.id))
-    .where(
-      and(
-        eq(submissions.status, "published"),
-        or(
-          isNull(submissionTexts.submissionId),
+  const [unread, failed] = await Promise.all([
+    db.select({ id: submissions.id }).from(submissions).where(textPending),
+    db
+      .select({ id: submissionTexts.submissionId })
+      .from(submissionTexts)
+      .innerJoin(submissions, eq(submissions.id, submissionTexts.submissionId))
+      .where(
+        and(
           isNotNull(submissionTexts.error),
+          eq(submissions.status, "published"),
         ),
       ),
-    )
-    .orderBy(submissions.id);
-  const ids = rows.map((row) => row.id);
+  ]);
+  const ids = [...unread, ...failed].map((row) => row.id).sort((a, b) => a - b);
   for (let i = 0; i < ids.length; i += QUEUE_BATCH_SIZE) {
     const chunk = ids.slice(i, i + QUEUE_BATCH_SIZE);
     try {
@@ -220,32 +226,30 @@ export async function nextMissingText(
   db: Database,
   now = new Date(),
 ): Promise<number | null> {
-  const [row] = await db
+  const [unread] = await db
     .select({ id: submissions.id })
     .from(submissions)
-    .leftJoin(submissionTexts, eq(submissionTexts.submissionId, submissions.id))
+    .where(textPending)
+    .orderBy(asc(submissions.id))
+    .limit(1);
+  if (unread) return unread.id;
+  const [failed] = await db
+    .select({ id: submissionTexts.submissionId })
+    .from(submissionTexts)
+    .innerJoin(submissions, eq(submissions.id, submissionTexts.submissionId))
     .where(
       and(
-        eq(submissions.status, "published"),
-        or(
-          isNull(submissionTexts.submissionId),
-          and(
-            isNotNull(submissionTexts.error),
-            lt(
-              submissionTexts.updatedAt,
-              new Date(now.getTime() - TEXT_RETRY_AFTER_MS),
-            ),
-          ),
+        isNotNull(submissionTexts.error),
+        lt(
+          submissionTexts.updatedAt,
+          new Date(now.getTime() - TEXT_RETRY_AFTER_MS),
         ),
+        eq(submissions.status, "published"),
       ),
     )
-    .orderBy(
-      sql`${submissionTexts.submissionId} is not null`,
-      asc(submissionTexts.updatedAt),
-      asc(submissions.id),
-    )
+    .orderBy(asc(submissionTexts.updatedAt), asc(submissionTexts.submissionId))
     .limit(1);
-  return row?.id ?? null;
+  return failed?.id ?? null;
 }
 
 /**

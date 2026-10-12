@@ -1,6 +1,7 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import {
   routineDepartmentParamSchema,
+  routineLiveSchema,
   routinePdfQuerySchema,
   routineSectionListSchema,
   routineSectionParamsSchema,
@@ -21,6 +22,7 @@ import {
 } from "../services/routine/pdf";
 import {
   getRoutineSection,
+  listLiveRoutines,
   listRoutineSections,
 } from "../services/routine/sections";
 import {
@@ -34,6 +36,18 @@ import type { AppEnv } from "../types";
 const tags = ["Routine"];
 
 const department = (slug: string) => slug.toUpperCase() as RoutineDepartment;
+
+const listLiveRoute = createRoute({
+  method: "get",
+  path: "/live",
+  tags,
+  summary: "The departments with a live routine",
+  description:
+    "Each live routine's version, without its sections: whether the Class Routine is live yet, and in which departments.",
+  responses: {
+    200: jsonResponse(routineLiveSchema, "Live routines"),
+  },
+});
 
 const listSectionsRoute = createRoute({
   method: "get",
@@ -137,6 +151,9 @@ const dhakaToday = () =>
   new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Dhaka" });
 
 export const routineRoutes = new OpenAPIHono<AppEnv>()
+  .openapi(listLiveRoute, async (c) =>
+    c.json(await listLiveRoutines(c.var.db), 200),
+  )
   .openapi(listSectionsRoute, async (c) =>
     c.json(
       await listRoutineSections(

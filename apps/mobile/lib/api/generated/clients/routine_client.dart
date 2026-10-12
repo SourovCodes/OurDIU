@@ -9,6 +9,7 @@ import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 
 import '../models/routine_department_slug.dart';
+import '../models/routine_live.dart';
 import '../models/routine_section.dart';
 import '../models/routine_section_list.dart';
 import '../models/routine_teacher_list.dart';
@@ -19,6 +20,12 @@ part 'routine_client.g.dart';
 @RestApi()
 abstract class RoutineClient {
   factory RoutineClient(Dio dio, {String? baseUrl}) = _RoutineClient;
+
+  /// The departments with a live routine.
+  ///
+  /// Each live routine's version, without its sections: whether the Class Routine is live yet, and in which departments.
+  @GET('/api/v1/routine/live')
+  Future<RoutineLive> getApiV1RoutineLive();
 
   /// Every section in a department's live routine.
   ///

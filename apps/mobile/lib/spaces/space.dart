@@ -65,25 +65,6 @@ enum Space {
       container: Color(0xFF614000),
       onContainer: Color(0xFFFFDDB3),
     ),
-  ),
-  market(
-    label: 'Marketplace',
-    title: 'Marketplace',
-    tagline: 'Buy and sell with DIU students',
-    icon: Icons.shopping_bag_outlined,
-    home: '/market',
-    live: false,
-    shape: ExamKind.quiz,
-    light: SpaceColors(
-      accent: Color(0xFF8E3A5A),
-      container: Color(0xFFFFD9E3),
-      onContainer: Color(0xFF5C1530),
-    ),
-    dark: SpaceColors(
-      accent: Color(0xFFFFB0C8),
-      container: Color(0xFF6E2440),
-      onContainer: Color(0xFFFFD9E3),
-    ),
   );
 
   const Space({

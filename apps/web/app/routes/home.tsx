@@ -14,7 +14,7 @@ export const meta: Route.MetaFunction = ({ matches }) => [
   ...pageMeta({
     title: "OurDIU — DIU Question Bank and tools for DIU students",
     description:
-      "Free tools for Daffodil International University (DIU) students: the DIU Question Bank of past exam papers, and soon class routines and a student marketplace.",
+      "Free tools for Daffodil International University (DIU) students: the DIU Question Bank of past exam papers, class routines and a cover page maker.",
   }),
   websiteJsonLd(originOf(matches), AUTHOR),
 ];
@@ -113,8 +113,8 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           What do you need today?
         </h1>
         <p className="max-w-xl text-pretty text-muted-foreground sm:text-lg">
-          Past question papers, your class routine and a student marketplace for
-          DIU, with one account, on the web and in the OurDIU app.
+          Past question papers, your class routine and cover pages for DIU, with
+          one account, on the web and in the OurDIU app.
         </p>
       </section>
 

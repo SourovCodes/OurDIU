@@ -35,7 +35,9 @@ export default [
 
   // Coming soon.
   route("cover-page/:template?", "routes/cover-page.tsx"),
-  route("market", "routes/market.tsx"),
+
+  // The dropped Marketplace's old page, now a redirect to the hub.
+  route("market", "routes/market.ts"),
 
   // Platform.
   route("app", "routes/app.tsx"),

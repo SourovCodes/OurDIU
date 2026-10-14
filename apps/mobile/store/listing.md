@@ -11,7 +11,7 @@ OurDIU
 
 The Play app is "OurDIU" (package `com.ourdiu.app`), and so is the launcher
 label. Inside, each product is a space with its own name: the Question Bank is
-live, the Class Routine and the Marketplace say "Coming soon". Only describe what
+live, and the Class Routine says "Coming soon" until a department's routine is. Only describe what
 the app does today; mention products that aren't out yet as coming soon, never
 as features. Keep the disclaimer at the end of the description: with "DIU" in
 the name, Play's impersonation policy expects it to be clear the app isn't the
@@ -28,7 +28,7 @@ Past exam papers from DIU students, free. Class routine coming soon.
 ```
 OurDIU is a free app for students of Daffodil International University (DIU). It starts with the Question Bank: a library of past exam question papers, shared by students. Find the paper you need in seconds, read it on your phone, and give back by sharing the ones you have.
 
-A class routine and a student marketplace are coming soon, in the same app with the same account.
+A class routine is coming soon, in the same app with the same account.
 
 FIND THE RIGHT PAPER
 • Browse by department and course, or search by course name or code.

@@ -6,7 +6,6 @@ Tools for Daffodil International University students at [ourdiu.com](https://our
 | ------------- | ------------ | --------------------------------------------------------------------- |
 | Question Bank | `/questions` | Moved in from [diuqbank.com](https://diuqbank.com) (see docs/PLAN.md) |
 | Class Routine | `/routine`   | Coming soon (a placeholder page)                                      |
-| Marketplace   | `/market`    | Coming soon (a placeholder page)                                      |
 
 **[docs/PLAN.md](docs/PLAN.md)** has the project plan: the decisions, the roadmap and what's in progress.
 
@@ -22,7 +21,7 @@ OurDIU app ─┘            └─ pages ──► React Router loaders/actions
 - **One origin, a space per product**: `/` is the hub ("What do you need today?"); each product lives under its path with its own header and menu (`SiteHeader` picks them from the path, `app/lib/products.ts`), and the switcher next to the product's name moves between them. Products don't show each other's data. Platform pages sit at the root: `/account`, `/admin`, `/login`, `/about`, `/contact` and the legal pages.
 - **API**: new products go under `/api/v1/<product>/…`. The question bank keeps the paths it had on diuqbank.com (`/api/v1/questions`, `/submissions`, `/contributors`, `/taxonomy`, `/me`, …) because installed copies of the app call them; `/api/v1/me` and `/api/v1/admin/users` are the platform's.
 - **One account system**: Better Auth with Google (`/api/auth/*`). The site uses cookie sessions; the app swaps a Google ID token for a bearer token. Any Google account can sign in; contributing question papers needs a DIU address (`@diu.edu.bd`, `@s.diu.edu.bd`) or the admin role. Addresses in `ADMIN_EMAILS` are made admins when they sign up.
-- **Data**: `user` (with `role` and `username`) and `departments` belong to the platform. The question bank's tables keep the names they had (`questions`, `submissions`, `courses`, …); new products prefix theirs with the product's name (`routine_*`, `market_*`).
+- **Data**: `user` (with `role` and `username`) and `departments` belong to the platform. The question bank's tables keep the names they had (`questions`, `submissions`, `courses`, …); new products prefix theirs with the product's name (`routine_*`).
 - **The old domain**: requests to `diuqbank.com` are redirected to the page's new address here (`legacyPath` in `app/lib/redirect.ts`), except `/api/*`, which is served as is for the installed app.
 
 ## Question Bank

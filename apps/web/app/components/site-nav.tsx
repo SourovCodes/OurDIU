@@ -27,7 +27,6 @@ const NAV_ITEMS: Record<Product["id"], NavItem[]> = {
   routine: [],
   // One page: the maker itself.
   cover: [],
-  market: [],
 };
 
 /** The space's menu: the Class Routine's places follow the department. */

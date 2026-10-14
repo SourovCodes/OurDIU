@@ -24,8 +24,6 @@ import 'features/contributors/contributor_screen.dart';
 import 'features/contributors/contributors_screen.dart';
 import 'features/cover_page/cover_page_screen.dart';
 import 'features/cover_page/cover_preview_screen.dart';
-import 'spaces/coming_soon_screen.dart';
-import 'spaces/space.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
 
@@ -143,10 +141,6 @@ GoRouter buildRouter({String initialLocation = '/home'}) => GoRouter(
               CoverPreviewScreen(preview: state.extra! as CoverPreview),
         ),
       ],
-    ),
-    GoRoute(
-      path: '/market',
-      builder: (context, state) => const ComingSoonScreen(Space.market),
     ),
     // The Question Bank's space: its four tabs, and the screens covering them.
     StatefulShellRoute.indexedStack(

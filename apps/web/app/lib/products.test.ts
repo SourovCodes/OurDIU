@@ -9,13 +9,11 @@ describe("products", () => {
       questions: "live",
       routine: "soon",
       cover: "live",
-      market: "soon",
     });
     expect(status(true)).toEqual({
       questions: "live",
       routine: "live",
       cover: "live",
-      market: "soon",
     });
   });
 });

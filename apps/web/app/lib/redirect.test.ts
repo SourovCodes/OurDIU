@@ -152,7 +152,9 @@ describe("spaceAt with a remembered space", () => {
     );
   });
   it("reads the space from a Cookie header", () => {
-    expect(rememberedSpace("a=1; ourdiu_space=market")?.id).toBe("market");
+    expect(rememberedSpace("a=1; ourdiu_space=cover")?.id).toBe("cover");
+    // A product that was dropped (the Marketplace) is forgotten.
+    expect(rememberedSpace("ourdiu_space=market")).toBeNull();
     expect(rememberedSpace("ourdiu_space=nope")).toBeNull();
     expect(rememberedSpace(null)).toBeNull();
   });

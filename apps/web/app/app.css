@@ -299,21 +299,6 @@
   --primary-container-foreground: #ffddb3;
   --ring: #ffb951;
 }
-[data-space="market"] {
-  --primary: #8e3a5a;
-  --primary-container: #ffd9e3;
-  --primary-container-foreground: #3e0019;
-  --ring: #a3385f;
-}
-.dark [data-space="market"],
-.dark[data-space="market"] {
-  --primary: #ffb0c8;
-  --primary-foreground: #561d32;
-  --primary-container: #6e2440;
-  --primary-container-foreground: #ffd9e3;
-  --ring: #ffb0c8;
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;

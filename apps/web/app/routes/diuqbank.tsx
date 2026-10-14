@@ -118,14 +118,14 @@ export default function Diuqbank({ loaderData }: Route.ComponentProps) {
             The question bank started in 2024 as a side project: one place for
             DIU past papers, so nobody has to dig through group chats the night
             before an exam. But students need more than papers, like their class
-            routine and a place to buy and sell things, and those belong
+            routine and their assignments' cover pages, and those belong
             together with the papers rather than on yet another site.
           </p>
           <p>
             So the question bank became the first part of{" "}
             <Link to="/">OurDIU</Link>, one site and one app for DIU students.
             The <Link to="/routine">Class Routine</Link> and the{" "}
-            <Link to="/market">Marketplace</Link> come next.
+            <Link to="/cover-page">Cover Page</Link> maker came next.
           </p>
         </section>
 

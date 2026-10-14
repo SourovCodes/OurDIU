@@ -148,9 +148,7 @@ describe("llmsTxt", () => {
     expect(txt).toContain("### Why?\n\nBecause.");
     expect(txt).toContain(`(${SITE}/diuqbank)`);
     // Without a live routine, it's still coming.
-    expect(txt).toContain(
-      "A class routine and a student marketplace are coming.",
-    );
+    expect(txt).toContain("A class routine is coming.");
   });
 
   it("lists the live class routines", () => {

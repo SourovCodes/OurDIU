@@ -274,9 +274,8 @@ export function llmsTxt(
     ...(routine.length
       ? [
           `- The Class Routine is at ${origin}/routine: DIU's class routines (${routine.map((r) => r.department.toUpperCase()).join(", ")}) as the departments publish them, by section or teacher, with rooms, teachers and a PDF of the week.`,
-          "- A student marketplace is coming.",
         ]
-      : ["- A class routine and a student marketplace are coming."]),
+      : ["- A class routine is coming."]),
     "",
     `## ${QB_NAME}`,
     "",

@@ -47,7 +47,6 @@ const PUBLIC_PAGES = [
   "/cover-page/lab-report-index",
   "/cover-page/internship-report",
   "/cover-page/final-year-project",
-  "/market",
   "/app",
   "/about",
   "/contact",

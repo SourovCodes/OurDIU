@@ -320,8 +320,8 @@ void main() {
     await pumpApp(tester, backend: routineBackend());
     await tester.tap(find.bySemanticsLabel('Question Bank, switch product'));
     await tester.pumpAndSettle();
-    // Only the Marketplace's: a routine is live on the server.
-    expect(find.text('Coming soon'), findsOneWidget);
+    // A routine is live on the server.
+    expect(find.text('Coming soon'), findsNothing);
   });
 
   testWidgets('a student finds their section, makes it theirs, sees the day', (

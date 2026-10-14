@@ -31,7 +31,7 @@ export const MOVE_FAQ = [
   {
     question: "Why did the DIU Question Bank move to OurDIU?",
     answer:
-      "OurDIU brings tools for Daffodil International University students together in one place. The question bank is the first; a class routine and a student marketplace are coming. One site and one app instead of a separate one for each.",
+      "OurDIU brings tools for Daffodil International University students together in one place. The question bank was the first; the class routine and the cover page maker followed. One site and one app instead of a separate one for each.",
   },
   {
     question: "Are all the question papers still there?",

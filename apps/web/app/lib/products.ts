@@ -2,7 +2,6 @@ import {
   CalendarClock,
   FileSignature,
   FileText,
-  ShoppingBag,
   type LucideIcon,
 } from "lucide-react";
 import { loginReturnPath } from "~/lib/redirect";
@@ -12,7 +11,7 @@ import { loginReturnPath } from "~/lib/redirect";
  * its own header and menu, and none shows another's data.
  */
 export type Product = {
-  id: "questions" | "routine" | "cover" | "market";
+  id: "questions" | "routine" | "cover";
   name: string;
   /** What it is, in the app's words, e.g. "Question papers". */
   title: string;
@@ -98,24 +97,6 @@ export const PRODUCTS: Product[] = [
         "bg-[#ffddb3] text-[#291800] dark:bg-[#614000] dark:text-[#ffddb3]",
       accent: "text-[#805600] dark:text-[#ffb951]",
       onAccent: "text-white dark:text-[#614000]",
-    },
-  },
-  {
-    id: "market",
-    name: "Marketplace",
-    title: "Marketplace",
-    tagline: "Buy and sell with DIU students",
-    description:
-      "Buy and sell books, gadgets and more with other DIU students.",
-    icon: ShoppingBag,
-    href: "/market",
-    status: "soon",
-    shape: "quiz",
-    tone: {
-      container:
-        "bg-[#ffd9e3] text-[#5c1530] dark:bg-[#6e2440] dark:text-[#ffd9e3]",
-      accent: "text-[#8e3a5a] dark:text-[#ffb0c8]",
-      onAccent: "text-white dark:text-[#6e2440]",
     },
   },
 ];

@@ -38,7 +38,7 @@ void main() {
     expect(prefs.getString('space'), 'questions');
   });
 
-  testWidgets('a coming-soon product used last opens the chooser instead', (
+  testWidgets('a dropped product used last opens the chooser instead', (
     tester,
   ) async {
     await pumpApp(tester, prefs: const {'space': 'market'});

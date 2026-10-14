@@ -8,12 +8,12 @@ allowBuilds:
 
 # Single source of truth for versions shared across workspace packages.
 catalog:
-  "@types/node": ^24.19.1
+  "@types/node": ^24.19.2
   hono: ^4.13.13
   typescript: ~6.0.3
   vitest: ~4.1.11
-  wrangler: ^4.147.0
-  zod: ^4.6.5
+  wrangler: ^4.149.0
+  zod: ^4.6.6
 
 minimumReleaseAgeExclude:
   - "@better-auth/core@1.7.5"

@@ -208,7 +208,7 @@ git tag mobile-v1.6.0 origin/main && git push origin mobile-v1.6.0
 
 The app was released from the QuestionBank repository up to `mobile-v1.5.0`; tags here must continue above it, or Play rejects the version code.
 
-Builds go to the closed testing track (`alpha`) as `completed` releases, so once Google has reviewed one (usually within hours) the testers get it as an update from the Play Store. Their "What's new" text is the tag's message, so prefer an annotated tag; a lightweight tag uses the subjects of the app's commits since the last release instead:
+Builds go to the production track as `completed` releases, so once Google has reviewed one (usually within hours, sometimes a few days) everyone gets it as an update from the Play Store, the closed testers included. Their "What's new" text is the tag's message, so prefer an annotated tag; a lightweight tag uses the subjects of the app's commits since the last release instead:
 
 ```bash
 git tag -a mobile-v1.7.0 origin/main -m "Saved papers sync with ourdiu.com" -m "• Contributors and their profiles" && git push origin mobile-v1.7.0
@@ -218,7 +218,7 @@ The app asks to be updated by itself (docs/PLAN.md, decision 26): Google Play's 
 
 To release somewhere else, set the repository variables `PLAY_TRACK` (`internal`, `alpha`, `beta`, `production`) and `PLAY_RELEASE_STATUS` (`completed`, `draft`, `inProgress`). Each run also keeps the `.aab` as a workflow artifact for 30 days.
 
-The Play Console account is a personal one, so production needs a closed test first: at least 12 testers opted in for 14 days in a row, who actually use the app, before you can apply for production access. Until then, release to the internal and closed tracks.
+The Play Console account is a personal one, so production needed a closed test first: at least 12 testers opted in for 14 days in a row, who actually use the app. Production access was granted on 19 October 2026. To try a risky build on the testers first, release it to `alpha` with `PLAY_TRACK`, then promote it in Play Console.
 
 Question Bank links on `ourdiu.com` open in the app (Android App Links): the manifest claims `https://ourdiu.com/questions…` with `autoVerify`, `lib/router.dart` (`webLinkLocation`) maps the site's paths to the app's screens, and the site serves `/.well-known/assetlinks.json` with the SHA-256 fingerprints Play Console lists for the app, Google's **app signing key** first (`ANDROID_SIGNING_SHA256` in `apps/web/app/lib/android-app.ts`, from Play Console → Grow users → Deep links → Add domain). Play Console's Deep links page shows whether verification passed.
 

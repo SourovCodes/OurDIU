@@ -117,9 +117,9 @@ jobs:
           releaseFiles: apps/mobile/build/app/outputs/bundle/release/app-release.aab
           releaseName: ${{ steps.version.outputs.name }}
           whatsNewDirectory: ${{ runner.temp }}/whatsnew
-          # Closed testing ("alpha"), rolled out to its testers as soon as Google has
-          # reviewed it, until the app has production access. The PLAY_TRACK and
-          # PLAY_RELEASE_STATUS repository variables override these (e.g. internal and
-          # draft).
-          tracks: ${{ vars.PLAY_TRACK || 'alpha' }}
+          # Production, rolled out to everyone as soon as Google has reviewed it
+          # (the closed testers get it too). The PLAY_TRACK and PLAY_RELEASE_STATUS
+          # repository variables override these (e.g. alpha, or inProgress for a
+          # staged rollout).
+          tracks: ${{ vars.PLAY_TRACK || 'production' }}
           status: ${{ vars.PLAY_RELEASE_STATUS || 'completed' }}

@@ -20,37 +20,16 @@ import {
 
 failOnConsoleErrors();
 
-test("visitors are invited to test the app", async ({ page }) => {
+test("the footer leads to the app on Google Play", async ({ page }) => {
   await page.goto("/");
-  const strip = page.getByRole("complementary", { name: "Android app" });
-  await strip.getByRole("link", { name: "become a tester" }).click();
+  await page.getByRole("link", { name: "Get the app" }).click();
   await expect(page).toHaveURL(/\/app$/);
-  await expect(strip).toHaveCount(0);
-  await expect(
-    page.getByRole("link", { name: "Join the group" }),
-  ).toHaveAttribute("href", "https://groups.google.com/g/ourdiu");
-  await expect(
-    page.getByRole("link", { name: "Open the testing page" }),
-  ).toHaveAttribute(
-    "href",
-    "https://play.google.com/apps/testing/com.ourdiu.app",
-  );
   await expect(
     page.getByRole("link", { name: "Get it on Google Play" }),
   ).toHaveAttribute(
     "href",
     "https://play.google.com/store/apps/details?id=com.ourdiu.app",
   );
-
-  // Closed, it stays away on every page.
-  await page.goto("/questions/browse");
-  await expect(async () => {
-    await strip.getByRole("button", { name: "Dismiss" }).click();
-    await expect(strip).toHaveCount(0, { timeout: 1_000 });
-  }).toPass();
-  await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  await expect(strip).toHaveCount(0);
 });
 
 test("the hub leads to the question bank and its questions", async ({

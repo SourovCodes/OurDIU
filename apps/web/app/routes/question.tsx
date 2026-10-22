@@ -15,7 +15,6 @@ import {
   useSearchParams,
   type ShouldRevalidateFunctionArgs,
 } from "react-router";
-import { useDownloadInvite } from "~/components/android-beta";
 import { EmptyState } from "~/components/empty-state";
 import { OtherExams } from "~/components/other-exams";
 import { courseHref } from "~/components/course-search";
@@ -261,7 +260,6 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
     question.viewToken,
   );
 
-  const inviteToApp = useDownloadInvite();
   const signedIn = Boolean(useRouteLoaderData<RootLoader>("root")?.user);
   const viewer = selected ? viewerFor(selected, interactions) : null;
   const position = {
@@ -317,7 +315,7 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
           <ShareButton title={title} />
           {fileUrl && (
             <Button className="max-sm:ml-auto" asChild>
-              <a href={fileUrl} download onClick={inviteToApp}>
+              <a href={fileUrl} download>
                 <Download aria-hidden />
                 Download PDF
               </a>

@@ -11,7 +11,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Form, Link, Outlet } from "react-router";
-import { AndroidBetaLink } from "~/components/android-beta";
 import { ContributorAvatar } from "~/components/contributor-avatar";
 import { Button } from "~/components/ui/button";
 import { requireUser } from "~/lib/session.server";
@@ -170,7 +169,6 @@ export default function AccountLayout({ loaderData }: Route.ComponentProps) {
         )}
       </nav>
 
-      <AndroidBetaLink />
       <Outlet />
       <Appearance />
 

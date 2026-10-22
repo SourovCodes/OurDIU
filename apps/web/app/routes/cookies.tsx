@@ -26,7 +26,7 @@ type CookieRow = {
 };
 
 // Keep in step with the code that sets them: Better Auth (apps/api/src/lib/auth.ts),
-// lib/theme.ts, lib/department-preference.ts, lib/android-app.ts, lib/products.ts, the API's lib/view-cookie.ts and
+// lib/theme.ts, lib/department-preference.ts, lib/products.ts, the API's lib/view-cookie.ts and
 // lib/analytics.ts.
 const NEEDED: CookieRow[] = [
   {
@@ -78,12 +78,6 @@ const PREFERENCES: CookieRow[] = [
     purpose:
       "Not a cookie but your browser’s storage: if you tick “Remember my details” on a cover page, your name, ID, section and department, so the next one is filled in. Never sent to the site.",
     lasts: "Until you untick it or clear the site’s data",
-  },
-  {
-    names: ["ourdiu_android_invite"],
-    purpose:
-      "Set if you close the invitation to test the Android app, so it stays closed.",
-    lasts: "400 days",
   },
   {
     names: ["qb_views_q", "qb_views_s"],

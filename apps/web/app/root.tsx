@@ -22,7 +22,6 @@ import type { Route } from "./+types/root";
 import "./app.css";
 import { EmptyState } from "~/components/empty-state";
 import { PageTransition, SkipLink } from "~/components/page-transition";
-import { AndroidBetaStrip } from "~/components/android-beta";
 import { RoutineBottomBar } from "~/components/routine-nav";
 import { SiteHeader } from "~/components/site-header";
 import { SocialIcon } from "~/components/social-icons";
@@ -36,7 +35,6 @@ import {
   usePageViews,
   useWebVitals,
 } from "~/lib/analytics";
-import { androidInvite } from "~/lib/android-app";
 import { AUTHOR } from "~/lib/author";
 import { LEGAL_PAGES } from "~/lib/legal";
 import { PRODUCTS, productAt, rememberedSpace } from "~/lib/products";
@@ -76,7 +74,6 @@ export async function loader({ request }: Route.LoaderArgs) {
     needsAttention,
     // Whether the switchers show the Class Routine as live or "soon".
     routineLive,
-    androidInvite: androidInvite(request),
     space: rememberedSpace(request.headers.get("cookie"))?.id ?? null,
     // The site's own origin: canonicalHostRedirect sends every other host here.
     origin: new URL(request.url).origin,
@@ -186,7 +183,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
               user={data?.user ?? null}
               needsAttention={data?.needsAttention ?? 0}
             />
-            <AndroidBetaStrip />
             {/* At least a screen tall, so the footer always starts below the
                 screen: a page that grows or changes never moves it in view, and
                 Chrome counts such moves as layout shifts (docs/PLAN.md, decision 51). */}

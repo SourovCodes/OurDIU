@@ -2,7 +2,6 @@ import type { ApiError, CreatedSubmission } from "@ourdiu/shared";
 import { canContribute, DIU_EMAIL_DOMAINS } from "@ourdiu/shared/constants";
 import { MailWarning } from "lucide-react";
 import { Form, redirect, useNavigation } from "react-router";
-import { AndroidBetaLink } from "~/components/android-beta";
 import { ContributeForm } from "~/components/contribute-form";
 import { EmptyState } from "~/components/empty-state";
 import { Button } from "~/components/ui/button";
@@ -189,9 +188,6 @@ export default function Contribute({
             </h2>
             <HowItWorks />
           </section>
-          <AndroidBetaLink>
-            Scan papers with your camera in the OurDIU Android app.
-          </AndroidBetaLink>
         </aside>
       </div>
     </div>

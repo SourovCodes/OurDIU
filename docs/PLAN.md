@@ -2,7 +2,7 @@
 
 The plan and the decisions behind it, kept in the repository so anyone (or any Claude session) picking the project up knows what exists, what comes next and why. Update it when a decision changes or a step is done. `CLAUDE.md` has the day-to-day working rules; `README.md` the architecture and setup.
 
-Last updated: 6 October 2026.
+Last updated: 22 October 2026.
 
 ## What OurDIU is
 
@@ -226,7 +226,7 @@ Done (2 October 2026): Change of Address from diuqbank.com to ourdiu.com is file
 - [x] Sign-in on Play builds: the `ourdiu` project's Android OAuth client has Play's app signing SHA-1 (`6F:83:97:5F:55:BC:FD:A0:EE:2C:6D:87:0B:87:E3:EA:5F:CE:10:3C`), added by the owner on 1 October 2026. `mobile-v1.6.1`: any Google account signs in, sharing papers needs a DIU email.
 - [x] Releases went to closed testing (`alpha`) automatically with "What's new" from the tag (decision 12). `mobile-v1.7.0` and `mobile-v1.7.1` shipped this way on 2 October 2026. Play App Signing key SHA-256: `86:51:83:0A:15:06:D3:72:70:63:2D:BE:A3:19:46:0C:58:C0:F2:CD:33:4C:61:C6:09:13:1D:79:86:26:45:C4`; upload key: `44:06:4D:E0:1C:F8:FC:37:28:70:7E:C1:9E:98:66:AE:9E:3A:85:E5:09:D0:46:17:72:0B:03:12:1A:B2:96:67`.
 - [x] ourdiu.com links open in the app (decision 13), verified in Play Console.
-- [ ] Closed testing ("alpha"), then production. Production access granted on 19 October 2026; from then on `mobile-v*` tags release to production (decision 12). Left: the owner promotes `mobile-v1.14.0` from closed testing to production in Play Console, and once the store listing is live, `ANDROID_BETA` goes to false (below). Play needed 12 testers opted in for 14 days in a row before a production release. Testers are the Google Group `ourdiu@googlegroups.com` (set to "Anyone on the web can join", posting by owners only). The site recruits them: `/app` (join the group, opt in at `play.google.com/apps/testing/com.ourdiu.app`, install), a strip under the header on every page for every visitor (computers too: their owners likely have Android phones), closed for good once dismissed (`ourdiu_android_invite`, 400 days), a line on the account and contribute pages and "Get the app" in the footer, and a once-a-visit toast when an Android visitor downloads a paper. When the app is public, set `ANDROID_BETA` to false in `apps/web/app/lib/android-app.ts`: the strip and the links go, and `/app` becomes a "Get it on Google Play" page.
+- [x] Closed testing ("alpha"), then production: live on the Play Store on 22 October 2026 (production access granted 19 October; from then on `mobile-v*` tags release to production, decision 12). Play needed 12 testers opted in for 14 days in a row before a production release; they came from the Google Group `ourdiu@googlegroups.com`, which the site recruited for with a strip under the header, a line on the account and contribute pages and a toast on downloads. With the app public those are gone (the `ourdiu_android_invite` cookie too), and `/app`, linked as "Get the app" in the footer, is a "Get it on Google Play" page.
 
 ### Phase 3 – Class Routine (decision 29)
 

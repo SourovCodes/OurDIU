@@ -7,7 +7,7 @@ part of 'android_app.dart';
 // **************************************************************************
 
 AndroidApp _$AndroidAppFromJson(Map<String, dynamic> json) =>
-    AndroidApp(minVersion: json['minVersion'] as String);
+    AndroidApp(minVersion: json['minVersion'] as AppVersion);
 
 Map<String, dynamic> _$AndroidAppToJson(AndroidApp instance) =>
     <String, dynamic>{'minVersion': instance.minVersion};

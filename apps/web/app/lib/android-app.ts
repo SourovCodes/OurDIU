@@ -45,3 +45,45 @@ export function openInAppUrl(path: string) {
   const fallback = encodeURIComponent(PLAY_STORE_URL);
   return `intent://ourdiu.com${path}#Intent;scheme=https;package=${ANDROID_PACKAGE};S.browser_fallback_url=${fallback};end`;
 }
+
+/** Set once an Android visitor answers the "Open in the app" sheet, either way. */
+export const APP_SHEET_COOKIE = "ourdiu_app_sheet";
+// For good: 400 days is the longest a browser keeps a cookie.
+const APP_SHEET_FOR_SECONDS = 400 * 24 * 60 * 60;
+
+/** Pages without the sheet: the app's own page, signing in and admin. */
+const NO_SHEET = /^\/(app|login|admin)(\/|$)/;
+
+/** Crawlers and test tools that say Android: Google's smartphone crawler, Lighthouse. */
+const ROBOT = /bot|crawl|spider|lighthouse|headless/i;
+
+/**
+ * Whether to ask this visitor, once, to use the app (docs/PLAN.md, decision 55):
+ * Android browsers that haven't answered yet, on pages where it makes sense.
+ */
+export function offersAppSheet(
+  userAgent: string,
+  cookie: string,
+  pathname: string,
+) {
+  return (
+    isAndroid(userAgent) &&
+    !ROBOT.test(userAgent) &&
+    !new RegExp(`(?:^|;\\s*)${APP_SHEET_COOKIE}=`).test(cookie) &&
+    !NO_SHEET.test(pathname)
+  );
+}
+
+/** Keeps the sheet away for good. */
+export function dismissAppSheet() {
+  document.cookie = `${APP_SHEET_COOKIE}=1; Max-Age=${APP_SHEET_FOR_SECONDS}; Path=/; SameSite=Lax`;
+}
+
+/**
+ * Where "Open in the app" lands: the same page for the question bank's pages (the
+ * app's links), else the app's Question Bank home (`/questions`), since Chrome only
+ * opens an app for a link it handles.
+ */
+export function appPathFor(pathname: string, search: string) {
+  return /^\/questions(\/|$)/.test(pathname) ? pathname + search : "/questions";
+}

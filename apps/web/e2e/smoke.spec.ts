@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { E2E_ORIGIN } from "./env";
 import {
+  APP_SHEET_COOKIE,
   clickUntilUrl,
   closeQuestionFilters,
   failOnConsoleErrors,
@@ -35,6 +36,29 @@ test("the footer leads to the app on Google Play", async ({ page }) => {
     .locator('script[type="application/ld+json"]')
     .allTextContents();
   expect(ld.some((text) => text.includes('"MobileApplication"'))).toBe(true);
+});
+
+test("Android visitors are asked once to use the app", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(!isMobile, "Only Android browsers are asked");
+  await page.context().clearCookies({ name: APP_SHEET_COOKIE });
+  await page.goto("/questions/1");
+  const sheet = page.getByTestId("open-in-app-sheet");
+  await expect(
+    sheet.getByRole("link", { name: "Open in the app" }),
+  ).toHaveAttribute(
+    "href",
+    /^intent:\/\/ourdiu\.com\/questions\/1#Intent;.*package=com\.ourdiu\.app;/,
+  );
+  await sheet.getByRole("button", { name: "Continue in browser" }).click();
+  await expect(sheet).toHaveCount(0);
+
+  // Answered: not on the next page, nor after a reload.
+  await page.goto("/routine");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(sheet).toHaveCount(0);
 });
 
 test("the hub leads to the question bank and its questions", async ({

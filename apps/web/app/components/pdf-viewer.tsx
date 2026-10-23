@@ -5,8 +5,9 @@ import {
   Loader2,
   Smartphone,
 } from "lucide-react";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button, buttonVariants } from "~/components/ui/button";
+import { trackEvent } from "~/lib/analytics";
 import { isAndroid, openInAppUrl } from "~/lib/android-app";
 import { cn } from "~/lib/utils";
 
@@ -71,6 +72,7 @@ export function PdfViewer({ src, title, appPath, className }: PdfViewerProps) {
       <OpenInApp
         href={openInAppUrl(appPath)}
         onViewHere={() => {
+          trackEvent("app_card_view_here");
           viewedHere = true;
           setViewHere(true);
         }}
@@ -186,6 +188,7 @@ function OpenInApp({
   onViewHere: () => void;
   className?: string;
 }) {
+  useEffect(() => trackEvent("app_card_shown"), []);
   return (
     <div
       className={cn(
@@ -205,7 +208,11 @@ function OpenInApp({
         </p>
       </div>
       <div className="flex flex-col items-center gap-2">
-        <a href={href} className={buttonVariants({ size: "lg" })}>
+        <a
+          href={href}
+          onClick={() => trackEvent("app_card_open")}
+          className={buttonVariants({ size: "lg" })}
+        >
           <Smartphone aria-hidden />
           Open in the app
         </a>

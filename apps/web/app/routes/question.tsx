@@ -349,6 +349,7 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
               <PdfViewer
                 src={fileUrl}
                 title={title}
+                appPath={`/questions/${question.id}?submission=${selected.id}`}
                 className="rounded-none lg:mx-5 lg:mb-5 lg:rounded-2xl"
               />
               <PaperToolbar

@@ -302,6 +302,7 @@ const SEED_02 = "Tanvir Hasan";
 
 test("question page embeds the PDF, shows its uploader and switches submissions", async ({
   page,
+  isMobile,
 }) => {
   await page.goto("/questions/1");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
@@ -313,6 +314,17 @@ test("question page embeds the PDF, shows its uploader and switches submissions"
     "aria-current",
     "true",
   );
+  // Android browsers have no PDF viewer: they're asked to read it in the app,
+  // and once they view one here, the next papers don't ask again.
+  if (isMobile) {
+    await expect(
+      page.getByRole("link", { name: "Open in the app" }),
+    ).toHaveAttribute(
+      "href",
+      /^intent:\/\/ourdiu\.com\/questions\/1\?submission=1#Intent;/,
+    );
+    await page.getByRole("button", { name: "View it here instead" }).click();
+  }
   const viewer = page.getByTestId("pdf-viewer");
   await expect(viewer).toHaveAttribute(
     "data",

@@ -30,3 +30,18 @@ export function assetLinks() {
     },
   ];
 }
+
+export function isAndroid(userAgent: string) {
+  return /\bAndroid\b/i.test(userAgent);
+}
+
+/**
+ * A link that opens one of the site's pages in the app (it handles ourdiu.com's
+ * /questions links, decision 13), or Google Play's page for it when the app isn't
+ * installed. An Android intent URL, so it works in Chrome even on the page the app
+ * would open: a plain link to the same page stays in the browser.
+ */
+export function openInAppUrl(path: string) {
+  const fallback = encodeURIComponent(PLAY_STORE_URL);
+  return `intent://ourdiu.com${path}#Intent;scheme=https;package=${ANDROID_PACKAGE};S.browser_fallback_url=${fallback};end`;
+}

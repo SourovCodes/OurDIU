@@ -1,6 +1,13 @@
-import { Download, ExternalLink, FileText, Loader2 } from "lucide-react";
-import { useSyncExternalStore } from "react";
-import { buttonVariants } from "~/components/ui/button";
+import {
+  Download,
+  ExternalLink,
+  FileText,
+  Loader2,
+  Smartphone,
+} from "lucide-react";
+import { useState, useSyncExternalStore } from "react";
+import { Button, buttonVariants } from "~/components/ui/button";
+import { isAndroid, openInAppUrl } from "~/lib/android-app";
 import { cn } from "~/lib/utils";
 
 type PdfViewerProps = {
@@ -8,6 +15,11 @@ type PdfViewerProps = {
   /** URL of the PDF (this site or the public files domain), shown by the browser's viewer. */
   src: string;
   title: string;
+  /**
+   * The page in the app (a public paper's), for Android browsers: they have no PDF
+   * viewer, so they're asked to read it in the app rather than in Google's viewer.
+   */
+  appPath?: string;
 };
 
 /**
@@ -20,6 +32,9 @@ function googleViewerUrl(src: string) {
   return `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(absolute)}`;
 }
 
+/** Set once a visitor chose to view a paper here: the next papers don't ask again. */
+let viewedHere = false;
+
 /** Whether a browser has a PDF viewer never changes while the page is open. */
 const subscribeNever = () => () => {};
 
@@ -30,10 +45,12 @@ const FRAME_CLASS =
 /**
  * Uses the browser's native PDF viewer via <object>. Most mobile browsers have none
  * (`navigator.pdfViewerEnabled` is false), so there the Google Docs viewer renders the
- * paper instead; it fetches the file from our public URL. The object's children, links
- * to open or download the file, remain the last resort.
+ * paper instead; it fetches the file from our public URL. On Android, a public paper
+ * (`appPath`) asks the visitor to read it in the app first, with the Google viewer one
+ * tap away. The object's children, links to open or download the file, remain the
+ * last resort.
  */
-export function PdfViewer({ src, title, className }: PdfViewerProps) {
+export function PdfViewer({ src, title, appPath, className }: PdfViewerProps) {
   // Read on the client only: the server can't know the browser, so it renders the
   // native viewer, which is what desktop browsers keep after hydration.
   const noNativeViewer = useSyncExternalStore(
@@ -42,6 +59,25 @@ export function PdfViewer({ src, title, className }: PdfViewerProps) {
     () => false,
   );
   const google = noNativeViewer ? googleViewerUrl(src) : null;
+  const offerApp = useSyncExternalStore(
+    subscribeNever,
+    () => noNativeViewer && isAndroid(navigator.userAgent),
+    () => false,
+  );
+  const [viewHere, setViewHere] = useState(viewedHere);
+
+  if (appPath && offerApp && !viewHere) {
+    return (
+      <OpenInApp
+        href={openInAppUrl(appPath)}
+        onViewHere={() => {
+          viewedHere = true;
+          setViewHere(true);
+        }}
+        className={className}
+      />
+    );
+  }
 
   return (
     <div
@@ -136,6 +172,47 @@ export function PdfViewer({ src, title, className }: PdfViewerProps) {
           </div>
         </object>
       )}
+    </div>
+  );
+}
+
+/** In place of the viewer on Android: the paper in the app, or here after all. */
+function OpenInApp({
+  href,
+  onViewHere,
+  className,
+}: {
+  href: string;
+  onViewHere: () => void;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex min-h-[24rem] flex-col items-center justify-center gap-5 bg-surface p-6 text-center",
+        className,
+      )}
+      data-testid="pdf-open-in-app"
+    >
+      <div className="rounded-full bg-primary-container p-4 text-primary-container-foreground">
+        <Smartphone className="size-7" aria-hidden />
+      </div>
+      <div className="max-w-xs space-y-1">
+        <p className="font-expressive text-2xl">Read it in the app</p>
+        <p className="text-sm text-pretty text-muted-foreground">
+          Papers open full screen in the OurDIU app, and you can save them for
+          exam week. Free on Google Play.
+        </p>
+      </div>
+      <div className="flex flex-col items-center gap-2">
+        <a href={href} className={buttonVariants({ size: "lg" })}>
+          <Smartphone aria-hidden />
+          Open in the app
+        </a>
+        <Button variant="ghost" onClick={onViewHere}>
+          View it here instead
+        </Button>
+      </div>
     </div>
   );
 }

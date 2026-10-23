@@ -101,7 +101,7 @@ Then read the paper's header (usually at the top of the first page) and extract:
 - department: the department that set the exam. Always give the full name, never an abbreviation (e.g. "Computer Science and Engineering", not "CSE"). If only an abbreviation is printed, expand it, using the existing departments' short names when one matches. shortName is the abbreviation if known.
 - course: the course title only, without the course code (e.g. "Data Structures", not "CSE 134: Data Structures"). A lab exam (practical tasks, experiments, a "Lab" or "Sessional" course) belongs to the lab course, named "<course title> Lab" (e.g. "Data Structures Lab"), never to the theory course, even if the paper prints only the theory title.
 - semester: the academic term the exam was held in, written exactly as a term and a two-digit year: "<Term> <YY>", where Term is one of ${SEMESTER_TERMS.join(", ")} and YY is ${MIN_SEMESTER_YEAR} to ${MAX_SEMESTER_YEAR} (e.g. "Fall 25" for Fall 2025, "Spring 26", "Short 20"). Use null if the paper doesn't show a term in this form.
-- examType: the kind of exam (e.g. midterm, final). For a lab exam, give the plain kind on the lab course ("Final", not "Lab Final"); lab evaluations and lab quizzes are class tests.
+- examType: the kind of exam (e.g. midterm, final). For a lab exam, give the plain kind on the lab course ("Final", not "Lab Final"); lab evaluations and lab quizzes take the existing exam type for quizzes and class tests, whatever it is named.
 - section and batch: only if printed on the paper (short labels such as "A" or "61"), otherwise null.
 
 Finally, text: ${TEXT_INSTRUCTIONS}

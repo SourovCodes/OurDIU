@@ -2,7 +2,7 @@
 
 The plan and the decisions behind it, kept in the repository so anyone (or any Claude session) picking the project up knows what exists, what comes next and why. Update it when a decision changes or a step is done. `CLAUDE.md` has the day-to-day working rules; `README.md` the architecture and setup.
 
-Last updated: 22 October 2026.
+Last updated: 23 October 2026.
 
 ## What OurDIU is
 
@@ -181,7 +181,7 @@ Done (2 October 2026): Change of Address from diuqbank.com to ourdiu.com is file
 - [x] API: `submission_texts` and its FTS5 index (migrations 0013–0014), text read by the upload check, the backfill job and route, `text` on public submissions, `GET /api/v1/questions/search`; tests in `apps/api/test/paper-text.test.ts`. App's generated client regenerated.
 - [x] Website: text under the paper, `/questions/search`, "Find … in papers' text" in the course search, **Read missing texts** for admins; privacy page updated (`LEGAL_UPDATED` 3 October 2026); e2e in `smoke.spec.ts`; seed papers have text.
 - [x] ~~Owner, after the deploy: press **Read missing texts**~~: replaced by the cron's slow backfill (decision 28).
-- [ ] Owner: check AI Studio's rate-limit page for `gemini-3.5-flash-lite`'s free daily quota after a day of the backfill, then spot-check a few papers' text and a search.
+- [x] Backfill done (checked 23 October 2026): the cron read the old papers from 3 to 12 October (about 290–366 a day, within the free quota), and the upload check reads new ones. Of 2,730 published papers, 2,729 have their text (2,658 by `gemini-3.5-flash-lite`, 73 by the upload check's `gemini-3.8-flash`), none failed, and the shortest texts are real short quizzes. One, submission 783 (question 512, Web Engineering), came back empty ("not a question paper or nothing readable": no text and no error, so the cron doesn't retry it); left: the owner looks at that paper, and if it's a clear paper, deletes its `submission_texts` row so the cron reads it again.
 - [ ] Later: a search screen in the app; the paper's first question in its page description.
 
 ### Most viewed today (decision 24)

@@ -15,8 +15,6 @@ import {
   adminUserSchema,
   catalogMergeInputSchema,
   catalogMergeResultSchema,
-  courseExamMoveInputSchema,
-  courseExamMoveResultSchema,
   classifySubmissionInputSchema,
   createCourseInputSchema,
   departmentInputSchema,
@@ -45,7 +43,7 @@ import { requireAdmin } from "../middleware/require-admin";
 import { getAdminStats } from "../services/admin-stats";
 import { checkUnchecked, rerunAnalysis } from "../services/analysis";
 import * as catalog from "../services/catalog";
-import { mergeCatalogEntries, moveCourseExams } from "../services/merge";
+import { mergeCatalogEntries } from "../services/merge";
 import { readMissingTexts } from "../services/paper-text";
 import {
   classifySubmission,
@@ -463,28 +461,6 @@ const courseRoutes = catalogRoutes("courses", "course", {
   update: nameInputSchema,
   result: adminCourseSchema,
 });
-const moveCourseExamsRoute = createRoute({
-  method: "post",
-  path: "/courses/{id}/move-exams",
-  tags: catalogTags,
-  summary: "Move a course's exams of one type to another course or exam type",
-  description:
-    "Moves the course's exams of `examTypeId` to `toCourseId` (or `toCourseName`, created " +
-    "unless the department has it) as `toExamTypeId`, e.g. lab papers filed under the " +
-    "theory course to the lab course. Exams the target already has are combined; papers " +
-    "awaiting review that propose the course and type move too. With `dryRun`, only " +
-    "reports what would move.",
-  middleware,
-  request: { params: numericIdParams, ...jsonBody(courseExamMoveInputSchema) },
-  responses: {
-    200: jsonResponse(courseExamMoveResultSchema, "What moved"),
-    ...denied,
-    404: errorResponse("Course or exam type not found"),
-    422: errorResponse(
-      "Invalid fields, a course of another department, or nothing to move",
-    ),
-  },
-});
 const semesterRoutes = catalogRoutes("semesters", "semester", {
   create: semesterInputSchema,
   update: semesterInputSchema,
@@ -684,16 +660,6 @@ export const adminRoutes = new OpenAPIHono<AppEnv>({
   .openapi(courseRoutes.merge, async (c) =>
     c.json(
       await mergeCatalogEntries(c.var.db, "courses", c.req.valid("json")),
-      200,
-    ),
-  )
-  .openapi(moveCourseExamsRoute, async (c) =>
-    c.json(
-      await moveCourseExams(
-        c.var.db,
-        c.req.valid("param").id,
-        c.req.valid("json"),
-      ),
       200,
     ),
   )

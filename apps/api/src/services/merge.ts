@@ -2,12 +2,10 @@ import {
   catalogKey,
   type CatalogMergeInput,
   type CatalogMergeResult,
-  type CourseExamMoveInput,
-  type CourseExamMoveResult,
   type MergedId,
   type MergedKind,
 } from "@ourdiu/shared";
-import { and, eq, inArray, or, sql, type SQL } from "drizzle-orm";
+import { and, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { SQLiteAsyncDialect } from "drizzle-orm/sqlite-core";
 import type { Database } from "../db/client";
 import {
@@ -509,134 +507,6 @@ export async function mergeCatalogEntries(
     ...counts,
     proposalsMoved,
     ...extra,
-  };
-}
-
-/**
- * Plans (and unless `dryRun`, runs) moving course `courseId`'s exams of one type to
- * another course of its department and/or another exam type: lab papers filed under
- * the theory course ("Data Structures", "Lab Final") go to the lab course ("Data
- * Structures Lab", "Final"). Exams the target already has are combined, as in a
- * merge; moved ones keep their ids, so their pages stay where they are. Papers
- * awaiting review that propose the course and type move too.
- *
- * A new course is created before the move is written, outside its transaction: if the
- * move then fails, the course is left empty for an admin to use again or delete.
- */
-export async function moveCourseExams(
-  db: Database,
-  courseId: number,
-  input: CourseExamMoveInput,
-): Promise<CourseExamMoveResult> {
-  const source = await db.query.courses.findFirst({
-    columns: { id: true, departmentId: true },
-    where: eq(courses.id, courseId),
-  });
-  if (!source) throw new AppError(404, "NOT_FOUND", "Course not found");
-
-  const types = await db
-    .select({ id: examTypes.id, name: examTypes.name })
-    .from(examTypes)
-    .where(inArray(examTypes.id, [input.examTypeId, input.toExamTypeId]));
-  const toExamType = types.find((t) => t.id === input.toExamTypeId);
-  if (!toExamType || !types.some((t) => t.id === input.examTypeId)) {
-    throw new AppError(404, "NOT_FOUND", "Exam type not found");
-  }
-
-  // The target course: by id, or by name, matched as merges match names.
-  const departmentCourses = await db
-    .select({
-      id: courses.id,
-      name: courses.name,
-      departmentId: courses.departmentId,
-    })
-    .from(courses)
-    .where(
-      input.toCourseId === undefined
-        ? eq(courses.departmentId, source.departmentId)
-        : eq(courses.id, input.toCourseId),
-    );
-  let target: { id: number | null; name: string } | undefined;
-  if (input.toCourseId === undefined) {
-    const key = catalogKey(input.toCourseName!);
-    target = departmentCourses.find((c) => catalogKey(c.name) === key) ?? {
-      id: null,
-      name: input.toCourseName!,
-    };
-  } else {
-    const course = departmentCourses[0];
-    if (!course) throw new AppError(404, "NOT_FOUND", "Course not found");
-    if (course.departmentId !== source.departmentId) {
-      throw new AppError(
-        422,
-        "DIFFERENT_DEPARTMENTS",
-        "Exams can only move to a course of the same department.",
-      );
-    }
-    target = course;
-  }
-  if (target.id === courseId && input.examTypeId === input.toExamTypeId) {
-    throw new AppError(
-      422,
-      "NOTHING_TO_MOVE",
-      "Pick another course or exam type to move these exams to.",
-    );
-  }
-  const courseCreated = target.id === null;
-
-  if (courseCreated && !input.dryRun) {
-    const [row] = await db
-      .insert(courses)
-      .values({ departmentId: source.departmentId, name: target.name })
-      .returning({ id: courses.id });
-    target = { id: row!.id, name: target.name };
-  }
-  // A course that doesn't exist yet has no exams to combine with; a dry run plans
-  // with an id no row has.
-  const toCourseId = target.id ?? -1;
-
-  const plan = new Plan(db);
-  const moving = (q: Combo) =>
-    q.courseId === courseId && q.examTypeId === input.examTypeId;
-  const counts = reconcileQuestions(
-    plan,
-    await affectedQuestions(
-      db,
-      or(
-        and(
-          eq(questions.courseId, courseId),
-          eq(questions.examTypeId, input.examTypeId),
-        ),
-        and(
-          eq(questions.courseId, toCourseId),
-          eq(questions.examTypeId, input.toExamTypeId),
-        ),
-      ),
-    ),
-    (q) =>
-      moving(q)
-        ? { ...comboOf(q), courseId: toCourseId, examTypeId: toExamType.id }
-        : comboOf(q),
-  );
-
-  const proposals = sql`question_id is null and course_id = ${courseId} and exam_type_id = ${input.examTypeId}`;
-  const proposalRow = await db.get<{ n: number }>(
-    sql`select count(*) as n from submissions where ${proposals}`,
-  );
-  plan.run(
-    sql`update submissions set course_id = ${toCourseId}, exam_type_id = ${toExamType.id} where ${proposals}`,
-  );
-
-  if (!input.dryRun) {
-    await plan.commit();
-  }
-
-  return {
-    course: target,
-    courseCreated,
-    examType: toExamType,
-    ...counts,
-    proposalsMoved: Number(proposalRow?.n ?? 0),
   };
 }
 

@@ -176,6 +176,13 @@
       "when": 1791832066602,
       "tag": "0024_text_pending_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1792766921224,
+      "tag": "0025_lab_courses",
+      "breakpoints": true
     }
   ]
 }

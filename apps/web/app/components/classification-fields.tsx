@@ -305,7 +305,7 @@ export function ClassificationFields({
         hint={
           department?.kind === "new"
             ? "Type the course name to add it to the new department."
-            : "A lab exam goes under its lab course, e.g. Data Structures Lab"
+            : undefined
         }
       />
 

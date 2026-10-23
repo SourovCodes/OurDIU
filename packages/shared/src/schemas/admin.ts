@@ -343,46 +343,6 @@ export const catalogMergeResultSchema = z.object({
 });
 export type CatalogMergeResult = z.infer<typeof catalogMergeResultSchema>;
 
-/**
- * Moves a course's exams of one type to another course of its department and/or
- * another exam type, e.g. "Data Structures" + "Lab Final" to "Data Structures Lab" +
- * "Final". The course is `toCourseId`, or `toCourseName`, created unless the department
- * has it. `dryRun` only reports what would happen (the move dialog's preview).
- */
-export const courseExamMoveInputSchema = z
-  .object({
-    examTypeId: idQuerySchema,
-    toCourseId: idQuerySchema.optional(),
-    toCourseName: catalogName.optional(),
-    toExamTypeId: idQuerySchema,
-    dryRun: z.boolean().optional().default(false),
-  })
-  .refine(
-    (d) => (d.toCourseId === undefined) !== (d.toCourseName === undefined),
-    {
-      message: "Give either the course to move to or a new course's name",
-      path: ["toCourseId"],
-    },
-  );
-export type CourseExamMoveInput = z.infer<typeof courseExamMoveInputSchema>;
-
-export const courseExamMoveResultSchema = z.object({
-  /** The course the exams move to. Its id is null in a dry run that would create it. */
-  course: z.object({ id: z.number().int().nullable(), name: z.string() }),
-  /** Whether the course is new (or, in a dry run, would be). */
-  courseCreated: z.boolean(),
-  examType: z.object({ id: z.number().int(), name: z.string() }),
-  /** Questions (exams) moved, each to its own exam or into an existing one. */
-  questionsMoved: z.number().int(),
-  /** Of those, questions folded into an exam the course already had. */
-  questionsCombined: z.number().int(),
-  /** Papers of the moved questions. */
-  papersMoved: z.number().int(),
-  /** Papers awaiting review that propose the course and exam type directly. */
-  proposalsMoved: z.number().int(),
-});
-export type CourseExamMoveResult = z.infer<typeof courseExamMoveResultSchema>;
-
 // ── Users ────────────────────────────────────────────────────────────────────
 
 export const adminUserSchema = adminUserRefSchema.extend({

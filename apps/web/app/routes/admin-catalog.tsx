@@ -2,12 +2,10 @@ import type {
   AdminCatalog,
   ApiError,
   CatalogMergeResult,
-  CourseExamMoveResult,
   Department,
 } from "@ourdiu/shared";
-import { catalogKey, MAX_MERGE_ENTRIES } from "@ourdiu/shared/constants";
+import { MAX_MERGE_ENTRIES } from "@ourdiu/shared/constants";
 import {
-  ArrowRightLeft,
   Copy,
   EllipsisVertical,
   FolderTree,
@@ -18,7 +16,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import { data, useFetcher, type ShouldRevalidateFunction } from "react-router";
 import {
   ActionDialog,
@@ -30,7 +28,6 @@ import { AdminRouteError } from "~/components/admin/route-error";
 import { UrlTabs } from "~/components/url-tabs";
 import { EmptyState } from "~/components/empty-state";
 import { FormField } from "~/components/form";
-import { SearchableSelect } from "~/components/searchable-select";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import {
@@ -99,16 +96,10 @@ export async function loader({ request }: Route.LoaderArgs) {
   };
 }
 
-/** What the merge and move dialogs' previews get back: what would move. */
+/** What the merge dialog's preview gets back: what a merge would move. */
 type PreviewResult =
   | { ok: true; intent: "merge-preview"; preview: CatalogMergeResult }
-  | { ok: true; intent: "move-preview"; preview: CourseExamMoveResult }
-  | { ok: false; intent: "merge-preview" | "move-preview"; error: string };
-
-const PREVIEWS = ["merge-preview", "move-preview"] as const;
-type PreviewIntent = (typeof PREVIEWS)[number];
-const isPreview = (intent: unknown): intent is PreviewIntent =>
-  PREVIEWS.includes(intent as PreviewIntent);
+  | { ok: false; intent: "merge-preview"; error: string };
 
 /** The merge request from the form: the kept id and the comma-separated others. */
 function mergeBody(form: FormData) {
@@ -118,18 +109,6 @@ function mergeBody(form: FormData) {
       .split(",")
       .filter(Boolean)
       .map(Number),
-  };
-}
-
-/** The move request from the form: a course id or a new course's name. */
-function moveBody(form: FormData) {
-  const toCourseId = String(form.get("toCourseId") ?? "");
-  return {
-    examTypeId: Number(form.get("examTypeId")),
-    ...(toCourseId
-      ? { toCourseId: Number(toCourseId) }
-      : { toCourseName: String(form.get("toCourseName") ?? "") }),
-    toExamTypeId: Number(form.get("toExamTypeId")),
   };
 }
 
@@ -143,42 +122,25 @@ export async function action({ request }: Route.ActionArgs) {
   const id = encodeURIComponent(String(form.get("id") ?? ""));
   const body = formObject(form, "intent", "kind", "id");
 
-  if (isPreview(intent)) {
-    const merging = intent === "merge-preview";
-    const res = await apiFetch(
-      request,
-      merging
-        ? `/api/v1/admin/${kind}/merge`
-        : `/api/v1/admin/courses/${id}/move-exams`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          ...(merging ? mergeBody(form) : moveBody(form)),
-          dryRun: true,
-        }),
-      },
-    );
+  if (intent === "merge-preview") {
+    const res = await apiFetch(request, `/api/v1/admin/${kind}/merge`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...mergeBody(form), dryRun: true }),
+    });
     if (res.ok) {
-      const preview = await readJson<CatalogMergeResult & CourseExamMoveResult>(
-        res,
-      );
       return data<PreviewResult>({
         ok: true,
         intent,
-        preview,
-      } as PreviewResult);
+        preview: await readJson<CatalogMergeResult>(res),
+      });
     }
     const error = await readJson<ApiError>(res).catch(() => null);
     return data<PreviewResult>(
       {
         ok: false,
         intent,
-        error:
-          error?.error.message ??
-          (merging
-            ? "Couldn’t check this merge."
-            : "Couldn’t check this move."),
+        error: error?.error.message ?? "Couldn’t check this merge.",
       },
       { status: res.status >= 500 ? 502 : res.status },
     );
@@ -200,14 +162,6 @@ export async function action({ request }: Route.ActionArgs) {
           `/${kind}/merge`,
           mergeBody(form),
         );
-      case "move":
-        return adminRequest(
-          request,
-          intent,
-          "POST",
-          `/courses/${id}/move-exams`,
-          moveBody(form),
-        );
       default:
         throw new Response("Unknown intent", { status: 400 });
     }
@@ -218,11 +172,12 @@ export async function action({ request }: Route.ActionArgs) {
   return result;
 }
 
-// A preview changes nothing, so the catalog isn't loaded again for it.
+// A merge preview changes nothing, so the catalog isn't loaded again for it.
 export const shouldRevalidate: ShouldRevalidateFunction = ({
   formData,
   defaultShouldRevalidate,
-}) => (isPreview(formData?.get("intent")) ? false : defaultShouldRevalidate);
+}) =>
+  formData?.get("intent") === "merge-preview" ? false : defaultShouldRevalidate;
 
 export { AdminRouteError as ErrorBoundary };
 
@@ -312,20 +267,16 @@ function EntryFields({
 }
 
 function RowActions({
-  catalog,
   kind,
   row,
   run,
 }: {
-  catalog: AdminCatalog;
   kind: Kind;
   row: Row;
   run: ReturnType<typeof useFormAction>["run"];
 }) {
   const { noun } = KINDS[kind];
-  const [dialog, setDialog] = useState<"rename" | "move" | "delete" | null>(
-    null,
-  );
+  const [dialog, setDialog] = useState<"rename" | "delete" | null>(null);
   const inUse =
     row.questionCount + row.submissionCount + (row.courseCount ?? 0) > 0;
   const onOpenChange = (open: boolean) => !open && setDialog(null);
@@ -348,15 +299,6 @@ function RowActions({
             <Pencil />
             Rename
           </DropdownMenuItem>
-          {kind === "courses" && (
-            <DropdownMenuItem
-              disabled={row.questionCount + row.submissionCount === 0}
-              onSelect={() => setDialog("move")}
-            >
-              <ArrowRightLeft />
-              Move exams…
-            </DropdownMenuItem>
-          )}
           <DropdownMenuItem
             variant="destructive"
             disabled={inUse}
@@ -385,14 +327,6 @@ function RowActions({
           <EntryFields kind={kind} row={row} fieldErrors={fieldErrors} />
         )}
       </ActionDialog>
-      {dialog === "move" && (
-        <MoveExamsDialog
-          catalog={catalog}
-          course={row}
-          onOpenChange={onOpenChange}
-          run={run}
-        />
-      )}
       <ConfirmAction
         open={dialog === "delete"}
         onOpenChange={onOpenChange}
@@ -483,7 +417,6 @@ function MergeDialog({
   const result =
     preview.state === "idle" &&
     preview.data?.ok &&
-    preview.data.intent === "merge-preview" &&
     preview.data.preview.keep.id === keep?.id
       ? preview.data.preview
       : undefined;
@@ -597,263 +530,6 @@ function MergeDialog({
               <Merge />
               <span className="max-w-60 truncate">
                 Merge into “{keep.name}”
-              </span>
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/** The exam type a lab one becomes on the lab course: "Lab Final" → "Final". */
-function labCounterpart(examTypes: AdminCatalog["examTypes"], id: number) {
-  const name = examTypes.find((t) => t.id === id)?.name ?? "";
-  const bare = catalogKey(name)
-    .replace(/\blab\b/g, "")
-    .trim();
-  if (!bare || bare === catalogKey(name)) return id;
-  const others = examTypes.filter((t) => !/\blab\b/.test(catalogKey(t.name)));
-  // "Lab Mid" finds "Midterm" too.
-  const match =
-    others.find((t) => catalogKey(t.name) === bare) ??
-    others.find((t) => catalogKey(t.name).startsWith(bare));
-  return match?.id ?? id;
-}
-
-/** A select of exam types, submitted as `name`. */
-function ExamTypeField({
-  label,
-  examTypes,
-  value,
-  onChange,
-}: {
-  label: string;
-  examTypes: AdminCatalog["examTypes"];
-  value: number;
-  onChange: (id: number) => void;
-}) {
-  const id = useId();
-  return (
-    <div className="grid min-w-0 gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
-      <Select
-        value={String(value)}
-        onValueChange={(next) => onChange(Number(next))}
-      >
-        <SelectTrigger id={id} className="w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {examTypes.map((t) => (
-            <SelectItem key={t.id} value={String(t.id)}>
-              {t.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
-
-/** Lines describing what a move does, from its preview. */
-function moveSummary(
-  preview: CourseExamMoveResult,
-  examTypeName: string,
-  departmentName: string,
-) {
-  const lines: string[] = [];
-  if (preview.questionsMoved > 0) {
-    lines.push(
-      `${plural(preview.questionsMoved, "exam")} with ${plural(preview.papersMoved, "paper")} move to “${preview.course.name}” as ${preview.examType.name}.`,
-    );
-  } else {
-    lines.push(`This course has no ${examTypeName} exams.`);
-  }
-  if (preview.questionsCombined > 0) {
-    lines.push(
-      `${plural(preview.questionsCombined, "exam")} ${preview.questionsCombined === 1 ? "is" : "are"} already there, so their papers, saves and views join the existing ${preview.questionsCombined === 1 ? "one" : "ones"}.`,
-    );
-  }
-  if (preview.proposalsMoved > 0) {
-    lines.push(
-      `${plural(preview.proposalsMoved, "paper")} awaiting review ${preview.proposalsMoved === 1 ? "moves" : "move"} with them.`,
-    );
-  }
-  if (preview.courseCreated) {
-    lines.push(`“${preview.course.name}” is added to ${departmentName}.`);
-  }
-  return lines;
-}
-
-/**
- * Moving a course's exams of one type to another course of its department, as
- * another type: lab papers filed under the theory course go to "<course> Lab"
- * (created if needed). Shows what moves (a dry run), then posts through the
- * section's runner.
- */
-function MoveExamsDialog({
-  catalog,
-  course,
-  onOpenChange,
-  run,
-}: {
-  catalog: AdminCatalog;
-  course: Row;
-  onOpenChange: (open: boolean) => void;
-  run: ReturnType<typeof useFormAction>["run"];
-}) {
-  const { examTypes } = catalog;
-  const department = catalog.departments.find(
-    (d) => d.id === course.departmentId,
-  );
-  const siblings = catalog.courses.filter(
-    (c) => c.departmentId === course.departmentId,
-  );
-  const labName = `${course.name} Lab`;
-
-  const [examTypeId, setExamTypeId] = useState(
-    () =>
-      (
-        examTypes.find((t) => /\blab\b/.test(catalogKey(t.name))) ??
-        examTypes[0]
-      )?.id ?? 0,
-  );
-  const [toExamTypeId, setToExamTypeId] = useState(() =>
-    labCounterpart(examTypes, examTypeId),
-  );
-  // An existing course's id, or the name of one to add.
-  const [target, setTarget] = useState<{ id?: number; name: string }>(() => {
-    const lab = siblings.find(
-      (c) =>
-        c.id !== course.id && sameCourseKey(c.name) === sameCourseKey(labName),
-    );
-    return lab ? { id: lab.id, name: lab.name } : { name: labName };
-  });
-
-  const preview = useFetcher<PreviewResult>();
-  const { submit } = preview;
-  const fields = {
-    kind: "courses",
-    id: String(course.id),
-    examTypeId: String(examTypeId),
-    toCourseId: target.id === undefined ? "" : String(target.id),
-    toCourseName: target.id === undefined ? target.name : "",
-    toExamTypeId: String(toExamTypeId),
-  };
-  const fieldsKey = JSON.stringify(fields);
-
-  useEffect(() => {
-    submit({ intent: "move-preview", ...fields }, { method: "post" });
-    // Asks again whenever a choice changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fieldsKey, submit]);
-
-  const result =
-    preview.state === "idle" &&
-    preview.data?.ok &&
-    preview.data.intent === "move-preview"
-      ? preview.data.preview
-      : undefined;
-  const failed =
-    preview.state === "idle" && preview.data?.ok === false
-      ? preview.data.error
-      : undefined;
-  const examTypeName = examTypes.find((t) => t.id === examTypeId)?.name ?? "";
-  const movesSomething =
-    result !== undefined && result.questionsMoved + result.proposalsMoved > 0;
-
-  return (
-    <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Move exams</DialogTitle>
-          <DialogDescription>
-            Moves “{course.name}”’s exams of one type to another course of{" "}
-            {department?.shortName ?? "its department"}, for example lab papers
-            to its lab course. Exams already there are combined. This can’t be
-            undone.
-          </DialogDescription>
-        </DialogHeader>
-        <form
-          className="grid gap-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            run(
-              { intent: "move", ...fields },
-              `Moved to “${result?.course.name ?? target.name}”`,
-            );
-            onOpenChange(false);
-          }}
-        >
-          <ExamTypeField
-            label="Exams of type"
-            examTypes={examTypes}
-            value={examTypeId}
-            onChange={(id) => {
-              setExamTypeId(id);
-              setToExamTypeId(labCounterpart(examTypes, id));
-            }}
-          />
-          <SearchableSelect
-            label="Move to course"
-            placeholder="Select a course"
-            searchPlaceholder="Search or add a course…"
-            emptyText="No course found."
-            options={siblings.map((c) => ({
-              value: String(c.id),
-              label: c.name,
-            }))}
-            value={target.id === undefined ? null : String(target.id)}
-            displayLabel={
-              target.id === undefined ? `${target.name} (new)` : undefined
-            }
-            onChange={(value) => {
-              const picked = siblings.find((c) => String(c.id) === value);
-              if (picked) setTarget({ id: picked.id, name: picked.name });
-            }}
-            clearable={false}
-            onCreate={(name) => setTarget({ name })}
-            createLabel={(name) => `Add “${name}”`}
-          />
-          <ExamTypeField
-            label="As exam type"
-            examTypes={examTypes}
-            value={toExamTypeId}
-            onChange={setToExamTypeId}
-          />
-
-          <div
-            className="grid gap-1.5 rounded-xl bg-surface-high px-4 py-3 text-sm"
-            aria-live="polite"
-          >
-            {failed ? (
-              <p className="text-destructive">{failed}</p>
-            ) : !result ? (
-              <p className="text-muted-foreground">Checking what moves…</p>
-            ) : (
-              moveSummary(
-                result,
-                examTypeName,
-                department?.name ?? "the department",
-              ).map((line) => <p key={line}>{line}</p>)
-            )}
-          </div>
-
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
-              </Button>
-            </DialogClose>
-            <Button
-              type="submit"
-              variant="destructive"
-              disabled={!movesSomething}
-            >
-              <ArrowRightLeft />
-              <span className="max-w-60 truncate">
-                Move to “{result?.course.name ?? target.name}”
               </span>
             </Button>
           </DialogFooter>
@@ -1147,12 +823,7 @@ function CatalogSection({
                     <Count value={row.submissionCount} />
                   </TableCell>
                   <TableCell>
-                    <RowActions
-                      catalog={catalog}
-                      kind={kind}
-                      row={row}
-                      run={run}
-                    />
+                    <RowActions kind={kind} row={row} run={run} />
                   </TableCell>
                 </TableRow>
               ))}

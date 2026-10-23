@@ -27,6 +27,7 @@ import { SiteHeader } from "~/components/site-header";
 import { SocialIcon } from "~/components/social-icons";
 import { buttonVariants } from "~/components/ui/button";
 import { TopLoader } from "~/components/top-loader";
+import { AppSheet } from "~/components/app-sheet";
 import { routineIsLive } from "~/lib/routine.server";
 import { LazyToaster } from "~/components/lazy-toaster";
 import {
@@ -258,6 +259,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
         )}
         <LazyToaster position="top-center" />
+        <AppSheet />
         <ScrollRestoration />
         <Scripts />
       </body>

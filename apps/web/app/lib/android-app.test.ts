@@ -1,0 +1,39 @@
+import { describe, expect, it } from "vitest";
+import { APP_SHEET_COOKIE, appPathFor, offersAppSheet } from "./android-app";
+
+const ANDROID =
+  "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36";
+const GOOGLEBOT =
+  "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
+const IPHONE =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+
+describe("offersAppSheet", () => {
+  it("asks Android visitors who haven't answered", () => {
+    expect(offersAppSheet(ANDROID, "", "/questions/5")).toBe(true);
+    expect(offersAppSheet(ANDROID, "ourdiu_space=routine", "/routine")).toBe(
+      true,
+    );
+  });
+
+  it("leaves out answered visitors, other phones, crawlers and some pages", () => {
+    expect(offersAppSheet(ANDROID, `${APP_SHEET_COOKIE}=1`, "/")).toBe(false);
+    expect(offersAppSheet(IPHONE, "", "/")).toBe(false);
+    expect(offersAppSheet(GOOGLEBOT, "", "/")).toBe(false);
+    for (const path of ["/app", "/login", "/admin", "/admin/questions"]) {
+      expect(offersAppSheet(ANDROID, "", path)).toBe(false);
+    }
+    expect(offersAppSheet(ANDROID, "", "/apply")).toBe(true);
+  });
+});
+
+describe("appPathFor", () => {
+  it("opens the same page for the question bank, else its home", () => {
+    expect(appPathFor("/questions/5", "?submission=7")).toBe(
+      "/questions/5?submission=7",
+    );
+    expect(appPathFor("/questions", "")).toBe("/questions");
+    expect(appPathFor("/routine/cse/67_B", "")).toBe("/questions");
+    expect(appPathFor("/questionsx", "")).toBe("/questions");
+  });
+});

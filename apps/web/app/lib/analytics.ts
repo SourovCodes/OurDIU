@@ -24,6 +24,14 @@ declare global {
   }
 }
 
+/**
+ * Reports an event to Google Analytics by name, e.g. `app_sheet_open` (names say
+ * everything, so the Events report shows them without custom dimensions).
+ */
+export function trackEvent(name: string) {
+  window.gtag?.("event", name);
+}
+
 /** Reports a page view for the first page and after every client navigation. */
 export function usePageViews() {
   const { pathname, search } = useLocation();

@@ -8,6 +8,9 @@ import {
 import { E2E_ORIGIN } from "./env";
 import { claimSession, type SessionKind } from "./sessions";
 
+/** `APP_SHEET_COOKIE` in app/lib/android-app.ts. */
+export const APP_SHEET_COOKIE = "ourdiu_app_sheet";
+
 // Shared by the e2e specs. They rely on the seed data, which their server gets fresh on every run.
 
 /**
@@ -36,6 +39,12 @@ export async function untilHydrated(page: Page, response: Response | null) {
  */
 export const test = base.extend({
   page: async ({ page }, use) => {
+    // The mobile project browses as Android, which is asked once to use the app
+    // (lib/android-app.ts): answered already, so it doesn't cover every test. The
+    // test of the sheet clears it.
+    await page
+      .context()
+      .addCookies([{ name: APP_SHEET_COOKIE, value: "1", url: E2E_ORIGIN }]);
     const goto = page.goto.bind(page);
     const reload = page.reload.bind(page);
     page.goto = async (...args) => {

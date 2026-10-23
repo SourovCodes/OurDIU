@@ -8,6 +8,7 @@ import {
   uploadPaperWithNewCourse,
   expect,
   test,
+  shownPdf,
 } from "./helpers";
 
 failOnConsoleErrors();
@@ -58,10 +59,9 @@ test("an admin approves a proposed course and publishes the paper", async ({
   await expect(
     page.getByText("This paper proposes new catalog entries"),
   ).toBeVisible();
-  await expect(page.getByTestId("pdf-viewer")).toHaveAttribute(
-    "data",
-    /^\/api\/v1\/admin\/submissions\/[^/]+\/file/,
-  );
+  await expect
+    .poll(() => shownPdf(page))
+    .toMatch(/^\/api\/v1\/admin\/submissions\/[^/]+\/file/);
 
   // It can't be published until the new course is approved.
   const publish = page.getByRole("button", { name: "Publish" });
@@ -97,7 +97,7 @@ test("an admin approves a proposed course and publishes the paper", async ({
   await page.getByRole("button", { name: "More actions" }).click();
   await page.getByRole("menuitem", { name: "Open the public page" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(courseName);
-  await expect(page.getByTestId("pdf-viewer")).toBeVisible();
+  await expect.poll(() => shownPdf(page)).toMatch(/\/file/);
 });
 
 test("an admin watermarks published papers that have no public copy", async ({

@@ -338,25 +338,38 @@ test("question page embeds the PDF, shows its uploader and switches submissions"
     "aria-current",
     "true",
   );
-  // Android browsers have no PDF viewer: they're asked to read it in the app,
-  // and once they view one here, the next papers don't ask again.
-  if (isMobile) {
+  // Browsers with a PDF viewer embed the paper. The others (phones, and the
+  // headless test browser) get links to open or download it, and Android ones are
+  // also asked to read it in the app.
+  const hasViewer = await page.evaluate(() => navigator.pdfViewerEnabled);
+  const viewer = page.getByTestId("pdf-viewer");
+  const openPdf = page.getByRole("link", { name: "Open the PDF" });
+  const shows = (submission: number) => {
+    const file = new RegExp(`^/api/v1/submissions/${submission}/file`);
+    return hasViewer
+      ? expect(viewer).toHaveAttribute("data", file)
+      : expect(openPdf).toHaveAttribute("href", file);
+  };
+  await shows(1);
+  await expect(page.getByRole("link", { name: "Open in the app" })).toHaveCount(
+    isMobile && !hasViewer ? 1 : 0,
+  );
+  if (isMobile && !hasViewer) {
     await expect(
       page.getByRole("link", { name: "Open in the app" }),
     ).toHaveAttribute(
       "href",
       /^intent:\/\/ourdiu\.com\/questions\/1\?submission=1#Intent;/,
     );
-    await page.getByRole("button", { name: "View it here instead" }).click();
   }
-  const viewer = page.getByTestId("pdf-viewer");
-  await expect(viewer).toHaveAttribute(
-    "data",
-    /^\/api\/v1\/submissions\/1\/file/,
-  );
-  // Browsers without an inline PDF viewer get links to the same file instead.
+  // The file can be downloaded from the viewer's place too (inside the embed, for
+  // browsers that can't show it after all).
   await expect(
-    page.getByTestId("pdf-viewer-fallback").locator("a[download]"),
+    page
+      .getByTestId(
+        isMobile && !hasViewer ? "pdf-open-in-app" : "pdf-viewer-fallback",
+      )
+      .locator("a[download]"),
   ).toHaveAttribute("href", "/api/v1/submissions/1/file");
   // The uploader card links to their profile.
   await expect(uploaderLink(page, "Ayesha Rahman")).toBeVisible();
@@ -368,19 +381,19 @@ test("question page embeds the PDF, shows its uploader and switches submissions"
     "aria-current",
     "true",
   );
-  await expect(viewer).toHaveAttribute("data", /\/submissions\/2\/file/);
+  await shows(2);
   await expect(uploaderLink(page, "Tanvir Hasan")).toBeVisible();
 
   // Switching back and forth keeps exactly one toolbar and viewer on the page.
   await paperLink(page, SEED_01).click();
-  await expect(viewer).toHaveAttribute("data", /\/submissions\/1\/file/);
+  await shows(1);
   await paperLink(page, SEED_02).click();
-  await expect(viewer).toHaveAttribute("data", /\/submissions\/2\/file/);
+  await shows(2);
   await expect(page.getByRole("link", { name: /^Log in to like/ })).toHaveCount(
     1,
   );
   await expect(page.getByRole("link", { name: "Report" })).toHaveCount(1);
-  await expect(viewer).toHaveCount(1);
+  await expect(hasViewer ? viewer : openPdf).toHaveCount(1);
 
   // Unpublished copies aren't listed (just counted) and can't be opened.
   await expect(

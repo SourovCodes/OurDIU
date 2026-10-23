@@ -261,6 +261,12 @@ describe("buildPrompt", () => {
     expect(prompt).toContain(t.algorithms.name);
     expect(prompt).toContain("never an abbreviation");
   });
+
+  it("files lab exams on the lab course with a plain exam type", () => {
+    const prompt = buildPrompt(catalog());
+    expect(prompt).toContain('"<course title> Lab"');
+    expect(prompt).toContain('("Final", not "Lab Final")');
+  });
 });
 
 describe("runAnalysis", () => {

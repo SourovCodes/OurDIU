@@ -6,6 +6,84 @@
 -- follow by their triggers. Matches names, not ids, so it does nothing where there are
 -- no lab exam types (local and e2e databases). Don't edit once applied.
 
+-- CIS's "SP Lab" is "Structured Programming Lab" filed twice: its exams join that
+-- course (none is the same exam) and its old page redirects. If one ever were the
+-- same exam, moving it breaks the unique exam key and the whole migration fails.
+UPDATE `questions`
+SET `course_id` = (
+  SELECT k.`id` FROM `courses` k JOIN `departments` d ON d.`id` = k.`department_id`
+  WHERE d.`short_name` = 'CIS' AND k.`name` = 'Structured Programming Lab'
+)
+WHERE `course_id` IN (
+  SELECT c.`id` FROM `courses` c JOIN `departments` d ON d.`id` = c.`department_id`
+  WHERE d.`short_name` = 'CIS' AND c.`name` = 'SP Lab'
+)
+  AND EXISTS (
+    SELECT 1 FROM `courses` k JOIN `departments` d ON d.`id` = k.`department_id`
+    WHERE d.`short_name` = 'CIS' AND k.`name` = 'Structured Programming Lab'
+  );
+--> statement-breakpoint
+UPDATE `submissions`
+SET `course_id` = (
+  SELECT k.`id` FROM `courses` k JOIN `departments` d ON d.`id` = k.`department_id`
+  WHERE d.`short_name` = 'CIS' AND k.`name` = 'Structured Programming Lab'
+)
+WHERE `course_id` IN (
+  SELECT c.`id` FROM `courses` c JOIN `departments` d ON d.`id` = c.`department_id`
+  WHERE d.`short_name` = 'CIS' AND c.`name` = 'SP Lab'
+)
+  AND EXISTS (
+    SELECT 1 FROM `courses` k JOIN `departments` d ON d.`id` = k.`department_id`
+    WHERE d.`short_name` = 'CIS' AND k.`name` = 'Structured Programming Lab'
+  );
+--> statement-breakpoint
+UPDATE `submission_analyses`
+SET `course_id` = (
+  SELECT k.`id` FROM `courses` k JOIN `departments` d ON d.`id` = k.`department_id`
+  WHERE d.`short_name` = 'CIS' AND k.`name` = 'Structured Programming Lab'
+)
+WHERE `course_id` IN (
+  SELECT c.`id` FROM `courses` c JOIN `departments` d ON d.`id` = c.`department_id`
+  WHERE d.`short_name` = 'CIS' AND c.`name` = 'SP Lab'
+)
+  AND EXISTS (
+    SELECT 1 FROM `courses` k JOIN `departments` d ON d.`id` = k.`department_id`
+    WHERE d.`short_name` = 'CIS' AND k.`name` = 'Structured Programming Lab'
+  );
+--> statement-breakpoint
+UPDATE `merged_ids`
+SET `new_id` = (
+  SELECT k.`id` FROM `courses` k JOIN `departments` d ON d.`id` = k.`department_id`
+  WHERE d.`short_name` = 'CIS' AND k.`name` = 'Structured Programming Lab'
+)
+WHERE `kind` = 'course'
+  AND `new_id` IN (
+    SELECT c.`id` FROM `courses` c JOIN `departments` d ON d.`id` = c.`department_id`
+    WHERE d.`short_name` = 'CIS' AND c.`name` = 'SP Lab'
+  )
+  AND EXISTS (
+    SELECT 1 FROM `courses` k JOIN `departments` d ON d.`id` = k.`department_id`
+    WHERE d.`short_name` = 'CIS' AND k.`name` = 'Structured Programming Lab'
+  );
+--> statement-breakpoint
+INSERT OR REPLACE INTO `merged_ids` (`kind`, `old_id`, `new_id`)
+SELECT 'course', c.`id`, k.`id`
+FROM `courses` c
+JOIN `departments` d ON d.`id` = c.`department_id`
+JOIN `courses` k ON k.`department_id` = c.`department_id` AND k.`name` = 'Structured Programming Lab'
+WHERE d.`short_name` = 'CIS' AND c.`name` = 'SP Lab';
+--> statement-breakpoint
+DELETE FROM `courses`
+WHERE `id` IN (
+  SELECT c.`id` FROM `courses` c JOIN `departments` d ON d.`id` = c.`department_id`
+  WHERE d.`short_name` = 'CIS' AND c.`name` = 'SP Lab'
+)
+  AND EXISTS (
+    SELECT 1 FROM `courses` k JOIN `departments` d ON d.`id` = k.`department_id`
+    WHERE d.`short_name` = 'CIS' AND k.`name` = 'Structured Programming Lab'
+  );
+--> statement-breakpoint
+
 -- A lab course for each theory course with lab exams.
 INSERT INTO `courses` (`name`, `department_id`)
 SELECT DISTINCT c.`name` || ' Lab', c.`department_id`

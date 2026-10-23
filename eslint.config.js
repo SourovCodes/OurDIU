@@ -15,6 +15,8 @@ export default defineConfig([
     "**/coverage/",
     "**/playwright-report/",
     "**/test-results/",
+    // Other Claude Code sessions' checkouts of this repo
+    ".claude/worktrees/",
   ]),
   js.configs.recommended,
   tseslint.configs.recommended,

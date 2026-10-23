@@ -231,3 +231,20 @@ export async function logInAs(
   await untilHydrated(page, await page.goto(redirectTo));
   return { id: session.userId, email: session.email };
 }
+
+/**
+ * The file a page's PDF viewer offers: the embed's, or its "Open the PDF" link's in
+ * browsers without a PDF viewer (phones, headless Chromium). Null while there's none.
+ */
+export function shownPdf(page: Page) {
+  return page.evaluate(
+    () =>
+      document
+        .querySelector('[data-testid="pdf-viewer"]')
+        ?.getAttribute("data") ??
+      [...document.querySelectorAll("a")]
+        .find((link) => link.textContent?.trim() === "Open the PDF")
+        ?.getAttribute("href") ??
+      null,
+  );
+}

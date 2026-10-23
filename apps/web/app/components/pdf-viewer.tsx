@@ -5,8 +5,8 @@ import {
   Loader2,
   Smartphone,
 } from "lucide-react";
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { Button, buttonVariants } from "~/components/ui/button";
+import { useEffect, useSyncExternalStore } from "react";
+import { buttonVariants } from "~/components/ui/button";
 import { trackEvent } from "~/lib/analytics";
 import { isAndroid, openInAppUrl } from "~/lib/android-app";
 import { cn } from "~/lib/utils";
@@ -18,23 +18,10 @@ type PdfViewerProps = {
   title: string;
   /**
    * The page in the app (a public paper's), for Android browsers: they have no PDF
-   * viewer, so they're asked to read it in the app rather than in Google's viewer.
+   * viewer, so they're asked to read it in the app.
    */
   appPath?: string;
 };
-
-/**
- * Google's hosted viewer, for browsers without a PDF viewer of their own. Null on a
- * local host, which Google can't fetch from (development and end-to-end tests).
- */
-function googleViewerUrl(src: string) {
-  if (/^(localhost|127\.|\[::1\]$)/.test(window.location.hostname)) return null;
-  const absolute = new URL(src, window.location.origin).href;
-  return `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(absolute)}`;
-}
-
-/** Set once a visitor chose to view a paper here: the next papers don't ask again. */
-let viewedHere = false;
 
 /** Whether a browser has a PDF viewer never changes while the page is open. */
 const subscribeNever = () => () => {};
@@ -44,12 +31,11 @@ const FRAME_CLASS =
   "relative block h-[calc(100dvh-7rem)] min-h-[28rem] w-full sm:h-[80vh] sm:min-h-[32rem]";
 
 /**
- * Uses the browser's native PDF viewer via <object>. Most mobile browsers have none
- * (`navigator.pdfViewerEnabled` is false), so there the Google Docs viewer renders the
- * paper instead; it fetches the file from our public URL. On Android, a public paper
- * (`appPath`) asks the visitor to read it in the app first, with the Google viewer one
- * tap away. The object's children, links to open or download the file, remain the
- * last resort.
+ * Uses the browser's native PDF viewer via <object>. Browsers without one (most
+ * phones': `navigator.pdfViewerEnabled` is false) get links to open the file in a
+ * tab, where the phone's own viewer takes it, or to download it; on Android a public
+ * paper (`appPath`) also offers it in the app. The object's children, the same
+ * links, cover browsers that say they have a viewer but can't embed it.
  */
 export function PdfViewer({ src, title, appPath, className }: PdfViewerProps) {
   // Read on the client only: the server can't know the browser, so it renders the
@@ -59,25 +45,17 @@ export function PdfViewer({ src, title, appPath, className }: PdfViewerProps) {
     () => navigator.pdfViewerEnabled === false,
     () => false,
   );
-  const google = noNativeViewer ? googleViewerUrl(src) : null;
-  const offerApp = useSyncExternalStore(
+  const android = useSyncExternalStore(
     subscribeNever,
-    () => noNativeViewer && isAndroid(navigator.userAgent),
+    () => isAndroid(navigator.userAgent),
     () => false,
   );
-  const [viewHere, setViewHere] = useState(viewedHere);
 
-  if (appPath && offerApp && !viewHere) {
-    return (
-      <OpenInApp
-        href={openInAppUrl(appPath)}
-        onViewHere={() => {
-          trackEvent("app_card_view_here");
-          viewedHere = true;
-          setViewHere(true);
-        }}
-        className={className}
-      />
+  if (noNativeViewer) {
+    return appPath && android ? (
+      <OpenInApp href={openInAppUrl(appPath)} src={src} className={className} />
+    ) : (
+      <NoViewer src={src} className={cn("min-h-[24rem]", className)} />
     );
   }
 
@@ -119,73 +97,80 @@ export function PdfViewer({ src, title, appPath, className }: PdfViewerProps) {
           Loading the paper…
         </p>
       </div>
-      {google ? (
-        <iframe
-          src={google}
-          title={title}
-          className={FRAME_CLASS}
-          data-testid="pdf-viewer-google"
-        />
-      ) : (
-        <object
-          // Open parameters honoured by most native viewers: no sidebar, fit to width.
-          data={`${src}#navpanes=0&view=FitH`}
-          type="application/pdf"
-          title={title}
-          aria-label={title}
-          className={FRAME_CLASS}
-          data-testid="pdf-viewer"
-        >
-          <div
-            className="flex h-full flex-col items-center justify-center gap-4 bg-card p-6 text-center"
-            data-testid="pdf-viewer-fallback"
-          >
-            <div className="rounded-full bg-primary/10 p-3 text-primary">
-              <FileText className="size-6" aria-hidden />
-            </div>
-            <div className="space-y-1">
-              <p className="font-medium">
-                This browser can’t show the PDF here
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Open it in a new tab or download it instead.
-              </p>
-            </div>
-            <div className="flex flex-wrap justify-center gap-2">
-              <a
-                href={src}
-                target="_blank"
-                rel="noopener"
-                className={buttonVariants({ variant: "outline", size: "sm" })}
-              >
-                <ExternalLink aria-hidden />
-                Open in new tab
-              </a>
-              <a
-                href={src}
-                download
-
-                className={buttonVariants({ size: "sm" })}
-              >
-                <Download aria-hidden />
-                Download
-              </a>
-            </div>
-          </div>
-        </object>
-      )}
+      <object
+        // Open parameters honoured by most native viewers: no sidebar, fit to width.
+        data={`${src}#navpanes=0&view=FitH`}
+        type="application/pdf"
+        title={title}
+        aria-label={title}
+        className={FRAME_CLASS}
+        data-testid="pdf-viewer"
+      >
+        <NoViewer src={src} className="h-full" />
+      </object>
     </div>
   );
 }
 
-/** In place of the viewer on Android: the paper in the app, or here after all. */
+/** The file's links, for browsers that can't show it in the page. */
+function PdfLinks({ src, onClick }: { src: string; onClick?: () => void }) {
+  return (
+    <div className="flex flex-wrap justify-center gap-2">
+      <a
+        href={src}
+        target="_blank"
+        rel="noopener"
+        onClick={onClick}
+        className={buttonVariants({ variant: "outline", size: "sm" })}
+      >
+        <ExternalLink aria-hidden />
+        Open the PDF
+      </a>
+      <a
+        href={src}
+        download
+        onClick={onClick}
+        className={buttonVariants({ variant: "outline", size: "sm" })}
+      >
+        <Download aria-hidden />
+        Download
+      </a>
+    </div>
+  );
+}
+
+/** In place of the viewer where the browser has none. */
+function NoViewer({ src, className }: { src: string; className?: string }) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center gap-4 bg-card p-6 text-center",
+        className,
+      )}
+      data-testid="pdf-viewer-fallback"
+    >
+      <div className="rounded-full bg-primary/10 p-3 text-primary">
+        <FileText className="size-6" aria-hidden />
+      </div>
+      <div className="space-y-1">
+        <p className="font-medium">This browser can’t show the PDF here</p>
+        <p className="text-sm text-muted-foreground">
+          Open it, and your phone’s PDF viewer takes it, or download it.
+        </p>
+      </div>
+      <PdfLinks src={src} />
+    </div>
+  );
+}
+
+/** In place of the viewer on Android: the paper in the app, or the file itself. */
 function OpenInApp({
   href,
-  onViewHere,
+  src,
   className,
 }: {
   href: string;
-  onViewHere: () => void;
+  src: string;
   className?: string;
 }) {
   useEffect(() => trackEvent("app_card_shown"), []);
@@ -207,19 +192,15 @@ function OpenInApp({
           exam week. Free on Google Play.
         </p>
       </div>
-      <div className="flex flex-col items-center gap-2">
-        <a
-          href={href}
-          onClick={() => trackEvent("app_card_open")}
-          className={buttonVariants({ size: "lg" })}
-        >
-          <Smartphone aria-hidden />
-          Open in the app
-        </a>
-        <Button variant="ghost" onClick={onViewHere}>
-          View it here instead
-        </Button>
-      </div>
+      <a
+        href={href}
+        onClick={() => trackEvent("app_card_open")}
+        className={buttonVariants({ size: "lg" })}
+      >
+        <Smartphone aria-hidden />
+        Open in the app
+      </a>
+      <PdfLinks src={src} onClick={() => trackEvent("app_card_pdf")} />
     </div>
   );
 }

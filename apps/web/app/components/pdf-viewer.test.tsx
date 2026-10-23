@@ -1,12 +1,12 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { openInAppUrl } from "~/lib/android-app";
 import { PdfViewer } from "./pdf-viewer";
 
 const ANDROID =
   "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36";
-const IPHONE =
-  "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+const OTHER_PHONE =
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36";
 
 afterEach(() => {
   cleanup();
@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 /** A browser without a PDF viewer of its own, like most phones'. */
-function phone(userAgent: string) {
+function noViewer(userAgent: string) {
   vi.stubGlobal("navigator", {
     ...navigator,
     userAgent,
@@ -24,30 +24,44 @@ function phone(userAgent: string) {
 
 const PAPER = "/questions/5?submission=7";
 
-it("asks Android visitors to read a public paper in the app", () => {
-  phone(ANDROID);
+function fileLinks() {
+  return [
+    screen.getByRole("link", { name: "Open the PDF" }),
+    screen.getByRole("link", { name: "Download" }),
+  ].map((link) => link.getAttribute("href"));
+}
+
+it("asks Android visitors to read a public paper in the app, or open the file", () => {
+  noViewer(ANDROID);
   render(<PdfViewer src="/paper.pdf" title="Paper" appPath={PAPER} />);
   expect(
     screen.getByRole("link", { name: "Open in the app" }).getAttribute("href"),
   ).toBe(openInAppUrl(PAPER));
+  expect(fileLinks()).toEqual(["/paper.pdf", "/paper.pdf"]);
   expect(screen.queryByTestId("pdf-viewer")).toBeNull();
-
-  // The paper here after all (the native viewer's fallback on a local host).
-  fireEvent.click(screen.getByRole("button", { name: "View it here instead" }));
-  expect(screen.queryByTestId("pdf-open-in-app")).toBeNull();
-  expect(screen.getByTestId("pdf-viewer")).toBeTruthy();
+  expect(document.querySelector("iframe")).toBeNull();
 });
 
-it("shows the paper on other phones and for private files", () => {
-  phone(IPHONE);
+it("offers the file where there's no viewer and no app", () => {
+  noViewer(OTHER_PHONE);
   render(<PdfViewer src="/paper.pdf" title="Paper" appPath={PAPER} />);
   expect(screen.queryByTestId("pdf-open-in-app")).toBeNull();
+  expect(fileLinks()).toEqual(["/paper.pdf", "/paper.pdf"]);
   cleanup();
 
   // An upload or admin preview has no page in the app.
-  phone(ANDROID);
-  render(<PdfViewer src="/paper.pdf" title="Paper" />);
+  noViewer(ANDROID);
+  render(<PdfViewer src="/own.pdf" title="Paper" />);
   expect(screen.queryByTestId("pdf-open-in-app")).toBeNull();
+  expect(fileLinks()).toEqual(["/own.pdf", "/own.pdf"]);
+  expect(document.querySelector("iframe")).toBeNull();
+});
+
+it("embeds the paper where the browser has a viewer", () => {
+  render(<PdfViewer src="/paper.pdf" title="Paper" appPath={PAPER} />);
+  expect(screen.getByTestId("pdf-viewer").getAttribute("data")).toBe(
+    "/paper.pdf#navpanes=0&view=FitH",
+  );
 });
 
 it("opens the app at the page, or Google Play without it", () => {

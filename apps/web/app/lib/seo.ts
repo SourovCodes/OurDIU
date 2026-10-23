@@ -6,6 +6,7 @@ import {
 import type { Sitemap } from "@ourdiu/shared";
 import { routineSectionSlug } from "@ourdiu/shared/constants";
 import type { MetaDescriptor } from "react-router";
+import { PLAY_STORE_URL } from "./android-app";
 import { LEGAL_PAGES } from "./legal";
 import { HUB_LIVE } from "./products";
 
@@ -73,6 +74,26 @@ export function breadcrumbJsonLd(origin: string, crumbs: TrailStep[]) {
         name: crumb.name,
         item: origin + crumb.path,
       })),
+    },
+  } satisfies MetaDescriptor;
+}
+
+/** schema.org MobileApplication for /app: the Android app, free on Google Play. */
+export function androidAppJsonLd(origin: string) {
+  return {
+    "script:ld+json": {
+      "@context": "https://schema.org",
+      "@type": "MobileApplication",
+      name: SITE_NAME,
+      alternateName: `${SITE_NAME}: ${QB_NAME}`,
+      description:
+        "Past exam question papers, the class routine and a cover page maker for Daffodil International University (DIU) students.",
+      url: `${origin}/app`,
+      installUrl: PLAY_STORE_URL,
+      operatingSystem: "ANDROID",
+      applicationCategory: "EducationalApplication",
+      inLanguage: "en",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "BDT" },
     },
   } satisfies MetaDescriptor;
 }

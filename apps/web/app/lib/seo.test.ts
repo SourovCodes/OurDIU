@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  androidAppJsonLd,
   breadcrumbJsonLd,
   canonicalUrl,
   llmsTxt,
@@ -93,6 +94,20 @@ describe("breadcrumbJsonLd", () => {
       position: 2,
       name: "CSE",
       item: `${SITE}/questions/departments/1`,
+    });
+  });
+});
+
+describe("androidAppJsonLd", () => {
+  it("describes the free Android app with its Play Store link", () => {
+    const ld = androidAppJsonLd(SITE)["script:ld+json"];
+    expect(ld).toMatchObject({
+      "@type": "MobileApplication",
+      url: `${SITE}/app`,
+      installUrl:
+        "https://play.google.com/store/apps/details?id=com.ourdiu.app",
+      operatingSystem: "ANDROID",
+      offers: { price: "0" },
     });
   });
 });

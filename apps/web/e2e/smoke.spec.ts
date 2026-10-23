@@ -30,6 +30,11 @@ test("the footer leads to the app on Google Play", async ({ page }) => {
     "href",
     "https://play.google.com/store/apps/details?id=com.ourdiu.app",
   );
+  // Search engines learn it's an app.
+  const ld = await page
+    .locator('script[type="application/ld+json"]')
+    .allTextContents();
+  expect(ld.some((text) => text.includes('"MobileApplication"'))).toBe(true);
 });
 
 test("the hub leads to the question bank and its questions", async ({

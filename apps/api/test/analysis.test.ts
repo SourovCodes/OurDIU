@@ -266,6 +266,10 @@ describe("buildPrompt", () => {
     const prompt = buildPrompt(catalog());
     expect(prompt).toContain('"<course title> Lab"');
     expect(prompt).toContain('("Final", not "Lab Final")');
+    // Production names it "Quiz", the dev seed "Class Test": the prompt names neither.
+    expect(prompt).toContain(
+      "the existing exam type for quizzes and class tests",
+    );
   });
 });
 

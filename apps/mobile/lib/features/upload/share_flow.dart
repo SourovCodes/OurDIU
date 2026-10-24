@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../auth/sign_in_flow.dart';
+import '../../data/analytics.dart';
 import '../../data/format.dart';
 import 'papers.dart';
 
@@ -85,6 +86,7 @@ bool openUploadForm(BuildContext context, PickedPdf pdf) {
     _tooBig(context, pdf);
     return false;
   }
+  analytics.uploadStart(pdf.source);
   context.push('/upload', extra: pdf);
   return true;
 }

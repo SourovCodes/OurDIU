@@ -9,6 +9,7 @@ import '../../api/generated/export.dart';
 import '../../auth/session.dart';
 import '../../auth/sign_in_flow.dart';
 import '../../auth/token.dart';
+import '../../data/analytics.dart';
 import '../../data/format.dart';
 import '../../data/saved.dart';
 import '../../theme/exam_shape.dart';
@@ -343,13 +344,16 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
                             _PaperMenu(
                               reported: _isReported(selected),
                               own: _isOwn(selected),
-                              onShareLink: () => SharePlus.instance.share(
-                                ShareParams(
-                                  uri: Uri.parse(
-                                    '$apiBaseUrl/questions/${widget.id}',
+                              onShareLink: () {
+                                analytics.sharePaperLink(widget.id);
+                                SharePlus.instance.share(
+                                  ShareParams(
+                                    uri: Uri.parse(
+                                      '$apiBaseUrl/questions/${widget.id}',
+                                    ),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                               onOpenInBrowser: () => openInBrowser(url),
                               onReport: () => _report(
                                 selected,
@@ -862,6 +866,7 @@ class _ShareButtonState extends ConsumerState<_ShareButton> {
         url: widget.url,
         fileName: widget.fileName,
       );
+      analytics.paperDownload();
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

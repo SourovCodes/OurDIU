@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The `ourdiu` Firebase project's Android app, as the google-services plugin
+     would write it from google-services.json: Analytics reads google_app_id
+     from here (docs/PLAN.md, decision 58). The same values are in
+     lib/firebase_options.dart. Not secrets. -->
+<resources>
+    <string name="google_app_id" translatable="false">1:279664469023:android:57446443d99f43867a612a</string>
+    <string name="google_api_key" translatable="false">AIzaSyC5HuGPbFS5NJioHNzr9Tky7nnDSGZdh5s</string>
+    <string name="gcm_defaultSenderId" translatable="false">279664469023</string>
+    <string name="project_id" translatable="false">ourdiu</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyC5HuGPbFS5NJioHNzr9Tky7nnDSGZdh5s</string>
+</resources>

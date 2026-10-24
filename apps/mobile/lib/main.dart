@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api/api.dart';
 import 'auth/token.dart';
+import 'data/analytics.dart';
 import 'data/prefs.dart';
 import 'data/settings.dart';
 import 'features/routine/routine_home_widget.dart';
@@ -21,15 +22,21 @@ import 'theme/theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final tokens = SecureTokenStore();
-  final (dir, prefs, token) = await (
+  final (dir, prefs, token, _) = await (
     getApplicationSupportDirectory(),
     SharedPreferences.getInstance(),
     tokens.read(),
+    startAnalytics(),
   ).wait;
 
   // Start the PDF engine now, in the background, so the first paper opens
   // without waiting for it (pdfrx's advice for apps that open documents).
   unawaited(pdfrxFlutterInitialize());
+
+  final router = buildRouter(initialLocation: startLocation(prefs));
+  trackScreens(router);
+  // Before the router's own observer, which takes the links it's given.
+  WidgetsBinding.instance.addObserver(AppLinkObserver());
 
   runApp(
     ProviderScope(
@@ -41,7 +48,7 @@ Future<void> main() async {
         tokenStoreProvider.overrideWithValue(tokens),
         savedSessionTokenProvider.overrideWithValue(token),
       ],
-      child: QbApp(router: buildRouter(initialLocation: startLocation(prefs))),
+      child: QbApp(router: router),
     ),
   );
 }

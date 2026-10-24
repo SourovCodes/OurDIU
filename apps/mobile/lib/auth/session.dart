@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import '../api/api.dart';
 import '../api/generated/export.dart';
+import '../data/analytics.dart';
 import 'token.dart';
 
 /// The site's web OAuth client ID. Google issues the ID token for it, so the
@@ -107,6 +108,7 @@ class SignIn extends Notifier<SignInState> {
       if (token == null) throw StateError('The API sent no session token');
       await ref.read(sessionTokenProvider.notifier).set(token);
       state = const SignInIdle();
+      analytics.login();
       return SignInOutcome.signedIn;
     } catch (e) {
       // Let the user pick again, rather than getting the same account back.

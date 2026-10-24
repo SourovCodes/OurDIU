@@ -124,6 +124,11 @@ export const submissions = sqliteTable(
     watermarkedFileSize: integer(),
     watermarkStatus: text({ enum: WATERMARK_STATUSES }),
     watermarkError: text(),
+    /**
+     * The trace ID the PDF processor hid in the copy's pages and document info, so a
+     * copy found elsewhere (its `/api/pdfs/inspect`) leads back to this paper.
+     */
+    watermarkTraceId: text(),
     uploaderId: text().references(() => user.id, { onDelete: "set null" }),
 
     // Denormalised counters. Likes, dislikes and pending reports are maintained by
@@ -186,6 +191,8 @@ export const submissions = sqliteTable(
     index("submissions_course_id_idx").on(t.courseId),
     index("submissions_semester_id_idx").on(t.semesterId),
     index("submissions_exam_type_id_idx").on(t.examTypeId),
+    // Finds the paper a reposted copy came from.
+    index("submissions_watermark_trace_id_idx").on(t.watermarkTraceId),
     // The text backfill's next paper, without scanning every published one.
     index("submissions_text_pending_idx")
       .on(t.id)

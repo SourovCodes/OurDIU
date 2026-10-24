@@ -7,6 +7,7 @@ import type {
 import { eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 import { inList } from "../src/db/in-list";
+import { TRACE_ID_PATTERN } from "../src/lib/pdf-processor";
 import { submissions, type NewSubmissionRow } from "../src/db/schema";
 import { publishIfConfirmed } from "../src/services/analysis";
 import { updateSubmissionStatus } from "../src/services/moderation";
@@ -117,6 +118,7 @@ function fakeProcessor(respond?: () => Response) {
     apiKey: string | null;
     credit: string;
     stamp: string;
+    traceId: string | null;
     pdf: string;
   }[] = [];
   const fetcher = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -131,12 +133,17 @@ function fakeProcessor(respond?: () => Response) {
       apiKey: new Headers(init!.headers).get("x-api-key"),
       credit: String(form.get("credit_text")),
       stamp: String(form.get("watermark_text")),
+      traceId: form.get("trace_id") as string | null,
       pdf: await (form.get("pdf") as File).text(),
     });
     return (
       respond?.() ??
       new Response(WATERMARKED, {
-        headers: { "content-type": "application/pdf" },
+        headers: {
+          "content-type": "application/pdf",
+          // The processor echoes the trace ID it hid, or one it made up.
+          "x-pdf-trace-id": String(form.get("trace_id") ?? "pdf-generated-id"),
+        },
       })
     );
   }) as typeof fetch;
@@ -282,13 +289,16 @@ describe("runWatermark", () => {
         apiKey: "processor-test-key",
         credit: "diuqbank.com | Shared by Test User",
         stamp: "diuqbank.com",
+        traceId: `ourdiu-submission-${paper.id}`,
         pdf: ORIGINAL,
       },
     ]);
+    expect(processor.calls[0]!.traceId).toMatch(TRACE_ID_PATTERN);
     const row = await readRow(paper.id);
     expect(row).toMatchObject({
       watermarkStatus: "done",
       watermarkError: null,
+      watermarkTraceId: `ourdiu-submission-${paper.id}`,
       // Random, not derived from the id: the bucket is public.
       watermarkedFileKey: expect.stringMatching(
         /^watermarked\/[0-9a-f-]{36}\.pdf$/,
@@ -303,6 +313,30 @@ describe("runWatermark", () => {
       `inline; filename="${PAPER_NAME}"; filename*=UTF-8''${encodeURIComponent(PAPER_NAME)}`,
     );
     expect(await (await env.BUCKET.get(paper.fileKey))!.text()).toBe(ORIGINAL);
+  });
+
+  it("stores the trace ID the processor says it hid", async () => {
+    const paper = await seedPaper();
+    const processor = fakeProcessor(
+      () =>
+        new Response(WATERMARKED, {
+          headers: {
+            "content-type": "application/pdf",
+            "x-pdf-trace-id": "processor-chosen-id",
+          },
+        }),
+    );
+    await runWatermark(
+      db(),
+      watermarkEnv,
+      { submissionId: paper.id },
+      { fetch: processor.fetch },
+    );
+    const [found] = await db()
+      .select({ id: submissions.id })
+      .from(submissions)
+      .where(eq(submissions.watermarkTraceId, "processor-chosen-id"));
+    expect(found?.id).toBe(paper.id);
   });
 
   it("credits only the site when the uploader is gone", async () => {
@@ -615,8 +649,11 @@ describe("admin endpoints", () => {
       { submissionId: paper.id },
       { fetch: fakeProcessor().fetch },
     );
-    const { watermarkedFileKey } = await readRow(paper.id);
+    const { watermarkedFileKey, watermarkTraceId } = await readRow(paper.id);
     expect(watermarkedFileKey).not.toBe(paper.watermarkedFileKey);
+    // Copies made before trace IDs get one when they're made again.
+    expect(paper.watermarkTraceId).toBeNull();
+    expect(watermarkTraceId).toBe(`ourdiu-submission-${paper.id}`);
     expect(await env.BUCKET.head(watermarkedFileKey!)).not.toBeNull();
     expect(await env.BUCKET.head(paper.watermarkedFileKey)).toBeNull();
   });

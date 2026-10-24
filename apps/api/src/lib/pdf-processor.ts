@@ -48,20 +48,27 @@ export class PdfProcessorError extends Error {
   }
 }
 
+/** The processor's rule for `trace_id`; anything else gets a 422. */
+export const TRACE_ID_PATTERN = /^[A-Za-z0-9._:-]{1,100}$/;
+
 /**
  * Adds `credit` as a header line on every page and stamps `stamp` faintly at random
  * positions and angles across each page, then compresses the PDF like `compressPdf`.
+ * The processor also hides a trace ID in the pages' invisible text and the document
+ * info (`traceId`, or one it makes up) and returns it, so a copy found elsewhere can
+ * be matched to its upload. The copy comes back locked against editing and copying.
  * Throws a `PdfProcessorError` on failure.
  */
 export async function watermarkPdf(
   pdf: Uint8Array<ArrayBuffer>,
-  text: { credit: string; stamp: string },
+  text: { credit: string; stamp: string; traceId?: string },
   options: { url: string; apiKey: string; fetch?: Fetcher },
-): Promise<Uint8Array<ArrayBuffer>> {
+): Promise<{ pdf: Uint8Array<ArrayBuffer>; traceId: string | null }> {
   const body = new FormData();
   body.append("pdf", new File([pdf], "paper.pdf", { type: "application/pdf" }));
   body.append("credit_text", text.credit);
   body.append("watermark_text", text.stamp);
+  if (text.traceId) body.append("trace_id", text.traceId);
   let res: Response;
   try {
     res = await (options.fetch ?? fetch)(
@@ -93,5 +100,8 @@ export async function watermarkPdf(
       res.status >= 500 || res.status === 429,
     );
   }
-  return new Uint8Array(await res.arrayBuffer());
+  return {
+    pdf: new Uint8Array(await res.arrayBuffer()),
+    traceId: res.headers.get("X-PDF-Trace-Id"),
+  };
 }

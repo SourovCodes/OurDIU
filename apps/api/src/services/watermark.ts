@@ -41,6 +41,14 @@ const QUEUE_BATCH_SIZE = 100;
  */
 const newWatermarkedFileKey = () => `watermarked/${crypto.randomUUID()}.pdf`;
 
+/**
+ * The trace ID hidden in a submission's copy: stable and not secret (the copy is
+ * public anyway), prefixed so it can't be mistaken for another app's IDs on the
+ * shared PDF processor. Matches the processor's `TRACE_ID_PATTERN`.
+ */
+export const watermarkTraceId = (submissionId: number) =>
+  `ourdiu-submission-${submissionId}`;
+
 /** Every R2 object of a submission, for deleting them together. */
 export const submissionFileKeys = (row: {
   fileKey: string;
@@ -269,11 +277,12 @@ export async function runWatermark(
     if (!object) {
       throw new PdfProcessorError("The PDF is missing from storage", false);
     }
-    const pdf = await watermarkPdf(
+    const { pdf, traceId } = await watermarkPdf(
       new Uint8Array(await object.arrayBuffer()),
       {
         credit: creditText(env.SITE_URL, row.uploaderName),
         stamp: stampText(env.SITE_URL),
+        traceId: watermarkTraceId(job.submissionId),
       },
       {
         url: env.PDF_PROCESSOR_URL,
@@ -294,6 +303,8 @@ export async function runWatermark(
       .set({
         watermarkedFileKey: key,
         watermarkedFileSize: pdf.byteLength,
+        // What the processor says it hid; null if it didn't say (and so hid none).
+        watermarkTraceId: traceId,
         watermarkStatus: "done",
         watermarkError: null,
       })

@@ -116,7 +116,10 @@ class _Profile extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'Contributor since $joined',
+                          [
+                            if (c.studentId case final id?) 'ID $id',
+                            'Contributor since $joined',
+                          ].join(' · '),
                           style: TextStyle(color: scheme.onPrimaryContainer),
                         ),
                       ],

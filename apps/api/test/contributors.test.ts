@@ -1,6 +1,7 @@
 import type { ContributorDetail, ContributorList } from "@ourdiu/shared";
+import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { submissions } from "../src/db/schema";
+import { submissions, user } from "../src/db/schema";
 import {
   api,
   db,
@@ -176,6 +177,30 @@ describe("GET /api/v1/contributors/:id", () => {
       },
     ]);
     expect(JSON.stringify(body)).not.toContain("@diu.edu.bd");
+  });
+
+  it("shows the student ID unless the contributor hid it", async () => {
+    const { midterm } = await seedQuestions();
+    const contributor = await seedUser();
+    await seedSubmission(midterm.id, { uploaderId: contributor.id });
+    const studentId = async () =>
+      (
+        await (
+          await api(`/api/v1/contributors/${contributor.id}`)
+        ).json<ContributorDetail>()
+      ).studentId;
+
+    expect(await studentId()).toBeNull();
+    await db()
+      .update(user)
+      .set({ studentId: "241-15-047" })
+      .where(eq(user.id, contributor.id));
+    expect(await studentId()).toBe("241-15-047");
+    await db()
+      .update(user)
+      .set({ showStudentId: false })
+      .where(eq(user.id, contributor.id));
+    expect(await studentId()).toBeNull();
   });
 
   it("404s for users whose papers are all still under review or rejected", async () => {

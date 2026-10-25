@@ -18,6 +18,7 @@ ContributorDetail _$ContributorDetailFromJson(Map<String, dynamic> json) =>
       departments: (json['departments'] as List<dynamic>)
           .map((e) => ContributorDepartment.fromJson(e as Map<String, dynamic>))
           .toList(),
+      studentId: json['studentId'] as String?,
       submissions: ContributorSubmissionList.fromJson(
         json['submissions'] as Map<String, dynamic>,
       ),
@@ -33,5 +34,6 @@ Map<String, dynamic> _$ContributorDetailToJson(ContributorDetail instance) =>
       'publishedCount': instance.publishedCount,
       'viewCount': instance.viewCount,
       'departments': instance.departments,
+      'studentId': instance.studentId,
       'submissions': instance.submissions,
     };

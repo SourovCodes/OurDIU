@@ -34,6 +34,7 @@ void main() {
       }),
       'GET /api/v1/contributors/student2': (_) => reply({
         ...contributorJson(2, papers: 18),
+        'studentId': '241-15-047',
         'submissions': {'items': [], 'page': 1, 'pageSize': 50, 'total': 0},
       }),
     });
@@ -66,7 +67,10 @@ void main() {
 
     await tester.tap(find.text('Student 2'));
     await tester.pumpAndSettle();
-    expect(find.text('Contributor since March 2025'), findsOneWidget);
+    expect(
+      find.text('ID 241-15-047 · Contributor since March 2025'),
+      findsOneWidget,
+    );
     expect(find.text('Nothing published yet.'), findsOneWidget);
   });
 }

@@ -820,6 +820,12 @@
               "$ref": "#/components/schemas/ContributorDepartment"
             }
           },
+          "studentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "submissions": {
             "$ref": "#/components/schemas/ContributorSubmissionList"
           }
@@ -833,6 +839,7 @@
           "publishedCount",
           "viewCount",
           "departments",
+          "studentId",
           "submissions"
         ]
       },
@@ -1016,6 +1023,9 @@
               "null"
             ]
           },
+          "showStudentId": {
+            "type": "boolean"
+          },
           "publishedCount": {
             "type": "integer"
           },
@@ -1033,6 +1043,7 @@
           "username",
           "image",
           "studentId",
+          "showStudentId",
           "publishedCount",
           "viewCount",
           "canContribute"
@@ -1608,6 +1619,9 @@
               "null"
             ],
             "pattern": "^(?:\\d{3}-\\d{2}-\\d{3,5}|\\d{16})$"
+          },
+          "showStudentId": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -4775,7 +4789,7 @@
           "Account"
         ],
         "summary": "Set or clear your student ID",
-        "description": "Optional and private: it isn't shown on your contributor page. Send null to clear it.",
+        "description": "Optional. Your contributor page shows it unless `showStudentId` is false; leave that out to keep the current choice. Send null to clear the ID.",
         "requestBody": {
           "required": true,
           "content": {

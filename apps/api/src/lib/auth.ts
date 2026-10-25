@@ -87,6 +87,12 @@ export function authOptions(env: Env, db: Database) {
         username: { type: "string", required: false, input: false },
         // Changed through /api/v1/me/student-id, which validates it.
         studentId: { type: "string", required: false, input: false },
+        showStudentId: {
+          type: "boolean",
+          required: false,
+          defaultValue: true,
+          input: false,
+        },
       },
     },
     hooks: {

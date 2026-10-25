@@ -8,8 +8,14 @@ part of 'update_student_id_input.dart';
 
 UpdateStudentIdInput _$UpdateStudentIdInputFromJson(
   Map<String, dynamic> json,
-) => UpdateStudentIdInput(studentId: json['studentId'] as String?);
+) => UpdateStudentIdInput(
+  studentId: json['studentId'] as String?,
+  showStudentId: json['showStudentId'] as bool?,
+);
 
 Map<String, dynamic> _$UpdateStudentIdInputToJson(
   UpdateStudentIdInput instance,
-) => <String, dynamic>{'studentId': instance.studentId};
+) => <String, dynamic>{
+  'studentId': instance.studentId,
+  'showStudentId': instance.showStudentId,
+};

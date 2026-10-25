@@ -47,6 +47,7 @@ export async function getProfile(
       username: user.username,
       image: user.image,
       studentId: user.studentId,
+      showStudentId: user.showStudentId,
       publishedCount: user.publishedSubmissionCount,
       viewCount: user.publishedViewCount,
     })
@@ -438,12 +439,27 @@ export async function updateUsername(
   return username;
 }
 
-/** Sets or clears the user's student ID (already validated). */
+/**
+ * Sets or clears the user's student ID (already validated) and, when given, whether
+ * their contributor page shows it.
+ */
 export async function updateStudentId(
   db: Database,
   userId: string,
   studentId: string | null,
-): Promise<string | null> {
-  await db.update(user).set({ studentId }).where(eq(user.id, userId));
-  return studentId;
+  showStudentId?: boolean,
+): Promise<{ studentId: string | null; showStudentId: boolean }> {
+  const [row] = await db
+    .update(user)
+    .set({
+      studentId,
+      ...(showStudentId === undefined ? {} : { showStudentId }),
+    })
+    .where(eq(user.id, userId))
+    .returning({
+      studentId: user.studentId,
+      showStudentId: user.showStudentId,
+    });
+  if (!row) throw new AppError(404, "NOT_FOUND", "User not found");
+  return row;
 }

@@ -270,7 +270,7 @@ const updateStudentIdRoute = createRoute({
   tags,
   summary: "Set or clear your student ID",
   description:
-    "Optional and private: it isn't shown on your contributor page. Send null to clear it.",
+    "Optional. Your contributor page shows it unless `showStudentId` is false; leave that out to keep the current choice. Send null to clear the ID.",
   middleware: [requireAuth] as const,
   request: {
     body: {
@@ -394,13 +394,12 @@ export const meRoutes = new OpenAPIHono<AppEnv>({
   )
   .openapi(updateStudentIdRoute, async (c) =>
     c.json(
-      {
-        studentId: await updateStudentId(
-          c.var.db,
-          c.var.session!.user.id,
-          c.req.valid("json").studentId,
-        ),
-      },
+      await updateStudentId(
+        c.var.db,
+        c.var.session!.user.id,
+        c.req.valid("json").studentId,
+        c.req.valid("json").showStudentId,
+      ),
       200,
     ),
   );

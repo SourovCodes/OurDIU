@@ -20,18 +20,18 @@ import {
  * uploader and admins, so they are neither counted nor listed publicly. The counts are
  * columns kept up to date by triggers (migration 0006).
  */
+const contributorFields = {
+  id: user.id,
+  username: usernameOf,
+  name: user.name,
+  image: user.image,
+  joinedAt: user.createdAt,
+  publishedCount: user.publishedSubmissionCount,
+  viewCount: user.publishedViewCount,
+};
+
 function selectContributors(db: Database) {
-  return db
-    .select({
-      id: user.id,
-      username: usernameOf,
-      name: user.name,
-      image: user.image,
-      joinedAt: user.createdAt,
-      publishedCount: user.publishedSubmissionCount,
-      viewCount: user.publishedViewCount,
-    })
-    .from(user);
+  return db.select(contributorFields).from(user);
 }
 
 const isContributor = gt(user.publishedSubmissionCount, 0);
@@ -108,7 +108,13 @@ export async function getContributor(
   usernameOrId: string,
   query: ContributorPapersQuery,
 ): Promise<ContributorDetail | null> {
-  const [contributor] = await selectContributors(db)
+  const [row] = await db
+    .select({
+      ...contributorFields,
+      studentId: user.studentId,
+      showStudentId: user.showStudentId,
+    })
+    .from(user)
     .where(
       and(
         isContributor,
@@ -119,7 +125,8 @@ export async function getContributor(
       ),
     )
     .limit(1);
-  if (!contributor) return null;
+  if (!row) return null;
+  const { studentId, showStudentId, ...contributor } = row;
   const { id } = contributor;
 
   const published = and(
@@ -143,6 +150,7 @@ export async function getContributor(
     ...contributor,
     joinedAt: contributor.joinedAt.toISOString(),
     departments: departmentList,
+    studentId: showStudentId ? studentId : null,
     submissions: {
       items: rows.map(toContributorSubmission),
       page: query.page,

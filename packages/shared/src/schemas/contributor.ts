@@ -54,6 +54,8 @@ export type ContributorSubmission = z.infer<typeof contributorSubmissionSchema>;
 
 export const contributorDetailSchema = contributorSchema
   .extend({
+    /** Their student ID, unless they hid it or have none. */
+    studentId: z.string().nullable(),
     /** Published papers only, newest first, one page at a time. */
     submissions: paginatedSchema(contributorSubmissionSchema).meta({
       id: "ContributorSubmissionList",

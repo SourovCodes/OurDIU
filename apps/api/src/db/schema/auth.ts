@@ -31,10 +31,13 @@ export const user = sqliteTable(
      */
     username: text().unique(),
     /**
-     * Optional, kept private (STUDENT_ID_PATTERN). Set through /api/v1/me/student-id, or
-     * taken from the Google name at sign-up (`splitStudentId`).
+     * Optional (STUDENT_ID_PATTERN). Set through /api/v1/me/student-id, or taken from the
+     * Google name at sign-up (`splitStudentId`). Shown on the contributor page unless
+     * `showStudentId` is off (docs/PLAN.md, decision 59).
      */
     studentId: text(),
+    /** Whether the contributor page shows `studentId`; users turn it off on their profile. */
+    showStudentId: integer({ mode: "boolean" }).notNull().default(true),
     // Published papers and their views, kept in sync from submissions by triggers
     // (migration 0006) for the contributor pages; never write them from application code.
     publishedSubmissionCount: integer().notNull().default(0),

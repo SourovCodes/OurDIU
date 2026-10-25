@@ -13,7 +13,7 @@ something new.
 **Which of the following methods of account creation does your app support?**
 OAuth (Sign in with Google).
 
-**Delete account URL:** https://diuqbank.com/delete-account (https://ourdiu.com/delete-account after the cutover in docs/PLAN.md)
+**Delete account URL:** https://ourdiu.com/delete-account
 
 **Do you provide a way for users to request that some or all of their data is
 deleted, without requiring them to delete their account?** Yes: withdrawing an
@@ -21,7 +21,7 @@ upload that isn't published yet, and undoing a like or dislike, both in the app.
 
 ### Data types
 
-Nothing is **shared** in Play's sense: Cloudflare, Google (sign-in, Gemini) and the PDF service are service providers acting on your behalf,
+Nothing is **shared** in Play's sense: Cloudflare, Google (sign-in, Gemini, Analytics) and the PDF service are service providers acting on your behalf,
 and a published paper showing your name is something you chose to do.
 
 | Category | Data type | Collected | Required? | Purposes |
@@ -30,17 +30,21 @@ and a published paper showing your name is something you chose to do.
 | Personal info | Email address | Yes | Optional | App functionality, Account management |
 | Personal info | User IDs | Yes (Google account ID, username) | Optional | App functionality, Account management |
 | Personal info | Other info | Yes (profile photo from Google) | Optional | App functionality, Account management |
+| Messages | Other in-app messages | Yes (review conversations about your uploads) | Optional | App functionality |
 | Files and docs | Files and docs | Yes (PDFs you upload) | Optional | App functionality |
-| App activity | App interactions | Yes (likes, dislikes, reports) | Optional | App functionality |
+| App activity | App interactions | Yes (likes, dislikes, reports, saved papers; Google Analytics' screens and events) | Required (Analytics has no opt-out) | App functionality, Analytics |
 | App activity | Other user-generated content | Yes (a report's note) | Optional | App functionality |
+| Device or other IDs | Device or other IDs | Yes (Google Analytics' app-instance ID; not the advertising ID) | Required | Analytics |
 
 Everything above is **not processed ephemerally** (it's stored).
 
 **Not collected:** location, contacts, photos and videos (a camera scan becomes
 the PDF you upload, which is under Files and docs; nothing else leaves the
 phone), audio, calendar, messages, health, financial info, web browsing, and
-installed apps, crash logs and diagnostics (the app has no crash reporter or
-analytics yet; add them here when it does). "Send feedback" puts the app version
+installed apps, crash logs and diagnostics (Google Analytics for Firebase records screens
+and a few events, docs/PLAN.md decision 58, but there's no crash reporter; add
+Crashlytics here if it comes). The **Advertising ID** declaration stays "not
+used": the build removes the `AD_ID` permission. "Send feedback" puts the app version
 and phone model in an email the user sends from their own mail app, which Play
 doesn't count as collection. Saved papers, recent courses and the theme stay on the phone and
 aren't "collected" (Play only counts data sent off the device).

@@ -21,41 +21,50 @@ university's own.
 ## Short description (max 80)
 
 ```
-DIU past question papers, your class routine and cover pages. Free, no ads.
+DIU question bank with previous year questions, class routine & cover pages.
 ```
+
+No "free" or other price words here: Play flags them in the short description
+("may not be promoted"). The name and this line carry the most weight in Play and
+Google search, so both lead with what students type: "DIU question bank",
+"previous year questions", "class routine", "cover page".
 
 ## Full description (max 4000)
 
+Play and Google index this too. Say the search phrases naturally, once or twice
+each (DIU question bank, previous year questions, question papers, DIU class
+routine, cover page), never as a keyword list.
+
 ```
-OurDIU is a free app for students of Daffodil International University (DIU): the DIU Question Bank of past exam papers, your class routine and a cover page maker, in one app with one account.
+OurDIU brings the DIU Question Bank, your DIU class routine and a cover page maker to one app for students of Daffodil International University (DIU).
 
 DIU QUESTION BANK
-Previous final, midterm and quiz questions of every department, shared by students.
-• Browse by department and course, or search by course name or code.
+Previous year questions for DIU's departments: final, midterm and quiz question papers, shared by DIU students.
+• Browse by department and course, or search by course name or code (CSE, SWE, EEE, CIS, ITM and more).
 • Filter by semester and exam type.
 • A fast, full-screen reader built for question papers.
 • Save papers to come back to before your exam, and share one with classmates in one tap.
 
 SHARE A PAPER
-• Scan a paper with your camera, pick a PDF from your files, or share one to OurDIU from WhatsApp, Messenger or Drive.
+• Scan a question paper with your camera, pick a PDF from your files, or share one to OurDIU from WhatsApp, Messenger or Drive.
 • The app suggests the course, semester and exam type for you.
 • Watch your paper get checked and published, and see how many students it has helped.
 
-CLASS ROUTINE
-DIU's routine for CSE, EEE and SWE, read from the department's latest version.
+DIU CLASS ROUTINE
+The class routine for CSE, EEE and SWE, read from the department's latest version.
 • Today: the class you're in, the next one, and the rest of the day, with the room and teacher.
 • Your section's week with your lab group, and home screen widgets with your classes.
-• Find any section or teacher, see a teacher's room, email and phone, and save a week as a PDF.
+• Find any section or teacher by initials, see a teacher's room, email and phone, and save a week as a PDF.
 • Works offline once your section is set.
 
 COVER PAGE MAKER
-• Cover pages for assignments and lab reports, filled in from your routine: pick the course and the teacher is there.
-• Add your group's members, then share the PDF or a Word file.
+• DIU cover pages for assignments, lab reports, presentations, project and internship reports and final-year projects, plus a lab report index.
+• Pick the course and the teacher is filled in from your routine; add your group's members, then share the PDF or a Word file.
 
 SIGN IN WITH GOOGLE
-Browsing, reading and the routine need no account. Sign in with Google to like the useful papers and report problems, and with your DIU account to share papers. One account works across OurDIU and ourdiu.com.
+Browsing, reading, the routine and cover pages need no account. Sign in with Google to like the useful papers, report problems and keep your saved papers across devices; sharing papers needs your DIU email. One account works across OurDIU and ourdiu.com.
 
-FREE, WITHOUT ADS
+NO ADS
 No ads, no paywalls, no premium papers. OurDIU is built and looked after by a DIU student.
 
 OurDIU is an independent project, not an official app of Daffodil International University. Papers are shared by students and routines are read from the department's published files; if you find a problem, report it from the app.
@@ -76,6 +85,11 @@ Website: https://ourdiu.com
 - **App icon:** `icon-512.png` (512×512), drawn by `tool/brand/render.mjs`.
 - **Feature graphic:** `feature-graphic.png` (1024×500), from
   `feature-graphic.html` (`node apps/mobile/store/render-feature-graphic.mjs`).
-- **Phone screenshots:** `screenshots/` (1080×2400), in this order. Taken on
-  the `QuestionBank_Pixel` emulator with the status bar in demo mode (9:30, full
-  battery, no notifications). `08-products.png` is the first-launch chooser.
+- **Phone screenshots:** `screenshots/` (1080×2400), in this order: Question Bank
+  home, a course, the reader, the routine's Today, a section's week, the Cover
+  Page form, its preview, and the first-launch chooser (all three products).
+  Retaken on 25 October 2026 on the `Medium_Phone` emulator from a profile build
+  (it never reports to Analytics), the status bar in demo mode (9:30, full
+  battery), the clock set to a Monday morning so Today shows a class in progress,
+  and the cover page filled in with a made-up student. Retake them when a screen
+  they show changes.

@@ -98,7 +98,7 @@ abstract class AccountClient {
 
   /// Set or clear your student ID.
   ///
-  /// Optional and private: it isn't shown on your contributor page. Send null to clear it.
+  /// Optional. Your contributor page shows it unless `showStudentId` is false; leave that out to keep the current choice. Send null to clear the ID.
   @PUT('/api/v1/me/student-id')
   Future<UpdateStudentIdInput> putApiV1MeStudentId({
     @Body() required UpdateStudentIdInput body,

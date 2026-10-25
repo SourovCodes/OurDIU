@@ -51,7 +51,8 @@ export default function Privacy() {
         </p>
         <p>
           <strong>On your profile</strong> you can add your student ID. It is
-          optional.
+          optional, and your contributor page shows it unless you turn that off
+          on your profile.
         </p>
         <p>
           <strong>When you make a cover page</strong>, what you type is sent to
@@ -152,15 +153,20 @@ export default function Privacy() {
             shared and how often they were viewed.
           </li>
           <li>
+            Your <strong>student ID</strong>, if you added one, on your
+            contributor profile, unless you turn off “Show it on my contributor
+            page” on your profile.
+          </li>
+          <li>
             Your <strong>published papers</strong>. Their downloadable copies
             carry a watermark with your name and the site’s address, and the
             text read off them is shown on their page and searchable.
           </li>
         </ul>
         <p>
-          Your email address, student ID, papers that are pending or rejected,
-          review messages, and who liked, disliked or reported a paper are never
-          shown publicly. The site’s admins can see them to review uploads and
+          Your email address, papers that are pending or rejected, review
+          messages, and who liked, disliked or reported a paper are never shown
+          publicly. The site’s admins can see them to review uploads and
           reports.
         </p>
       </LegalSection>

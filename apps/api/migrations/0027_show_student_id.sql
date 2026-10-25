@@ -1,0 +1,1 @@
+ALTER TABLE `user` ADD `show_student_id` integer DEFAULT true NOT NULL;

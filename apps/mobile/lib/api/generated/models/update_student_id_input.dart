@@ -8,12 +8,13 @@ part 'update_student_id_input.g.dart';
 
 @JsonSerializable()
 class UpdateStudentIdInput {
-  const UpdateStudentIdInput({required this.studentId});
+  const UpdateStudentIdInput({required this.studentId, this.showStudentId});
 
   factory UpdateStudentIdInput.fromJson(Map<String, Object?> json) =>
       _$UpdateStudentIdInputFromJson(json);
 
   final String? studentId;
+  final bool? showStudentId;
 
   Map<String, Object?> toJson() => _$UpdateStudentIdInputToJson(this);
 }

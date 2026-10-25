@@ -118,6 +118,15 @@ export default function ContributorPage({ loaderData }: Route.ComponentProps) {
                 {contributor.name}
               </h1>
               <p className="text-sm opacity-85">
+                {contributor.studentId && (
+                  <>
+                    ID{" "}
+                    <span className="font-medium tabular-nums">
+                      {contributor.studentId}
+                    </span>
+                    {" · "}
+                  </>
+                )}
                 Contributor since {formatMonth(contributor.joinedAt)}
               </p>
             </div>

@@ -90,7 +90,7 @@ export const updateUsernameInputSchema = z
   .meta({ id: "UpdateUsernameInput" });
 export type UpdateUsernameInput = z.infer<typeof updateUsernameInputSchema>;
 
-/** The signed-in user's student ID, optional and private. */
+/** The signed-in user's student ID, optional, and whether their contributor page shows it. */
 export const updateStudentIdInputSchema = z
   .object({
     /** Like 241-15-047 or 0242220005101255; null to remove it. */
@@ -99,6 +99,8 @@ export const updateStudentIdInputSchema = z
       .trim()
       .regex(STUDENT_ID_PATTERN, STUDENT_ID_RULES)
       .nullable(),
+    /** Show it on the contributor page (the default); left out, it doesn't change. */
+    showStudentId: z.boolean().optional(),
   })
   .meta({ id: "UpdateStudentIdInput" });
 export type UpdateStudentIdInput = z.infer<typeof updateStudentIdInputSchema>;
@@ -113,8 +115,10 @@ export const profileSchema = z
     username: z.string(),
     /** An avatar URL: the files domain for images we store (relative `/api/v1/avatars/…` locally or when set before that). */
     image: z.string().nullable(),
-    /** Optional and private, like 241-15-047 or 0242220005101255. */
+    /** Optional, like 241-15-047 or 0242220005101255. */
     studentId: z.string().nullable(),
+    /** Whether their contributor page shows the student ID. */
+    showStudentId: z.boolean(),
     publishedCount: z.number().int(),
     /** Views of all their published papers. */
     viewCount: z.number().int(),

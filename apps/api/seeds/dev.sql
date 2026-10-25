@@ -25,10 +25,11 @@ DELETE FROM "user" WHERE email LIKE '%@example.com' OR id LIKE 'e2e-pool-%';
 
 -- Sample contributors. Sign-in is Google-only and these addresses aren't Google
 -- accounts, so nobody logs in as them (the e2e tests create sessions directly).
-INSERT INTO "user" (id, name, email, username, created_at, updated_at) VALUES
-  ('seed-user-1', 'Ayesha Rahman', 'ayesha@seed.local', 'ayesha', 1756684800000, 1756684800000),
-  ('seed-user-2', 'Tanvir Hasan', 'tanvir@seed.local', 'tanvir_hasan', 1760486400000, 1760486400000),
-  ('seed-user-3', 'Nusrat Jahan', 'nusrat@seed.local', 'nusrat.jahan', 1768867200000, 1768867200000);
+-- Nusrat shows her student ID on her page; Tanvir added one but hides it.
+INSERT INTO "user" (id, name, email, username, student_id, show_student_id, created_at, updated_at) VALUES
+  ('seed-user-1', 'Ayesha Rahman', 'ayesha@seed.local', 'ayesha', NULL, 1, 1756684800000, 1756684800000),
+  ('seed-user-2', 'Tanvir Hasan', 'tanvir@seed.local', 'tanvir_hasan', '222-15-118', 0, 1760486400000, 1760486400000),
+  ('seed-user-3', 'Nusrat Jahan', 'nusrat@seed.local', 'nusrat.jahan', '241-15-047', 1, 1768867200000, 1768867200000);
 
 -- The admin the e2e tests use. To try the admin panel yourself, log in with Google
 -- and run `pnpm make-admin <your email>`.

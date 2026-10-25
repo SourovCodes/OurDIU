@@ -20,6 +20,7 @@ class ContributorDetail {
     required this.publishedCount,
     required this.viewCount,
     required this.departments,
+    required this.studentId,
     required this.submissions,
   });
 
@@ -34,6 +35,7 @@ class ContributorDetail {
   final int publishedCount;
   final int viewCount;
   final List<ContributorDepartment> departments;
+  final String? studentId;
   final ContributorSubmissionList submissions;
 
   Map<String, Object?> toJson() => _$ContributorDetailToJson(this);

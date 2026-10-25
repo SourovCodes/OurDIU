@@ -636,8 +636,9 @@ test("contributors index leads to a contributor's submissions", async ({
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Nusrat Jahan",
   );
-  // Contributor pages are addressed by username.
+  // Contributor pages are addressed by username, and show the student ID.
   await expect(page).toHaveURL(/\/contributors\/nusrat\.jahan$/);
+  await expect(page.getByRole("main")).toContainText("ID 241-15-047");
   // Only published papers are public; pending uploads stay private.
   await expect(page.getByText("Pending review")).toHaveCount(0);
 
@@ -934,6 +935,16 @@ test("a contributor can manage their submissions and profile", async ({
   await expect(page.getByText("Profile updated")).toBeVisible();
   await page.reload();
   await expect(page.getByLabel("Student ID")).toHaveValue("241-15-047");
+  // Shown on the contributor page unless hidden.
+  const show = page.getByRole("checkbox", {
+    name: "Show it on my contributor page",
+  });
+  await expect(show).toBeChecked();
+  await show.click();
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Profile updated")).toBeVisible();
+  await page.reload();
+  await expect(show).not.toBeChecked();
 
   // The email comes from Google and can't be changed on the account page.
   await page.goto("/account");

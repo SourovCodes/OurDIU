@@ -12,6 +12,8 @@ import { AvatarInput } from "~/components/avatar-input";
 import { ContributorAvatar } from "~/components/contributor-avatar";
 import { FormField, FormMessage } from "~/components/form";
 import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
+import { Label } from "~/components/ui/label";
 import { apiFetch, readJson, setCookieHeaders } from "~/lib/api.server";
 import { requireUser } from "~/lib/session.server";
 import type { Route } from "./+types/account-profile";
@@ -45,6 +47,7 @@ async function updateProfile(request: Request, form: FormData) {
     .trim()
     .toLowerCase();
   const studentId = String(form.get("studentId") ?? "").trim();
+  const showStudentId = form.get("showStudentId") === "on";
   const fieldErrors: Record<string, string> = {};
   if (!name || name.length > MAX_NAME) {
     fieldErrors.name = `Enter a name of up to ${MAX_NAME} characters.`;
@@ -82,7 +85,7 @@ async function updateProfile(request: Request, form: FormData) {
   const studentRes = await apiFetch(request, "/api/v1/me/student-id", {
     method: "PUT",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ studentId: studentId || null }),
+    body: JSON.stringify({ studentId: studentId || null, showStudentId }),
   });
   if (!studentRes.ok) {
     return data<ActionResult>(
@@ -297,6 +300,7 @@ function ProfileSection({
     image?: string | null;
     username?: string | null;
     studentId?: string | null;
+    showStudentId?: boolean;
   };
   avatar?: ActionResult;
   profile?: ActionResult;
@@ -362,9 +366,16 @@ function ProfileSection({
               maxLength={16}
               error={profile?.fieldErrors?.studentId}
             />
-            <p className="text-xs text-muted-foreground">
-              Optional. Private: only you see it.
-            </p>
+            <div className="flex min-h-11 items-center gap-3">
+              <Checkbox
+                id="show-student-id"
+                name="showStudentId"
+                defaultChecked={user.showStudentId ?? true}
+              />
+              <Label htmlFor="show-student-id" className="font-normal">
+                Show it on my contributor page
+              </Label>
+            </div>
           </div>
           <div className="grid gap-1.5">
             <FormField

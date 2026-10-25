@@ -153,6 +153,8 @@ Map<String, Object?> profileJson({
   'email': email,
   'username': 'nusrat',
   'image': null,
+  'studentId': null,
+  'showStudentId': true,
   'publishedCount': published,
   'viewCount': views,
   'canContribute': canContribute,

@@ -20,7 +20,10 @@ describe("PUT /api/v1/me/student-id", () => {
 
     const res = await setStudentId(cookie, " 241-15-047 ");
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ studentId: "241-15-047" });
+    expect(await res.json()).toEqual({
+      studentId: "241-15-047",
+      showStudentId: true,
+    });
     expect((await profile(cookie)).studentId).toBe("241-15-047");
     // With the session too, for the website's pages.
     const session = await (
@@ -33,6 +36,28 @@ describe("PUT /api/v1/me/student-id", () => {
 
     await setStudentId(cookie, null);
     expect((await profile(cookie)).studentId).toBeNull();
+  });
+
+  it("hides it from the contributor page, and keeps that choice", async () => {
+    const { cookie } = await signIn();
+    const res = await api(
+      "/api/v1/me/student-id",
+      jsonRequest(
+        "PUT",
+        { studentId: "241-15-047", showStudentId: false },
+        cookie,
+      ),
+    );
+    expect(await res.json()).toEqual({
+      studentId: "241-15-047",
+      showStudentId: false,
+    });
+    // Changing the ID alone (as older clients do) leaves the choice alone.
+    await setStudentId(cookie, "241-15-048");
+    expect(await profile(cookie)).toMatchObject({
+      studentId: "241-15-048",
+      showStudentId: false,
+    });
   });
 
   it("refuses other formats", async () => {

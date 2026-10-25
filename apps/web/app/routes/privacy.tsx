@@ -92,8 +92,8 @@ export default function Privacy() {
       <LegalSection id="mobile-app" title="In the mobile app">
         <p>
           The OurDIU app for Android collects the same account, upload and like,
-          dislike or report data as the site, when you do the same things.
-          Unlike the site, it doesn’t use Google Analytics or cookies.
+          dislike or report data as the site, when you do the same things. It
+          doesn’t use cookies.
         </p>
         <ul>
           <li>
@@ -106,6 +106,16 @@ export default function Privacy() {
             <strong>Saved papers</strong> are kept on your phone too, and once
             you sign in they are saved to your account, the same list as on the
             website.
+          </li>
+          <li>
+            <strong>Google Analytics</strong> records which screens are opened
+            and a few actions (signing in, opening the app from a link to the
+            site, sharing or downloading a paper, starting and sending an
+            upload), with the app’s version, your phone’s model and Android
+            version, and roughly where you are (country or city). It uses an ID
+            the app makes for itself, not your phone’s advertising ID, and it
+            isn’t linked to your account. Clearing the app’s data or
+            reinstalling it starts a new ID.
           </li>
           <li>
             <strong>Scanning a paper</strong> uses the camera through Google’s

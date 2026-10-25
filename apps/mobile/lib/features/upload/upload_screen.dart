@@ -7,6 +7,7 @@ import 'package:pdfrx/pdfrx.dart';
 import '../../api/api.dart';
 import '../../api/generated/export.dart';
 import '../../auth/session.dart';
+import '../../data/analytics.dart';
 import '../../data/format.dart';
 import '../../data/questions.dart';
 import '../../data/settings.dart';
@@ -219,6 +220,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
             if (mounted) setState(() => _progress = p);
           },
         );
+        analytics.uploadSubmit(_pdf!.source);
         ref
           ..invalidate(myPapersProvider)
           ..invalidate(profileProvider);

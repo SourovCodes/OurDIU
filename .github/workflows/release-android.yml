@@ -1,9 +1,9 @@
 name: Release Android
 
 # Pushing a tag like mobile-v1.2.3 (on a commit that's on main) builds a signed App
-# Bundle and releases it to the closed testing track on Google Play, so testers get
-# the update from the Play Store. Setup and the release steps: "Releasing the
-# Android app" in the README.
+# Bundle and releases it to production on Google Play (PLAY_TRACK and
+# PLAY_RELEASE_STATUS override that); everyone gets it once Google approves it.
+# Setup and the release steps: "Releasing the Android app" in the README.
 on:
   push:
     tags: ["mobile-v*"]

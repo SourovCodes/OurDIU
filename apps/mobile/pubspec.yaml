@@ -55,8 +55,11 @@ dependencies:
   in_app_review: ^2.0.12
   device_info_plus: ^13.3.0
   in_app_update: ^5.0.0
-  firebase_core: ^5.1.0
-  firebase_analytics: ^13.0.1
+  # Firebase 5.x / 13.x bring firebase-ios-sdk 13 (AppCheckCore 12), which
+  # Swift Package Manager can't resolve beside google_sign_in_ios' GoogleSignIn 9
+  # (AppCheckCore 11). Move up once google_sign_in_ios uses GoogleSignIn 10.
+  firebase_core: ^4.15.2
+  firebase_analytics: ^12.6.1
 
 dev_dependencies:
   flutter_test:

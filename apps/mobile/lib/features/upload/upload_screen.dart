@@ -132,7 +132,10 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     final recent = ref.read(recentCoursesProvider);
     final choice = await _choose(
       title: 'Course',
-      options: [for (final c in courses) _Option(c.id, c.name)],
+      options: [
+        for (final c in courses)
+          _Option(c.id, c.name, aliases: c.aliases ?? const []),
+      ],
       recent: [
         for (final id in recent)
           if (courses.where((c) => c.id == id).firstOrNull case final c?)
@@ -875,7 +878,7 @@ class _SubmitBar extends StatelessWidget {
 }
 
 class _Option {
-  const _Option(this.id, this.label, {this.search});
+  const _Option(this.id, this.label, {this.search, this.aliases = const []});
 
   final int id;
   final String label;
@@ -883,10 +886,13 @@ class _Option {
   /// Also matched when searching, e.g. a department's full name.
   final String? search;
 
+  /// A course's short names, matched too.
+  final List<String> aliases;
+
   /// By the app's one search rule (data/search.dart).
   int? rank(String query) => bestRank(
-    matchRank(label, query),
-    search == null ? null : matchRank(search!, query),
+    matchRank(label, query, aliases),
+    search == null ? null : matchRank(search!, query, aliases),
   );
 }
 

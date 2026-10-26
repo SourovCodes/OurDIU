@@ -140,6 +140,24 @@ class Plan {
   }
 
   /**
+   * Keeps removed courses findable under the one kept: their short names move to it,
+   * and their names become short names of it (unless the same as its own). Before
+   * the removed courses are deleted, which deletes their short names.
+   */
+  keepCourseNames(from: number[], to: number) {
+    this.each(
+      from,
+      (ids) =>
+        sql`insert or ignore into course_aliases (course_id, alias, source, hidden) select ${to}, alias, source, hidden from course_aliases where course_id in (${ids})`,
+    );
+    this.each(
+      from,
+      (ids) =>
+        sql`insert or ignore into course_aliases (course_id, alias, source) select ${to}, lower(name), 'merge' from courses where id in (${ids}) and lower(name) <> (select lower(name) from courses where id = ${to})`,
+    );
+  }
+
+  /**
    * Remembers where removed entries went, so their old pages redirect. Entries that
    * were merged into a removed one earlier now point at `to` as well.
    */
@@ -403,6 +421,7 @@ export async function mergeCatalogEntries(
     for (const [to, from] of bySurvivor) {
       plan.repoint(tables, "course_id", from, to);
       plan.remember("course", from, to);
+      plan.keepCourseNames(from, to);
     }
     plan.each(
       [...courseRemap.keys()],
@@ -491,6 +510,7 @@ export async function mergeCatalogEntries(
       keepId,
     );
     plan.remember(MERGED_KIND[kind], removedIds, keepId);
+    if (kind === "courses") plan.keepCourseNames(removedIds, keepId);
     plan.each(
       removedIds,
       (list) => sql`delete from ${table} where id in (${list})`,

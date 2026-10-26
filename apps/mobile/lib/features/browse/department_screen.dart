@@ -65,7 +65,9 @@ class _DepartmentScreenState extends ConsumerState<DepartmentScreen> {
     // The app's one search rule (data/search.dart), kept A–Z for the letters.
     final shown = _filter.trim().isEmpty
         ? courses
-        : courses.where((c) => matchRank(c.name, _filter) != null).toList();
+        : courses
+              .where((c) => matchRank(c.name, _filter, c.aliases ?? []) != null)
+              .toList();
 
     final children = <Widget>[];
     String? letter;

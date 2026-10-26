@@ -1,7 +1,13 @@
 import type { Taxonomy } from "@ourdiu/shared";
 import { asc, eq } from "drizzle-orm";
 import type { Database } from "../db/client";
-import { courses, departments, examTypes, semesters } from "../db/schema";
+import {
+  courseAliases,
+  courses,
+  departments,
+  examTypes,
+  semesters,
+} from "../db/schema";
 import { semesterRecency } from "./common";
 
 /** Departments by name, with their number of published papers. */
@@ -43,13 +49,40 @@ export function listExamTypes(db: Database) {
   return db.select().from(examTypes).orderBy(asc(examTypes.name));
 }
 
-/** The four lists above in one D1 round trip. */
+/** Every course's visible short names, for search. */
+export function listCourseAliases(db: Database) {
+  return db
+    .select({ courseId: courseAliases.courseId, alias: courseAliases.alias })
+    .from(courseAliases)
+    .where(eq(courseAliases.hidden, false))
+    .orderBy(asc(courseAliases.courseId), asc(courseAliases.alias));
+}
+
+/** Short names by course id. */
+export function aliasesByCourse(rows: { courseId: number; alias: string }[]) {
+  const byCourse = new Map<number, string[]>();
+  for (const { courseId, alias } of rows) {
+    const list = byCourse.get(courseId);
+    if (list) list.push(alias);
+    else byCourse.set(courseId, [alias]);
+  }
+  return byCourse;
+}
+
+/** The four lists above in one D1 round trip, courses with their short names. */
 export async function getTaxonomy(db: Database): Promise<Taxonomy> {
-  const [departments, courses, semesters, examTypes] = await db.batch([
+  const [departments, courses, aliases, semesters, examTypes] = await db.batch([
     listDepartments(db),
     listCourses(db),
+    listCourseAliases(db),
     listSemesters(db),
     listExamTypes(db),
   ]);
-  return { departments, courses, semesters, examTypes };
+  const byCourse = aliasesByCourse(aliases);
+  return {
+    departments,
+    courses: courses.map((c) => ({ ...c, aliases: byCourse.get(c.id) ?? [] })),
+    semesters,
+    examTypes,
+  };
 }

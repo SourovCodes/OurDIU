@@ -12,6 +12,7 @@ const course = (
   name: string,
   departmentId = 1,
   departmentShortName = "CSE",
+  aliases: string[] = [],
 ): CourseEntry => ({
   id,
   name,
@@ -19,6 +20,7 @@ const course = (
   departmentShortName,
   departmentName: departmentShortName,
   publishedCount: 1,
+  aliases,
 });
 
 const courses = [
@@ -61,6 +63,17 @@ it("finds courses by the start of their initials", () => {
   expect(searchCourses(all, "pp").map((c) => c.id)).toEqual([7]);
   // More than one word is never read as initials.
   expect(searchCourses(all, "pp s")).toEqual([]);
+});
+
+it("finds courses by their short names", () => {
+  const all = [
+    ...courses,
+    course(7, "Mathematics II", 1, "CSE", ["calculus"]),
+    course(8, "Calculus for Engineers", 2, "EEE"),
+  ];
+  // A name that starts with the query first, then a short name it starts.
+  expect(searchCourses(all, "calc").map((c) => c.id)).toEqual([8, 7]);
+  expect(searchCourses(all, "calculus").map((c) => c.id)).toEqual([8, 7]);
 });
 
 it("highlights every typed word", () => {

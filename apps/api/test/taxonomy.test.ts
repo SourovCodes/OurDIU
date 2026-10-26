@@ -91,6 +91,7 @@ describe("taxonomy routes", () => {
       name: algorithms.name,
       departmentId: cse.id,
       publishedCount: 1,
+      aliases: [],
     });
     expect(body.semesters).toContainEqual(sem1);
     expect(body.examTypes).toContainEqual(midterm);
@@ -104,7 +105,8 @@ describe("taxonomy routes", () => {
     );
     expect([
       body.departments,
-      body.courses,
+      // Only the taxonomy has courses' short names, for search.
+      body.courses.map(({ aliases: _, ...course }) => course),
       body.semesters,
       body.examTypes,
     ]).toEqual(separate);

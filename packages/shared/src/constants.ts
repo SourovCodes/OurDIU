@@ -434,3 +434,30 @@ export function routineGroupLabel(section: string, group: string): string {
 export function routineSectionSlug(section: string): string {
   return section.replaceAll(" ", "_");
 }
+
+// ── Course short names ───────────────────────────────────────────────────────
+
+/** Where a course's short name came from (`course_aliases.source`). */
+export const COURSE_ALIAS_SOURCES = ["ai", "admin", "merge"] as const;
+export type CourseAliasSource = (typeof COURSE_ALIAS_SOURCES)[number];
+
+export const ALIAS_MIN_LENGTH = 2;
+export const ALIAS_MAX_LENGTH = 40;
+/** At most this many short names per course, from an admin. */
+export const MAX_COURSE_ALIASES = 10;
+
+/**
+ * A short name as stored and searched: lower-case, single spaces, letters, digits
+ * and `+ # & . -` only ("PPS" → "pps", "CSE-112" → "cse-112"). Null when nothing
+ * usable is left, or it's too short or long.
+ */
+export function normalizeAlias(alias: string): string | null {
+  const clean = alias
+    .toLowerCase()
+    .replace(/[^a-z0-9+#&.\- ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return clean.length >= ALIAS_MIN_LENGTH && clean.length <= ALIAS_MAX_LENGTH
+    ? clean
+    : null;
+}

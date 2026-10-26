@@ -1,5 +1,5 @@
 {
-  "$comment": "The one name-search rule's cases, run by the site (apps/web/app/lib/search.test.ts) and the app (apps/mobile/test/search_test.dart), so both search alike. rank: 0 name starts with the query, 1 initials, 2 start of the initials, 3 every word in the name, null no match. order: matches best first, same rank in the given order.",
+  "$comment": "The one name-search rule's cases, run by the site (packages/shared/src/search.test.ts) and the app (apps/mobile/test/search_test.dart), so both search alike. rank: [name, query, expected, short names?]; 0 name starts with the query, 1 initials or a short name, 2 start of the initials or of a short name, 3 every word in the name, null no match. order: matches best first, same rank in the given order; aliases are short names by name.",
   "initials": [
     ["Programming and Problem Solving", "pps"],
     ["Object Oriented Programming", "oop"],
@@ -25,7 +25,16 @@
     ["Mathematics I", "math 1", null],
     ["Programming and Problem Solving", "pp s", null],
     ["Data Structures", "   ", null],
-    ["Data Structures", "chemistry", null]
+    ["Data Structures", "chemistry", null],
+    ["Data Structures", "dsa", 1, ["dsa"]],
+    ["Data Structures", "dsa", null],
+    ["Data Structures", "ds", 1, ["dsa"]],
+    ["Algorithms", "alg", 0, ["algo"]],
+    ["Mathematics I", "calculus", 1, ["calculus"]],
+    ["Mathematics I", "calc", 2, ["calculus"]],
+    ["Structured Programming", "spl", 1, ["c programming", "spl"]],
+    ["Structured Programming", "c prog", 2, ["c programming", "spl"]],
+    ["Physics", "calc", null, ["mechanics"]]
   ],
   "order": [
     {
@@ -48,6 +57,14 @@
       "query": "ph",
       "names": ["Applied Physics", "Physics I", "Public Health"],
       "expected": ["Physics I", "Public Health", "Applied Physics"]
+    },
+    {
+      "query": "calc",
+      "names": ["Calculus II", "Mathematics I", "Physics"],
+      "aliases": {
+        "Mathematics I": ["calculus"]
+      },
+      "expected": ["Calculus II", "Mathematics I"]
     }
   ]
 }

@@ -1,5 +1,7 @@
 import { z } from "zod";
 import {
+  ALIAS_MAX_LENGTH,
+  MAX_COURSE_ALIASES,
   MAX_MERGE_ENTRIES,
   MAX_REVIEW_MESSAGE_LENGTH,
   normalizeCatalogName,
@@ -270,7 +272,11 @@ export const adminDepartmentSchema = departmentSchema.extend({
   ...usage,
   courseCount: z.number().int(),
 });
-export const adminCourseSchema = courseSchema.extend(usage);
+export const adminCourseSchema = courseSchema.extend({
+  ...usage,
+  /** Other names search finds it by ("pps", "dsa"), lower-case, A–Z. */
+  aliases: z.array(z.string()),
+});
 export const adminSemesterSchema = semesterSchema.extend(usage);
 export const adminExamTypeSchema = examTypeSchema.extend(usage);
 export type AdminDepartment = z.infer<typeof adminDepartmentSchema>;
@@ -294,6 +300,20 @@ export const createCourseInputSchema = z.object({
   departmentId: idQuerySchema,
 });
 export type CreateCourseInput = z.infer<typeof createCourseInputSchema>;
+
+/**
+ * A course's short names, replacing the ones it has. Each is normalized
+ * (`normalizeAlias`); ones that come out empty are dropped.
+ */
+export const courseAliasesInputSchema = z.object({
+  aliases: z
+    .array(z.string().max(ALIAS_MAX_LENGTH * 2))
+    .max(
+      MAX_COURSE_ALIASES,
+      `A course can have at most ${MAX_COURSE_ALIASES} short names`,
+    ),
+});
+export type CourseAliasesInput = z.infer<typeof courseAliasesInputSchema>;
 
 /** Exam types and course renames only carry a name. */
 export const nameInputSchema = z.object({ name: catalogName });

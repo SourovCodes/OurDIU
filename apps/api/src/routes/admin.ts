@@ -2,6 +2,7 @@ import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import {
   adminCatalogSchema,
   adminCourseSchema,
+  courseAliasesInputSchema,
   adminDepartmentSchema,
   adminExamTypeSchema,
   adminReportListSchema,
@@ -461,6 +462,23 @@ const courseRoutes = catalogRoutes("courses", "course", {
   update: nameInputSchema,
   result: adminCourseSchema,
 });
+const courseAliasesRoute = createRoute({
+  method: "put",
+  path: "/courses/{id}/aliases",
+  tags: catalogTags,
+  summary: "Set a course's short names",
+  description:
+    "Replaces the course's short names (other names search finds it by, like `pps`). " +
+    "Each is normalized; ones left out are hidden, so the daily AI job doesn't add them back.",
+  middleware,
+  request: { params: numericIdParams, ...jsonBody(courseAliasesInputSchema) },
+  responses: {
+    200: jsonResponse(adminCourseSchema, "Updated course"),
+    ...denied,
+    404: errorResponse("Course not found"),
+    422: errorResponse("Invalid fields"),
+  },
+});
 const semesterRoutes = catalogRoutes("semesters", "semester", {
   create: semesterInputSchema,
   update: semesterInputSchema,
@@ -701,6 +719,16 @@ export const adminRoutes = new OpenAPIHono<AppEnv>({
         c.var.db,
         c.req.valid("param").id,
         c.req.valid("json").name,
+      ),
+      200,
+    ),
+  )
+  .openapi(courseAliasesRoute, async (c) =>
+    c.json(
+      await catalog.updateCourseAliases(
+        c.var.db,
+        c.req.valid("param").id,
+        c.req.valid("json").aliases,
       ),
       200,
     ),

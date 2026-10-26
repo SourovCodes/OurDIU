@@ -33,6 +33,25 @@ void main() {
     expect(names('ds sp'), isEmpty);
   });
 
+  test('finds courses by their short names', () {
+    const courses = [
+      CourseListItem(
+        id: 1,
+        name: 'Mathematics II',
+        departmentId: 1,
+        publishedCount: 1,
+        aliases: ['calculus'],
+      ),
+      CourseListItem(
+        id: 2,
+        name: 'Calculus for Engineers',
+        departmentId: 1,
+        publishedCount: 1,
+      ),
+    ];
+    expect(searchCourses(courses, 'calc').map((c) => c.id), [2, 1]);
+  });
+
   test('finds nothing for blank or unknown text', () {
     expect(names('  '), isEmpty);
     expect(names('chemistry'), isEmpty);
@@ -42,7 +61,7 @@ void main() {
   sameCourseTests();
 }
 
-/// The cases the website runs too (apps/web/app/lib/search.test.ts).
+/// The cases the website runs too (packages/shared/src/search.test.ts).
 void sharedCases() {
   final cases = jsonDecode(
     File('../../packages/shared/test-data/name-search.json').readAsStringSync(),
@@ -53,11 +72,15 @@ void sharedCases() {
         in cases['initials'] as List) {
       test('$name → $expected', () => expect(initials(name), expected));
     }
-    for (final [name as String, query as String, expected as int?]
-        in cases['rank'] as List) {
+    for (final c in cases['rank'] as List) {
+      final [name as String, query as String, expected as int?, ...rest] =
+          c as List;
+      final aliases = rest.isEmpty
+          ? <String>[]
+          : (rest[0] as List).cast<String>();
       test(
-        '$name, "$query" → $expected',
-        () => expect(matchRank(name, query), expected),
+        '$name, "$query" → $expected $aliases',
+        () => expect(matchRank(name, query, aliases), expected),
       );
     }
     for (final c in (cases['order'] as List).cast<Map<String, dynamic>>()) {
@@ -66,7 +89,11 @@ void sharedCases() {
         expect(
           searchBy(
             (c['names'] as List).cast<String>(),
-            (n) => matchRank(n, query),
+            (n) => matchRank(
+              n,
+              query,
+              ((c['aliases'] as Map?)?[n] as List?)?.cast<String>() ?? [],
+            ),
           ),
           c['expected'],
         );

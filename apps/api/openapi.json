@@ -81,6 +81,12 @@
           },
           "publishedCount": {
             "type": "integer"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -166,6 +172,12 @@
           },
           "publishedCount": {
             "type": "integer"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "department": {
             "$ref": "#/components/schemas/Department"
@@ -8954,6 +8966,12 @@
                           },
                           "submissionCount": {
                             "type": "integer"
+                          },
+                          "aliases": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
                           }
                         },
                         "required": [
@@ -8961,7 +8979,8 @@
                           "name",
                           "departmentId",
                           "questionCount",
-                          "submissionCount"
+                          "submissionCount",
+                          "aliases"
                         ]
                       }
                     },
@@ -10053,6 +10072,12 @@
                     },
                     "submissionCount": {
                       "type": "integer"
+                    },
+                    "aliases": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     }
                   },
                   "required": [
@@ -10060,7 +10085,8 @@
                     "name",
                     "departmentId",
                     "questionCount",
-                    "submissionCount"
+                    "submissionCount",
+                    "aliases"
                   ]
                 }
               }
@@ -10170,6 +10196,12 @@
                     },
                     "submissionCount": {
                       "type": "integer"
+                    },
+                    "aliases": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     }
                   },
                   "required": [
@@ -10177,7 +10209,8 @@
                     "name",
                     "departmentId",
                     "questionCount",
-                    "submissionCount"
+                    "submissionCount",
+                    "aliases"
                   ]
                 }
               }
@@ -10287,6 +10320,134 @@
           },
           "409": {
             "description": "The course is still in use",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/courses/{id}/aliases": {
+      "put": {
+        "tags": [
+          "Admin: catalog"
+        ],
+        "summary": "Set a course's short names",
+        "description": "Replaces the course's short names (other names search finds it by, like `pps`). Each is normalized; ones left out are hidden, so the daily AI job doesn't add them back.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "aliases": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 80
+                    },
+                    "maxItems": 10
+                  }
+                },
+                "required": [
+                  "aliases"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated course",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "departmentId": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "questionCount": {
+                      "type": "integer"
+                    },
+                    "submissionCount": {
+                      "type": "integer"
+                    },
+                    "aliases": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "departmentId",
+                    "questionCount",
+                    "submissionCount",
+                    "aliases"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Course not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
             "content": {
               "application/json": {
                 "schema": {

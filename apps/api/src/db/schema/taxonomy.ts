@@ -1,4 +1,4 @@
-import { MERGED_KINDS } from "@ourdiu/shared";
+import { COURSE_ALIAS_SOURCES, MERGED_KINDS } from "@ourdiu/shared";
 import { sql } from "drizzle-orm";
 import {
   index,
@@ -33,6 +33,11 @@ export const courses = sqliteTable(
      * by a trigger (migration 0009); never write it from application code.
      */
     publishedCount: integer().notNull().default(0),
+    /**
+     * When the daily job last asked the AI for the course's short names
+     * (services/course-aliases.ts); null until then, and again after a rename.
+     */
+    aliasesCheckedAt: integer({ mode: "timestamp_ms" }),
   },
   (t) => [
     // Also serves as the index for looking up courses by department.
@@ -43,6 +48,29 @@ export const courses = sqliteTable(
     // Covers the course list, which is ordered by name.
     index("courses_name_department_id_idx").on(t.name, t.departmentId),
   ],
+);
+
+/**
+ * Other names students search a course by ("pps", "dld", a course code, an old
+ * title), lower-case. One course can have several, and one name several courses.
+ * Filled by the daily AI job, by admins on the catalog page, and by merges (the
+ * removed course's name and its short names). One an admin removes stays, hidden, so
+ * the AI doesn't add it back.
+ */
+export const courseAliases = sqliteTable(
+  "course_aliases",
+  {
+    courseId: integer()
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    alias: text().notNull(),
+    source: text({ enum: COURSE_ALIAS_SOURCES }).notNull(),
+    hidden: integer({ mode: "boolean" }).notNull().default(false),
+    createdAt: integer({ mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`),
+  },
+  (t) => [primaryKey({ columns: [t.courseId, t.alias] })],
 );
 
 export const semesters = sqliteTable("semesters", {
@@ -81,5 +109,6 @@ export const mergedIds = sqliteTable(
 
 export type DepartmentRow = typeof departments.$inferSelect;
 export type CourseRow = typeof courses.$inferSelect;
+export type CourseAliasRow = typeof courseAliases.$inferSelect;
 export type SemesterRow = typeof semesters.$inferSelect;
 export type ExamTypeRow = typeof examTypes.$inferSelect;

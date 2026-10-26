@@ -1,6 +1,6 @@
 /// The one rule for searching names (courses, departments, any picker), so
 /// every search box finds the same things in the same order. The website has
-/// the same rule (`apps/web/app/lib/search.ts`); both run the cases in
+/// the same rule (`packages/shared/src/search.ts`); both run the cases in
 /// `packages/shared/test-data/name-search.json`, so they can't drift apart.
 library;
 
@@ -27,18 +27,23 @@ List<String> queryWords(String query) =>
 
 /// How well a name matches what was typed, lower is better, or null for no
 /// match: 0 the name starts with it ("data" → Data Structures), 1 one word
-/// that is the name's initials ("pps"), 2 one word that starts them ("pp"),
-/// 3 the name contains every typed word, in any order ("struct data").
-int? matchRank(String name, String query) {
+/// that is the name's initials ("pps") or what was typed is one of its short
+/// names ([aliases], lower-case: "dsa"), 2 one word that starts the initials
+/// ("pp") or what was typed starts a short name ("ds" → "dsa"), 3 the name
+/// contains every typed word, in any order ("struct data").
+int? matchRank(String name, String query, [List<String> aliases = const []]) {
   final typed = queryWords(query);
   if (typed.isEmpty) return null;
   final q = typed.join(' ');
   final lower = name.toLowerCase();
   if (lower.startsWith(q)) return 0;
-  if (typed.length == 1 && q.length >= 2) {
-    final short = initials(name);
-    if (short == q) return 1;
-    if (short.startsWith(q)) return 2;
+  // Initials only for one word of two letters or more.
+  final short = typed.length == 1 && q.length >= 2 ? initials(name) : null;
+  if (short == q || aliases.contains(q)) return 1;
+  if (q.length >= 2 &&
+      ((short?.startsWith(q) ?? false) ||
+          aliases.any((a) => a.startsWith(q)))) {
+    return 2;
   }
   return typed.every(lower.contains) ? 3 : null;
 }

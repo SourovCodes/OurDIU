@@ -1,6 +1,6 @@
 import type { Taxonomy } from "@ourdiu/shared";
 import { catalogKey } from "@ourdiu/shared/constants";
-import { matchRank, queryWords } from "./search";
+import { matchRank, queryWords } from "@ourdiu/shared/search";
 
 /** A course with its department, as the search and the course pages show it. */
 export type CourseEntry = {
@@ -11,6 +11,8 @@ export type CourseEntry = {
   departmentName: string;
   /** Published papers of the course. */
   publishedCount: number;
+  /** Other names search finds it by ("pps", "dsa"), lower-case. */
+  aliases: string[];
 };
 
 /** Every course of the taxonomy with its department's names. */
@@ -30,6 +32,7 @@ export function courseEntries({
             departmentShortName: department.shortName,
             departmentName: department.name,
             publishedCount: c.publishedCount,
+            aliases: c.aliases ?? [],
           },
         ]
       : [];
@@ -38,7 +41,7 @@ export function courseEntries({
 
 /**
  * Courses that match the typed text by the site's one search rule (`matchRank`,
- * lib/search.ts: name, initials like "pps", or every word), best first; within a
+ * @ourdiu/shared/search: name, initials like "pps", or every word), best first; within a
  * rank, courses of `preferredDepartmentId` first, then A–Z.
  */
 export function searchCourses<T extends CourseEntry>(
@@ -48,7 +51,10 @@ export function searchCourses<T extends CourseEntry>(
 ): T[] {
   const other = (c: T) => Number(c.departmentId !== preferredDepartmentId);
   return courses
-    .map((course) => ({ course, rank: matchRank(course.name, query) }))
+    .map((course) => ({
+      course,
+      rank: matchRank(course.name, query, course.aliases),
+    }))
     .filter((r): r is { course: T; rank: number } => r.rank !== null)
     .sort(
       ({ course: a, rank: ra }, { course: b, rank: rb }) =>

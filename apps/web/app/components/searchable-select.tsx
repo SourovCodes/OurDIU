@@ -16,7 +16,7 @@ import {
   PopoverTrigger,
 } from "~/components/ui/popover";
 import type { SelectOption } from "~/lib/filters";
-import { bestRank, matchRank, searchBy } from "~/lib/search";
+import { bestRank, matchRank, searchBy } from "@ourdiu/shared/search";
 import { cn } from "~/lib/utils";
 
 type SearchableSelectProps = {
@@ -65,12 +65,13 @@ export function SearchableSelect({
   const query = name.toLowerCase();
   // Filtered here rather than by cmdk, which doesn't re-filter items that mount
   // while typing (like the "Add" item) and would hide them. The site's one search
-  // rule (lib/search.ts), on the label and on the bare name when the label adds to it.
+  // rule (@ourdiu/shared/search), on the label and on the bare name when the label adds to
+  // it, with any short names.
   const visibleOptions = query
     ? searchBy(options, (o) =>
         bestRank(
-          matchRank(o.label, query),
-          o.name === undefined ? null : matchRank(o.name, query),
+          matchRank(o.label, query, o.aliases),
+          o.name === undefined ? null : matchRank(o.name, query, o.aliases),
         ),
       )
     : options;

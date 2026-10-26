@@ -4,7 +4,11 @@ import type {
   CatalogMergeResult,
   Department,
 } from "@ourdiu/shared";
-import { MAX_MERGE_ENTRIES } from "@ourdiu/shared/constants";
+import {
+  MAX_COURSE_ALIASES,
+  MAX_MERGE_ENTRIES,
+} from "@ourdiu/shared/constants";
+import { bestRank, matchRank } from "@ourdiu/shared/search";
 import {
   Copy,
   EllipsisVertical,
@@ -12,6 +16,7 @@ import {
   Merge,
   Pencil,
   Plus,
+  Tags,
   Search,
   Trash2,
   X,
@@ -152,6 +157,13 @@ export async function action({ request }: Route.ActionArgs) {
         return adminRequest(request, intent, "POST", `/${kind}`, body);
       case "update":
         return adminRequest(request, intent, "PATCH", `/${kind}/${id}`, body);
+      case "aliases":
+        return adminRequest(request, intent, "PUT", `/courses/${id}/aliases`, {
+          aliases: String(form.get("aliases") ?? "")
+            .split(",")
+            .map((alias) => alias.trim())
+            .filter(Boolean),
+        });
       case "delete":
         return adminRequest(request, intent, "DELETE", `/${kind}/${id}`);
       case "merge":
@@ -189,6 +201,8 @@ type Row = {
   courseCount?: number;
   shortName?: string;
   departmentId?: number;
+  /** A course's short names. */
+  aliases?: string[];
 };
 
 const ALL = "all";
@@ -276,7 +290,9 @@ function RowActions({
   run: ReturnType<typeof useFormAction>["run"];
 }) {
   const { noun } = KINDS[kind];
-  const [dialog, setDialog] = useState<"rename" | "delete" | null>(null);
+  const [dialog, setDialog] = useState<"rename" | "aliases" | "delete" | null>(
+    null,
+  );
   const inUse =
     row.questionCount + row.submissionCount + (row.courseCount ?? 0) > 0;
   const onOpenChange = (open: boolean) => !open && setDialog(null);
@@ -299,6 +315,12 @@ function RowActions({
             <Pencil />
             Rename
           </DropdownMenuItem>
+          {kind === "courses" && (
+            <DropdownMenuItem onSelect={() => setDialog("aliases")}>
+              <Tags />
+              Short names
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             variant="destructive"
             disabled={inUse}
@@ -327,6 +349,29 @@ function RowActions({
           <EntryFields kind={kind} row={row} fieldErrors={fieldErrors} />
         )}
       </ActionDialog>
+      {kind === "courses" && (
+        <ActionDialog
+          open={dialog === "aliases"}
+          onOpenChange={onOpenChange}
+          title="Short names"
+          description={`Other names search finds “${row.name}” by, besides its initials. The daily AI job adds some; ones you remove stay removed.`}
+          submitLabel="Save"
+          pendingLabel="Saving…"
+          successMessage={`Saved the short names of “${row.name}”`}
+          fields={{ intent: "aliases", kind, id: String(row.id) }}
+        >
+          {(fieldErrors) => (
+            <FormField
+              label="Short names"
+              name="aliases"
+              defaultValue={row.aliases?.join(", ")}
+              placeholder={`Up to ${MAX_COURSE_ALIASES}, separated by commas: dsa, cse 221`}
+              autoFocus
+              error={fieldErrors.aliases}
+            />
+          )}
+        </ActionDialog>
+      )}
       <ConfirmAction
         open={dialog === "delete"}
         onOpenChange={onOpenChange}
@@ -584,12 +629,14 @@ function CatalogSection({
   }
   const isDuplicate = (row: Row) => (keyCounts.get(duplicateKey(row)) ?? 0) > 1;
 
-  const needle = query.trim().toLowerCase();
+  // The site's one search rule (@ourdiu/shared/search), short names included.
   const filtered = allRows[kind].filter(
     (row) =>
-      (!needle ||
-        row.name.toLowerCase().includes(needle) ||
-        row.shortName?.toLowerCase().includes(needle)) &&
+      (!query.trim() ||
+        bestRank(
+          matchRank(row.name, query, row.aliases),
+          row.shortName ? matchRank(row.shortName, query) : null,
+        ) !== null) &&
       (kind !== "courses" ||
         department === ALL ||
         String(row.departmentId) === department) &&
@@ -752,7 +799,7 @@ function CatalogSection({
         <EmptyState
           icon={FolderTree}
           title={
-            needle || department !== ALL || duplicatesOnly
+            query.trim() || department !== ALL || duplicatesOnly
               ? `No matching ${label.toLowerCase()}`
               : `No ${label.toLowerCase()} yet`
           }
@@ -800,6 +847,11 @@ function CatalogSection({
                   </TableCell>
                   <TableCell className="max-w-72 truncate font-medium">
                     {row.name}
+                    {row.aliases && row.aliases.length > 0 && (
+                      <span className="block truncate text-xs font-normal text-muted-foreground">
+                        {row.aliases.join(" · ")}
+                      </span>
+                    )}
                   </TableCell>
                   {kind === "departments" && (
                     <TableCell className="text-muted-foreground">

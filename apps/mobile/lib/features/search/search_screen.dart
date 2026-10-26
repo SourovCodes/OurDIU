@@ -13,11 +13,11 @@ import '../../widgets/state_message.dart';
 import '../home/search_pill.dart';
 
 /// Courses that match the typed text by the app's one search rule
-/// ([matchRank], `data/search.dart`: name, initials like "pps", or every
-/// word), best first, then A–Z. Same as the website's `searchCourses`.
+/// ([matchRank], `data/search.dart`: name, initials like "pps", short names,
+/// or every word), best first, then A–Z. Same as the website's `searchCourses`.
 List<CourseListItem> searchCourses(List<CourseListItem> courses, String query) {
   final byName = [...courses]..sort((a, b) => a.name.compareTo(b.name));
-  return searchBy(byName, (c) => matchRank(c.name, query));
+  return searchBy(byName, (c) => matchRank(c.name, query, c.aliases ?? []));
 }
 
 class SearchScreen extends ConsumerStatefulWidget {

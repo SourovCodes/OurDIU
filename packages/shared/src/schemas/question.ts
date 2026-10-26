@@ -120,6 +120,17 @@ export const questionDetailSchema = questionSchema
   .meta({ id: "QuestionDetail" });
 export type QuestionDetail = z.infer<typeof questionDetailSchema>;
 
+export const viewTokenSchema = z
+  .object({
+    /**
+     * Send as `X-View-Token` when counting a view of this question or one of its papers.
+     * Valid for an hour.
+     */
+    viewToken: z.string(),
+  })
+  .meta({ id: "ViewToken" });
+export type ViewToken = z.infer<typeof viewTokenSchema>;
+
 export const questionSortSchema = z
   .enum(QUESTION_SORTS)
   .meta({ id: "QuestionSort" });

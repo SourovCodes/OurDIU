@@ -1,4 +1,10 @@
-import type { ReportReason, SubmissionStats, VoteValue } from "@ourdiu/shared";
+import type {
+  QuestionInteractions,
+  ReportReason,
+  SubmissionStats,
+  ViewToken,
+  VoteValue,
+} from "@ourdiu/shared";
 import { useEffect, useRef } from "react";
 
 /** Shared by the report dialog and the page-level notice, which outlives the dialog. */
@@ -12,6 +18,8 @@ export type PaperActionResult = {
   error?: string;
   /** For reports: the paper reached the report threshold and is hidden now. */
   submissionHidden?: boolean;
+  /** The visitor's votes, reports and save after the change. */
+  interactions?: QuestionInteractions;
 };
 
 export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
@@ -47,21 +55,50 @@ export function withVote(
   };
 }
 
+// Tokens last an hour (the API's VIEW_TOKEN_TTL_MS); a fresh one well before that.
+const TOKEN_REUSE_MS = 50 * 60 * 1000;
+const tokens = new Map<number, { at: number; token: Promise<string | null> }>();
+
+/**
+ * A token for counting views of a question, asked for by the browser: the page's
+ * data is cached and shared, so a token in it would be everyone's, and the API
+ * counts each token once a minute (docs/PLAN.md, decision 62).
+ */
+function viewToken(questionId: number) {
+  const cached = tokens.get(questionId);
+  if (cached && Date.now() - cached.at < TOKEN_REUSE_MS) return cached.token;
+  const token = fetch(`/api/v1/questions/${questionId}/view-token`)
+    .then((res) => (res.ok ? (res.json() as Promise<ViewToken>) : null))
+    .then((body) => body?.viewToken ?? null)
+    .catch(() => null);
+  tokens.set(questionId, { at: Date.now(), token });
+  // A failed request isn't kept: the next view asks again.
+  void token.then((value) => {
+    if (value === null && tokens.get(questionId)?.token === token) {
+      tokens.delete(questionId);
+    }
+  });
+  return token;
+}
+
 /**
  * Counts a view by POSTing to `url` once per value (skipped while `url` is null),
- * with the question's view token. Fire-and-forget: a failed count never affects the
- * page.
+ * with a view token for the question. Fire-and-forget: a failed count never
+ * affects the page.
  */
-export function useCountView(url: string | null, viewToken: string) {
+export function useCountView(url: string | null, questionId: number) {
   // Also stops React's development double-run of effects from counting twice.
   const counted = useRef<string | null>(null);
   useEffect(() => {
     if (!url || counted.current === url) return;
     counted.current = url;
-    fetch(url, {
-      method: "POST",
-      headers: { "x-view-token": viewToken },
-      keepalive: true,
-    }).catch(() => {});
-  }, [url, viewToken]);
+    void viewToken(questionId).then((token) => {
+      if (!token) return;
+      fetch(url, {
+        method: "POST",
+        headers: { "x-view-token": token },
+        keepalive: true,
+      }).catch(() => {});
+    });
+  }, [url, questionId]);
 }

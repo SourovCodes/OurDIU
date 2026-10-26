@@ -681,6 +681,17 @@
           "image"
         ]
       },
+      "ViewToken": {
+        "type": "object",
+        "properties": {
+          "viewToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "viewToken"
+        ]
+      },
       "CreatedSubmission": {
         "type": "object",
         "properties": {
@@ -3751,6 +3762,48 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/questions/{id}/view-token": {
+      "get": {
+        "tags": [
+          "Questions"
+        ],
+        "summary": "Get a token for counting views of a question",
+        "description": "The same token as `viewToken` in `GET /questions/{id}`, for clients that read the question from a shared cache, where its token would be everyone's. Never cached.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A view token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewToken"
                 }
               }
             }

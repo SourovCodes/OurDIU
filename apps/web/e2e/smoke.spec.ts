@@ -269,12 +269,13 @@ test("course filter follows the selected department", async ({ page }) => {
   await expect(
     page.getByRole("option", { name: "Circuit Analysis (EEE)" }),
   ).toBeVisible();
-  // Searched by the site's one rule, initials too ("dm": Discrete Mathematics).
+  // Searched by the site's one rule, short names too ("dm": Discrete Mathematics),
+  // which come first. Only first: other tests' courses have random names that can
+  // contain "dm".
   await page.getByPlaceholder("Search courses…").fill("dm");
-  await expect(page.getByRole("option")).toHaveText([
-    "Discrete Mathematics (CSE)",
-    "Discrete Mathematics (EEE)",
-  ]);
+  const options = page.getByRole("option");
+  await expect(options.nth(0)).toHaveText("Discrete Mathematics (CSE)");
+  await expect(options.nth(1)).toHaveText("Discrete Mathematics (EEE)");
   await page.keyboard.press("Escape");
   // Closing a picker returns focus to it (unless another picker took it meanwhile).
   await expect(page.getByRole("combobox", { name: "Course" })).toBeFocused();

@@ -16,11 +16,11 @@ const app = createApp();
 export const TEXT_CRON = "*/5 * * * *";
 
 /**
- * Asks the AI for the short names of courses it hasn't looked at yet
- * (services/course-aliases.ts), once a day at 03:00 in Dhaka. Must match a cron in
- * wrangler.jsonc.
+ * Fills the short names of courses it hasn't looked at yet
+ * (services/course-aliases.ts), hourly: one AI call an hour while any are left, 24 a
+ * day at most beside the text backfill's 288. Must match a cron in wrangler.jsonc.
  */
-export const ALIASES_CRON = "0 21 * * *";
+export const ALIASES_CRON = "0 * * * *";
 
 /** A message on either queue. */
 export type QueueJob = AnalysisJob | TextJob | WatermarkJob;

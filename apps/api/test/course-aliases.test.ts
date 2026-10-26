@@ -5,6 +5,8 @@ import { courseAliases, courses } from "../src/db/schema";
 import {
   cleanAliases,
   fillCourseAliases,
+  initials,
+  initialsAlias,
   type AliasEnv,
 } from "../src/services/course-aliases";
 import {
@@ -84,6 +86,20 @@ const call = (method: string, path: string, body?: unknown, cookie?: string) =>
     jsonRequest(method, body ?? {}, cookie ?? admin.cookie),
   );
 
+describe("initials", () => {
+  it("are the first letters, without small words and numbers", () => {
+    expect(initials("Programming and Problem Solving")).toBe("pps");
+    expect(initials("Object Oriented Programming")).toBe("oop");
+    expect(initials("Data Structures and Algorithms")).toBe("dsa");
+    expect(initials("Introduction to Data Science")).toBe("ids");
+    expect(initials("Electrical Circuits I")).toBe("ec");
+    expect(initials("Physics-II")).toBe("p");
+    // One letter isn't worth a short name: the name starts with it.
+    expect(initialsAlias("Physics II")).toBeNull();
+    expect(initialsAlias("Digital Logic Design")).toBe("dld");
+  });
+});
+
 describe("cleanAliases", () => {
   it("normalizes, and drops the name, its initials, repeats and extras", () => {
     expect(
@@ -119,12 +135,21 @@ describe("fillCourseAliases", () => {
     expect(prompts).toHaveLength(1);
     expect(prompts[0]).toContain(`${t.algorithms.id}\t${t.algorithms.name}\t`);
     expect(result.checked).toBeGreaterThanOrEqual(2);
-    expect(await aliasRows(t.algorithms.id)).toEqual([
-      { alias: "algo", source: "ai", hidden: false },
-      { alias: "dsa", source: "ai", hidden: false },
+    expect(await aliasRows(t.algorithms.id)).toEqual(
+      [
+        { alias: "algo", source: "ai", hidden: false },
+        { alias: "dsa", source: "ai", hidden: false },
+        {
+          alias: initialsAlias(t.algorithms.name)!,
+          source: "initials",
+          hidden: false,
+        },
+      ].sort((a, b) => a.alias.localeCompare(b.alias)),
+    );
+    // Only its initials from the AI's empty answer, and checked, so not sent again.
+    expect((await aliasRows(t.circuits.id)).map((r) => r.source)).toEqual([
+      "initials",
     ]);
-    // Checked with none, so not sent again.
-    expect(await aliasRows(t.circuits.id)).toEqual([]);
     expect(await checkedAt(t.circuits.id)).not.toBeNull();
 
     const again = fakeGemini(() => ["other"]);
@@ -135,7 +160,7 @@ describe("fillCourseAliases", () => {
     expect(again.prompts.join()).not.toContain(t.algorithms.name);
   });
 
-  it("leaves courses unchecked when the call fails, and skips without a key", async () => {
+  it("saves initials but leaves courses unchecked without an AI answer", async () => {
     const t = await seedTaxonomy();
     const failing = fakeGemini(() => [], 503);
     expect(
@@ -145,6 +170,13 @@ describe("fillCourseAliases", () => {
       }),
     ).toEqual({ checked: 0, suggested: 0 });
     expect(await checkedAt(t.algorithms.id)).toBeNull();
+    expect(await aliasRows(t.algorithms.id)).toEqual([
+      {
+        alias: initialsAlias(t.algorithms.name)!,
+        source: "initials",
+        hidden: false,
+      },
+    ]);
 
     const unused = fakeGemini(() => []);
     await fillCourseAliases(
@@ -167,9 +199,9 @@ describe("fillCourseAliases", () => {
       name === t.algorithms.name ? ["algo"] : [],
     );
     await fillCourseAliases(db(), aliasEnv, { limit: 1000, fetch });
-    expect(await aliasRows(t.algorithms.id)).toEqual([
-      { alias: "algo", source: "ai", hidden: true },
-    ]);
+    expect(
+      (await aliasRows(t.algorithms.id)).find((r) => r.alias === "algo"),
+    ).toEqual({ alias: "algo", source: "ai", hidden: true });
   });
 });
 
@@ -247,12 +279,13 @@ describe("PUT /api/v1/admin/courses/{id}/aliases", () => {
 });
 
 describe("renames and merges", () => {
-  it("a rename drops the AI's short names and has the job look again", async () => {
+  it("a rename clears the generated short names and has the job look again", async () => {
     const t = await seedTaxonomy();
     await db()
       .insert(courseAliases)
       .values([
         { courseId: t.algorithms.id, alias: "algo", source: "ai" },
+        { courseId: t.algorithms.id, alias: "ae", source: "initials" },
         { courseId: t.algorithms.id, alias: "cse 221", source: "admin" },
       ]);
     await db()

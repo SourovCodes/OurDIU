@@ -133,7 +133,7 @@
   },
   // The API's scheduled handler: every 10 minutes rebuilds "Most viewed today" from
   // the last 24 hours' views (services/trending.ts); every 5 reads one missing paper
-  // text (TEXT_CRON, services/paper-text.ts); at 21:00 UTC (03:00 in Dhaka) asks the
-  // AI for courses' short names (ALIASES_CRON, services/course-aliases.ts).
-  "triggers": { "crons": ["*/10 * * * *", "*/5 * * * *", "0 21 * * *"] },
+  // text (TEXT_CRON, services/paper-text.ts); every hour fills courses' short names
+  // (ALIASES_CRON, services/course-aliases.ts).
+  "triggers": { "crons": ["*/10 * * * *", "*/5 * * * *", "0 * * * *"] },
 }

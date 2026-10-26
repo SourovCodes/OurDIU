@@ -438,7 +438,12 @@ export function routineSectionSlug(section: string): string {
 // ── Course short names ───────────────────────────────────────────────────────
 
 /** Where a course's short name came from (`course_aliases.source`). */
-export const COURSE_ALIAS_SOURCES = ["ai", "admin", "merge"] as const;
+export const COURSE_ALIAS_SOURCES = [
+  "initials",
+  "ai",
+  "admin",
+  "merge",
+] as const;
 export type CourseAliasSource = (typeof COURSE_ALIAS_SOURCES)[number];
 
 export const ALIAS_MIN_LENGTH = 2;

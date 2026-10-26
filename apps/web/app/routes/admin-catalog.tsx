@@ -354,7 +354,7 @@ function RowActions({
           open={dialog === "aliases"}
           onOpenChange={onOpenChange}
           title="Short names"
-          description={`Other names search finds “${row.name}” by, besides its initials. The daily AI job adds some; ones you remove stay removed.`}
+          description={`Other names search finds “${row.name}” by. Its initials and the AI’s suggestions are added hourly; ones you remove stay removed.`}
           submitLabel="Save"
           pendingLabel="Saving…"
           successMessage={`Saved the short names of “${row.name}”`}

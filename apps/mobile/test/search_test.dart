@@ -26,13 +26,6 @@ void main() {
     expect(names('struct').first, 'Structured Programming');
   });
 
-  test('finds courses by their initials, exact ones first', () {
-    expect(names('SP'), ['Structured Programming']);
-    expect(names('ds'), ['Data Structures']);
-    // More than one word is never read as initials.
-    expect(names('ds sp'), isEmpty);
-  });
-
   test('finds courses by their short names', () {
     const courses = [
       CourseListItem(
@@ -68,10 +61,6 @@ void sharedCases() {
   ) as Map<String, dynamic>;
 
   group('the shared name-search cases', () {
-    for (final [name as String, expected as String]
-        in cases['initials'] as List) {
-      test('$name → $expected', () => expect(initials(name), expected));
-    }
     for (final c in cases['rank'] as List) {
       final [name as String, query as String, expected as int?, ...rest] =
           c as List;

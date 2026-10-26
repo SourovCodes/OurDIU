@@ -4,47 +4,25 @@
 /// `packages/shared/test-data/name-search.json`, so they can't drift apart.
 library;
 
-const _smallWords = {'and', 'of', 'the', 'in', 'for', 'to'};
-final _numeral = RegExp(r'^([ivx]+|\d+)$');
-final _nonWord = RegExp('[^a-z0-9]+');
 final _space = RegExp(r'\s+');
-
-/// The first letters of a name's words, the way students shorten it:
-/// "Programming and Problem Solving" is "pps", "Electrical Circuits I" is
-/// "ec". Small words and numbers (Roman or not) are left out.
-String initials(String name) => name
-    .toLowerCase()
-    .split(_nonWord)
-    .where(
-      (w) => w.isNotEmpty && !_smallWords.contains(w) && !_numeral.hasMatch(w),
-    )
-    .map((w) => w[0])
-    .join();
 
 /// The typed words, lower-case.
 List<String> queryWords(String query) =>
     query.toLowerCase().split(_space).where((w) => w.isNotEmpty).toList();
 
 /// How well a name matches what was typed, lower is better, or null for no
-/// match: 0 the name starts with it ("data" → Data Structures), 1 one word
-/// that is the name's initials ("pps") or what was typed is one of its short
-/// names ([aliases], lower-case: "dsa"), 2 one word that starts the initials
-/// ("pp") or what was typed starts a short name ("ds" → "dsa"), 3 the name
-/// contains every typed word, in any order ("struct data").
+/// match: 0 the name starts with it ("data" → Data Structures), 1 it's one of
+/// the name's short names ([aliases], lower-case, initials among them: "pps",
+/// "dsa"), 2 it starts a short name, two letters or more ("pp" → "pps"), 3 the
+/// name contains every typed word, in any order ("struct data").
 int? matchRank(String name, String query, [List<String> aliases = const []]) {
   final typed = queryWords(query);
   if (typed.isEmpty) return null;
   final q = typed.join(' ');
   final lower = name.toLowerCase();
   if (lower.startsWith(q)) return 0;
-  // Initials only for one word of two letters or more.
-  final short = typed.length == 1 && q.length >= 2 ? initials(name) : null;
-  if (short == q || aliases.contains(q)) return 1;
-  if (q.length >= 2 &&
-      ((short?.startsWith(q) ?? false) ||
-          aliases.any((a) => a.startsWith(q)))) {
-    return 2;
-  }
+  if (aliases.contains(q)) return 1;
+  if (q.length >= 2 && aliases.any((a) => a.startsWith(q))) return 2;
   return typed.every(lower.contains) ? 3 : null;
 }
 

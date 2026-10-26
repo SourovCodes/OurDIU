@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import cases from "../test-data/name-search.json";
-import { bestRank, initials, matchRank, searchBy } from "./search";
+import { bestRank, matchRank, searchBy } from "./search";
 
-// The cases the app runs too (apps/mobile/test/search_test.dart).
-const initialsCases = cases.initials as [string, string][];
-const rankCases = cases.rank as [string, string, number | null, string[]?][];
-const orderCases = cases.order as {
+// The cases the app runs too (apps/mobile/test/search_test.dart). JSON types each
+// case by its own keys, hence the casts through unknown.
+const rankCases = cases.rank as unknown as [
+  string,
+  string,
+  number | null,
+  string[]?,
+][];
+const orderCases = cases.order as unknown as {
   query: string;
   names: string[];
   aliases?: Record<string, string[]>;
@@ -13,10 +18,6 @@ const orderCases = cases.order as {
 }[];
 
 describe("the shared name-search cases", () => {
-  it.each(initialsCases)("%s → %s", (name, expected) => {
-    expect(initials(name)).toBe(expected);
-  });
-
   it.each(rankCases)("%s, %j → %s %j", (name, query, expected, aliases) => {
     expect(matchRank(name, query, aliases)).toBe(expected);
   });

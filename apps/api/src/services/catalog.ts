@@ -7,7 +7,7 @@ import type {
   CreateCourseInput,
   DepartmentInput,
 } from "@ourdiu/shared";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import type { Database } from "../db/client";
 import {
   courseAliases,
@@ -225,8 +225,8 @@ export async function createCourse(
 
 /**
  * Only the name can change: questions depend on a course's department. A new name
- * drops the AI's short names for the old one and has the daily job look again;
- * admins' and merges' stay.
+ * clears the generated short names (initials, the AI's) and has the hourly job fill
+ * them again; admins' and merges' stay.
  */
 export async function renameCourse(
   db: Database,
@@ -246,7 +246,7 @@ export async function renameCourse(
         .where(
           and(
             eq(courseAliases.courseId, id),
-            eq(courseAliases.source, "ai"),
+            inArray(courseAliases.source, ["initials", "ai"]),
             eq(courseAliases.hidden, false),
           ),
         ),

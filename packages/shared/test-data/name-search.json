@@ -1,40 +1,24 @@
 {
-  "$comment": "The one name-search rule's cases, run by the site (packages/shared/src/search.test.ts) and the app (apps/mobile/test/search_test.dart), so both search alike. rank: [name, query, expected, short names?]; 0 name starts with the query, 1 initials or a short name, 2 start of the initials or of a short name, 3 every word in the name, null no match. order: matches best first, same rank in the given order; aliases are short names by name.",
-  "initials": [
-    ["Programming and Problem Solving", "pps"],
-    ["Object Oriented Programming", "oop"],
-    ["Data Structures and Algorithms", "dsa"],
-    ["Data Structures Lab", "dsl"],
-    ["Introduction to Data Science", "ids"],
-    ["Electrical Circuits I", "ec"],
-    ["Physics-II", "p"],
-    ["Mathematics 2", "m"]
-  ],
+  "$comment": "The one name-search rule's cases, run by the site (packages/shared/src/search.test.ts) and the app (apps/mobile/test/search_test.dart), so both search alike. rank: [name, query, expected, short names?]; 0 name starts with the query, 1 one of the short names (initials are stored as short names), 2 start of a short name, 3 every word in the name, null no match. order: matches best first, same rank in the given order; aliases are short names by name.",
   "rank": [
     ["Data Structures", "data", 0],
     ["Data Structures", "DATA struct", 0],
     ["Physics", "p", 0],
-    ["Programming and Problem Solving", "pps", 1],
-    ["Programming and Problem Solving", " PPS ", 1],
-    ["Data Structures", "ds", 1],
-    ["Programming and Problem Solving", "pp", 2],
-    ["Data Structures Lab", "ds", 2],
+    ["Algorithms", "alg", 0, ["algo"]],
+    ["Programming and Problem Solving", "pps", 1, ["pps"]],
+    ["Programming and Problem Solving", " PPS ", 1, ["pps"]],
+    ["Data Structures", "dsa", 1, ["ds", "dsa"]],
+    ["Programming and Problem Solving", "pp", 2, ["pps"]],
+    ["Mathematics I", "calc", 2, ["calculus"]],
+    ["Structured Programming", "c prog", 2, ["c programming", "sp"]],
     ["Data Structures", "struct data", 3],
     ["Applied Physics", "p", 3],
-    ["Kids Studies", "ds", 3],
+    ["Mathematics I", "c", 3, ["calculus"]],
+    ["Programming and Problem Solving", "pps", null],
     ["Mathematics I", "math 1", null],
-    ["Programming and Problem Solving", "pp s", null],
+    ["Programming and Problem Solving", "pp s", null, ["pps"]],
     ["Data Structures", "   ", null],
-    ["Data Structures", "chemistry", null],
-    ["Data Structures", "dsa", 1, ["dsa"]],
-    ["Data Structures", "dsa", null],
-    ["Data Structures", "ds", 1, ["dsa"]],
-    ["Algorithms", "alg", 0, ["algo"]],
-    ["Mathematics I", "calculus", 1, ["calculus"]],
-    ["Mathematics I", "calc", 2, ["calculus"]],
-    ["Structured Programming", "spl", 1, ["c programming", "spl"]],
-    ["Structured Programming", "c prog", 2, ["c programming", "spl"]],
-    ["Physics", "calc", null, ["mechanics"]]
+    ["Data Structures", "chemistry", null]
   ],
   "order": [
     {
@@ -46,6 +30,13 @@
         "Discrete Mathematics",
         "Kids Studies"
       ],
+      "aliases": {
+        "Data Science Lab": ["dsl"],
+        "Data Structures": ["ds", "dsa"],
+        "Database Systems": ["ds"],
+        "Discrete Mathematics": ["dm"],
+        "Kids Studies": ["ks"]
+      },
       "expected": [
         "Data Structures",
         "Database Systems",
@@ -56,6 +47,10 @@
     {
       "query": "ph",
       "names": ["Applied Physics", "Physics I", "Public Health"],
+      "aliases": {
+        "Applied Physics": ["ap"],
+        "Public Health": ["ph"]
+      },
       "expected": ["Physics I", "Public Health", "Applied Physics"]
     },
     {

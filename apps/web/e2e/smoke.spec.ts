@@ -330,6 +330,33 @@ const uploaderLink = (page: Page, name: string) =>
 const SEED_01 = "Section A · Batch 61";
 const SEED_02 = "Tanvir Hasan";
 
+test("opening a filter while another has a search typed keeps it open", async ({
+  page,
+}) => {
+  // On phones the open list covers the other filters, so this can't happen there.
+  test.skip(test.info().project.name === "mobile", "filters side by side only");
+  await page.goto("/questions/browse");
+  await openCombobox(page, "Course");
+  await page.getByPlaceholder("Search courses…").fill("data");
+
+  // Straight to another filter, without picking a course.
+  await page.getByRole("combobox", { name: "Semester" }).click();
+  // Once the course list has gone, the semester list is still open and focused
+  // (cmdk used to pull focus back to the closing list, which closed both).
+  await expect(page.getByPlaceholder("Search courses…")).toHaveCount(0);
+  await expect(
+    page.getByRole("combobox", { name: "Semester" }),
+  ).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByPlaceholder("Search semesters…")).toBeFocused();
+
+  // And back, the other way round: the course search starts empty again.
+  await page.getByPlaceholder("Search semesters…").fill("fall");
+  await page.getByRole("combobox", { name: "Course" }).click();
+  await expect(page.getByPlaceholder("Search semesters…")).toHaveCount(0);
+  await expect(page.getByPlaceholder("Search courses…")).toBeFocused();
+  await expect(page.getByPlaceholder("Search courses…")).toHaveValue("");
+});
+
 test("question page embeds the PDF, shows its uploader and switches submissions", async ({
   page,
   isMobile,

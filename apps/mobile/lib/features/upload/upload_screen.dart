@@ -10,6 +10,7 @@ import '../../auth/session.dart';
 import '../../data/analytics.dart';
 import '../../data/format.dart';
 import '../../data/questions.dart';
+import '../../data/search.dart';
 import '../../data/settings.dart';
 import '../../data/taxonomy.dart';
 import '../../theme/exam_shape.dart';
@@ -131,7 +132,10 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     final recent = ref.read(recentCoursesProvider);
     final choice = await _choose(
       title: 'Course',
-      options: [for (final c in courses) _Option(c.id, c.name)],
+      options: [
+        for (final c in courses)
+          _Option(c.id, c.name, aliases: c.aliases ?? const []),
+      ],
       recent: [
         for (final id in recent)
           if (courses.where((c) => c.id == id).firstOrNull case final c?)
@@ -874,7 +878,7 @@ class _SubmitBar extends StatelessWidget {
 }
 
 class _Option {
-  const _Option(this.id, this.label, {this.search});
+  const _Option(this.id, this.label, {this.search, this.aliases = const []});
 
   final int id;
   final String label;
@@ -882,9 +886,14 @@ class _Option {
   /// Also matched when searching, e.g. a department's full name.
   final String? search;
 
-  bool matches(String query) =>
-      label.toLowerCase().contains(query) ||
-      (search?.toLowerCase().contains(query) ?? false);
+  /// A course's short names, matched too.
+  final List<String> aliases;
+
+  /// By the app's one search rule (data/search.dart).
+  int? rank(String query) => bestRank(
+    matchRank(label, query, aliases),
+    search == null ? null : matchRank(search!, query, aliases),
+  );
 }
 
 /// An existing entry, or a new name to propose.
@@ -922,10 +931,9 @@ class _PickSheetState extends State<_PickSheet> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final q = _query.trim().toLowerCase();
-    final shown = [
-      for (final o in widget.options)
-        if (q.isEmpty || o.matches(q)) o,
-    ];
+    final shown = q.isEmpty
+        ? widget.options
+        : searchBy(widget.options, (o) => o.rank(q));
     final typed = _query.trim().replaceAll(RegExp(r'\s+'), ' ');
     final newName = typed.isEmpty
         ? null

@@ -15,9 +15,17 @@ const courses: Course[] = [
 describe("courseOptions", () => {
   it("shows all courses suffixed with the department short name when no department is selected", () => {
     expect(courseOptions(courses, departments, null)).toEqual([
-      { value: "10", label: "Algorithms (CSE)" },
-      { value: "11", label: "Discrete Mathematics (CSE)" },
-      { value: "20", label: "Discrete Mathematics (EEE)" },
+      { value: "10", label: "Algorithms (CSE)", name: "Algorithms" },
+      {
+        value: "11",
+        label: "Discrete Mathematics (CSE)",
+        name: "Discrete Mathematics",
+      },
+      {
+        value: "20",
+        label: "Discrete Mathematics (EEE)",
+        name: "Discrete Mathematics",
+      },
     ]);
   });
 

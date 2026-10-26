@@ -102,7 +102,7 @@ export default function CourseSearchDialog({
             <CommandPrimitive.Input
               value={query}
               onValueChange={setQuery}
-              placeholder="Search a course, like Data Structure"
+              placeholder="Search a course, like Data Structure or PPS"
               className="h-full flex-1 bg-transparent text-base outline-hidden placeholder:text-muted-foreground"
             />
             {loading && (

@@ -269,6 +269,12 @@ test("course filter follows the selected department", async ({ page }) => {
   await expect(
     page.getByRole("option", { name: "Circuit Analysis (EEE)" }),
   ).toBeVisible();
+  // Searched by the site's one rule, initials too ("dm": Discrete Mathematics).
+  await page.getByPlaceholder("Search courses…").fill("dm");
+  await expect(page.getByRole("option")).toHaveText([
+    "Discrete Mathematics (CSE)",
+    "Discrete Mathematics (EEE)",
+  ]);
   await page.keyboard.press("Escape");
   // Closing a picker returns focus to it (unless another picker took it meanwhile).
   await expect(page.getByRole("combobox", { name: "Course" })).toBeFocused();
@@ -444,6 +450,14 @@ test("course search leads to a course, its exams and a paper", async ({
     .getByRole("link", { name: /^Search \d+ courses/ })
     .click();
   await expect(search).toBeVisible();
+
+  // A course's initials find it.
+  await search.getByRole("combobox").fill("pafsa");
+  await expect(
+    search.getByRole("option", {
+      name: /Principles of Accounting and Financial Statement Analysis/,
+    }),
+  ).toBeVisible();
 
   // Every word must match, in any order.
   await search.getByRole("combobox").fill("struct data");

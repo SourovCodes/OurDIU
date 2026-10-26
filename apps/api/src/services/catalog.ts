@@ -7,9 +7,15 @@ import type {
   CreateCourseInput,
   DepartmentInput,
 } from "@ourdiu/shared";
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import type { Database } from "../db/client";
-import { courses, departments, examTypes, semesters } from "../db/schema";
+import {
+  courseAliases,
+  courses,
+  departments,
+  examTypes,
+  semesters,
+} from "../db/schema";
 import { isConstraintError } from "../lib/db-errors";
 import { AppError } from "../lib/errors";
 
@@ -25,6 +31,8 @@ const countWhere = (table: string, column: string, parent: string) =>
     )
     .mapWith(Number);
 import { semesterRecency } from "./common";
+import { courseAliasList, setCourseAliases } from "./course-aliases";
+import { aliasesByCourse, listCourseAliases } from "./taxonomy";
 
 function selectDepartments(db: Database) {
   return db
@@ -83,16 +91,21 @@ function selectExamTypes(db: Database) {
 
 /** Every catalog entry with how often it is used. Same order as the public lists. */
 export async function getCatalog(db: Database): Promise<AdminCatalog> {
-  const [departmentRows, courseRows, semesterRows, examTypeRows] =
+  const [departmentRows, courseRows, aliasRows, semesterRows, examTypeRows] =
     await Promise.all([
       selectDepartments(db).orderBy(asc(departments.name)),
       selectCourses(db).orderBy(asc(courses.name)),
+      listCourseAliases(db),
       selectSemesters(db).orderBy(...semesterRecency),
       selectExamTypes(db).orderBy(asc(examTypes.name)),
     ]);
+  const aliases = aliasesByCourse(aliasRows);
   return {
     departments: departmentRows,
-    courses: courseRows,
+    courses: courseRows.map((c) => ({
+      ...c,
+      aliases: aliases.get(c.id) ?? [],
+    })),
     semesters: semesterRows,
     examTypes: examTypeRows,
   };
@@ -180,10 +193,13 @@ export async function deleteDepartment(db: Database, id: number) {
 
 // ── Courses ──────────────────────────────────────────────────────────────────
 
-async function findCourse(db: Database, id: number) {
-  const [row] = await selectCourses(db).where(eq(courses.id, id)).limit(1);
+async function findCourse(db: Database, id: number): Promise<AdminCourse> {
+  const [[row], aliases] = await Promise.all([
+    selectCourses(db).where(eq(courses.id, id)).limit(1),
+    courseAliasList(db, id),
+  ]);
   if (!row) throw notFound("Course");
-  return row;
+  return { ...row, aliases };
 }
 
 const courseConflict = "This department already has a course with this name";
@@ -207,16 +223,46 @@ export async function createCourse(
   return findCourse(db, row!.id);
 }
 
-/** Only the name can change: questions depend on a course's department. */
+/**
+ * Only the name can change: questions depend on a course's department. A new name
+ * clears the generated short names (initials, the AI's) and has the hourly job fill
+ * them again; admins' and merges' stay.
+ */
 export async function renameCourse(
   db: Database,
   id: number,
   name: string,
 ): Promise<AdminCourse> {
-  await findCourse(db, id);
+  const course = await findCourse(db, id);
+  if (course.name === name) return course;
   await uniquely(courseConflict, () =>
-    db.update(courses).set({ name }).where(eq(courses.id, id)),
+    db.batch([
+      db
+        .update(courses)
+        .set({ name, aliasesCheckedAt: null })
+        .where(eq(courses.id, id)),
+      db
+        .delete(courseAliases)
+        .where(
+          and(
+            eq(courseAliases.courseId, id),
+            inArray(courseAliases.source, ["initials", "ai"]),
+            eq(courseAliases.hidden, false),
+          ),
+        ),
+    ]),
   );
+  return findCourse(db, id);
+}
+
+/** Replaces a course's short names (`setCourseAliases`). */
+export async function updateCourseAliases(
+  db: Database,
+  id: number,
+  aliases: string[],
+): Promise<AdminCourse> {
+  await findCourse(db, id);
+  await setCourseAliases(db, id, aliases);
   return findCourse(db, id);
 }
 

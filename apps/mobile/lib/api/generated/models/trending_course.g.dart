@@ -16,6 +16,9 @@ TrendingCourse _$TrendingCourseFromJson(Map<String, dynamic> json) =>
         json['department'] as Map<String, dynamic>,
       ),
       viewsToday: (json['viewsToday'] as num).toInt(),
+      aliases: (json['aliases'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
     );
 
 Map<String, dynamic> _$TrendingCourseToJson(TrendingCourse instance) =>
@@ -24,6 +27,7 @@ Map<String, dynamic> _$TrendingCourseToJson(TrendingCourse instance) =>
       'name': instance.name,
       'departmentId': instance.departmentId,
       'publishedCount': instance.publishedCount,
+      'aliases': instance.aliases,
       'department': instance.department,
       'viewsToday': instance.viewsToday,
     };

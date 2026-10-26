@@ -1,5 +1,6 @@
 import type { Taxonomy } from "@ourdiu/shared";
 import { catalogKey } from "@ourdiu/shared/constants";
+import { matchRank, queryWords } from "@ourdiu/shared/search";
 
 /** A course with its department, as the search and the course pages show it. */
 export type CourseEntry = {
@@ -10,6 +11,8 @@ export type CourseEntry = {
   departmentName: string;
   /** Published papers of the course. */
   publishedCount: number;
+  /** Other names search finds it by ("pps", "dsa"), lower-case. */
+  aliases: string[];
 };
 
 /** Every course of the taxonomy with its department's names. */
@@ -29,44 +32,38 @@ export function courseEntries({
             departmentShortName: department.shortName,
             departmentName: department.name,
             publishedCount: c.publishedCount,
+            aliases: c.aliases ?? [],
           },
         ]
       : [];
   });
 }
 
-function words(query: string): string[] {
-  return query.toLowerCase().split(/\s+/).filter(Boolean);
-}
-
 /**
- * Courses whose name contains every word typed, in any order, ignoring case
- * ("math 1" finds "Mathematics I" only if both words match). Names that start with
- * the query come first, then A–Z; same as the app's `searchCourses`. Courses of
- * `preferredDepartmentId` come before others with the same rank.
+ * Courses that match the typed text by the site's one search rule (`matchRank`,
+ * @ourdiu/shared/search: name, initials like "pps", or every word), best first; within a
+ * rank, courses of `preferredDepartmentId` first, then A–Z.
  */
 export function searchCourses<T extends CourseEntry>(
   courses: T[],
   query: string,
   preferredDepartmentId?: number | null,
 ): T[] {
-  const typed = words(query);
-  if (typed.length === 0) return [];
-  const q = query.trim().toLowerCase();
-  const rank = (c: T) =>
-    (c.name.toLowerCase().startsWith(q) ? 0 : 2) +
-    (c.departmentId === preferredDepartmentId ? 0 : 1);
+  const other = (c: T) => Number(c.departmentId !== preferredDepartmentId);
   return courses
-    .filter((c) => {
-      const name = c.name.toLowerCase();
-      return typed.every((w) => name.includes(w));
-    })
+    .map((course) => ({
+      course,
+      rank: matchRank(course.name, query, course.aliases),
+    }))
+    .filter((r): r is { course: T; rank: number } => r.rank !== null)
     .sort(
-      (a, b) =>
-        rank(a) - rank(b) ||
+      ({ course: a, rank: ra }, { course: b, rank: rb }) =>
+        ra - rb ||
+        other(a) - other(b) ||
         a.name.localeCompare(b.name) ||
         a.departmentShortName.localeCompare(b.departmentShortName),
-    );
+    )
+    .map((r) => r.course);
 }
 
 /** A name split into the parts that match the typed words and the rest, for highlighting. */
@@ -76,7 +73,7 @@ export function highlightParts(
 ): { text: string; match: boolean }[] {
   const lower = name.toLowerCase();
   const marked = new Array<boolean>(name.length).fill(false);
-  for (const w of words(query)) {
+  for (const w of queryWords(query)) {
     for (let i = lower.indexOf(w); i !== -1; i = lower.indexOf(w, i + 1)) {
       marked.fill(true, i, i + w.length);
     }

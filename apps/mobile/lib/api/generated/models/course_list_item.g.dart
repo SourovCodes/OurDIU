@@ -12,6 +12,9 @@ CourseListItem _$CourseListItemFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       departmentId: (json['departmentId'] as num).toInt(),
       publishedCount: (json['publishedCount'] as num).toInt(),
+      aliases: (json['aliases'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
     );
 
 Map<String, dynamic> _$CourseListItemToJson(CourseListItem instance) =>
@@ -20,4 +23,5 @@ Map<String, dynamic> _$CourseListItemToJson(CourseListItem instance) =>
       'name': instance.name,
       'departmentId': instance.departmentId,
       'publishedCount': instance.publishedCount,
+      'aliases': instance.aliases,
     };

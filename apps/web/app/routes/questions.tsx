@@ -189,6 +189,7 @@ export default function Questions({ loaderData }: Route.ComponentProps) {
         options={departments.map((d) => ({
           value: String(d.id),
           label: `${d.name} (${d.shortName})`,
+          name: d.name,
         }))}
         value={departmentId}
         onChange={(value) => setFilter("departmentId", value)}

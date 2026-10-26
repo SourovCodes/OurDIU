@@ -1,6 +1,7 @@
 import { createApp } from "./app";
 import { createDb } from "./db/client";
 import { handleAnalysisBatch, type AnalysisJob } from "./services/analysis";
+import { fillCourseAliases } from "./services/course-aliases";
 import { readNextMissingText, type TextJob } from "./services/paper-text";
 import { refreshTrending } from "./services/trending";
 import { handleWatermarkBatch, type WatermarkJob } from "./services/watermark";
@@ -13,6 +14,13 @@ const app = createApp();
  * with room for retries. Must match a cron in wrangler.jsonc.
  */
 export const TEXT_CRON = "*/5 * * * *";
+
+/**
+ * Fills the short names of courses it hasn't looked at yet
+ * (services/course-aliases.ts), hourly: one AI call an hour while any are left, 24 a
+ * day at most beside the text backfill's 288. Must match a cron in wrangler.jsonc.
+ */
+export const ALIASES_CRON = "0 * * * *";
 
 /** A message on either queue. */
 export type QueueJob = AnalysisJob | TextJob | WatermarkJob;
@@ -33,10 +41,13 @@ export default {
       );
     }
   },
-  // The crons in wrangler.jsonc: the text backfill, and "Most viewed today".
+  // The crons in wrangler.jsonc: the text backfill, courses' short names, and "Most
+  // viewed today".
   async scheduled(controller, env) {
     if (controller.cron === TEXT_CRON) {
       await readNextMissingText(createDb(env.DB), env);
+    } else if (controller.cron === ALIASES_CRON) {
+      await fillCourseAliases(createDb(env.DB), env);
     } else {
       await refreshTrending(createDb(env.DB));
     }

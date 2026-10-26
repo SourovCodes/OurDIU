@@ -12,6 +12,7 @@ const course = (
   name: string,
   departmentId = 1,
   departmentShortName = "CSE",
+  aliases: string[] = [],
 ): CourseEntry => ({
   id,
   name,
@@ -19,6 +20,7 @@ const course = (
   departmentShortName,
   departmentName: departmentShortName,
   publishedCount: 1,
+  aliases,
 });
 
 const courses = [
@@ -45,6 +47,28 @@ it("ranks names that start with the query first, then the preferred department",
   expect(searchCourses(courses, "data struct", 2).map((c) => c.id)).toEqual([
     3, 1, 2,
   ]);
+});
+
+it("finds courses by their short names, exact ones first", () => {
+  const all = [
+    course(1, "Data Structure", 1, "CSE", ["ds"]),
+    course(3, "Data Structure", 2, "SWE", ["ds"]),
+    course(7, "Programming and Problem Solving", 1, "CSE", ["pps"]),
+    course(8, "Data Structures Lab", 1, "CSE", ["dsl"]),
+    course(9, "Dispersion Studies", 2, "SWE", ["ds"]),
+    course(10, "Mathematics II", 1, "CSE", ["m2", "calculus"]),
+    course(11, "Calculus for Engineers", 2, "EEE"),
+  ];
+  const ids = (query: string, preferred?: number) =>
+    searchCourses(all, query, preferred).map((c) => c.id);
+  expect(ids("PPS")).toEqual([7]);
+  expect(ids("pp")).toEqual([7]);
+  // Exact ones before their start, the preferred department first in each.
+  expect(ids("ds", 2)).toEqual([3, 9, 1, 8]);
+  // A name that starts with the query before a short name it starts.
+  expect(ids("calc")).toEqual([11, 10]);
+  // Typed words are matched against the name only.
+  expect(ids("pp s")).toEqual([]);
 });
 
 it("highlights every typed word", () => {

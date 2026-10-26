@@ -13,6 +13,7 @@ class CourseListItem {
     required this.name,
     required this.departmentId,
     required this.publishedCount,
+    this.aliases,
   });
 
   factory CourseListItem.fromJson(Map<String, Object?> json) =>
@@ -22,6 +23,7 @@ class CourseListItem {
   final String name;
   final int departmentId;
   final int publishedCount;
+  final List<String>? aliases;
 
   Map<String, Object?> toJson() => _$CourseListItemToJson(this);
 }

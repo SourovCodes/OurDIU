@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../api/generated/export.dart';
 import '../../data/format.dart';
+import '../../data/search.dart';
 import '../../data/settings.dart';
 import '../../data/taxonomy.dart';
 import '../../shell/app_shell.dart';
@@ -11,27 +12,12 @@ import '../../theme/exam_shape.dart';
 import '../../widgets/state_message.dart';
 import '../home/search_pill.dart';
 
-/// Courses whose name contains every word typed, in any order, ignoring case
-/// ("math 1" finds "Mathematics I" only if both words match). Best matches
-/// (name starts with the query) first.
+/// Courses that match the typed text by the app's one search rule
+/// ([matchRank], `data/search.dart`: name, initials like "pps", short names,
+/// or every word), best first, then A–Z. Same as the website's `searchCourses`.
 List<CourseListItem> searchCourses(List<CourseListItem> courses, String query) {
-  final words = query
-      .toLowerCase()
-      .split(RegExp(r'\s+'))
-      .where((w) => w.isNotEmpty)
-      .toList();
-  if (words.isEmpty) return const [];
-  final hits = courses.where((c) {
-    final name = c.name.toLowerCase();
-    return words.every(name.contains);
-  }).toList();
-  final q = query.trim().toLowerCase();
-  hits.sort((a, b) {
-    final startsA = a.name.toLowerCase().startsWith(q) ? 0 : 1;
-    final startsB = b.name.toLowerCase().startsWith(q) ? 0 : 1;
-    return startsA != startsB ? startsA - startsB : a.name.compareTo(b.name);
-  });
-  return hits;
+  final byName = [...courses]..sort((a, b) => a.name.compareTo(b.name));
+  return searchBy(byName, (c) => matchRank(c.name, query, c.aliases ?? []));
 }
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -84,7 +70,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 if (hits.isNotEmpty) _open(hits.first);
               },
               decoration: InputDecoration(
-                hintText: 'Course name',
+                hintText: 'Course name or initials',
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 20,

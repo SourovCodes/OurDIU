@@ -1,6 +1,13 @@
 import type { Course, Department } from "@ourdiu/shared";
 
-export type SelectOption = { value: string; label: string };
+export type SelectOption = {
+  value: string;
+  label: string;
+  /** The bare name, searched too when the label adds to it ("Physics (EEE)"). */
+  name?: string;
+  /** Short names search finds it by too (a course's "pps"). */
+  aliases?: string[];
+};
 
 export const FILTER_KEYS = [
   "departmentId",
@@ -19,19 +26,25 @@ export const LIST_KEYS = ["sort"] as const;
  * department's short name so same-named courses can be told apart.
  */
 export function courseOptions(
-  courses: Course[],
+  courses: (Course & { aliases?: string[] })[],
   departments: Department[],
   departmentId: string | null,
 ): SelectOption[] {
   if (departmentId) {
     return courses
       .filter((course) => String(course.departmentId) === departmentId)
-      .map((course) => ({ value: String(course.id), label: course.name }));
+      .map((course) => ({
+        value: String(course.id),
+        label: course.name,
+        aliases: course.aliases,
+      }));
   }
   const shortNames = new Map(departments.map((d) => [d.id, d.shortName]));
   return courses.map((course) => ({
     value: String(course.id),
     label: `${course.name} (${shortNames.get(course.departmentId) ?? "?"})`,
+    name: course.name,
+    aliases: course.aliases,
   }));
 }
 

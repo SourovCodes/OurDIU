@@ -24,25 +24,44 @@ type GenerateContentResponse = {
   promptFeedback?: { blockReason?: string };
 };
 
+type JsonRequest = {
+  apiKey: string;
+  model: string;
+  prompt: string;
+  responseJsonSchema: object;
+  fetch?: Fetcher;
+};
+
 /**
  * Sends one PDF and a prompt to Gemini in a single `generateContent` call and returns
  * the JSON reply (parsed, not validated), constrained by `responseJsonSchema`.
  */
-export async function generateJsonFromPdf(options: {
-  apiKey: string;
-  model: string;
-  pdf: Uint8Array;
-  prompt: string;
-  responseJsonSchema: object;
-  fetch?: Fetcher;
-}): Promise<{ json: unknown; text: string }> {
+export async function generateJsonFromPdf(
+  options: JsonRequest & { pdf: Uint8Array },
+): Promise<{ json: unknown; text: string }> {
   if (options.pdf.byteLength > GEMINI_MAX_INLINE_PDF_BYTES) {
     throw new GeminiError(
       `The PDF is too large to analyse (${Math.round(options.pdf.byteLength / 1024 / 1024)} MB after compression)`,
       false,
     );
   }
+  return generateJson(options, {
+    inline_data: {
+      mime_type: "application/pdf",
+      data: Buffer.from(options.pdf).toString("base64"),
+    },
+  });
+}
 
+/**
+ * Sends a prompt (after any `parts`, like a PDF) to Gemini in a single
+ * `generateContent` call and returns the JSON reply (parsed, not validated),
+ * constrained by `responseJsonSchema`.
+ */
+export async function generateJson(
+  options: JsonRequest,
+  ...parts: object[]
+): Promise<{ json: unknown; text: string }> {
   let res: Response;
   try {
     res = await (options.fetch ?? fetch)(
@@ -57,15 +76,7 @@ export async function generateJsonFromPdf(options: {
           contents: [
             {
               role: "user",
-              parts: [
-                {
-                  inline_data: {
-                    mime_type: "application/pdf",
-                    data: Buffer.from(options.pdf).toString("base64"),
-                  },
-                },
-                { text: options.prompt },
-              ],
+              parts: [...parts, { text: options.prompt }],
             },
           ],
           generationConfig: {

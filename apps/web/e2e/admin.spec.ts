@@ -455,3 +455,41 @@ test("an admin asks for changes and the uploader fixes and resubmits the paper",
   await expect(admin.getByText("Uploaded a clearer scan.")).toBeVisible();
   await adminContext.close();
 });
+
+test("an admin gives a course a short name that search then finds it by", async ({
+  page,
+}) => {
+  await logInAs(page, SEED_ADMIN, "/admin/questions/catalog?tab=courses");
+  const name = `E2E Short Name ${unique()}`;
+  const alias = `zq${unique().replace(/\W/g, "")}`;
+  const res = await page.request.post("/api/v1/admin/courses", {
+    data: { name, departmentId: 1 },
+  });
+  expect(res.status()).toBe(201);
+  await page.reload();
+
+  await page.getByRole("searchbox", { name: "Search courses" }).fill(name);
+  const row = page.getByRole("row", { name: new RegExp(name) });
+  await row.getByRole("button", { name: `Actions for ${name}` }).click();
+  await page.getByRole("menuitem", { name: "Short names" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Short names").fill(`${alias.toUpperCase()}, `);
+  await dialog.getByRole("button", { name: "Save" }).click();
+  await expect(
+    page.getByText(`Saved the short names of “${name}”`),
+  ).toBeVisible();
+  // Stored lower-case, shown under the name.
+  await expect(row).toContainText(alias);
+
+  await page.goto("/questions");
+  await page.waitForLoadState("networkidle");
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: /^Search \d+ courses/ })
+    .click();
+  const search = page.getByRole("dialog", { name: "Search courses" });
+  await search.getByRole("combobox").fill(alias);
+  await expect(
+    search.getByRole("option", { name: new RegExp(name) }),
+  ).toBeVisible();
+});

@@ -50,6 +50,11 @@ export type DepartmentListItem = z.infer<typeof departmentListItemSchema>;
 export const courseListItemSchema = courseSchema
   .extend({
     publishedCount: z.number().int(),
+    /**
+     * Other names students search it by ("pps", a course code), lower-case. Only in
+     * the taxonomy; search matches them as it does the course's initials.
+     */
+    aliases: z.array(z.string()).optional(),
   })
   .meta({ id: "CourseListItem" });
 export type CourseListItem = z.infer<typeof courseListItemSchema>;

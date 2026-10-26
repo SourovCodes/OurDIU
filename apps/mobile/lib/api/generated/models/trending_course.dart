@@ -17,6 +17,7 @@ class TrendingCourse {
     required this.publishedCount,
     required this.department,
     required this.viewsToday,
+    this.aliases,
   });
 
   factory TrendingCourse.fromJson(Map<String, Object?> json) =>
@@ -26,6 +27,7 @@ class TrendingCourse {
   final String name;
   final int departmentId;
   final int publishedCount;
+  final List<String>? aliases;
   final Department department;
   final int viewsToday;
 

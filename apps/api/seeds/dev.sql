@@ -56,11 +56,12 @@ INSERT INTO courses (id, name, department_id) VALUES
   (9, 'Discrete Mathematics', 2);
 
 -- Short names, as the hourly job stores them (services/course-aliases.ts): initials
--- (two letters or more), and one the AI might add. Search matches only these.
+-- without and with small words (two letters or more), and one the AI might add. Search matches only these.
 INSERT INTO course_aliases (course_id, alias, source) VALUES
   (1, 'ds', 'initials'), (1, 'dsa', 'ai'), (3, 'ds', 'initials'),
   (4, 'dm', 'initials'), (5, 'ca', 'initials'), (6, 'de', 'initials'),
-  (7, 'pafsa', 'initials'), (8, 'mm', 'initials'), (9, 'dm', 'initials');
+  (7, 'pafsa', 'initials'), (7, 'poaafsa', 'initials'), (8, 'mm', 'initials'),
+  (9, 'dm', 'initials');
 
 -- Semester names are a term (Spring, Summer, Fall, Short) and a two-digit year.
 INSERT INTO semesters (id, name) VALUES

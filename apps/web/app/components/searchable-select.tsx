@@ -82,7 +82,10 @@ export function SearchableSelect({
 
   const changeOpen = (next: boolean) => {
     setOpen(next);
-    if (!next) setSearch("");
+    // Cleared on opening, not closing: a search that changes while the list fades
+    // out makes cmdk (1.1.1) select its first item and focus its own input if
+    // another picker's input has focus, which closes the picker opened meanwhile.
+    if (next) setSearch("");
   };
 
   const select = (next: string | null) => {

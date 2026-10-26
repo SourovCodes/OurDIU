@@ -1237,3 +1237,51 @@ test("the question bank home shows what was most viewed today", async ({
     page.getByRole("list", { name: "Questions" }).getByRole("link").first(),
   ).toHaveText("Algorithms");
 });
+
+test("pages' shared data is the same signed in, and views still count", async ({
+  page,
+}) => {
+  // Data that Workers Cache may share (docs/PLAN.md, decision 62) must not change
+  // with the visitor: a signed-in request gets the same, public answer.
+  const question = (await (
+    await page.request.get("/api/v1/questions/1")
+  ).json()) as { course: { id: number }; department: { id: number } };
+  const shared = [
+    "/questions/1.data?_routes=routes%2Fquestion",
+    `/questions/courses/${question.course.id}.data?_routes=routes%2Fquestions-course`,
+    `/questions/departments/${question.department.id}.data?_routes=routes%2Fquestions-department`,
+    `/questions/browse.data?departmentId=${question.department.id}&_routes=routes%2Fquestions`,
+  ];
+  const signedOut = [];
+  for (const url of shared) {
+    const res = await page.request.get(url);
+    expect(res.headers()["cache-control"]).toContain("public");
+    expect(res.headers()["set-cookie"]).toBeUndefined();
+    signedOut.push(await res.text());
+  }
+
+  const user = await logInAs(page, NEW_USER, "/questions/1");
+  for (const [i, url] of shared.entries()) {
+    const res = await page.request.get(url);
+    expect(res.headers()["cache-control"]).toContain("public");
+    const body = await res.text();
+    expect(body).not.toContain(user.id);
+    expect(body).not.toContain(user.email);
+    // Counts may move while other tests run; the length barely does.
+    expect(Math.abs(body.length - signedOut[i]!.length)).toBeLessThan(20);
+  }
+  // The page itself carries the user, and so does data that includes the root.
+  for (const url of ["/questions/1", "/questions/1.data"]) {
+    const res = await page.request.get(url);
+    expect(res.headers()["cache-control"]).toBe("private, no-cache");
+  }
+
+  // The browser asks for its own view token, and the view counts with it.
+  const counted = page.waitForResponse(
+    (res) =>
+      /\/api\/v1\/questions\/1\/views$/.test(res.url()) &&
+      res.request().headers()["x-view-token"] !== undefined,
+  );
+  await page.reload();
+  expect((await counted).status()).toBe(204);
+});

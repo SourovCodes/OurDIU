@@ -6,6 +6,7 @@ import {
   questionDetailSchema,
   questionListSchema,
   searchPapersQuerySchema,
+  viewTokenSchema,
 } from "@ourdiu/shared";
 import { AppError, validationHook } from "../lib/errors";
 import { errorResponse, jsonResponse } from "../lib/openapi";
@@ -55,6 +56,20 @@ const getQuestionRoute = createRoute({
   },
 });
 
+const getViewTokenRoute = createRoute({
+  method: "get",
+  path: "/{id}/view-token",
+  tags,
+  summary: "Get a token for counting views of a question",
+  description:
+    "The same token as `viewToken` in `GET /questions/{id}`, for clients that read the question from a shared cache, where its token would be everyone's. Never cached.",
+  request: { params: z.object({ id: idQuerySchema }) },
+  responses: {
+    200: jsonResponse(viewTokenSchema, "A view token"),
+    422: errorResponse("Invalid id"),
+  },
+});
+
 export const questionRoutes = new OpenAPIHono<AppEnv>({
   defaultHook: validationHook,
 })
@@ -77,4 +92,12 @@ export const questionRoutes = new OpenAPIHono<AppEnv>({
       question.id,
     );
     return c.json({ ...question, viewToken }, 200);
+  })
+  // Unknown ids get a token too: counting a view checks the question.
+  .openapi(getViewTokenRoute, async (c) => {
+    const viewToken = await createViewToken(
+      c.env.BETTER_AUTH_SECRET,
+      c.req.valid("param").id,
+    );
+    return c.json({ viewToken }, 200, { "cache-control": "no-store" });
   });

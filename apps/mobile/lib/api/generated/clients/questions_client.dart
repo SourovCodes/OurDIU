@@ -9,6 +9,7 @@ import '../models/paper_search_list.dart';
 import '../models/question_detail.dart';
 import '../models/question_list.dart';
 import '../models/question_sort.dart';
+import '../models/view_token.dart';
 
 part 'questions_client.g.dart';
 
@@ -41,4 +42,10 @@ abstract class QuestionsClient {
   /// Get a question with its published submissions
   @GET('/api/v1/questions/{id}')
   Future<QuestionDetail> getApiV1QuestionsId({@Path('id') required int id});
+
+  /// Get a token for counting views of a question.
+  ///
+  /// The same token as `viewToken` in `GET /questions/{id}`, for clients that read the question from a shared cache, where its token would be everyone's. Never cached.
+  @GET('/api/v1/questions/{id}/view-token')
+  Future<ViewToken> getApiV1QuestionsIdViewToken({@Path('id') required int id});
 }

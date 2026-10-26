@@ -1,11 +1,11 @@
 import { ChevronRight, ListFilter, SearchX } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { data, Link } from "react-router";
 import { courseHref } from "~/components/course-search";
 import { EmptyState } from "~/components/empty-state";
 import { Breadcrumbs } from "~/components/page-header";
 import { byInitial, courseEntries, searchCourses } from "~/lib/courses";
-import { rememberDepartmentCookie } from "~/lib/department-preference";
+import { rememberDepartment } from "~/lib/department-preference";
 import { formatNumber, hasLongWord } from "~/lib/format";
 import { plural } from "~/lib/submissions";
 import { redirectIfMerged } from "~/lib/merged.server";
@@ -28,23 +28,16 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     );
     throw data("Department not found", { status: 404 });
   }
-  // "Browse" opens on it next time, and so do the question lists.
-  const remember = {
-    headers: { "set-cookie": rememberDepartmentCookie(String(department.id)) },
+  return {
+    department,
+    // Most papers first, as on the Question Bank's home.
+    departments: [...taxonomy.departments]
+      .filter((d) => d.publishedCount > 0 || d.id === department.id)
+      .sort((a, b) => b.publishedCount - a.publishedCount),
+    courses: courseEntries(taxonomy).filter(
+      (c) => c.departmentId === department.id,
+    ),
   };
-  return data(
-    {
-      department,
-      // Most papers first, as on the Question Bank's home.
-      departments: [...taxonomy.departments]
-        .filter((d) => d.publishedCount > 0 || d.id === department.id)
-        .sort((a, b) => b.publishedCount - a.publishedCount),
-      courses: courseEntries(taxonomy).filter(
-        (c) => c.departmentId === department.id,
-      ),
-    },
-    remember,
-  );
 }
 
 export const meta: Route.MetaFunction = ({ loaderData, matches }) => {
@@ -75,6 +68,9 @@ export default function Department({ loaderData }: Route.ComponentProps) {
   );
   const groups = useMemo(() => byInitial(shown), [shown]);
   const withPapers = courses.filter((c) => c.publishedCount > 0).length;
+  // "Browse" opens on it next time, and so do the question lists. Kept by the
+  // browser: the page sets no cookie, so it can be cached.
+  useEffect(() => rememberDepartment(String(department.id)), [department.id]);
 
   return (
     <div className="space-y-7">

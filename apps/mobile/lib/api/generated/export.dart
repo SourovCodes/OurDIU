@@ -44,6 +44,7 @@ export 'models/question_detail.dart';
 export 'models/submission.dart';
 export 'models/submission_status.dart';
 export 'models/uploader.dart';
+export 'models/view_token.dart';
 export 'models/created_submission.dart';
 export 'models/contributor_list.dart';
 export 'models/contributor.dart';

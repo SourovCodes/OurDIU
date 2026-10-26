@@ -40,27 +40,21 @@ import {
   useCountView,
   type PaperActionResult,
 } from "~/lib/engagement";
-import { hasSessionCookie, requireUser } from "~/lib/session.server";
+import { refreshInteractions, useInteractions } from "~/lib/interactions";
+import { requireUser } from "~/lib/session.server";
 import { paperTitles, plural, pickSubmission } from "~/lib/submissions";
 import type { RootLoader } from "~/root";
 import type { Route } from "./+types/question";
 import { breadcrumbJsonLd, originOf, pageMeta, QB_NAME } from "~/lib/seo";
 
-/** The signed-in visitor's votes and reports. Skipped for anonymous visitors. */
-async function loadInteractions(request: Request, questionId: string) {
-  if (!hasSessionCookie(request)) return null;
+// The same for every visitor: the signed-in visitor's votes, reports and save are
+// read by the browser (useInteractions), and so is a view token (docs/PLAN.md,
+// decision 62).
+export async function loader({ request, params }: Route.LoaderArgs) {
   const res = await apiFetch(
     request,
-    `/api/v1/me/questions/${encodeURIComponent(questionId)}/interactions`,
+    `/api/v1/questions/${encodeURIComponent(params.id)}`,
   );
-  return res.ok ? readJson<QuestionInteractions>(res) : null;
-}
-
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const [res, interactions] = await Promise.all([
-    apiFetch(request, `/api/v1/questions/${encodeURIComponent(params.id)}`),
-    loadInteractions(request, params.id),
-  ]);
   // 422 means a malformed id, which is just as "not found" for a visitor.
   if (res.status === 404 || res.status === 422) {
     await redirectIfMerged(
@@ -72,10 +66,10 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw data("Question not found", { status: 404 });
   }
   if (!res.ok) throw data("Failed to load question", { status: 502 });
-  const question = await readJson<QuestionDetail>(res);
+  const { viewToken: _viewToken, ...question } =
+    await readJson<QuestionDetail>(res);
   return {
     question,
-    interactions,
     otherExams: await loadOtherExams(request, question),
   };
 }
@@ -84,7 +78,10 @@ export async function loader({ request, params }: Route.LoaderArgs) {
  * The course's other exams (optional): the same exam type's other semesters first,
  * then the other exam types, each newest semester first.
  */
-async function loadOtherExams(request: Request, question: QuestionDetail) {
+async function loadOtherExams(
+  request: Request,
+  question: Pick<QuestionDetail, "id" | "course" | "examType">,
+) {
   const query = new URLSearchParams({
     courseId: String(question.course.id),
     pageSize: "100",
@@ -177,6 +174,17 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 }
 
+// The visitor's interactions are read again before the page revalidates, so a new
+// vote or save never flickers back to the old one.
+export async function clientAction({
+  serverAction,
+  params,
+}: Route.ClientActionArgs) {
+  const result = await serverAction();
+  if (result.ok) await refreshInteractions(Number(params.id));
+  return result;
+}
+
 // Switching submissions only changes `?submission=`, which the loader doesn't use.
 export function shouldRevalidate({
   currentUrl,
@@ -220,9 +228,13 @@ export const meta: Route.MetaFunction = ({ loaderData, matches }) => {
 
 function viewerFor(
   submission: Submission,
-  interactions: QuestionInteractions | null,
+  interactions: QuestionInteractions | null | undefined,
 ): PaperViewer {
-  if (!interactions) return { kind: "anonymous" };
+  if (interactions === null) return { kind: "anonymous" };
+  // Still loading: a member who hasn't voted or reported, until they arrive.
+  if (interactions === undefined) {
+    return { kind: "member", vote: null, reported: false };
+  }
   if (submission.uploader?.id === interactions.userId) {
     return { kind: "uploader" };
   }
@@ -236,7 +248,7 @@ function viewerFor(
 }
 
 export default function QuestionPage({ loaderData }: Route.ComponentProps) {
-  const { question, interactions, otherExams } = loaderData;
+  const { question, otherExams } = loaderData;
   const [searchParams] = useSearchParams();
   const selected = pickSubmission(
     question.submissions,
@@ -252,15 +264,16 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
     ? (paperTitles(published).get(selected.id) ?? "")
     : "";
 
-  useCountView(`/api/v1/questions/${question.id}/views`, question.viewToken);
+  useCountView(`/api/v1/questions/${question.id}/views`, question.id);
   useCountView(
     selected
       ? `/api/v1/submissions/${encodeURIComponent(selected.id)}/views`
       : null,
-    question.viewToken,
+    question.id,
   );
 
   const signedIn = Boolean(useRouteLoaderData<RootLoader>("root")?.user);
+  const interactions = useInteractions(question.id, signedIn);
   const viewer = selected ? viewerFor(selected, interactions) : null;
   const position = {
     index: Math.max(0, selected ? published.indexOf(selected) : 0),

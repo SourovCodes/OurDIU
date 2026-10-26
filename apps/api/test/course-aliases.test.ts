@@ -6,7 +6,7 @@ import {
   cleanAliases,
   fillCourseAliases,
   initials,
-  initialsAlias,
+  initialsAliases,
   type AliasEnv,
 } from "../src/services/course-aliases";
 import {
@@ -94,9 +94,18 @@ describe("initials", () => {
     expect(initials("Introduction to Data Science")).toBe("ids");
     expect(initials("Electrical Circuits I")).toBe("ec");
     expect(initials("Physics-II")).toBe("p");
+    expect(initials("Art of Living", true)).toBe("aol");
+  });
+
+  it("are stored without and with small words, two letters or more", () => {
+    expect(initialsAliases("Art of Living")).toEqual(["al", "aol"]);
+    expect(initialsAliases("Programming and Problem Solving")).toEqual([
+      "pps",
+      "paps",
+    ]);
+    expect(initialsAliases("Digital Logic Design")).toEqual(["dld"]);
     // One letter isn't worth a short name: the name starts with it.
-    expect(initialsAlias("Physics II")).toBeNull();
-    expect(initialsAlias("Digital Logic Design")).toBe("dld");
+    expect(initialsAliases("Physics II")).toEqual([]);
   });
 });
 
@@ -117,6 +126,10 @@ describe("cleanAliases", () => {
         "e4",
       ]),
     ).toEqual(["dsa", "data str.", "b1", "c2", "d3"]);
+    // Both kinds of initials are stored already.
+    expect(cleanAliases("Art of Living", ["AOL", "al", "living"])).toEqual([
+      "living",
+    ]);
   });
 });
 
@@ -140,7 +153,7 @@ describe("fillCourseAliases", () => {
         { alias: "algo", source: "ai", hidden: false },
         { alias: "dsa", source: "ai", hidden: false },
         {
-          alias: initialsAlias(t.algorithms.name)!,
+          alias: initialsAliases(t.algorithms.name)[0]!,
           source: "initials",
           hidden: false,
         },
@@ -172,7 +185,7 @@ describe("fillCourseAliases", () => {
     expect(await checkedAt(t.algorithms.id)).toBeNull();
     expect(await aliasRows(t.algorithms.id)).toEqual([
       {
-        alias: initialsAlias(t.algorithms.name)!,
+        alias: initialsAliases(t.algorithms.name)[0]!,
         source: "initials",
         hidden: false,
       },

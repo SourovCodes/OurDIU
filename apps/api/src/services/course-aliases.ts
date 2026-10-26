@@ -66,7 +66,7 @@ ${pending.map((c) => `${c.id}\t${c.name}\t${c.department}`).join("\n")}
 
 For each course, list the other names students commonly type when searching for it: well-known short forms and alternative names, like "dsa" for Data Structures, "algo" for Algorithms, "discrete math" for Discrete Mathematics, "calculus" for a Mathematics course that is calculus.
 - Only names you're confident Bangladeshi university students really use for this course. Don't invent abbreviations, and don't guess course codes.
-- Leave out the course name itself and its plain initials (the first letter of each word): they're added already.
+- Leave out the course name itself and its initials, the first letter of each word with or without small words like "of" ("al" and "aol" for Art of Living): they're added already.
 - Lower-case, at most ${AI_ALIASES_PER_COURSE} per course, and an empty list when there's none.
 - Answer every course, by its id.`;
 }
@@ -76,7 +76,7 @@ For each course, list the other names students commonly type when searching for 
  * initials and repeats, capped.
  */
 export function cleanAliases(name: string, aliases: string[]): string[] {
-  const skip = new Set([name.toLowerCase(), initials(name)]);
+  const skip = new Set([name.toLowerCase(), ...initialsAliases(name)]);
   const kept: string[] = [];
   for (const raw of aliases) {
     const alias = normalizeAlias(raw);
@@ -98,21 +98,28 @@ const NUMERAL = /^([ivx]+|\d+)$/;
 /**
  * The first letters of a name's words, the way students shorten it:
  * "Programming and Problem Solving" is "pps", "Electrical Circuits I" is "ec".
- * Small words and numbers (Roman or not) are left out.
+ * Numbers (Roman or not) are left out, and small words ("of", "and") unless
+ * `withSmallWords`: "Art of Living" is "al", or "aol" with them.
  */
-export function initials(name: string): string {
+export function initials(name: string, withSmallWords = false): string {
   return name
     .toLowerCase()
     .split(/[^a-z0-9]+/)
-    .filter((w) => w && !SMALL_WORDS.has(w) && !NUMERAL.test(w))
+    .filter(
+      (w) => w && (withSmallWords || !SMALL_WORDS.has(w)) && !NUMERAL.test(w),
+    )
     .map((w) => w[0])
     .join("");
 }
 
-/** A course's initials as a short name, when they're two letters or more. */
-export function initialsAlias(name: string): string | null {
-  const short = initials(name);
-  return short.length >= 2 ? short : null;
+/**
+ * A course's initials as short names, without and with small words (students type
+ * both: "al" and "aol" for Art of Living), ones of two letters or more.
+ */
+export function initialsAliases(name: string): string[] {
+  return [...new Set([initials(name), initials(name, true)])].filter(
+    (alias) => alias.length >= 2,
+  );
 }
 
 /** Inserts short names, skipping ones the course has (hidden ones included). */
@@ -151,12 +158,13 @@ export async function fillCourseAliases(
     .limit(options.limit ?? ALIASES_PER_RUN);
   if (pending.length === 0) return { checked: 0, suggested: 0 };
 
-  const initialsRows = pending.flatMap((c) => {
-    const alias = initialsAlias(c.name);
-    return alias
-      ? [{ courseId: c.id, alias, source: "initials" as const }]
-      : [];
-  });
+  const initialsRows = pending.flatMap((c) =>
+    initialsAliases(c.name).map((alias) => ({
+      courseId: c.id,
+      alias,
+      source: "initials" as const,
+    })),
+  );
   const [firstInitials, ...moreInitials] = insertAliases(db, initialsRows);
   if (firstInitials) await db.batch([firstInitials, ...moreInitials]);
 

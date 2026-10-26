@@ -1,5 +1,6 @@
 import type { Taxonomy } from "@ourdiu/shared";
 import { catalogKey } from "@ourdiu/shared/constants";
+import { matchRank, queryWords } from "./search";
 
 /** A course with its department, as the search and the course pages show it. */
 export type CourseEntry = {
@@ -35,60 +36,28 @@ export function courseEntries({
   });
 }
 
-function words(query: string): string[] {
-  return query.toLowerCase().split(/\s+/).filter(Boolean);
-}
-
-const SMALL_WORDS = new Set(["and", "of", "the", "in", "for", "to"]);
-
 /**
- * The first letters of a course's words, the way students shorten it:
- * "Programming and Problem Solving" is "pps", "Electrical Circuits I" is "ec".
- * Small words and numbers (Roman or not) are left out. Same as the app's.
- */
-export function courseInitials(name: string): string {
-  return name
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter((w) => w && !SMALL_WORDS.has(w) && !/^([ivx]+|\d+)$/.test(w))
-    .map((w) => w[0])
-    .join("");
-}
-
-/** Whether a one-word query of two letters or more starts the course's initials. */
-function matchesInitials(name: string, q: string): boolean {
-  return q.length >= 2 && !/\s/.test(q) && courseInitials(name).startsWith(q);
-}
-
-/**
- * Courses whose name contains every word typed, in any order, ignoring case
- * ("math 1" finds "Mathematics I" only if both words match), or whose initials
- * start with a single typed word ("pps", "ds"). Names that start with the query and
- * initials matches come first, then A–Z; same as the app's `searchCourses`.
- * Courses of `preferredDepartmentId` come before others with the same rank.
+ * Courses that match the typed text by the site's one search rule (`matchRank`,
+ * lib/search.ts: name, initials like "pps", or every word), best first; within a
+ * rank, courses of `preferredDepartmentId` first, then A–Z.
  */
 export function searchCourses<T extends CourseEntry>(
   courses: T[],
   query: string,
   preferredDepartmentId?: number | null,
 ): T[] {
-  const typed = words(query);
-  if (typed.length === 0) return [];
-  const q = query.trim().toLowerCase();
-  const rank = (c: T) =>
-    (c.name.toLowerCase().startsWith(q) || matchesInitials(c.name, q) ? 0 : 2) +
-    (c.departmentId === preferredDepartmentId ? 0 : 1);
+  const other = (c: T) => Number(c.departmentId !== preferredDepartmentId);
   return courses
-    .filter((c) => {
-      const name = c.name.toLowerCase();
-      return typed.every((w) => name.includes(w)) || matchesInitials(c.name, q);
-    })
+    .map((course) => ({ course, rank: matchRank(course.name, query) }))
+    .filter((r): r is { course: T; rank: number } => r.rank !== null)
     .sort(
-      (a, b) =>
-        rank(a) - rank(b) ||
+      ({ course: a, rank: ra }, { course: b, rank: rb }) =>
+        ra - rb ||
+        other(a) - other(b) ||
         a.name.localeCompare(b.name) ||
         a.departmentShortName.localeCompare(b.departmentShortName),
-    );
+    )
+    .map((r) => r.course);
 }
 
 /** A name split into the parts that match the typed words and the rest, for highlighting. */
@@ -98,7 +67,7 @@ export function highlightParts(
 ): { text: string; match: boolean }[] {
   const lower = name.toLowerCase();
   const marked = new Array<boolean>(name.length).fill(false);
-  for (const w of words(query)) {
+  for (const w of queryWords(query)) {
     for (let i = lower.indexOf(w); i !== -1; i = lower.indexOf(w, i + 1)) {
       marked.fill(true, i, i + w.length);
     }

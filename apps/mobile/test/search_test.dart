@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:diuqbank/api/generated/export.dart';
+import 'package:diuqbank/data/search.dart';
 import 'package:diuqbank/data/taxonomy.dart';
 import 'package:diuqbank/features/search/search_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,14 +26,7 @@ void main() {
     expect(names('struct').first, 'Structured Programming');
   });
 
-  test('works out the initials students use', () {
-    expect(courseInitials('Programming and Problem Solving'), 'pps');
-    expect(courseInitials('Data Structures and Algorithms'), 'dsa');
-    expect(courseInitials('Electrical Circuits I'), 'ec');
-    expect(courseInitials('Physics-II'), 'p');
-  });
-
-  test('finds courses by the start of their initials', () {
+  test('finds courses by their initials, exact ones first', () {
     expect(names('SP'), ['Structured Programming']);
     expect(names('ds'), ['Data Structures']);
     // More than one word is never read as initials.
@@ -41,7 +38,41 @@ void main() {
     expect(names('chemistry'), isEmpty);
   });
 
+  sharedCases();
   sameCourseTests();
+}
+
+/// The cases the website runs too (apps/web/app/lib/search.test.ts).
+void sharedCases() {
+  final cases = jsonDecode(
+    File('../../packages/shared/test-data/name-search.json').readAsStringSync(),
+  ) as Map<String, dynamic>;
+
+  group('the shared name-search cases', () {
+    for (final [name as String, expected as String]
+        in cases['initials'] as List) {
+      test('$name → $expected', () => expect(initials(name), expected));
+    }
+    for (final [name as String, query as String, expected as int?]
+        in cases['rank'] as List) {
+      test(
+        '$name, "$query" → $expected',
+        () => expect(matchRank(name, query), expected),
+      );
+    }
+    for (final c in (cases['order'] as List).cast<Map<String, dynamic>>()) {
+      final query = c['query'] as String;
+      test('orders $query', () {
+        expect(
+          searchBy(
+            (c['names'] as List).cast<String>(),
+            (n) => matchRank(n, query),
+          ),
+          c['expected'],
+        );
+      });
+    }
+  });
 }
 
 void sameCourseTests() {

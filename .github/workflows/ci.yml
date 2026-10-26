@@ -39,8 +39,8 @@ jobs:
           fetch-depth: 0
       # site: the Worker (web, API, shared packages, root tooling). Everything except
       #   the Flutter app, its release workflow and Markdown.
-      # mobile: the Flutter app, its release workflow, and the OpenAPI document its
-      #   client is generated from.
+      # mobile: the Flutter app, its release workflow, the OpenAPI document its
+      #   client is generated from, and the test cases it shares with the site.
       # This file counts for both. A PR is compared with its base. A push to main is
       # compared with the last commit whose run passed, not just the previous push:
       # runs of pushes in between may have been cancelled while waiting (see
@@ -71,7 +71,7 @@ jobs:
           echo "$files"
           has() { grep -qE "$1" <<<"$files" && echo true || echo false; }
           echo "site=$(grep -vE '^apps/mobile/|^\.github/workflows/release-android\.yml$|\.md$' <<<"$files" | grep -q . && echo true || echo false)" >> "$GITHUB_OUTPUT"
-          echo "mobile=$(has '^(apps/mobile/|apps/api/openapi\.json$|\.github/workflows/(ci|release-android)\.yml$)')" >> "$GITHUB_OUTPUT"
+          echo "mobile=$(has '^(apps/mobile/|apps/api/openapi\.json$|packages/shared/test-data/|\.github/workflows/(ci|release-android)\.yml$)')" >> "$GITHUB_OUTPUT"
           cat "$GITHUB_OUTPUT"
 
   check:

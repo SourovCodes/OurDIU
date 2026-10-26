@@ -1,6 +1,11 @@
 import type { Course, Department } from "@ourdiu/shared";
 
-export type SelectOption = { value: string; label: string };
+export type SelectOption = {
+  value: string;
+  label: string;
+  /** The bare name, searched too when the label adds to it ("Physics (EEE)"). */
+  name?: string;
+};
 
 export const FILTER_KEYS = [
   "departmentId",
@@ -32,6 +37,7 @@ export function courseOptions(
   return courses.map((course) => ({
     value: String(course.id),
     label: `${course.name} (${shortNames.get(course.departmentId) ?? "?"})`,
+    name: course.name,
   }));
 }
 

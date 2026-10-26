@@ -10,6 +10,7 @@ import '../../auth/session.dart';
 import '../../data/analytics.dart';
 import '../../data/format.dart';
 import '../../data/questions.dart';
+import '../../data/search.dart';
 import '../../data/settings.dart';
 import '../../data/taxonomy.dart';
 import '../../theme/exam_shape.dart';
@@ -882,9 +883,11 @@ class _Option {
   /// Also matched when searching, e.g. a department's full name.
   final String? search;
 
-  bool matches(String query) =>
-      label.toLowerCase().contains(query) ||
-      (search?.toLowerCase().contains(query) ?? false);
+  /// By the app's one search rule (data/search.dart).
+  int? rank(String query) => bestRank(
+    matchRank(label, query),
+    search == null ? null : matchRank(search!, query),
+  );
 }
 
 /// An existing entry, or a new name to propose.
@@ -922,10 +925,9 @@ class _PickSheetState extends State<_PickSheet> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final q = _query.trim().toLowerCase();
-    final shown = [
-      for (final o in widget.options)
-        if (q.isEmpty || o.matches(q)) o,
-    ];
+    final shown = q.isEmpty
+        ? widget.options
+        : searchBy(widget.options, (o) => o.rank(q));
     final typed = _query.trim().replaceAll(RegExp(r'\s+'), ' ');
     final newName = typed.isEmpty
         ? null

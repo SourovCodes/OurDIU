@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../api/generated/export.dart';
 import '../../data/format.dart';
+import '../../data/search.dart';
 import '../../data/settings.dart';
 import '../../data/taxonomy.dart';
 import '../../shell/app_shell.dart';
@@ -61,10 +62,10 @@ class _DepartmentScreenState extends ConsumerState<DepartmentScreen> {
         taxonomy.courses.where((c) => c.departmentId == dept.id).toList()..sort(
           (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
         );
-    final f = _filter.trim().toLowerCase();
-    final shown = courses
-        .where((c) => c.name.toLowerCase().contains(f))
-        .toList();
+    // The app's one search rule (data/search.dart), kept A–Z for the letters.
+    final shown = _filter.trim().isEmpty
+        ? courses
+        : courses.where((c) => matchRank(c.name, _filter) != null).toList();
 
     final children = <Widget>[];
     String? letter;

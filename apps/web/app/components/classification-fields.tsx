@@ -254,6 +254,7 @@ export function ClassificationFields({
         options={departments.map((d) => ({
           value: String(d.id),
           label: `${d.name} (${d.shortName})`,
+          name: d.name,
         }))}
         value={department}
         onChange={changeDepartment}

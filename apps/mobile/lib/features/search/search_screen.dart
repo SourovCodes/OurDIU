@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../api/generated/export.dart';
 import '../../data/format.dart';
+import '../../data/search.dart';
 import '../../data/settings.dart';
 import '../../data/taxonomy.dart';
 import '../../shell/app_shell.dart';
@@ -11,53 +12,12 @@ import '../../theme/exam_shape.dart';
 import '../../widgets/state_message.dart';
 import '../home/search_pill.dart';
 
-const _smallWords = {'and', 'of', 'the', 'in', 'for', 'to'};
-
-/// The first letters of a course's words, the way students shorten it:
-/// "Programming and Problem Solving" is "pps", "Electrical Circuits I" is
-/// "ec". Small words and numbers (Roman or not) are left out. Same as the
-/// website's.
-String courseInitials(String name) => name
-    .toLowerCase()
-    .split(RegExp('[^a-z0-9]+'))
-    .where(
-      (w) =>
-          w.isNotEmpty &&
-          !_smallWords.contains(w) &&
-          !RegExp(r'^([ivx]+|\d+)$').hasMatch(w),
-    )
-    .map((w) => w[0])
-    .join();
-
-/// Whether a one-word query of two letters or more starts the initials.
-bool _matchesInitials(String name, String q) =>
-    q.length >= 2 &&
-    !q.contains(RegExp(r'\s')) &&
-    courseInitials(name).startsWith(q);
-
-/// Courses whose name contains every word typed, in any order, ignoring case
-/// ("math 1" finds "Mathematics I" only if both words match), or whose
-/// initials start with a single typed word ("pps", "ds"). Best matches (name
-/// starts with the query, or initials match) first.
+/// Courses that match the typed text by the app's one search rule
+/// ([matchRank], `data/search.dart`: name, initials like "pps", or every
+/// word), best first, then A–Z. Same as the website's `searchCourses`.
 List<CourseListItem> searchCourses(List<CourseListItem> courses, String query) {
-  final words = query
-      .toLowerCase()
-      .split(RegExp(r'\s+'))
-      .where((w) => w.isNotEmpty)
-      .toList();
-  if (words.isEmpty) return const [];
-  final q = query.trim().toLowerCase();
-  final hits = courses.where((c) {
-    final name = c.name.toLowerCase();
-    return words.every(name.contains) || _matchesInitials(c.name, q);
-  }).toList();
-  int rank(CourseListItem c) =>
-      c.name.toLowerCase().startsWith(q) || _matchesInitials(c.name, q) ? 0 : 1;
-  hits.sort((a, b) {
-    final byRank = rank(a) - rank(b);
-    return byRank != 0 ? byRank : a.name.compareTo(b.name);
-  });
-  return hits;
+  final byName = [...courses]..sort((a, b) => a.name.compareTo(b.name));
+  return searchBy(byName, (c) => matchRank(c.name, query));
 }
 
 class SearchScreen extends ConsumerStatefulWidget {

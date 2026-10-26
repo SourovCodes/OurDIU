@@ -50,6 +50,8 @@ import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/questions";
 import { pageMeta, QB_NAME } from "~/lib/seo";
+import type { RouteHandle } from "~/root";
+import { hasQuery } from "~/lib/cache-control";
 
 export const meta: Route.MetaFunction = () =>
   pageMeta({
@@ -60,6 +62,10 @@ export const meta: Route.MetaFunction = () =>
 
 /** Fills a grid of one, two or three columns without a gap on the last row. */
 const PAGE_SIZE = 24;
+
+// Shared when filtered (docs/PLAN.md, decision 62): a bare /questions/browse
+// redirects to the visitor's remembered department.
+export const handle: RouteHandle = { shared: hasQuery };
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);

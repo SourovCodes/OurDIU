@@ -6,6 +6,10 @@ import { useEffect, useSyncExternalStore } from "react";
 // (docs/PLAN.md, decision 62).
 const store = new Map<number, QuestionInteractions | null>();
 const listeners = new Set<() => void>();
+// Each read or write takes a number; an answer that comes back after a later one
+// started is dropped, so a slow read never undoes a newer vote.
+let latest = 0;
+const versions = new Map<number, number>();
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
@@ -14,12 +18,27 @@ function subscribe(listener: () => void) {
   };
 }
 
-/** Reads the visitor's interactions with a question again, e.g. after a vote. */
-export async function refreshInteractions(questionId: number) {
+/** Stores the visitor's interactions with a question, e.g. those an action returned. */
+export function setInteractions(
+  questionId: number,
+  value: QuestionInteractions | null,
+) {
+  versions.set(questionId, ++latest);
+  store.set(questionId, value);
+  for (const listener of listeners) listener();
+}
+
+/** Reads the visitor's interactions with a question again. */
+async function refreshInteractions(questionId: number) {
+  const version = ++latest;
+  versions.set(questionId, version);
   const res = await fetch(
     `/api/v1/me/questions/${questionId}/interactions`,
   ).catch(() => null);
-  const value = res?.ok ? ((await res.json()) as QuestionInteractions) : null;
+  const value = res?.ok
+    ? ((await res.json().catch(() => null)) as QuestionInteractions | null)
+    : null;
+  if (versions.get(questionId) !== version) return;
   store.set(questionId, value);
   for (const listener of listeners) listener();
 }

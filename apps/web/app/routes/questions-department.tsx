@@ -13,6 +13,10 @@ import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/questions-department";
 import { breadcrumbJsonLd, originOf, pageMeta, QB_NAME } from "~/lib/seo";
+import type { RouteHandle } from "~/root";
+
+// Shared (docs/PLAN.md, decision 62): the department is remembered by the browser.
+export const handle: RouteHandle = { shared: true };
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   const taxonomy = await loadTaxonomy(request);

@@ -40,16 +40,17 @@ import {
   useCountView,
   type PaperActionResult,
 } from "~/lib/engagement";
-import { refreshInteractions, useInteractions } from "~/lib/interactions";
+import { setInteractions, useInteractions } from "~/lib/interactions";
 import { requireUser } from "~/lib/session.server";
 import { paperTitles, plural, pickSubmission } from "~/lib/submissions";
-import type { RootLoader } from "~/root";
+import type { RootLoader, RouteHandle } from "~/root";
 import type { Route } from "./+types/question";
 import { breadcrumbJsonLd, originOf, pageMeta, QB_NAME } from "~/lib/seo";
 
-// The same for every visitor: the signed-in visitor's votes, reports and save are
-// read by the browser (useInteractions), and so is a view token (docs/PLAN.md,
-// decision 62).
+// Shared (docs/PLAN.md, decision 62): the signed-in visitor's votes, reports and
+// save are read by the browser (useInteractions), and so is a view token.
+export const handle: RouteHandle = { shared: true };
+
 export async function loader({ request, params }: Route.LoaderArgs) {
   const res = await apiFetch(
     request,
@@ -103,6 +104,7 @@ const jsonInit = (method: string, body: unknown): RequestInit => ({
 });
 
 async function actionResult(
+  request: Request,
   res: Response,
   intent: PaperActionResult["intent"],
   questionId: number,
@@ -110,11 +112,20 @@ async function actionResult(
   if (res.ok) {
     const report =
       intent === "report" ? await readJson<CreatedReport>(res) : null;
+    // The visitor's state after the change, for the page (clientAction): read here,
+    // beside the API, rather than by another trip from the browser.
+    const after = await apiFetch(
+      request,
+      `/api/v1/me/questions/${questionId}/interactions`,
+    );
     return data<PaperActionResult>({
       intent,
       questionId,
       ok: true,
       submissionHidden: report?.submissionHidden,
+      interactions: after.ok
+        ? await readJson<QuestionInteractions>(after)
+        : undefined,
     });
   }
   const body = await readJson<ApiError>(res).catch(() => null);
@@ -148,7 +159,7 @@ export async function action({ request, params }: Route.ActionArgs) {
         `${submissionPath}/vote`,
         value === null ? { method: "DELETE" } : jsonInit("PUT", { value }),
       );
-      return actionResult(res, "vote", questionId);
+      return actionResult(request, res, "vote", questionId);
     }
     case "report": {
       const details = String(form.get("details") ?? "").trim();
@@ -160,28 +171,30 @@ export async function action({ request, params }: Route.ActionArgs) {
           details: details || undefined,
         }),
       );
-      return actionResult(res, "report", questionId);
+      return actionResult(request, res, "report", questionId);
     }
     case "save": {
       const path = `/api/v1/me/saved/${questionId}`;
       const res = await apiFetch(request, path, {
         method: form.get("saved") === "true" ? "PUT" : "DELETE",
       });
-      return actionResult(res, "save", questionId);
+      return actionResult(request, res, "save", questionId);
     }
     default:
       throw data("Unknown action", { status: 400 });
   }
 }
 
-// The visitor's interactions are read again before the page revalidates, so a new
-// vote or save never flickers back to the old one.
+// The visitor's new state is stored before the page revalidates, so a new vote or
+// save never flickers back to the old one.
 export async function clientAction({
   serverAction,
   params,
 }: Route.ClientActionArgs) {
   const result = await serverAction();
-  if (result.ok) await refreshInteractions(Number(params.id));
+  if (result.interactions) {
+    setInteractions(Number(params.id), result.interactions);
+  }
   return result;
 }
 
@@ -231,10 +244,7 @@ function viewerFor(
   interactions: QuestionInteractions | null | undefined,
 ): PaperViewer {
   if (interactions === null) return { kind: "anonymous" };
-  // Still loading: a member who hasn't voted or reported, until they arrive.
-  if (interactions === undefined) {
-    return { kind: "member", vote: null, reported: false };
-  }
+  if (interactions === undefined) return { kind: "loading" };
   if (submission.uploader?.id === interactions.userId) {
     return { kind: "uploader" };
   }

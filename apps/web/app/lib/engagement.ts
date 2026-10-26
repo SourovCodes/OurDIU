@@ -1,4 +1,5 @@
 import type {
+  QuestionInteractions,
   ReportReason,
   SubmissionStats,
   ViewToken,
@@ -17,6 +18,8 @@ export type PaperActionResult = {
   error?: string;
   /** For reports: the paper reached the report threshold and is hidden now. */
   submissionHidden?: boolean;
+  /** The visitor's votes, reports and save after the change. */
+  interactions?: QuestionInteractions;
 };
 
 export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
@@ -69,6 +72,12 @@ function viewToken(questionId: number) {
     .then((body) => body?.viewToken ?? null)
     .catch(() => null);
   tokens.set(questionId, { at: Date.now(), token });
+  // A failed request isn't kept: the next view asks again.
+  void token.then((value) => {
+    if (value === null && tokens.get(questionId)?.token === token) {
+      tokens.delete(questionId);
+    }
+  });
   return token;
 }
 

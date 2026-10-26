@@ -43,6 +43,8 @@ import { loginHref } from "~/lib/redirect";
 /** Who is looking at the paper, which decides what they can do with it. */
 export type PaperViewer =
   | { kind: "anonymous" }
+  // Signed in, while their votes and reports are read (the page's data is shared).
+  | { kind: "loading" }
   | { kind: "uploader" }
   | { kind: "member"; vote: VoteValue | null; reported: boolean };
 
@@ -120,7 +122,9 @@ function VoteButtons({ submission, viewer }: Omit<PaperProps, "label">) {
                 size="sm"
                 aria-pressed={active}
                 aria-label={`${voteLabel} (${countFor(value)})`}
-                disabled={viewer.kind === "uploader"}
+                disabled={
+                  viewer.kind === "uploader" || viewer.kind === "loading"
+                }
                 title={
                   viewer.kind === "uploader"
                     ? "You can’t vote on your own paper"
@@ -172,6 +176,14 @@ function ReportControl({
         <Flag className="size-4" aria-hidden />
         <span className={cn(!text && "sr-only")}>{name}</span>
       </Link>
+    );
+  }
+  if (viewer.kind === "loading") {
+    return (
+      <button type="button" disabled className={cn(className, "opacity-50")}>
+        <Flag className="size-4" aria-hidden />
+        <span className={cn(!text && "sr-only")}>{name}</span>
+      </button>
     );
   }
   return (

@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import {
   byInitial,
+  courseInitials,
   highlightParts,
   sameCourses,
   searchCourses,
@@ -45,6 +46,31 @@ it("ranks names that start with the query first, then the preferred department",
   expect(searchCourses(courses, "data struct", 2).map((c) => c.id)).toEqual([
     3, 1, 2,
   ]);
+});
+
+it("works out the initials students use", () => {
+  expect(courseInitials("Programming and Problem Solving")).toBe("pps");
+  expect(courseInitials("Data Structures and Algorithms")).toBe("dsa");
+  expect(courseInitials("Data Structures Lab")).toBe("dsl");
+  expect(courseInitials("Electrical Circuits I")).toBe("ec");
+  expect(courseInitials("Physics-II")).toBe("p");
+  expect(courseInitials("Introduction to Data Science")).toBe("ids");
+});
+
+it("finds courses by the start of their initials", () => {
+  const all = [
+    ...courses,
+    course(7, "Programming and Problem Solving"),
+    course(8, "Data Structures Lab"),
+    course(9, "Dispersion Studies", 2, "SWE"),
+  ];
+  expect(searchCourses(all, "PPS").map((c) => c.id)).toEqual([7]);
+  expect(searchCourses(all, "ids").map((c) => c.id)).toEqual([6]);
+  // Initials and names starting with the query rank alike, then A–Z.
+  expect(searchCourses(all, "ds", 2).map((c) => c.id)).toEqual([3, 9, 1, 2, 8]);
+  expect(searchCourses(all, "pp").map((c) => c.id)).toEqual([7]);
+  // More than one word is never read as initials.
+  expect(searchCourses(all, "pp s")).toEqual([]);
 });
 
 it("highlights every typed word", () => {

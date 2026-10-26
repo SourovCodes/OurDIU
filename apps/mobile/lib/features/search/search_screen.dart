@@ -11,9 +11,34 @@ import '../../theme/exam_shape.dart';
 import '../../widgets/state_message.dart';
 import '../home/search_pill.dart';
 
+const _smallWords = {'and', 'of', 'the', 'in', 'for', 'to'};
+
+/// The first letters of a course's words, the way students shorten it:
+/// "Programming and Problem Solving" is "pps", "Electrical Circuits I" is
+/// "ec". Small words and numbers (Roman or not) are left out. Same as the
+/// website's.
+String courseInitials(String name) => name
+    .toLowerCase()
+    .split(RegExp('[^a-z0-9]+'))
+    .where(
+      (w) =>
+          w.isNotEmpty &&
+          !_smallWords.contains(w) &&
+          !RegExp(r'^([ivx]+|\d+)$').hasMatch(w),
+    )
+    .map((w) => w[0])
+    .join();
+
+/// Whether a one-word query of two letters or more starts the initials.
+bool _matchesInitials(String name, String q) =>
+    q.length >= 2 &&
+    !q.contains(RegExp(r'\s')) &&
+    courseInitials(name).startsWith(q);
+
 /// Courses whose name contains every word typed, in any order, ignoring case
-/// ("math 1" finds "Mathematics I" only if both words match). Best matches
-/// (name starts with the query) first.
+/// ("math 1" finds "Mathematics I" only if both words match), or whose
+/// initials start with a single typed word ("pps", "ds"). Best matches (name
+/// starts with the query, or initials match) first.
 List<CourseListItem> searchCourses(List<CourseListItem> courses, String query) {
   final words = query
       .toLowerCase()
@@ -21,15 +46,16 @@ List<CourseListItem> searchCourses(List<CourseListItem> courses, String query) {
       .where((w) => w.isNotEmpty)
       .toList();
   if (words.isEmpty) return const [];
+  final q = query.trim().toLowerCase();
   final hits = courses.where((c) {
     final name = c.name.toLowerCase();
-    return words.every(name.contains);
+    return words.every(name.contains) || _matchesInitials(c.name, q);
   }).toList();
-  final q = query.trim().toLowerCase();
+  int rank(CourseListItem c) =>
+      c.name.toLowerCase().startsWith(q) || _matchesInitials(c.name, q) ? 0 : 1;
   hits.sort((a, b) {
-    final startsA = a.name.toLowerCase().startsWith(q) ? 0 : 1;
-    final startsB = b.name.toLowerCase().startsWith(q) ? 0 : 1;
-    return startsA != startsB ? startsA - startsB : a.name.compareTo(b.name);
+    final byRank = rank(a) - rank(b);
+    return byRank != 0 ? byRank : a.name.compareTo(b.name);
   });
   return hits;
 }
@@ -84,7 +110,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 if (hits.isNotEmpty) _open(hits.first);
               },
               decoration: InputDecoration(
-                hintText: 'Course name',
+                hintText: 'Course name or initials',
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 20,

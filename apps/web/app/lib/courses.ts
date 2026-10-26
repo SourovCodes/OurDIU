@@ -39,11 +39,33 @@ function words(query: string): string[] {
   return query.toLowerCase().split(/\s+/).filter(Boolean);
 }
 
+const SMALL_WORDS = new Set(["and", "of", "the", "in", "for", "to"]);
+
+/**
+ * The first letters of a course's words, the way students shorten it:
+ * "Programming and Problem Solving" is "pps", "Electrical Circuits I" is "ec".
+ * Small words and numbers (Roman or not) are left out. Same as the app's.
+ */
+export function courseInitials(name: string): string {
+  return name
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w && !SMALL_WORDS.has(w) && !/^([ivx]+|\d+)$/.test(w))
+    .map((w) => w[0])
+    .join("");
+}
+
+/** Whether a one-word query of two letters or more starts the course's initials. */
+function matchesInitials(name: string, q: string): boolean {
+  return q.length >= 2 && !/\s/.test(q) && courseInitials(name).startsWith(q);
+}
+
 /**
  * Courses whose name contains every word typed, in any order, ignoring case
- * ("math 1" finds "Mathematics I" only if both words match). Names that start with
- * the query come first, then A–Z; same as the app's `searchCourses`. Courses of
- * `preferredDepartmentId` come before others with the same rank.
+ * ("math 1" finds "Mathematics I" only if both words match), or whose initials
+ * start with a single typed word ("pps", "ds"). Names that start with the query and
+ * initials matches come first, then A–Z; same as the app's `searchCourses`.
+ * Courses of `preferredDepartmentId` come before others with the same rank.
  */
 export function searchCourses<T extends CourseEntry>(
   courses: T[],
@@ -54,12 +76,12 @@ export function searchCourses<T extends CourseEntry>(
   if (typed.length === 0) return [];
   const q = query.trim().toLowerCase();
   const rank = (c: T) =>
-    (c.name.toLowerCase().startsWith(q) ? 0 : 2) +
+    (c.name.toLowerCase().startsWith(q) || matchesInitials(c.name, q) ? 0 : 2) +
     (c.departmentId === preferredDepartmentId ? 0 : 1);
   return courses
     .filter((c) => {
       const name = c.name.toLowerCase();
-      return typed.every((w) => name.includes(w));
+      return typed.every((w) => name.includes(w)) || matchesInitials(c.name, q);
     })
     .sort(
       (a, b) =>

@@ -22,6 +22,20 @@ void main() {
     expect(names('struct').first, 'Structured Programming');
   });
 
+  test('works out the initials students use', () {
+    expect(courseInitials('Programming and Problem Solving'), 'pps');
+    expect(courseInitials('Data Structures and Algorithms'), 'dsa');
+    expect(courseInitials('Electrical Circuits I'), 'ec');
+    expect(courseInitials('Physics-II'), 'p');
+  });
+
+  test('finds courses by the start of their initials', () {
+    expect(names('SP'), ['Structured Programming']);
+    expect(names('ds'), ['Data Structures']);
+    // More than one word is never read as initials.
+    expect(names('ds sp'), isEmpty);
+  });
+
   test('finds nothing for blank or unknown text', () {
     expect(names('  '), isEmpty);
     expect(names('chemistry'), isEmpty);

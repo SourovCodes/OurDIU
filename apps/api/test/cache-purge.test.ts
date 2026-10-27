@@ -11,8 +11,12 @@ import {
   it,
   vi,
 } from "vitest";
+import { env } from "cloudflare:workers";
+import { pendingCachePurges, submissionReports } from "../src/db/schema";
+import { runPendingPurges } from "../src/services/cache";
 import {
   api,
+  db,
   jsonRequest,
   pdfFile,
   seedQuestion,
@@ -24,7 +28,7 @@ import {
 } from "./helpers";
 
 // Cloudflare's copies of the question bank's shared responses are cleared after
-// changes visitors see (src/lib/cache.ts), and only then (docs/PLAN.md, decision 62).
+// changes visitors see (src/services/cache.ts), and only then (docs/PLAN.md, decision 62).
 
 type Taxonomy = Awaited<ReturnType<typeof seedTaxonomy>>;
 
@@ -44,8 +48,9 @@ beforeAll(async () => {
     })
   ).id;
 });
-beforeEach(() => {
+beforeEach(async () => {
   stub = stubCachePurge();
+  await db().delete(pendingCachePurges);
 });
 afterEach(() => stub.restore());
 
@@ -143,12 +148,61 @@ describe("clearing the question bank's cached pages", () => {
     }
   });
 
-  it("never fails the change when Cloudflare refuses the purge", async () => {
+  it("follows a new name, which papers show", async () => {
+    const member = await signIn();
+    const res = await api(
+      "/api/auth/update-user",
+      jsonRequest("POST", { name: "Renamed Contributor" }, member.cookie),
+    );
+    expect(res.status).toBe(200);
+    expect(stub.purge.mock.calls).toEqual(PURGED);
+  });
+
+  it("follows a merge, but not its dry run", async () => {
+    const merge = (dryRun: boolean) =>
+      api(
+        "/api/v1/admin/semesters/merge",
+        jsonRequest(
+          "POST",
+          { keepId: t.sem1.id, mergeIds: [t.sem2.id], dryRun },
+          admin.cookie,
+        ),
+      );
+    expect((await merge(true)).status).toBe(200);
+    expect(stub.purge).not.toHaveBeenCalled();
+    expect((await merge(false)).status).toBe(200);
+    expect(stub.purge.mock.calls).toEqual(PURGED);
+  });
+
+  it("doesn't follow a report's resolution, which visitors don't see", async () => {
+    const paper = await seedPaper();
+    const reporter = await signIn();
+    const [report] = await db()
+      .insert(submissionReports)
+      .values({
+        submissionId: paper.id,
+        reporterId: reporter.id,
+        reason: "unreadable",
+      })
+      .returning();
+    const res = await api(
+      `/api/v1/admin/reports/${report!.id}`,
+      jsonRequest("PATCH", { status: "dismissed" }, admin.cookie),
+    );
+    expect(res.status).toBe(200);
+    expect(stub.purge).not.toHaveBeenCalled();
+  });
+});
+
+const REFUSED: CachePurgeResult = {
+  success: false,
+  errors: [{ code: 1134, message: "Unable to purge, rate limit reached." }],
+};
+
+describe("purges Cloudflare refuses", () => {
+  it("never fail the change, and are noted for the cron", async () => {
     stub.restore();
-    stub = stubCachePurge({
-      success: false,
-      errors: [{ code: 1134, message: "Unable to purge, rate limit reached." }],
-    });
+    stub = stubCachePurge(REFUSED);
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const paper = await seedPaper("pending_review");
     const res = await api(
@@ -159,5 +213,40 @@ describe("clearing the question bank's cached pages", () => {
     expect(stub.purge).toHaveBeenCalledOnce();
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
+    expect(await db().select().from(pendingCachePurges)).toMatchObject([
+      { tag: QUESTION_BANK_CACHE_TAG, fileKey: null },
+    ]);
+  });
+
+  it("are made again by the cron, once for all, then their files deleted", async () => {
+    const key = `watermarked/${crypto.randomUUID()}.pdf`;
+    await env.BUCKET.put(key, "%PDF-1.7\nold copy");
+    await db()
+      .insert(pendingCachePurges)
+      .values([
+        { tag: QUESTION_BANK_CACHE_TAG },
+        { tag: QUESTION_BANK_CACHE_TAG },
+        { tag: QUESTION_BANK_CACHE_TAG, fileKey: key },
+      ]);
+
+    // Still refused: everything waits for the next run.
+    stub.restore();
+    stub = stubCachePurge(REFUSED);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await runPendingPurges(db(), env.BUCKET);
+    warn.mockRestore();
+    expect(await db().select().from(pendingCachePurges)).toHaveLength(3);
+    expect(await env.BUCKET.head(key)).not.toBeNull();
+
+    stub.restore();
+    stub = stubCachePurge();
+    await runPendingPurges(db(), env.BUCKET);
+    expect(stub.purge.mock.calls).toEqual(PURGED);
+    expect(await db().select().from(pendingCachePurges)).toEqual([]);
+    expect(await env.BUCKET.head(key)).toBeNull();
+
+    // Nothing noted: no purge.
+    await runPendingPurges(db(), env.BUCKET);
+    expect(stub.purge).toHaveBeenCalledOnce();
   });
 });

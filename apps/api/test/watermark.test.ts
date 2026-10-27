@@ -23,6 +23,7 @@ import {
   type WatermarkEnv,
   type WatermarkJob,
 } from "../src/services/watermark";
+import { runPendingPurges } from "../src/services/cache";
 import {
   api,
   db,
@@ -406,7 +407,7 @@ describe("runWatermark", () => {
     expect((await readRow(paper.id)).watermarkStatus).toBe("failed");
   });
 
-  it("deletes the copy it replaces once cached pages no longer link to it", async () => {
+  it("deletes the copy it replaces after the cron's next purge", async () => {
     const paper = await seedPaper();
     const processor = fakeProcessor();
     const stub = stubCachePurge();
@@ -418,19 +419,17 @@ describe("runWatermark", () => {
           { submissionId: paper.id },
           { fetch: processor.fetch },
         );
-      // The first copy: the API's link to the original keeps working meanwhile.
       await run();
-      expect(stub.purge).not.toHaveBeenCalled();
       const first = (await readRow(paper.id)).watermarkedFileKey!;
-
-      let firstAtPurge: R2Object | null = null;
-      stub.purge.mockImplementation(async () => {
-        firstAtPurge = await env.BUCKET.head(first);
-        return { success: true, errors: [] };
-      });
       await run();
+      expect((await readRow(paper.id)).watermarkedFileKey).not.toBe(first);
+
+      // Shared copies of the paper's page may still link to it: no purge per
+      // paper (re-watermarking them all would use up Cloudflare's), one by the cron.
+      expect(stub.purge).not.toHaveBeenCalled();
+      expect(await env.BUCKET.head(first)).not.toBeNull();
+      await runPendingPurges(db(), env.BUCKET);
       expect(stub.purge).toHaveBeenCalledOnce();
-      expect(firstAtPurge).not.toBeNull();
       expect(await env.BUCKET.head(first)).toBeNull();
     } finally {
       stub.restore();
@@ -687,6 +686,8 @@ describe("admin endpoints", () => {
     expect(paper.watermarkTraceId).toBeNull();
     expect(watermarkTraceId).toBe(`ourdiu-submission-${paper.id}`);
     expect(await env.BUCKET.head(watermarkedFileKey!)).not.toBeNull();
+    // The old one goes after the cron's next purge (caching is off here).
+    await runPendingPurges(db(), env.BUCKET);
     expect(await env.BUCKET.head(paper.watermarkedFileKey)).toBeNull();
   });
 

@@ -258,39 +258,41 @@ function viewerFor(
 }
 
 /**
- * The paper with the like and dislike counts read with the signed-in visitor's own
+ * The papers with the like and dislike counts read with the signed-in visitor's own
  * interactions: the page's data may be a minute old (Cloudflare shares it), and
- * the visitor's new vote has to show in its count.
+ * the visitor's new vote has to show in its count, in the toolbar and the list.
  */
 function withLiveCounts(
-  submission: Submission,
+  submissions: Submission[],
   interactions: QuestionInteractions | null | undefined,
-): Submission {
-  const live = interactions?.voteCounts.find(
-    (counts) => counts.submissionId === submission.id,
+): Submission[] {
+  if (!interactions?.voteCounts.length) return submissions;
+  const live = new Map(
+    interactions.voteCounts.map((counts) => [counts.submissionId, counts]),
   );
-  return live
-    ? {
-        ...submission,
-        likeCount: live.likeCount,
-        dislikeCount: live.dislikeCount,
-      }
-    : submission;
+  return submissions.map((submission) => {
+    const counts = live.get(submission.id);
+    return counts
+      ? {
+          ...submission,
+          likeCount: counts.likeCount,
+          dislikeCount: counts.dislikeCount,
+        }
+      : submission;
+  });
 }
 
 export default function QuestionPage({ loaderData }: Route.ComponentProps) {
   const { question, otherExams } = loaderData;
   const [searchParams] = useSearchParams();
-  const selected = pickSubmission(
-    question.submissions,
-    searchParams.get("submission"),
-  );
+  const signedIn = Boolean(useRouteLoaderData<RootLoader>("root")?.user);
+  const interactions = useInteractions(question.id, signedIn);
+  const submissions = withLiveCounts(question.submissions, interactions);
+  const selected = pickSubmission(submissions, searchParams.get("submission"));
   const { pendingReview } = question.submissionCounts;
   const fileUrl = selected?.fileUrl ?? null;
   const title = `${question.course.name} — ${question.examType.name}, ${question.semester.name}`;
-  const published = question.submissions.filter(
-    (s) => s.status === "published",
-  );
+  const published = submissions.filter((s) => s.status === "published");
   const paperLabel = selected
     ? (paperTitles(published).get(selected.id) ?? "")
     : "";
@@ -303,10 +305,7 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
     question.id,
   );
 
-  const signedIn = Boolean(useRouteLoaderData<RootLoader>("root")?.user);
-  const interactions = useInteractions(question.id, signedIn);
   const viewer = selected ? viewerFor(selected, interactions) : null;
-  const paper = selected ? withLiveCounts(selected, interactions) : null;
   const position = {
     index: Math.max(0, selected ? published.indexOf(selected) : 0),
     total: published.length,
@@ -373,20 +372,20 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
         {/* The paper comes first on small screens too; the lists follow it. */}
         <section aria-label="Question paper" className="min-w-0 space-y-3">
           <PaperSwitcher
-            submissions={question.submissions}
+            submissions={submissions}
             selectedId={selected?.id ?? null}
           />
           <ReportNotice questionId={question.id} />
-          {paper && fileUrl && viewer ? (
+          {selected && fileUrl && viewer ? (
             // One keyed wrapper (sibling keys must be unique): switching papers remounts
             // the bars and reloads the embedded document. On phones the bar comes
             // last and sticks to the bottom of the screen while the paper is in view.
             <div
-              key={paper.id}
+              key={selected.id}
               className="flex flex-col overflow-clip rounded-3xl bg-surface"
             >
               <PaperInfo
-                submission={paper}
+                submission={selected}
                 label={paperLabel}
                 position={position}
                 className="max-lg:hidden"
@@ -394,11 +393,11 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
               <PdfViewer
                 src={fileUrl}
                 title={title}
-                appPath={`/questions/${question.id}?submission=${paper.id}`}
+                appPath={`/questions/${question.id}?submission=${selected.id}`}
                 className="rounded-none lg:mx-5 lg:mb-5 lg:rounded-2xl"
               />
               <PaperToolbar
-                submission={paper}
+                submission={selected}
                 label={paperLabel}
                 viewer={viewer}
                 fileUrl={fileUrl}
@@ -431,13 +430,13 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
             beside it. */}
         <aside className="space-y-4">
           <SubmissionList
-            submissions={question.submissions}
+            submissions={submissions}
             selectedId={selected?.id ?? null}
           />
-          {paper && viewer && (
+          {selected && viewer && (
             <div className="max-lg:hidden">
               <PaperFeedback
-                submission={paper}
+                submission={selected}
                 label={paperLabel}
                 viewer={viewer}
               />

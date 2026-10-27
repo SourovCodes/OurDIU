@@ -344,7 +344,7 @@ const updateReportRoute = createRoute({
   summary: "Resolve, dismiss or reopen a report",
   description:
     "The paper's status doesn't change: publish a hidden paper again separately.",
-  middleware: changesPages,
+  middleware,
   request: {
     params: numericIdParams,
     ...jsonBody(updateReportStatusInputSchema),
@@ -396,7 +396,7 @@ function catalogRoutes<
             ? "The courses must be in the same department. "
             : "") +
         "With `dryRun`, only reports what would move.",
-      middleware: changesPages,
+      middleware,
       request: jsonBody(catalogMergeInputSchema),
       responses: {
         200: jsonResponse(catalogMergeResultSchema, "What moved"),

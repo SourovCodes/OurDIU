@@ -26,7 +26,6 @@ import {
   submissions,
   type SubmissionAnalysisRow,
 } from "../db/schema";
-import { purgeQuestionBank } from "../lib/cache";
 import { AppError } from "../lib/errors";
 import { PermanentError, readPdfForAi } from "../lib/ai-pdf";
 import { GeminiError, generateJsonFromPdf } from "../lib/gemini";
@@ -44,6 +43,7 @@ import {
   listExamTypes,
   listSemesters,
 } from "./taxonomy";
+import { purgeQuestionBank } from "./cache";
 import { changesWereRequested } from "./review";
 import { watermarkIfMissing, type WatermarkJob } from "./watermark";
 
@@ -545,7 +545,7 @@ export async function publishIfConfirmed(
     )
     .returning({ id: submissions.id });
   if (published.length === 0) return false;
-  await purgeQuestionBank();
+  await purgeQuestionBank(db);
   await watermarkIfMissing(db, watermarkQueue, submissionId);
   return true;
 }

@@ -2,6 +2,7 @@ import { createApp } from "./app";
 import { createDb } from "./db/client";
 import { handleAnalysisBatch, type AnalysisJob } from "./services/analysis";
 import { fillCourseAliases } from "./services/course-aliases";
+import { runPendingPurges } from "./services/cache";
 import { readNextMissingText, type TextJob } from "./services/paper-text";
 import { refreshTrending } from "./services/trending";
 import { handleWatermarkBatch, type WatermarkJob } from "./services/watermark";
@@ -41,10 +42,11 @@ export default {
       );
     }
   },
-  // The crons in wrangler.jsonc: the text backfill, courses' short names, and "Most
-  // viewed today".
+  // The crons in wrangler.jsonc: the text backfill (and purges Cloudflare refused),
+  // courses' short names, and "Most viewed today".
   async scheduled(controller, env) {
     if (controller.cron === TEXT_CRON) {
+      await runPendingPurges(createDb(env.DB), env.BUCKET);
       await readNextMissingText(createDb(env.DB), env);
     } else if (controller.cron === ALIASES_CRON) {
       await fillCourseAliases(createDb(env.DB), env);

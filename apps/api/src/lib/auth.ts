@@ -8,6 +8,7 @@ import type { Database } from "../db/client";
 import * as schema from "../db/schema";
 import { user } from "../db/schema";
 import { importGoogleAvatar } from "../services/avatars";
+import { purgeQuestionBank } from "../services/cache";
 
 /** A new user's username until they pick one, like the old site's: `user_1a2b3c`. */
 function generateUsername(): string {
@@ -135,6 +136,12 @@ export function authOptions(env: Env, db: Database) {
                 created.image,
               );
             }
+          },
+        },
+        update: {
+          // Papers show their uploader's name: the shared copies follow a new one.
+          after: async (_updated, ctx) => {
+            if (ctx?.path === "/update-user") await purgeQuestionBank(db);
           },
         },
       },

@@ -10,13 +10,13 @@ import {
   saveQuestionsInputSchema,
   voteResultSchema,
 } from "@ourdiu/shared";
-import { purgeQuestionBank } from "../lib/cache";
 import { AppError, validationHook } from "../lib/errors";
 import { errorResponse, jsonResponse } from "../lib/openapi";
 import { readViews, rememberView } from "../lib/view-cookie";
 import { isBrowserRequest, verifyViewToken } from "../lib/view-token";
 import { rateLimit } from "../middleware/rate-limit";
 import { requireAuth } from "../middleware/require-auth";
+import { purgeQuestionBank } from "../services/cache";
 import {
   castVote,
   getQuestionInteractions,
@@ -328,7 +328,7 @@ export const engagementRoutes = new OpenAPIHono<AppEnv>({
       c.req.valid("json"),
     );
     // Enough reports hide the paper from visitors.
-    if (report.submissionHidden) await purgeQuestionBank();
+    if (report.submissionHidden) await purgeQuestionBank(c.var.db);
     return c.json(report, 201);
   })
   .openapi(questionInteractionsRoute, async (c) =>

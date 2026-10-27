@@ -6,8 +6,8 @@ import {
 import {
   CircleAlert,
   CircleCheck,
-  ExternalLink,
   Flag,
+  Maximize2,
   ThumbsDown,
   ThumbsUp,
 } from "lucide-react";
@@ -187,18 +187,21 @@ function ReportControl({
 }
 
 /**
- * Above the paper from `lg`: whose it is and how to tell it apart, and which of
- * the question's papers it is.
+ * Above the paper from `lg`: whose it is and how to tell it apart, which of the
+ * question's papers it is, and full screen (opens the in-page reader; the phone
+ * bar's control does the same, and that bar is hidden from `lg`).
  */
 export function PaperInfo({
   submission,
   label,
   position,
+  onFullscreen,
   className,
 }: {
   submission: Submission;
   label: string;
   position: { index: number; total: number };
+  onFullscreen: () => void;
   className?: string;
 }) {
   const { uploader } = submission;
@@ -225,11 +228,17 @@ export function PaperInfo({
           label
         )}
       </p>
-      {position.total > 1 && (
-        <span className="shrink-0 rounded-full bg-card px-3 py-1 text-xs font-medium">
-          Paper {position.index + 1} of {position.total}
-        </span>
-      )}
+      <div className="flex shrink-0 items-center gap-2">
+        {position.total > 1 && (
+          <span className="rounded-full bg-card px-3 py-1 text-xs font-medium">
+            Paper {position.index + 1} of {position.total}
+          </span>
+        )}
+        <Button type="button" size="sm" onClick={onFullscreen}>
+          <Maximize2 aria-hidden />
+          Full screen
+        </Button>
+      </div>
     </div>
   );
 }
@@ -263,9 +272,9 @@ export function PaperToolbar({
   submission,
   label,
   viewer,
-  fileUrl,
+  onFullscreen,
   className,
-}: PaperProps & { fileUrl: string; className?: string }) {
+}: PaperProps & { onFullscreen: () => void; className?: string }) {
   const { uploader } = submission;
   return (
     <div
@@ -291,20 +300,16 @@ export function PaperToolbar({
         <VoteButtons submission={submission} viewer={viewer} />
       </div>
       <ReportControl submission={submission} label={label} viewer={viewer} />
-      <a
-        href={fileUrl}
-        target="_blank"
-        rel="noopener"
+      <Button
+        type="button"
+        onClick={onFullscreen}
         aria-label="Full screen"
-        className={cn(
-          buttonVariants(),
-          "ml-1 max-[399px]:size-10 max-[399px]:p-0",
-        )}
+        className="ml-1 max-[399px]:size-10 max-[399px]:p-0"
       >
-        <ExternalLink aria-hidden />
+        <Maximize2 aria-hidden />
         {/* Just the icon on the narrowest phones, so the bar stays one row. */}
         <span className="max-[399px]:sr-only">Full screen</span>
-      </a>
+      </Button>
     </div>
   );
 }

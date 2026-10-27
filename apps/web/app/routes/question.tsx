@@ -8,6 +8,7 @@ import type {
   Submission,
 } from "@ourdiu/shared";
 import { Clock, Download, FileX } from "lucide-react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import {
   data,
   Link,
@@ -42,9 +43,11 @@ import {
 } from "~/lib/engagement";
 import { hasSessionCookie, requireUser } from "~/lib/session.server";
 import { paperTitles, plural, pickSubmission } from "~/lib/submissions";
+import { breadcrumbJsonLd, originOf, pageMeta, QB_NAME } from "~/lib/seo";
 import type { RootLoader } from "~/root";
 import type { Route } from "./+types/question";
-import { breadcrumbJsonLd, originOf, pageMeta, QB_NAME } from "~/lib/seo";
+
+const PdfReader = lazy(() => import("~/components/pdf-reader"));
 
 /** The signed-in visitor's votes and reports. Skipped for anonymous visitors. */
 async function loadInteractions(request: Request, questionId: string) {
@@ -238,6 +241,7 @@ function viewerFor(
 export default function QuestionPage({ loaderData }: Route.ComponentProps) {
   const { question, interactions, otherExams } = loaderData;
   const [searchParams] = useSearchParams();
+  const [reading, setReading] = useState(false);
   const selected = pickSubmission(
     question.submissions,
     searchParams.get("submission"),
@@ -251,6 +255,18 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
   const paperLabel = selected
     ? (paperTitles(published).get(selected.id) ?? "")
     : "";
+  const readerDetails = [
+    question.examType.name,
+    question.semester.name,
+    paperLabel || null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  // A different paper means a different file; don't keep the old reader open.
+  useEffect(() => {
+    setReading(false);
+  }, [selected?.id]);
 
   useCountView(`/api/v1/questions/${question.id}/views`, question.viewToken);
   useCountView(
@@ -344,6 +360,7 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
                 submission={selected}
                 label={paperLabel}
                 position={position}
+                onFullscreen={() => setReading(true)}
                 className="max-lg:hidden"
               />
               <PdfViewer
@@ -356,7 +373,7 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
                 submission={selected}
                 label={paperLabel}
                 viewer={viewer}
-                fileUrl={fileUrl}
+                onFullscreen={() => setReading(true)}
                 className="sticky bottom-0 z-10 lg:hidden"
               />
             </div>
@@ -401,6 +418,17 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
           <OtherExams course={question.course} questions={otherExams} />
         </aside>
       </div>
+
+      {reading && fileUrl && (
+        <Suspense fallback={null}>
+          <PdfReader
+            src={fileUrl}
+            title={question.course.name}
+            details={readerDetails}
+            onClose={() => setReading(false)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

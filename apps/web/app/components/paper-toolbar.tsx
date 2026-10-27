@@ -73,8 +73,7 @@ const ROUND = "size-10 rounded-full p-0 text-muted-foreground";
 
 /**
  * Like and dislike. Visitors are asked to log in; the uploader can't vote on their
- * own paper. The new vote shows straight away, and so do the counts: the page passes
- * the ones read with the visitor's interactions, which the vote's action returns.
+ * own paper. The new vote shows straight away; the counts catch up after revalidation.
  */
 function VoteButtons({ submission, viewer }: Omit<PaperProps, "label">) {
   const location = useLocation();

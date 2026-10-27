@@ -257,42 +257,19 @@ function viewerFor(
   };
 }
 
-/**
- * The papers with the like and dislike counts read with the signed-in visitor's own
- * interactions: the page's data may be a minute old (Cloudflare shares it), and
- * the visitor's new vote has to show in its count, in the toolbar and the list.
- */
-function withLiveCounts(
-  submissions: Submission[],
-  interactions: QuestionInteractions | null | undefined,
-): Submission[] {
-  if (!interactions?.voteCounts.length) return submissions;
-  const live = new Map(
-    interactions.voteCounts.map((counts) => [counts.submissionId, counts]),
-  );
-  return submissions.map((submission) => {
-    const counts = live.get(submission.id);
-    return counts
-      ? {
-          ...submission,
-          likeCount: counts.likeCount,
-          dislikeCount: counts.dislikeCount,
-        }
-      : submission;
-  });
-}
-
 export default function QuestionPage({ loaderData }: Route.ComponentProps) {
   const { question, otherExams } = loaderData;
   const [searchParams] = useSearchParams();
-  const signedIn = Boolean(useRouteLoaderData<RootLoader>("root")?.user);
-  const interactions = useInteractions(question.id, signedIn);
-  const submissions = withLiveCounts(question.submissions, interactions);
-  const selected = pickSubmission(submissions, searchParams.get("submission"));
+  const selected = pickSubmission(
+    question.submissions,
+    searchParams.get("submission"),
+  );
   const { pendingReview } = question.submissionCounts;
   const fileUrl = selected?.fileUrl ?? null;
   const title = `${question.course.name} — ${question.examType.name}, ${question.semester.name}`;
-  const published = submissions.filter((s) => s.status === "published");
+  const published = question.submissions.filter(
+    (s) => s.status === "published",
+  );
   const paperLabel = selected
     ? (paperTitles(published).get(selected.id) ?? "")
     : "";
@@ -305,6 +282,8 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
     question.id,
   );
 
+  const signedIn = Boolean(useRouteLoaderData<RootLoader>("root")?.user);
+  const interactions = useInteractions(question.id, signedIn);
   const viewer = selected ? viewerFor(selected, interactions) : null;
   const position = {
     index: Math.max(0, selected ? published.indexOf(selected) : 0),
@@ -372,7 +351,7 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
         {/* The paper comes first on small screens too; the lists follow it. */}
         <section aria-label="Question paper" className="min-w-0 space-y-3">
           <PaperSwitcher
-            submissions={submissions}
+            submissions={question.submissions}
             selectedId={selected?.id ?? null}
           />
           <ReportNotice questionId={question.id} />
@@ -430,7 +409,7 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
             beside it. */}
         <aside className="space-y-4">
           <SubmissionList
-            submissions={submissions}
+            submissions={question.submissions}
             selectedId={selected?.id ?? null}
           />
           {selected && viewer && (

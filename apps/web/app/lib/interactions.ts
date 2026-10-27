@@ -45,8 +45,8 @@ async function refreshInteractions(questionId: number) {
 
 /**
  * The signed-in visitor's interactions with a question: `undefined` while they
- * load (the last ones read meanwhile, on a page visited before, without their
- * counts), `null` signed out or when they can't be read.
+ * load (the last ones read meanwhile, on a page visited before), `null` signed
+ * out or when they can't be read.
  */
 export function useInteractions(questionId: number, signedIn: boolean) {
   const value = useSyncExternalStore(
@@ -55,15 +55,7 @@ export function useInteractions(questionId: number, signedIn: boolean) {
     () => undefined,
   );
   useEffect(() => {
-    if (!signedIn) return;
-    // Counts remembered from an earlier visit may be older than the page's own: the
-    // page shows its own until the new read (votes and the save stay, for buttons).
-    const remembered = store.get(questionId);
-    if (remembered?.voteCounts.length) {
-      store.set(questionId, { ...remembered, voteCounts: [] });
-      for (const listener of listeners) listener();
-    }
-    void refreshInteractions(questionId);
+    if (signedIn) void refreshInteractions(questionId);
   }, [questionId, signedIn]);
   return signedIn ? value : null;
 }

@@ -1,5 +1,4 @@
 // @vitest-environment node
-import { QUESTION_BANK_CACHE_TAG } from "@ourdiu/shared/constants";
 import { describe, expect, it } from "vitest";
 import {
   cacheHeadersFor,
@@ -33,7 +32,6 @@ const headersFor = (request: Request, response: Response) =>
 const SHARED_HEADERS = {
   "cache-control": PUBLIC,
   "cloudflare-cdn-cache-control": EDGE,
-  "cache-tag": QUESTION_BANK_CACHE_TAG,
 };
 const PRIVATE_HEADERS = { "cache-control": PRIVATE };
 const NO_STORE_HEADERS = { "cache-control": NO_STORE };
@@ -135,9 +133,8 @@ describe("withCacheHeaders", () => {
     expect(response.headers.get("cache-control")).toBe(NO_STORE);
   });
 
-  it("adds the edge's lifetime and the tag the API clears to shared responses", () => {
+  it("adds the edge's lifetime to shared responses", () => {
     const response = withCacheHeaders(get("/api/v1/taxonomy"), ok(), shared);
     expect(response.headers.get("cloudflare-cdn-cache-control")).toBe(EDGE);
-    expect(response.headers.get("cache-tag")).toBe(QUESTION_BANK_CACHE_TAG);
   });
 });

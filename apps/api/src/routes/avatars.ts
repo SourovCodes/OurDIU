@@ -3,7 +3,6 @@ import { avatarSchema } from "@ourdiu/shared";
 import { AppError, validationHook } from "../lib/errors";
 import { objectResponse } from "../lib/files";
 import { errorResponse, jsonResponse } from "../lib/openapi";
-import { purgesQuestionBank } from "../middleware/purges-question-bank";
 import { requireAuth } from "../middleware/require-auth";
 import {
   avatarUrl,
@@ -21,7 +20,7 @@ const uploadAvatarRoute = createRoute({
   path: "/me/avatar",
   tags,
   summary: "Upload or replace your profile image (JPEG, PNG or WebP, max 2 MB)",
-  middleware: [requireAuth, purgesQuestionBank] as const,
+  middleware: [requireAuth] as const,
   request: {
     body: {
       required: true,
@@ -49,7 +48,7 @@ const removeAvatarRoute = createRoute({
   path: "/me/avatar",
   tags,
   summary: "Remove your profile image",
-  middleware: [requireAuth, purgesQuestionBank] as const,
+  middleware: [requireAuth] as const,
   responses: {
     204: { description: "Removed" },
     401: errorResponse("Not signed in"),

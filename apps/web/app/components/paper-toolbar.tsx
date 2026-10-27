@@ -43,8 +43,6 @@ import { loginHref } from "~/lib/redirect";
 /** Who is looking at the paper, which decides what they can do with it. */
 export type PaperViewer =
   | { kind: "anonymous" }
-  // Signed in, while their votes and reports are read (the page's data is shared).
-  | { kind: "loading" }
   | { kind: "uploader" }
   | { kind: "member"; vote: VoteValue | null; reported: boolean };
 
@@ -73,8 +71,7 @@ const ROUND = "size-10 rounded-full p-0 text-muted-foreground";
 
 /**
  * Like and dislike. Visitors are asked to log in; the uploader can't vote on their
- * own paper. The new vote shows straight away, and so do the counts: the page passes
- * the ones read with the visitor's interactions, which the vote's action returns.
+ * own paper. The new vote shows straight away; the counts catch up after revalidation.
  */
 function VoteButtons({ submission, viewer }: Omit<PaperProps, "label">) {
   const location = useLocation();
@@ -123,9 +120,7 @@ function VoteButtons({ submission, viewer }: Omit<PaperProps, "label">) {
                 size="sm"
                 aria-pressed={active}
                 aria-label={`${voteLabel} (${countFor(value)})`}
-                disabled={
-                  viewer.kind === "uploader" || viewer.kind === "loading"
-                }
+                disabled={viewer.kind === "uploader"}
                 title={
                   viewer.kind === "uploader"
                     ? "You can’t vote on your own paper"
@@ -177,14 +172,6 @@ function ReportControl({
         <Flag className="size-4" aria-hidden />
         <span className={cn(!text && "sr-only")}>{name}</span>
       </Link>
-    );
-  }
-  if (viewer.kind === "loading") {
-    return (
-      <button type="button" disabled className={cn(className, "opacity-50")}>
-        <Flag className="size-4" aria-hidden />
-        <span className={cn(!text && "sr-only")}>{name}</span>
-      </button>
     );
   }
   return (

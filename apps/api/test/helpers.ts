@@ -2,7 +2,6 @@ import { env, exports } from "cloudflare:workers";
 import { betterAuth } from "better-auth";
 import { testUtils } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
-import { vi } from "vitest";
 import { createDb } from "../src/db/client";
 import {
   courses,
@@ -16,7 +15,6 @@ import {
   user,
 } from "../src/db/schema";
 import { authOptions } from "../src/lib/auth";
-import { workersCache } from "../src/lib/cache";
 
 export const ORIGIN = "http://localhost:5173";
 
@@ -69,11 +67,9 @@ export async function signIn(
 /**
  * Inserts two departments with one course each, two semesters and two exam types.
  * Names get a random suffix so tests stay independent even when storage is shared.
- * It starts with a letter: an all-digit suffix (hex, 1 in 40) reads as a numeral,
- * which course initials skip, so "Algorithms 12345678" would have none.
  */
 export async function seedTaxonomy() {
-  const tag = `t${crypto.randomUUID().slice(0, 7)}`;
+  const tag = crypto.randomUUID().slice(0, 8);
   const [cse, eee] = await db()
     .insert(departments)
     .values([
@@ -161,15 +157,4 @@ export function jsonRequest(
 
 export function pdfFile(name = "paper.pdf") {
   return new File(["%PDF-1.7\n%test\n"], name, { type: "application/pdf" });
-}
-
-/**
- * Stands in for Workers Cache's purge, which doesn't exist with caching off (as in
- * tests): records each purge, answering `result`, until `restore()`.
- */
-export function stubCachePurge(
-  result: CachePurgeResult = { success: true, errors: [] },
-) {
-  const purge = vi.spyOn(workersCache, "purge").mockResolvedValue(result);
-  return { purge, restore: () => purge.mockRestore() };
 }

@@ -17,9 +17,6 @@ QuestionInteractions _$QuestionInteractionsFromJson(
       .map((e) => (e as num).toInt())
       .toList(),
   saved: json['saved'] as bool,
-  voteCounts: (json['voteCounts'] as List<dynamic>)
-      .map((e) => SubmissionVoteCounts.fromJson(e as Map<String, dynamic>))
-      .toList(),
 );
 
 Map<String, dynamic> _$QuestionInteractionsToJson(
@@ -29,5 +26,4 @@ Map<String, dynamic> _$QuestionInteractionsToJson(
   'votes': instance.votes,
   'reportedSubmissionIds': instance.reportedSubmissionIds,
   'saved': instance.saved,
-  'voteCounts': instance.voteCounts,
 };

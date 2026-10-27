@@ -21,13 +21,9 @@ import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/questions-course";
 import { breadcrumbJsonLd, originOf, pageMeta, QB_NAME } from "~/lib/seo";
-import type { RouteHandle } from "~/root";
 
 /** The API's largest page; no course has anywhere near this many exams. */
 const PAGE_SIZE = 100;
-
-// Shared (docs/PLAN.md, decision 62).
-export const handle: RouteHandle = { shared: true };
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   const taxonomy = await loadTaxonomy(request);

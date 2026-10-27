@@ -15,7 +15,6 @@ import {
 import { AppError, validationHook } from "../lib/errors";
 import { objectResponse } from "../lib/files";
 import { errorResponse, jsonResponse } from "../lib/openapi";
-import { purgesQuestionBank } from "../middleware/purges-question-bank";
 import { rateLimit } from "../middleware/rate-limit";
 import { requireAuth } from "../middleware/require-auth";
 import {
@@ -100,7 +99,7 @@ const reclassifyMySubmissionRoute = createRoute({
     "Same fields as uploading. The new details are compared with the AI check's " +
     "reading, and the paper is published right away if they match, unless a " +
     "reviewer asked for changes to it: then it waits for them.",
-  middleware: [requireAuth, purgesQuestionBank] as const,
+  middleware: [requireAuth] as const,
   request: {
     params: idParams,
     body: {
@@ -136,7 +135,6 @@ const replaceMySubmissionFileRoute = createRoute({
       "UPLOAD_LIMITER",
       "You're uploading too fast. Please wait a minute and try again.",
     ),
-    purgesQuestionBank,
   ] as const,
   request: {
     params: idParams,
@@ -168,7 +166,7 @@ const resubmitMySubmissionRoute = createRoute({
   path: "/submissions/{id}/resubmit",
   tags,
   summary: "Send a paper a reviewer asked you to change back for review",
-  middleware: [requireAuth, messageLimit, purgesQuestionBank] as const,
+  middleware: [requireAuth, messageLimit] as const,
   request: {
     params: idParams,
     body: {
@@ -235,7 +233,7 @@ const withdrawMySubmissionRoute = createRoute({
   path: "/submissions/{id}",
   tags,
   summary: "Withdraw one of your submissions that isn't published",
-  middleware: [requireAuth, purgesQuestionBank] as const,
+  middleware: [requireAuth] as const,
   request: { params: idParams },
   responses: {
     204: { description: "Withdrawn; the PDF is deleted" },
@@ -251,7 +249,7 @@ const updateUsernameRoute = createRoute({
   tags,
   summary: "Change your username",
   description: `Used in your contributor page's URL. ${USERNAME_RULES}; saved in lowercase.`,
-  middleware: [requireAuth, purgesQuestionBank] as const,
+  middleware: [requireAuth] as const,
   request: {
     body: {
       required: true,

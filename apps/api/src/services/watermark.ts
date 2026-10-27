@@ -17,7 +17,6 @@ import {
   watermarkPdf,
   type Fetcher,
 } from "../lib/pdf-processor";
-import { deleteAfterPurge } from "./cache";
 
 // Published papers get a public copy with a credit line on top of every page and the
 // site's domain stamped faintly across it (compressed by the same call). The original stays untouched for admins and the uploader; the
@@ -313,9 +312,8 @@ export async function runWatermark(
       .returning({ id: submissions.id });
     // Deleted while we were working: don't leave the copy behind.
     if (updated.length === 0) await env.BUCKET.delete(key);
-    // Made again (e.g. after a rename): the old copy is replaced, once no shared
-    // copy of the paper's page links to it.
-    else if (row.previousKey) await deleteAfterPurge(db, row.previousKey);
+    // Made again (e.g. after a rename): the old copy is replaced.
+    else if (row.previousKey) await env.BUCKET.delete(row.previousKey);
     return "done";
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

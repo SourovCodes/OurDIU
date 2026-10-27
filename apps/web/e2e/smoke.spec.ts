@@ -1,5 +1,4 @@
 import type { Page } from "@playwright/test";
-import { QUESTION_BANK_CACHE_TAG } from "@ourdiu/shared/constants";
 import { E2E_ORIGIN } from "./env";
 import {
   APP_SHEET_COOKIE,
@@ -1237,55 +1236,4 @@ test("the question bank home shows what was most viewed today", async ({
   await expect(
     page.getByRole("list", { name: "Questions" }).getByRole("link").first(),
   ).toHaveText("Algorithms");
-});
-
-test("pages' shared data is the same signed in, and views still count", async ({
-  page,
-  request,
-}) => {
-  // Data that Cloudflare may share (docs/PLAN.md, decision 62) must not change
-  // with the visitor: signed in, the answer is byte for byte the signed-out one.
-  // `request` has no cookies; `page.request` shares the signed-in browser's.
-  const question = (await (
-    await request.get("/api/v1/questions/1")
-  ).json()) as {
-    course: { id: number };
-    department: { id: number };
-  };
-  const shared = [
-    "/questions/1.data?_routes=routes%2Fquestion",
-    `/questions/courses/${question.course.id}.data?_routes=routes%2Fquestions-course`,
-    `/questions/departments/${question.department.id}.data?_routes=routes%2Fquestions-department`,
-    `/questions/browse.data?departmentId=${question.department.id}&_routes=routes%2Fquestions`,
-  ];
-  await logInAs(page, NEW_USER, "/questions/1");
-  for (const url of shared) {
-    // Other tests may count a view in between, so read again until both agree.
-    await expect(async () => {
-      const signedOut = await request.get(url);
-      const signedIn = await page.request.get(url);
-      for (const res of [signedOut, signedIn]) {
-        expect(res.headers()["cache-control"]).toContain("public");
-        // What the API clears when the question bank changes.
-        expect(res.headers()["cache-tag"]).toBe(QUESTION_BANK_CACHE_TAG);
-        expect(res.headers()["set-cookie"]).toBeUndefined();
-      }
-      expect(await signedIn.text()).toBe(await signedOut.text());
-    }).toPass();
-  }
-  // The page itself carries the user, and so does data that includes the root.
-  for (const url of ["/questions/1", "/questions/1.data"]) {
-    const res = await page.request.get(url);
-    expect(res.headers()["cache-control"]).toBe("private, no-cache");
-    expect(res.headers()["cache-tag"]).toBeUndefined();
-  }
-
-  // The browser asks for its own view token, and the view counts with it.
-  const counted = page.waitForResponse(
-    (res) =>
-      /\/api\/v1\/questions\/1\/views$/.test(res.url()) &&
-      res.request().headers()["x-view-token"] !== undefined,
-  );
-  await page.reload();
-  expect((await counted).status()).toBe(204);
 });

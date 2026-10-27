@@ -1,11 +1,11 @@
 import { ChevronRight, ListFilter, SearchX } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { data, Link } from "react-router";
 import { courseHref } from "~/components/course-search";
 import { EmptyState } from "~/components/empty-state";
 import { Breadcrumbs } from "~/components/page-header";
 import { byInitial, courseEntries, searchCourses } from "~/lib/courses";
-import { rememberDepartment } from "~/lib/department-preference";
+import { rememberDepartmentCookie } from "~/lib/department-preference";
 import { formatNumber, hasLongWord } from "~/lib/format";
 import { plural } from "~/lib/submissions";
 import { redirectIfMerged } from "~/lib/merged.server";
@@ -13,10 +13,6 @@ import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/questions-department";
 import { breadcrumbJsonLd, originOf, pageMeta, QB_NAME } from "~/lib/seo";
-import type { RouteHandle } from "~/root";
-
-// Shared (docs/PLAN.md, decision 62): the department is remembered by the browser.
-export const handle: RouteHandle = { shared: true };
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   const taxonomy = await loadTaxonomy(request);
@@ -32,16 +28,23 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     );
     throw data("Department not found", { status: 404 });
   }
-  return {
-    department,
-    // Most papers first, as on the Question Bank's home.
-    departments: [...taxonomy.departments]
-      .filter((d) => d.publishedCount > 0 || d.id === department.id)
-      .sort((a, b) => b.publishedCount - a.publishedCount),
-    courses: courseEntries(taxonomy).filter(
-      (c) => c.departmentId === department.id,
-    ),
+  // "Browse" opens on it next time, and so do the question lists.
+  const remember = {
+    headers: { "set-cookie": rememberDepartmentCookie(String(department.id)) },
   };
+  return data(
+    {
+      department,
+      // Most papers first, as on the Question Bank's home.
+      departments: [...taxonomy.departments]
+        .filter((d) => d.publishedCount > 0 || d.id === department.id)
+        .sort((a, b) => b.publishedCount - a.publishedCount),
+      courses: courseEntries(taxonomy).filter(
+        (c) => c.departmentId === department.id,
+      ),
+    },
+    remember,
+  );
 }
 
 export const meta: Route.MetaFunction = ({ loaderData, matches }) => {
@@ -72,9 +75,6 @@ export default function Department({ loaderData }: Route.ComponentProps) {
   );
   const groups = useMemo(() => byInitial(shown), [shown]);
   const withPapers = courses.filter((c) => c.publishedCount > 0).length;
-  // "Browse" opens on it next time, and so do the question lists. Kept by the
-  // browser: the page sets no cookie, so it can be cached.
-  useEffect(() => rememberDepartment(String(department.id)), [department.id]);
 
   return (
     <div className="space-y-7">

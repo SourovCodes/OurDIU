@@ -43,7 +43,6 @@ import {
   listExamTypes,
   listSemesters,
 } from "./taxonomy";
-import { purgeQuestionBank } from "./cache";
 import { changesWereRequested } from "./review";
 import { watermarkIfMissing, type WatermarkJob } from "./watermark";
 
@@ -545,7 +544,6 @@ export async function publishIfConfirmed(
     )
     .returning({ id: submissions.id });
   if (published.length === 0) return false;
-  await purgeQuestionBank(db);
   await watermarkIfMissing(db, watermarkQueue, submissionId);
   return true;
 }

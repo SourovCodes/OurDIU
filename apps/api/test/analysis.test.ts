@@ -5,7 +5,7 @@ import type {
   SubmissionAnalysis,
 } from "@ourdiu/shared";
 import { eq } from "drizzle-orm";
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
   questions,
   submissionAnalyses,
@@ -34,7 +34,6 @@ import {
   seedTaxonomy,
   signInAdmin,
   signIn,
-  stubCachePurge,
 } from "./helpers";
 
 type Taxonomy = Awaited<ReturnType<typeof seedTaxonomy>>;
@@ -467,14 +466,7 @@ const submissionRow = (id: number) =>
   db().query.submissions.findFirst({ where: eq(submissions.id, id) });
 
 describe("auto-publishing", () => {
-  let stub: ReturnType<typeof stubCachePurge>;
-  beforeEach(() => {
-    stub = stubCachePurge();
-  });
-  afterEach(() => stub.restore());
-
   it("publishes a single paper whose four values the AI confirms", async () => {
-    const { purge } = stub;
     const paper = await seedFiledPaper();
     const job = await startRun(paper.id, true);
     const { fetch } = fakeFetch({ reply: confirmingReply() });
@@ -483,8 +475,6 @@ describe("auto-publishing", () => {
     const row = await submissionRow(paper.id);
     expect(row?.status).toBe("published");
     expect(row?.autoPublishedAt).toBeInstanceOf(Date);
-    // Visitors see it straight away.
-    expect(purge).toHaveBeenCalledOnce();
   });
 
   it.each<[string, (reply: AnalysisReply) => AnalysisReply]>([
@@ -507,7 +497,6 @@ describe("auto-publishing", () => {
     const { fetch } = fakeFetch({ reply: change(confirmingReply()) });
     await runAnalysis(db(), analysisEnv, job, { fetch });
     expect((await submissionRow(paper.id))?.status).toBe("pending_review");
-    expect(stub.purge).not.toHaveBeenCalled();
   });
 
   it("never publishes new entries, reported papers or re-runs", async () => {

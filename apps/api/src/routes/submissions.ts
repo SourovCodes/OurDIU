@@ -8,7 +8,6 @@ import {
 import { AppError, validationHook } from "../lib/errors";
 import { inlineDisposition, objectResponse } from "../lib/files";
 import { errorResponse, jsonResponse } from "../lib/openapi";
-import { purgesQuestionBank } from "../middleware/purges-question-bank";
 import { rateLimit } from "../middleware/rate-limit";
 import { requireAuth } from "../middleware/require-auth";
 import { requireContributor } from "../middleware/require-contributor";
@@ -34,7 +33,6 @@ const createSubmissionRoute = createRoute({
       "UPLOAD_LIMITER",
       "You're uploading too fast. Please wait a minute and try again.",
     ),
-    purgesQuestionBank,
   ] as const,
   request: {
     body: {

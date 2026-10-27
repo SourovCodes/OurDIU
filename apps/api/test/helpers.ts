@@ -67,11 +67,9 @@ export async function signIn(
 /**
  * Inserts two departments with one course each, two semesters and two exam types.
  * Names get a random suffix so tests stay independent even when storage is shared.
- * It starts with a letter: an all-digit suffix (hex, 1 in 40) reads as a numeral,
- * which course initials skip, so "Algorithms 12345678" would have none.
  */
 export async function seedTaxonomy() {
-  const tag = `t${crypto.randomUUID().slice(0, 7)}`;
+  const tag = crypto.randomUUID().slice(0, 8);
   const [cse, eee] = await db()
     .insert(departments)
     .values([

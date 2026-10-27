@@ -1,1 +1,0 @@
-DROP TABLE `pending_cache_purges`;

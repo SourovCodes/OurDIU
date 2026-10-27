@@ -3,7 +3,6 @@ import {
   type CreatedReport,
   type QuestionDetail,
   type QuestionInteractions,
-  type ViewToken,
   type VoteResult,
 } from "@ourdiu/shared";
 import { env } from "cloudflare:workers";
@@ -107,19 +106,6 @@ const viewCountOf = async (questionId: number) =>
     .viewCount;
 
 describe("view counters", () => {
-  it("gives a page read from a shared cache its own token, never cached", async () => {
-    const { question } = await seedQuestionWithPaper();
-    const res = await api(`/api/v1/questions/${question.id}/view-token`);
-    expect(res.status).toBe(200);
-    expect(res.headers.get("cache-control")).toBe("no-store");
-    const { viewToken } = await res.json<ViewToken>();
-
-    expect(
-      (await countView(`questions/${question.id}`, viewToken)).status,
-    ).toBe(204);
-    expect(await viewCountOf(question.id)).toBe(1);
-  });
-
   it("counts question page views from anyone, separately from paper views", async () => {
     const { question } = await seedQuestionWithPaper();
     for (const token of [

@@ -107,13 +107,6 @@ export type RouteHandle = {
   ownShell?: boolean;
   ogImage?: string;
   samePage?: boolean;
-  /**
-   * The route's data is the same for every visitor and sets no cookie, so
-   * Cloudflare may keep it and share it (docs/PLAN.md, decision 62); a function
-   * decides per request. Its loader must then never read cookies, the session or
-   * the request's host: the cache's key has none of them.
-   */
-  shared?: true | ((url: URL) => boolean);
 };
 
 /**

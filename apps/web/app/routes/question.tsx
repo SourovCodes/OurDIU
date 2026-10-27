@@ -40,22 +40,27 @@ import {
   useCountView,
   type PaperActionResult,
 } from "~/lib/engagement";
-import { setInteractions, useInteractions } from "~/lib/interactions";
-import { requireUser } from "~/lib/session.server";
+import { hasSessionCookie, requireUser } from "~/lib/session.server";
 import { paperTitles, plural, pickSubmission } from "~/lib/submissions";
-import type { RootLoader, RouteHandle } from "~/root";
+import type { RootLoader } from "~/root";
 import type { Route } from "./+types/question";
 import { breadcrumbJsonLd, originOf, pageMeta, QB_NAME } from "~/lib/seo";
 
-// Shared (docs/PLAN.md, decision 62): the signed-in visitor's votes, reports and
-// save are read by the browser (useInteractions), and so is a view token.
-export const handle: RouteHandle = { shared: true };
-
-export async function loader({ request, params }: Route.LoaderArgs) {
+/** The signed-in visitor's votes and reports. Skipped for anonymous visitors. */
+async function loadInteractions(request: Request, questionId: string) {
+  if (!hasSessionCookie(request)) return null;
   const res = await apiFetch(
     request,
-    `/api/v1/questions/${encodeURIComponent(params.id)}`,
+    `/api/v1/me/questions/${encodeURIComponent(questionId)}/interactions`,
   );
+  return res.ok ? readJson<QuestionInteractions>(res) : null;
+}
+
+export async function loader({ request, params }: Route.LoaderArgs) {
+  const [res, interactions] = await Promise.all([
+    apiFetch(request, `/api/v1/questions/${encodeURIComponent(params.id)}`),
+    loadInteractions(request, params.id),
+  ]);
   // 422 means a malformed id, which is just as "not found" for a visitor.
   if (res.status === 404 || res.status === 422) {
     await redirectIfMerged(
@@ -67,10 +72,10 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw data("Question not found", { status: 404 });
   }
   if (!res.ok) throw data("Failed to load question", { status: 502 });
-  const { viewToken: _viewToken, ...question } =
-    await readJson<QuestionDetail>(res);
+  const question = await readJson<QuestionDetail>(res);
   return {
     question,
+    interactions,
     otherExams: await loadOtherExams(request, question),
   };
 }
@@ -79,10 +84,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
  * The course's other exams (optional): the same exam type's other semesters first,
  * then the other exam types, each newest semester first.
  */
-async function loadOtherExams(
-  request: Request,
-  question: Pick<QuestionDetail, "id" | "course" | "examType">,
-) {
+async function loadOtherExams(request: Request, question: QuestionDetail) {
   const query = new URLSearchParams({
     courseId: String(question.course.id),
     pageSize: "100",
@@ -104,7 +106,6 @@ const jsonInit = (method: string, body: unknown): RequestInit => ({
 });
 
 async function actionResult(
-  request: Request,
   res: Response,
   intent: PaperActionResult["intent"],
   questionId: number,
@@ -112,20 +113,11 @@ async function actionResult(
   if (res.ok) {
     const report =
       intent === "report" ? await readJson<CreatedReport>(res) : null;
-    // The visitor's state after the change, for the page (clientAction): read here,
-    // beside the API, rather than by another trip from the browser.
-    const after = await apiFetch(
-      request,
-      `/api/v1/me/questions/${questionId}/interactions`,
-    );
     return data<PaperActionResult>({
       intent,
       questionId,
       ok: true,
       submissionHidden: report?.submissionHidden,
-      interactions: after.ok
-        ? await readJson<QuestionInteractions>(after)
-        : undefined,
     });
   }
   const body = await readJson<ApiError>(res).catch(() => null);
@@ -159,7 +151,7 @@ export async function action({ request, params }: Route.ActionArgs) {
         `${submissionPath}/vote`,
         value === null ? { method: "DELETE" } : jsonInit("PUT", { value }),
       );
-      return actionResult(request, res, "vote", questionId);
+      return actionResult(res, "vote", questionId);
     }
     case "report": {
       const details = String(form.get("details") ?? "").trim();
@@ -171,31 +163,18 @@ export async function action({ request, params }: Route.ActionArgs) {
           details: details || undefined,
         }),
       );
-      return actionResult(request, res, "report", questionId);
+      return actionResult(res, "report", questionId);
     }
     case "save": {
       const path = `/api/v1/me/saved/${questionId}`;
       const res = await apiFetch(request, path, {
         method: form.get("saved") === "true" ? "PUT" : "DELETE",
       });
-      return actionResult(request, res, "save", questionId);
+      return actionResult(res, "save", questionId);
     }
     default:
       throw data("Unknown action", { status: 400 });
   }
-}
-
-// The visitor's new state is stored before the page revalidates, so a new vote or
-// save never flickers back to the old one.
-export async function clientAction({
-  serverAction,
-  params,
-}: Route.ClientActionArgs) {
-  const result = await serverAction();
-  if (result.interactions) {
-    setInteractions(Number(params.id), result.interactions);
-  }
-  return result;
 }
 
 // Switching submissions only changes `?submission=`, which the loader doesn't use.
@@ -241,10 +220,9 @@ export const meta: Route.MetaFunction = ({ loaderData, matches }) => {
 
 function viewerFor(
   submission: Submission,
-  interactions: QuestionInteractions | null | undefined,
+  interactions: QuestionInteractions | null,
 ): PaperViewer {
-  if (interactions === null) return { kind: "anonymous" };
-  if (interactions === undefined) return { kind: "loading" };
+  if (!interactions) return { kind: "anonymous" };
   if (submission.uploader?.id === interactions.userId) {
     return { kind: "uploader" };
   }
@@ -258,7 +236,7 @@ function viewerFor(
 }
 
 export default function QuestionPage({ loaderData }: Route.ComponentProps) {
-  const { question, otherExams } = loaderData;
+  const { question, interactions, otherExams } = loaderData;
   const [searchParams] = useSearchParams();
   const selected = pickSubmission(
     question.submissions,
@@ -274,16 +252,15 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
     ? (paperTitles(published).get(selected.id) ?? "")
     : "";
 
-  useCountView(`/api/v1/questions/${question.id}/views`, question.id);
+  useCountView(`/api/v1/questions/${question.id}/views`, question.viewToken);
   useCountView(
     selected
       ? `/api/v1/submissions/${encodeURIComponent(selected.id)}/views`
       : null,
-    question.id,
+    question.viewToken,
   );
 
   const signedIn = Boolean(useRouteLoaderData<RootLoader>("root")?.user);
-  const interactions = useInteractions(question.id, signedIn);
   const viewer = selected ? viewerFor(selected, interactions) : null;
   const position = {
     index: Math.max(0, selected ? published.indexOf(selected) : 0),

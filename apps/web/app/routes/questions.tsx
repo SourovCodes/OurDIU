@@ -1,6 +1,5 @@
 import type { QuestionList, QuestionSort } from "@ourdiu/shared";
 import { LayoutGrid, SearchX, SlidersHorizontal, X } from "lucide-react";
-import { useEffect } from "react";
 import {
   data,
   Link,
@@ -35,7 +34,7 @@ import { apiFetch, readJson } from "~/lib/api.server";
 import {
   forgetDepartment,
   forgetDepartmentCookie,
-  rememberDepartment,
+  rememberDepartmentCookie,
   rememberedDepartment,
 } from "~/lib/department-preference";
 import {
@@ -50,8 +49,6 @@ import { loadTaxonomy } from "~/lib/taxonomy.server";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/questions";
 import { pageMeta, QB_NAME } from "~/lib/seo";
-import type { RouteHandle } from "~/root";
-import { hasQuery } from "~/lib/cache-control";
 
 export const meta: Route.MetaFunction = () =>
   pageMeta({
@@ -63,12 +60,9 @@ export const meta: Route.MetaFunction = () =>
 /** Fills a grid of one, two or three columns without a gap on the last row. */
 const PAGE_SIZE = 24;
 
-// Shared when filtered (docs/PLAN.md, decision 62): a bare /questions/browse
-// redirects to the visitor's remembered department.
-export const handle: RouteHandle = { shared: hasQuery };
-
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
+  const departmentId = url.searchParams.get("departmentId");
 
   // "Clear" (`?clear`): forget the department, keep the sort. A link rather than a
   // script, so it works before the page has hydrated.
@@ -109,7 +103,16 @@ export async function loader({ request }: Route.LoaderArgs) {
     ? { items: [], page: 1, pageSize: PAGE_SIZE, total: 0 }
     : await readJson<QuestionList>(questionsRes);
 
-  return { ...taxonomy, list, invalid };
+  // Remember a valid department; an unknown one is dropped, not remembered.
+  const knownDepartment =
+    departmentId !== null &&
+    taxonomy.departments.some((d) => String(d.id) === departmentId);
+  return data(
+    { ...taxonomy, list, invalid },
+    knownDepartment
+      ? { headers: { "set-cookie": rememberDepartmentCookie(departmentId) } }
+      : undefined,
+  );
 }
 
 const SORT_LABELS: Record<QuestionSort, string> = {
@@ -131,15 +134,6 @@ export default function Questions({ loaderData }: Route.ComponentProps) {
     loaderData;
   const [searchParams, setSearchParams] = useSearchParams();
   const navigation = useNavigation();
-  const departmentParam = searchParams.get("departmentId");
-  // Remember a valid department (an unknown one is dropped, not remembered), in
-  // the browser: the list sets no cookie, so it can be cached.
-  const knownDepartment = departments.some(
-    (d) => String(d.id) === departmentParam,
-  );
-  useEffect(() => {
-    if (knownDepartment && departmentParam) rememberDepartment(departmentParam);
-  }, [knownDepartment, departmentParam]);
   const loading =
     navigation.state === "loading" &&
     navigation.location.pathname === "/questions/browse";

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
@@ -11,6 +13,7 @@ import '../../auth/sign_in_flow.dart';
 import '../../auth/token.dart';
 import '../../data/analytics.dart';
 import '../../data/format.dart';
+import '../../data/review_prompt.dart';
 import '../../data/saved.dart';
 import '../../theme/exam_shape.dart';
 import '../../widgets/question_row.dart';
@@ -160,6 +163,7 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
     final paper = _selected(question);
     if (paper != null && _countedPapers.add(paper.id)) {
       counter.paper(paper.id, question.viewToken);
+      ref.read(reviewPromptProvider).paperOpened();
     }
   }
 
@@ -329,6 +333,11 @@ class _QuestionScreenState extends ConsumerState<QuestionScreen> {
                               ref
                                   .read(savedQuestionsProvider.notifier)
                                   .toggle(summary);
+                              if (!saved) {
+                                unawaited(
+                                  ref.read(reviewPromptProvider).paperSaved(),
+                                );
+                              }
                               ScaffoldMessenger.of(context)
                                 ..hideCurrentSnackBar()
                                 ..showSnackBar(

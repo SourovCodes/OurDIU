@@ -185,6 +185,15 @@ test("the footer leads to the contact and legal pages", async ({ page }) => {
     "href",
     /^mailto:sourov2305101004@diu\.edu\.bd\?subject=Bug%20report&body=/,
   );
+  // Bugs, ideas and questions can also go to the Telegram group.
+  await expect(
+    main.getByRole("link", { name: "Join the group" }),
+  ).toHaveAttribute("href", "https://t.me/ourdiu_community");
+  await expect(
+    page
+      .getByRole("navigation", { name: "About", exact: true })
+      .getByRole("link", { name: "Telegram community" }),
+  ).toHaveAttribute("href", "https://t.me/ourdiu_community");
 
   const legal = page.getByRole("navigation", { name: "Legal", exact: true });
   for (const [label, path, title] of [

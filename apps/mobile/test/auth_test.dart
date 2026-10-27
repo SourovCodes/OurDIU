@@ -132,8 +132,19 @@ void main() {
       backend.sent('POST /api/auth/sign-out').single.headers['authorization'],
       'Bearer session.sig',
     );
-    expect(find.text('Continue with Google'), findsOneWidget);
     expect(find.text('Signed out'), findsOneWidget);
+    // The sign-in card is at the top of the list, above where Sign out was.
+    await tester.scrollUntilVisible(
+      find.text('Continue with Google'),
+      -200,
+      scrollable: find
+          .descendant(
+            of: find.byType(AccountScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(find.text('Continue with Google'), findsOneWidget);
   });
 
   testWidgets('a session that ended elsewhere signs the app out', (

@@ -43,6 +43,7 @@ import { canonicalUrl, OG_IMAGE, SITE_NAME } from "~/lib/seo";
 import { useRememberSpace, useSpace } from "~/lib/use-space";
 import { apiFetch, readJson } from "~/lib/api.server";
 import { getUser, hasSessionCookie } from "~/lib/session.server";
+import { THEATER_SCRIPT } from "~/lib/theater";
 import { THEME_SCRIPT } from "~/lib/theme";
 
 export const links: Route.LinksFunction = () => [
@@ -157,12 +158,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    // THEME_SCRIPT adds the `dark` class before hydration.
+    // THEME_SCRIPT adds the `dark` class before hydration, THEATER_SCRIPT
+    // `data-theater`.
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: THEATER_SCRIPT }} />
         {analyticsEnabled && (
           <script dangerouslySetInnerHTML={{ __html: GTAG_SCRIPT }} />
         )}

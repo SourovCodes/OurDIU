@@ -12,6 +12,10 @@ const OTHER_PHONE =
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  // The full screen stubs (jsdom has neither).
+  delete (document as { fullscreenEnabled?: boolean }).fullscreenEnabled;
+  delete (Element.prototype as { requestFullscreen?: unknown })
+    .requestFullscreen;
 });
 
 /** A browser without a PDF viewer of its own, like most phones'. */

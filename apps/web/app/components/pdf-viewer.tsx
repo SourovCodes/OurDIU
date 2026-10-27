@@ -22,16 +22,21 @@ type PdfViewerProps = {
    * viewer, so they're asked to read it in the app.
    */
   appPath?: string;
+  /**
+   * The frame's height from `lg`, to fit what the page puts around it (by default,
+   * the screen below the site's header with a little room).
+   */
+  frameClassName?: string;
 };
 
 /** Whether a browser has a PDF viewer never changes while the page is open. */
 const subscribeNever = () => () => {};
 
-// The paper fills the screen below the site's header and the paper's bar (below it
-// on phones, above it from `lg`), so once it's scrolled to, all of it is in view and
-// scrolling inside it doesn't stop at an edge off the screen.
+// The paper fills the screen below the site's header (and the paper's bar below it on
+// phones), so once it's scrolled to, all of it is in view and scrolling inside it
+// doesn't stop at an edge off the screen.
 const FRAME_CLASS =
-  "relative block h-[calc(100dvh-7rem)] min-h-[28rem] w-full sm:min-h-[32rem] lg:h-[calc(100dvh-10.5rem)]";
+  "relative block h-[calc(100dvh-7rem)] min-h-[28rem] w-full sm:min-h-[32rem] lg:h-[calc(100dvh-6rem)]";
 
 /**
  * Uses the browser's native PDF viewer via <object>. Browsers without one (most
@@ -40,7 +45,13 @@ const FRAME_CLASS =
  * paper (`appPath`) also offers it in the app. The object's children, the same
  * links, cover browsers that say they have a viewer but can't embed it.
  */
-export function PdfViewer({ src, title, appPath, className }: PdfViewerProps) {
+export function PdfViewer({
+  src,
+  title,
+  appPath,
+  className,
+  frameClassName,
+}: PdfViewerProps) {
   // Read on the client only: the server can't know the browser, so it renders the
   // native viewer, which is what desktop browsers keep after hydration.
   const noNativeViewer = useSyncExternalStore(
@@ -106,7 +117,7 @@ export function PdfViewer({ src, title, appPath, className }: PdfViewerProps) {
         type="application/pdf"
         title={title}
         aria-label={title}
-        className={FRAME_CLASS}
+        className={cn(FRAME_CLASS, frameClassName)}
         data-testid="pdf-viewer"
       >
         <NoViewer src={src} className="h-full" />
@@ -124,10 +135,12 @@ export function PdfFullScreenButton({
 }: {
   container: RefObject<HTMLElement | null>;
 }) {
+  // Rendered on the server, as desktop browsers keep it: appearing after loading
+  // would move the bar's other controls.
   const available = useSyncExternalStore(
     subscribeNever,
     () => document.fullscreenEnabled && navigator.pdfViewerEnabled !== false,
-    () => false,
+    () => true,
   );
   if (!available) return null;
   return (
@@ -139,8 +152,10 @@ export function PdfFullScreenButton({
           '[data-testid="pdf-viewer"]',
         );
         // The browser can still refuse (e.g. in an iframe without permission).
-        frame?.requestFullscreen().catch(() => {});
-        trackEvent("paper_full_screen");
+        frame
+          ?.requestFullscreen()
+          .then(() => trackEvent("paper_full_screen"))
+          .catch(() => {});
       }}
     >
       <Maximize aria-hidden />

@@ -1,16 +1,27 @@
-import { describe, expect, it } from "vitest";
-import { theaterFromCookie } from "./theater";
+import { afterEach, describe, expect, it } from "vitest";
+import { setTheater, THEATER_SCRIPT } from "./theater";
 
-describe("theaterFromCookie", () => {
-  it("reads the cookie among others", () => {
-    expect(theaterFromCookie("a=b; qb_theater=1; c=d")).toBe(true);
-    expect(theaterFromCookie("qb_theater=1")).toBe(true);
+const runScript = () => new Function(THEATER_SCRIPT)();
+const marked = () => "theater" in document.documentElement.dataset;
+
+afterEach(() => {
+  setTheater(false);
+  document.cookie = "a=; Max-Age=0";
+});
+
+describe("THEATER_SCRIPT", () => {
+  it("marks the page when the cookie is set, among others", () => {
+    document.cookie = "a=b";
+    setTheater(true);
+    delete document.documentElement.dataset.theater;
+    runScript();
+    expect(marked()).toBe(true);
   });
 
-  it("is off without it, or with another value", () => {
-    expect(theaterFromCookie(null)).toBe(false);
-    expect(theaterFromCookie("qb_theater=")).toBe(false);
-    expect(theaterFromCookie("qb_theater=10")).toBe(false);
-    expect(theaterFromCookie("xqb_theater=1")).toBe(false);
+  it("leaves it alone without the cookie", () => {
+    setTheater(true);
+    setTheater(false);
+    runScript();
+    expect(marked()).toBe(false);
   });
 });

@@ -6,13 +6,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { Button } from "~/components/ui/button";
@@ -60,6 +54,9 @@ export default function PdfReader({
 }: PdfReaderProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
+  // Ignore scroll→page sync while a button/keyboard jump is animating.
+  const jumpLockRef = useRef(false);
+  const jumpUnlockTimer = useRef(0);
 
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
@@ -74,6 +71,8 @@ export default function PdfReader({
     setPage(1);
     setZoom(1);
     pageRefs.current = [];
+    jumpLockRef.current = false;
+    window.clearTimeout(jumpUnlockTimer.current);
   }
 
   useEffect(() => {
@@ -86,10 +85,14 @@ export default function PdfReader({
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(scroller);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(jumpUnlockTimer.current);
+    };
   }, []);
 
-  const onScroll = useCallback(() => {
+  function onScroll() {
+    if (jumpLockRef.current) return;
     const scroller = scrollerRef.current;
     if (!scroller || pageRefs.current.length === 0) return;
     const mid = scroller.scrollTop + scroller.clientHeight / 3;
@@ -101,29 +104,33 @@ export default function PdfReader({
       else break;
     }
     setPage((prev) => (prev === current ? prev : current));
-  }, []);
+  }
 
-  const goToPage = useCallback((next: number) => {
-    setPage((prev) => {
-      const total = pageRefs.current.length;
-      if (total === 0) return prev;
-      const clamped = Math.min(Math.max(next, 1), total);
-      pageRefs.current[clamped - 1]?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-      return clamped;
-    });
-  }, []);
+  function goToPage(next: number) {
+    const total = pageRefs.current.length;
+    if (total === 0) return;
+    const clamped = Math.min(Math.max(next, 1), total);
+    const target = pageRefs.current[clamped - 1];
+    if (!target) return;
 
-  const zoomBy = useCallback((delta: number) => {
+    jumpLockRef.current = true;
+    window.clearTimeout(jumpUnlockTimer.current);
+    jumpUnlockTimer.current = window.setTimeout(() => {
+      jumpLockRef.current = false;
+    }, 800);
+
+    setPage(clamped);
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function zoomBy(delta: number) {
     setZoom((z) =>
       Math.min(
         MAX_ZOOM,
         Math.max(MIN_ZOOM, Math.round((z + delta) * 100) / 100),
       ),
     );
-  }, []);
+  }
 
   // Escape is handled by Radix; these are reader shortcuts on top.
   function onKeyDown(event: React.KeyboardEvent) {
@@ -224,7 +231,7 @@ export default function PdfReader({
             >
               {Array.from({ length: numPages }, (_, i) => (
                 <div
-                  key={`${src}-${i + 1}`}
+                  key={i + 1}
                   ref={(el) => {
                     pageRefs.current[i] = el;
                   }}

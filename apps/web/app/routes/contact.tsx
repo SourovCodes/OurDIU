@@ -14,6 +14,7 @@ import { SocialIcon } from "~/components/social-icons";
 import { Button, buttonVariants } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import { AUTHOR } from "~/lib/author";
+import { COMMUNITY_URL } from "~/lib/community";
 import { mailto } from "~/lib/legal";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/contact";
@@ -24,7 +25,7 @@ export const meta: Route.MetaFunction = () => [
   {
     name: "description",
     content:
-      "Report a bug, suggest an idea, or ask for a paper to be removed from the OurDIU Question Bank.",
+      "Report a bug, suggest an idea or ask a question in the OurDIU Telegram community, or email to have a paper removed from the OurDIU Question Bank.",
   },
 ];
 
@@ -103,7 +104,8 @@ export default function Contact() {
       <div className="space-y-3">
         <h1 className="font-display-xl text-5xl sm:text-7xl">Contact</h1>
         <p className="text-lg text-muted-foreground">
-          Found a bug, have an idea, or need a paper removed? Email me.
+          Found a bug or have an idea? Ask in the Telegram community or email
+          me. For anything private, like removing a paper, email me.
         </p>
       </div>
 
@@ -140,6 +142,33 @@ export default function Contact() {
               Send an email
             </a>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-surface">
+        <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary-container text-primary-container-foreground max-sm:hidden">
+              <SocialIcon network="telegram" className="size-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold">OurDIU Community on Telegram</p>
+              <p className="text-sm text-muted-foreground">
+                Bugs, ideas and questions, answered by other students too.
+              </p>
+            </div>
+          </div>
+          <a
+            href={COMMUNITY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              buttonVariants({ size: "sm" }),
+              "shrink-0 self-start sm:self-auto",
+            )}
+          >
+            Join the group
+          </a>
         </CardContent>
       </Card>
 

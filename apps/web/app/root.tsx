@@ -37,6 +37,7 @@ import {
   useWebVitals,
 } from "~/lib/analytics";
 import { AUTHOR } from "~/lib/author";
+import { COMMUNITY_URL } from "~/lib/community";
 import { LEGAL_PAGES } from "~/lib/legal";
 import { PRODUCTS, productAt, rememberedSpace } from "~/lib/products";
 import { canonicalUrl, OG_IMAGE, SITE_NAME } from "~/lib/seo";
@@ -244,6 +245,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     links={[
                       { to: "/about", label: "About" },
                       { to: "/contact", label: "Contact" },
+                      { to: COMMUNITY_URL, label: "Telegram community" },
                       { to: "/app", label: "Get the app" },
                       { to: "/admission", label: "Admission guide" },
                     ]}
@@ -283,12 +285,23 @@ function FooterColumn({
       <ul className="space-y-2.5">
         {links.map(({ to, label }) => (
           <li key={to}>
-            <Link
-              to={to}
-              className="text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {label}
-            </Link>
+            {/^https?:/.test(to) ? (
+              <a
+                href={to}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {label}
+              </a>
+            ) : (
+              <Link
+                to={to}
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {label}
+              </Link>
+            )}
           </li>
         ))}
       </ul>

@@ -9,6 +9,14 @@ import 'package:url_launcher/url_launcher.dart';
 /// Where feedback goes: the address on the site's contact page (AUTHOR.email).
 const supportEmail = 'sourov2305101004@diu.edu.bd';
 
+/// OurDIU's public Telegram group, for bugs, ideas and questions (the website's
+/// COMMUNITY_URL, on /contact and in its footer).
+const communityUrl = 'https://t.me/ourdiu_community';
+
+/// Opens the group in the Telegram app, or in the browser without it.
+Future<void> openCommunity() =>
+    launchUrl(Uri.parse(communityUrl), mode: LaunchMode.externalApplication);
+
 /// The app and phone a feedback email came from, so bugs can be reproduced.
 class AppDetails {
   const AppDetails({

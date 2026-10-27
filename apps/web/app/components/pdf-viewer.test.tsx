@@ -1,7 +1,8 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { useRef } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { openInAppUrl } from "~/lib/android-app";
-import { PdfViewer } from "./pdf-viewer";
+import { PdfFullScreenButton, PdfViewer } from "./pdf-viewer";
 
 const ANDROID =
   "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36";
@@ -11,6 +12,10 @@ const OTHER_PHONE =
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  // The full screen stubs (jsdom has neither).
+  delete (document as { fullscreenEnabled?: boolean }).fullscreenEnabled;
+  delete (Element.prototype as { requestFullscreen?: unknown })
+    .requestFullscreen;
 });
 
 /** A browser without a PDF viewer of its own, like most phones'. */
@@ -68,4 +73,46 @@ it("opens the app at the page, or Google Play without it", () => {
   expect(openInAppUrl(PAPER)).toBe(
     "intent://ourdiu.com/questions/5?submission=7#Intent;scheme=https;package=com.ourdiu.app;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.ourdiu.app;end",
   );
+});
+
+/** jsdom has no full screen: say whether the browser allows it. */
+function fullscreenEnabled(enabled: boolean) {
+  Object.defineProperty(document, "fullscreenEnabled", {
+    value: enabled,
+    configurable: true,
+  });
+}
+
+function PaperWithFullScreen() {
+  const ref = useRef<HTMLDivElement>(null);
+  return (
+    <div ref={ref}>
+      <PdfFullScreenButton container={ref} />
+      <PdfViewer src="/paper.pdf" title="Paper" />
+    </div>
+  );
+}
+
+it("shows the embedded paper on the whole screen", () => {
+  fullscreenEnabled(true);
+  const requestFullscreen = vi.fn(() => Promise.resolve());
+  Element.prototype.requestFullscreen = requestFullscreen;
+  render(<PaperWithFullScreen />);
+  fireEvent.click(screen.getByRole("button", { name: "Full screen" }));
+  expect(requestFullscreen).toHaveBeenCalledOnce();
+  expect(requestFullscreen.mock.contexts[0]).toBe(
+    screen.getByTestId("pdf-viewer"),
+  );
+});
+
+it("has no full screen button where the browser can't embed or allow it", () => {
+  fullscreenEnabled(false);
+  render(<PaperWithFullScreen />);
+  expect(screen.queryByRole("button", { name: "Full screen" })).toBeNull();
+  cleanup();
+
+  fullscreenEnabled(true);
+  noViewer(OTHER_PHONE);
+  render(<PaperWithFullScreen />);
+  expect(screen.queryByRole("button", { name: "Full screen" })).toBeNull();
 });

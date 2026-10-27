@@ -56,6 +56,12 @@ const PREFERENCES: CookieRow[] = [
     lasts: "1 year",
   },
   {
+    names: ["qb_theater"],
+    purpose:
+      "Set if you turn on theater mode, so question papers keep opening across the whole window.",
+    lasts: "1 year",
+  },
+  {
     names: ["ourdiu_space"],
     purpose:
       "Remembers which part of OurDIU you were last in (e.g. the Question Bank), so pages like your account keep its menu and lead back to it.",

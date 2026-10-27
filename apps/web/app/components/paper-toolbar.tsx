@@ -11,7 +11,7 @@ import {
   ThumbsDown,
   ThumbsUp,
 } from "lucide-react";
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { Link, useFetcher, useLocation } from "react-router";
 import { ContributorAvatar } from "~/components/contributor-avatar";
 import { Button, buttonVariants } from "~/components/ui/button";
@@ -187,22 +187,21 @@ function ReportControl({
 }
 
 /**
- * Above the paper from `lg`: whose it is and how to tell it apart, and which of
- * the question's papers it is.
+ * Above the paper from `lg`: how to tell it apart, which of the question's papers it
+ * is, and controls for viewing it. Who shared it is printed on the paper.
  */
 export function PaperInfo({
   submission,
-  label,
   position,
   className,
+  children,
 }: {
   submission: Submission;
-  label: string;
   position: { index: number; total: number };
   className?: string;
+  /** Controls at the end of the bar. */
+  children?: ReactNode;
 }) {
-  const { uploader } = submission;
-  const details = paperDetails(submission);
   return (
     <div
       className={cn(
@@ -211,25 +210,16 @@ export function PaperInfo({
       )}
     >
       <p className="min-w-0 truncate text-muted-foreground">
-        {uploader ? (
-          <>
-            {details && `${details} · `}shared by{" "}
-            <Link
-              to={contributorUrl(uploader.username)}
-              className="font-medium text-foreground hover:underline"
-            >
-              {uploader.name}
-            </Link>
-          </>
-        ) : (
-          label
-        )}
+        {paperDetails(submission)}
       </p>
-      {position.total > 1 && (
-        <span className="shrink-0 rounded-full bg-card px-3 py-1 text-xs font-medium">
-          Paper {position.index + 1} of {position.total}
-        </span>
-      )}
+      <div className="flex shrink-0 items-center gap-2">
+        {position.total > 1 && (
+          <span className="rounded-full bg-card px-3 py-1 text-xs font-medium">
+            Paper {position.index + 1} of {position.total}
+          </span>
+        )}
+        {children}
+      </div>
     </div>
   );
 }

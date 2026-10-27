@@ -358,6 +358,15 @@ html body[data-scroll-locked] {
 }
 
 /* Tailwind's default `container` (max-width per breakpoint), centred with side padding. */
+/* Theater mode (lib/theater.ts): a page that offers it spans the window from `lg`,
+   inside the container's padding (docs/PLAN.md, decision 62). Outside any layer,
+   so it beats the container's max width. */
+@media (width >= 64rem) {
+  html[data-theater] .container:has([data-theater-page]) {
+    max-width: none;
+  }
+}
+
 @utility container {
   @apply mx-auto px-4 sm:px-6;
 }

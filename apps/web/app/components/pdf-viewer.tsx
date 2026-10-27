@@ -3,10 +3,11 @@ import {
   ExternalLink,
   FileText,
   Loader2,
+  Maximize,
   Smartphone,
 } from "lucide-react";
-import { useEffect, useSyncExternalStore } from "react";
-import { buttonVariants } from "~/components/ui/button";
+import { useEffect, useSyncExternalStore, type RefObject } from "react";
+import { Button, buttonVariants } from "~/components/ui/button";
 import { trackEvent } from "~/lib/analytics";
 import { isAndroid, openInAppUrl } from "~/lib/android-app";
 import { cn } from "~/lib/utils";
@@ -21,14 +22,21 @@ type PdfViewerProps = {
    * viewer, so they're asked to read it in the app.
    */
   appPath?: string;
+  /**
+   * The frame's height from `lg`, to fit what the page puts around it (by default,
+   * the screen below the site's header with a little room).
+   */
+  frameClassName?: string;
 };
 
 /** Whether a browser has a PDF viewer never changes while the page is open. */
 const subscribeNever = () => () => {};
 
-// On phones the paper fills the screen below the header; on larger screens most of it.
+// The paper fills the screen below the site's header (and the paper's bar below it on
+// phones), so once it's scrolled to, all of it is in view and scrolling inside it
+// doesn't stop at an edge off the screen.
 const FRAME_CLASS =
-  "relative block h-[calc(100dvh-7rem)] min-h-[28rem] w-full sm:h-[80vh] sm:min-h-[32rem]";
+  "relative block h-[calc(100dvh-7rem)] min-h-[28rem] w-full sm:min-h-[32rem] lg:h-[calc(100dvh-6rem)]";
 
 /**
  * Uses the browser's native PDF viewer via <object>. Browsers without one (most
@@ -37,7 +45,13 @@ const FRAME_CLASS =
  * paper (`appPath`) also offers it in the app. The object's children, the same
  * links, cover browsers that say they have a viewer but can't embed it.
  */
-export function PdfViewer({ src, title, appPath, className }: PdfViewerProps) {
+export function PdfViewer({
+  src,
+  title,
+  appPath,
+  className,
+  frameClassName,
+}: PdfViewerProps) {
   // Read on the client only: the server can't know the browser, so it renders the
   // native viewer, which is what desktop browsers keep after hydration.
   const noNativeViewer = useSyncExternalStore(
@@ -103,12 +117,50 @@ export function PdfViewer({ src, title, appPath, className }: PdfViewerProps) {
         type="application/pdf"
         title={title}
         aria-label={title}
-        className={FRAME_CLASS}
+        className={cn(FRAME_CLASS, frameClassName)}
         data-testid="pdf-viewer"
       >
         <NoViewer src={src} className="h-full" />
       </object>
     </div>
+  );
+}
+
+/**
+ * Shows the embedded paper (a `PdfViewer` inside `container`) on the whole screen;
+ * Esc brings it back. Only where the browser embeds PDFs and allows full screen.
+ */
+export function PdfFullScreenButton({
+  container,
+}: {
+  container: RefObject<HTMLElement | null>;
+}) {
+  // Rendered on the server, as desktop browsers keep it: appearing after loading
+  // would move the bar's other controls.
+  const available = useSyncExternalStore(
+    subscribeNever,
+    () => document.fullscreenEnabled && navigator.pdfViewerEnabled !== false,
+    () => true,
+  );
+  if (!available) return null;
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => {
+        const frame = container.current?.querySelector(
+          '[data-testid="pdf-viewer"]',
+        );
+        // The browser can still refuse (e.g. in an iframe without permission).
+        frame
+          ?.requestFullscreen()
+          .then(() => trackEvent("paper_full_screen"))
+          .catch(() => {});
+      }}
+    >
+      <Maximize aria-hidden />
+      Full screen
+    </Button>
   );
 }
 

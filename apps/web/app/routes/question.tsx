@@ -7,7 +7,8 @@ import type {
   QuestionList,
   Submission,
 } from "@ourdiu/shared";
-import { Clock, Download, FileX } from "lucide-react";
+import { Clock, Download, FileX, RectangleHorizontal } from "lucide-react";
+import { useRef } from "react";
 import {
   data,
   Link,
@@ -28,7 +29,7 @@ import {
   type PaperViewer,
 } from "~/components/paper-toolbar";
 import { PaperText } from "~/components/paper-text";
-import { PdfViewer } from "~/components/pdf-viewer";
+import { PdfFullScreenButton, PdfViewer } from "~/components/pdf-viewer";
 import { SaveButton } from "~/components/save-button";
 import { ShareButton } from "~/components/share-button";
 import { PaperSwitcher, SubmissionList } from "~/components/submission-list";
@@ -42,6 +43,7 @@ import {
 } from "~/lib/engagement";
 import { hasSessionCookie, requireUser } from "~/lib/session.server";
 import { paperTitles, plural, pickSubmission } from "~/lib/submissions";
+import { setTheater, useTheater } from "~/lib/theater";
 import type { RootLoader } from "~/root";
 import type { Route } from "./+types/question";
 import { breadcrumbJsonLd, originOf, pageMeta, QB_NAME } from "~/lib/seo";
@@ -237,6 +239,8 @@ function viewerFor(
 
 export default function QuestionPage({ loaderData }: Route.ComponentProps) {
   const { question, interactions, otherExams } = loaderData;
+  const paperRef = useRef<HTMLDivElement>(null);
+  const theater = useTheater();
   const [searchParams] = useSearchParams();
   const selected = pickSubmission(
     question.submissions,
@@ -275,7 +279,8 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
   );
 
   return (
-    <div className="space-y-6">
+    // Offers theater mode, which widens the page (app.css).
+    <div className="space-y-6" data-theater-page>
       <header className="flex flex-wrap items-center gap-x-4 gap-y-4">
         <ExamBadge
           examType={question.examType.name}
@@ -338,19 +343,33 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
             // last and sticks to the bottom of the screen while the paper is in view.
             <div
               key={selected.id}
+              ref={paperRef}
               className="flex flex-col overflow-clip rounded-3xl bg-surface"
             >
               <PaperInfo
                 submission={selected}
-                label={paperLabel}
                 position={position}
                 className="max-lg:hidden"
-              />
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-pressed={theater}
+                  onClick={() => setTheater(!theater)}
+                  className="aria-pressed:bg-primary-container aria-pressed:text-primary-container-foreground"
+                >
+                  <RectangleHorizontal aria-hidden />
+                  Theater mode
+                </Button>
+                <PdfFullScreenButton container={paperRef} />
+              </PaperInfo>
               <PdfViewer
                 src={fileUrl}
                 title={title}
                 appPath={`/questions/${question.id}?submission=${selected.id}`}
                 className="rounded-none lg:mx-5 lg:mb-5 lg:rounded-2xl"
+                // The screen below the site's header, the bar above and the inset.
+                frameClassName="lg:h-[calc(100dvh-10.5rem)]"
               />
               <PaperToolbar
                 submission={selected}

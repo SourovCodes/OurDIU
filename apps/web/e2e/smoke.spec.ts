@@ -436,6 +436,16 @@ test("question page embeds the PDF, shows its uploader and switches submissions"
   await expect(page.getByText("Rejected", { exact: true })).toHaveCount(0);
   const pendingFile = await page.request.get("/api/v1/submissions/13/file");
   expect(pendingFile.status()).toBe(404);
+
+  // Full screen opens the in-page reader (PDF.js), with page and zoom controls.
+  await page.getByRole("button", { name: "Full screen" }).click();
+  const reader = page.getByTestId("pdf-reader");
+  await expect(reader).toBeVisible();
+  await expect(reader.getByText("1 / 1")).toBeVisible({ timeout: 15_000 });
+  await reader.getByRole("button", { name: "Zoom in" }).click();
+  await expect(reader.getByText("125%")).toBeVisible();
+  await reader.getByRole("button", { name: "Close" }).click();
+  await expect(reader).toHaveCount(0);
 });
 
 test("question with only pending submissions explains the review", async ({

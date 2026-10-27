@@ -9,7 +9,12 @@ import {
 import { useEffect, useSyncExternalStore, type RefObject } from "react";
 import { Button, buttonVariants } from "~/components/ui/button";
 import { trackEvent } from "~/lib/analytics";
-import { isAndroid, openInAppUrl } from "~/lib/android-app";
+import {
+  declineApp,
+  declinedApp,
+  isAndroid,
+  openInAppUrl,
+} from "~/lib/android-app";
 import { cn } from "~/lib/utils";
 
 type PdfViewerProps = {
@@ -59,14 +64,15 @@ export function PdfViewer({
     () => navigator.pdfViewerEnabled === false,
     () => false,
   );
-  const android = useSyncExternalStore(
+  // An Android visitor who said no to the app twice isn't offered it again.
+  const offerApp = useSyncExternalStore(
     subscribeNever,
-    () => isAndroid(navigator.userAgent),
+    () => isAndroid(navigator.userAgent) && !declinedApp(document.cookie),
     () => false,
   );
 
   if (noNativeViewer) {
-    return appPath && android ? (
+    return appPath && offerApp ? (
       <OpenInApp href={openInAppUrl(appPath)} src={src} className={className} />
     ) : (
       <NoViewer src={src} className={cn("min-h-[24rem]", className)} />
@@ -252,7 +258,13 @@ function OpenInApp({
         <Smartphone aria-hidden />
         Open in the app
       </a>
-      <PdfLinks src={src} onClick={() => trackEvent("app_card_pdf")} />
+      <PdfLinks
+        src={src}
+        onClick={() => {
+          trackEvent("app_card_pdf");
+          declineApp();
+        }}
+      />
     </div>
   );
 }

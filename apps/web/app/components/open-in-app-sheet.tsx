@@ -8,11 +8,12 @@ import {
   SheetTitle,
 } from "~/components/ui/sheet";
 import { trackEvent } from "~/lib/analytics";
-import { dismissAppSheet, openInAppUrl } from "~/lib/android-app";
+import { declineApp, dismissAppSheet, openInAppUrl } from "~/lib/android-app";
 
 /**
  * The "Open in the app" sheet, asked once of Android visitors (`AppSheet` decides
- * and loads it). Either answer, or closing it, keeps it away for good.
+ * and loads it). Either answer, or closing it, keeps it away for good; choosing the
+ * browser also counts as one "no" to the app (`declineApp`).
  */
 export default function OpenInAppSheet({ path }: { path: string }) {
   const [open, setOpen] = useState(true);
@@ -20,6 +21,7 @@ export default function OpenInAppSheet({ path }: { path: string }) {
 
   const answer = (event: string) => {
     trackEvent(event);
+    if (event === "app_sheet_browser") declineApp();
     dismissAppSheet();
     setOpen(false);
   };

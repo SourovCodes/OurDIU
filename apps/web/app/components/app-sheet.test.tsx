@@ -1,7 +1,11 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createRoutesStub } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { APP_SHEET_COOKIE, openInAppUrl } from "~/lib/android-app";
+import {
+  APP_DECLINES_COOKIE,
+  APP_SHEET_COOKIE,
+  openInAppUrl,
+} from "~/lib/android-app";
 import { AppSheet } from "./app-sheet";
 
 const ANDROID =
@@ -19,6 +23,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   gtag.mockReset();
   document.cookie = `${APP_SHEET_COOKIE}=; Max-Age=0; Path=/`;
+  document.cookie = `${APP_DECLINES_COOKIE}=; Max-Age=0; Path=/`;
 });
 
 function renderAt(path: string) {
@@ -37,6 +42,8 @@ it("asks once, opening the same page in the app", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Continue in browser" }));
   expect(gtag).toHaveBeenCalledWith("event", "app_sheet_browser");
   expect(document.cookie).toContain(`${APP_SHEET_COOKIE}=1`);
+  // Choosing the browser is one "no" to the app.
+  expect(document.cookie).toContain(`${APP_DECLINES_COOKIE}=1`);
 
   // Answered: not asked again.
   cleanup();
@@ -52,4 +59,5 @@ it("opens the app's home from other pages, and counts the tap", async () => {
   fireEvent.click(open);
   expect(gtag).toHaveBeenCalledWith("event", "app_sheet_open");
   expect(document.cookie).toContain(`${APP_SHEET_COOKIE}=1`);
+  expect(document.cookie).not.toContain(APP_DECLINES_COOKIE);
 });

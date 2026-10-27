@@ -11,6 +11,11 @@
   // Run next to D1 (APAC) rather than at the visitor's edge: a page makes several
   // D1 round trips, the visitor only one.
   "placement": { "mode": "smart" },
+  // Workers Cache, looked up in the visitor's data centre before the Worker runs
+  // (docs/PLAN.md, decision 62). Only responses `withCacheHeaders` marks shared are
+  // kept (a minute fresh, tagged `questions`, purged when visitors would see a
+  // change); everything else is private or no-store. Rollback: false.
+  "cache": { "enabled": true },
   "vars": {
     // The public site. Auth runs on this origin and trusts only it, and its domain
     // goes in the watermark on public PDFs.

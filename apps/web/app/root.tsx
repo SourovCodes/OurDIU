@@ -37,7 +37,7 @@ import {
   useWebVitals,
 } from "~/lib/analytics";
 import { AUTHOR } from "~/lib/author";
-import { COMMUNITY_URL } from "~/lib/community";
+import { COMMUNITY_URL, FACEBOOK_PAGE_URL } from "~/lib/community";
 import { LEGAL_PAGES } from "~/lib/legal";
 import { PRODUCTS, productAt, rememberedSpace } from "~/lib/products";
 import { canonicalUrl, OG_IMAGE, SITE_NAME } from "~/lib/seo";
@@ -246,6 +246,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       { to: "/about", label: "About" },
                       { to: "/contact", label: "Contact" },
                       { to: COMMUNITY_URL, label: "Telegram community" },
+                      { to: FACEBOOK_PAGE_URL, label: "Facebook page" },
                       { to: "/app", label: "Get the app" },
                       { to: "/admission", label: "Admission guide" },
                     ]}

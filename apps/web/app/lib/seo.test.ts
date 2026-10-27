@@ -7,6 +7,7 @@ import {
   originOf,
   robotsTxt,
   sitemapXml,
+  websiteJsonLd,
 } from "./seo";
 
 const SITE = "https://example.com";
@@ -109,6 +110,23 @@ describe("androidAppJsonLd", () => {
       operatingSystem: "ANDROID",
       offers: { price: "0" },
     });
+  });
+});
+
+describe("websiteJsonLd", () => {
+  it("names the site's Telegram group and Facebook page as its profiles", () => {
+    const data = websiteJsonLd(SITE, {
+      name: "Sourov",
+      links: [{ href: "https://www.linkedin.com/in/sourov" }],
+    })["script:ld+json"];
+    expect(data.sameAs).toEqual([
+      "https://t.me/ourdiu_community",
+      "https://www.facebook.com/ourdiu",
+    ]);
+    // The author's own profiles stay on the publisher.
+    expect(data.publisher.sameAs).toEqual([
+      "https://www.linkedin.com/in/sourov",
+    ]);
   });
 });
 

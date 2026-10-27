@@ -9,6 +9,7 @@ import type { MetaDescriptor } from "react-router";
 import { PLAY_STORE_URL } from "./android-app";
 import { LEGAL_PAGES } from "./legal";
 import { HUB_LIVE } from "./products";
+import { OFFICIAL_PROFILES } from "./community";
 
 /** The site's name in search results and link previews. */
 export const SITE_NAME = "OurDIU";
@@ -117,6 +118,8 @@ export function websiteJsonLd(
       description:
         "Free tools for Daffodil International University (DIU) students, starting with the DIU Question Bank of past exam papers.",
       inLanguage: "en",
+      // Its Telegram group and Facebook page, so search ties them to the site.
+      sameAs: OFFICIAL_PROFILES,
       publisher: {
         "@type": "Person",
         name: author.name,

@@ -194,6 +194,11 @@ test("the footer leads to the contact and legal pages", async ({ page }) => {
       .getByRole("navigation", { name: "About", exact: true })
       .getByRole("link", { name: "Telegram community" }),
   ).toHaveAttribute("href", "https://t.me/ourdiu_community");
+  await expect(
+    page
+      .getByRole("navigation", { name: "About", exact: true })
+      .getByRole("link", { name: "Facebook page" }),
+  ).toHaveAttribute("href", "https://www.facebook.com/ourdiu");
 
   const legal = page.getByRole("navigation", { name: "Legal", exact: true });
   for (const [label, path, title] of [

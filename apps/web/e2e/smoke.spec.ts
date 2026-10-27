@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { QUESTION_BANK_CACHE_TAG } from "@ourdiu/shared/constants";
 import { E2E_ORIGIN } from "./env";
 import {
   APP_SHEET_COOKIE,
@@ -1265,6 +1266,8 @@ test("pages' shared data is the same signed in, and views still count", async ({
       const signedIn = await page.request.get(url);
       for (const res of [signedOut, signedIn]) {
         expect(res.headers()["cache-control"]).toContain("public");
+        // What the API clears when the question bank changes.
+        expect(res.headers()["cache-tag"]).toBe(QUESTION_BANK_CACHE_TAG);
         expect(res.headers()["set-cookie"]).toBeUndefined();
       }
       expect(await signedIn.text()).toBe(await signedOut.text());
@@ -1274,6 +1277,7 @@ test("pages' shared data is the same signed in, and views still count", async ({
   for (const url of ["/questions/1", "/questions/1.data"]) {
     const res = await page.request.get(url);
     expect(res.headers()["cache-control"]).toBe("private, no-cache");
+    expect(res.headers()["cache-tag"]).toBeUndefined();
   }
 
   // The browser asks for its own view token, and the view counts with it.

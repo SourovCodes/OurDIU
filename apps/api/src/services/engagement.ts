@@ -195,7 +195,7 @@ export async function getQuestionInteractions(
   questionId: number,
   userId: string,
 ): Promise<QuestionInteractions> {
-  const [votes, reports, saved] = await Promise.all([
+  const [votes, reports, saved, voteCounts] = await Promise.all([
     db
       .select({
         submissionId: submissionVotes.submissionId,
@@ -224,6 +224,19 @@ export async function getQuestionInteractions(
         ),
       ),
     isSaved(db, userId, questionId),
+    db
+      .select({
+        submissionId: submissions.id,
+        likeCount: submissions.likeCount,
+        dislikeCount: submissions.dislikeCount,
+      })
+      .from(submissions)
+      .where(
+        and(
+          eq(submissions.questionId, questionId),
+          eq(submissions.status, "published"),
+        ),
+      ),
   ]);
 
   return {
@@ -234,5 +247,6 @@ export async function getQuestionInteractions(
     })),
     reportedSubmissionIds: reports.map((report) => report.submissionId),
     saved,
+    voteCounts,
   };
 }

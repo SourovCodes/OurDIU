@@ -466,3 +466,9 @@ export function normalizeAlias(alias: string): string | null {
     ? clean
     : null;
 }
+
+/**
+ * The `Cache-Tag` on every response Cloudflare may share (all of them the question
+ * bank's), cleared whenever what they show changes (docs/PLAN.md, decision 62).
+ */
+export const QUESTION_BANK_CACHE_TAG = "questions";

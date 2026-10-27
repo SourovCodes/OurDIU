@@ -31,6 +31,7 @@ import {
   seedUser,
   signInAdmin,
   signIn,
+  stubCachePurge,
 } from "./helpers";
 
 type Taxonomy = Awaited<ReturnType<typeof seedTaxonomy>>;
@@ -403,6 +404,37 @@ describe("runWatermark", () => {
     );
     expect(processor.calls).toEqual([]);
     expect((await readRow(paper.id)).watermarkStatus).toBe("failed");
+  });
+
+  it("deletes the copy it replaces once cached pages no longer link to it", async () => {
+    const paper = await seedPaper();
+    const processor = fakeProcessor();
+    const stub = stubCachePurge();
+    try {
+      const run = () =>
+        runWatermark(
+          db(),
+          watermarkEnv,
+          { submissionId: paper.id },
+          { fetch: processor.fetch },
+        );
+      // The first copy: the API's link to the original keeps working meanwhile.
+      await run();
+      expect(stub.purge).not.toHaveBeenCalled();
+      const first = (await readRow(paper.id)).watermarkedFileKey!;
+
+      let firstAtPurge: R2Object | null = null;
+      stub.purge.mockImplementation(async () => {
+        firstAtPurge = await env.BUCKET.head(first);
+        return { success: true, errors: [] };
+      });
+      await run();
+      expect(stub.purge).toHaveBeenCalledOnce();
+      expect(firstAtPurge).not.toBeNull();
+      expect(await env.BUCKET.head(first)).toBeNull();
+    } finally {
+      stub.restore();
+    }
   });
 
   it("ignores deleted submissions", async () => {

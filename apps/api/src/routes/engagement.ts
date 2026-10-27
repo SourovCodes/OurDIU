@@ -10,6 +10,7 @@ import {
   saveQuestionsInputSchema,
   voteResultSchema,
 } from "@ourdiu/shared";
+import { purgeQuestionBank } from "../lib/cache";
 import { AppError, validationHook } from "../lib/errors";
 import { errorResponse, jsonResponse } from "../lib/openapi";
 import { readViews, rememberView } from "../lib/view-cookie";
@@ -319,17 +320,17 @@ export const engagementRoutes = new OpenAPIHono<AppEnv>({
       200,
     ),
   )
-  .openapi(reportSubmissionRoute, async (c) =>
-    c.json(
-      await reportSubmission(
-        c.var.db,
-        c.req.valid("param").id,
-        c.var.session!.user.id,
-        c.req.valid("json"),
-      ),
-      201,
-    ),
-  )
+  .openapi(reportSubmissionRoute, async (c) => {
+    const report = await reportSubmission(
+      c.var.db,
+      c.req.valid("param").id,
+      c.var.session!.user.id,
+      c.req.valid("json"),
+    );
+    // Enough reports hide the paper from visitors.
+    if (report.submissionHidden) await purgeQuestionBank();
+    return c.json(report, 201);
+  })
   .openapi(questionInteractionsRoute, async (c) =>
     c.json(
       await getQuestionInteractions(

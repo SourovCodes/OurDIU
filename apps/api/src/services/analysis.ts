@@ -26,6 +26,7 @@ import {
   submissions,
   type SubmissionAnalysisRow,
 } from "../db/schema";
+import { purgeQuestionBank } from "../lib/cache";
 import { AppError } from "../lib/errors";
 import { PermanentError, readPdfForAi } from "../lib/ai-pdf";
 import { GeminiError, generateJsonFromPdf } from "../lib/gemini";
@@ -544,6 +545,7 @@ export async function publishIfConfirmed(
     )
     .returning({ id: submissions.id });
   if (published.length === 0) return false;
+  await purgeQuestionBank();
   await watermarkIfMissing(db, watermarkQueue, submissionId);
   return true;
 }

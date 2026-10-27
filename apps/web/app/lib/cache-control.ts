@@ -1,3 +1,5 @@
+import { QUESTION_BANK_CACHE_TAG } from "@ourdiu/shared/constants";
+
 // Cache headers for every response the Worker sends (docs/PLAN.md, decision 62).
 // Workers Cache keys entries by path and query only, not by host, cookies or user
 // agent, and it stores responses that carry no Cache-Control. So every response
@@ -76,7 +78,12 @@ export function cacheHeadersFor(
     !response.headers.has("set-cookie") &&
     (PUBLIC_API.has(url.pathname) || sharedData(url, shared));
   return shareable
-    ? { "cache-control": PUBLIC, "cloudflare-cdn-cache-control": EDGE }
+    ? {
+        "cache-control": PUBLIC,
+        "cloudflare-cdn-cache-control": EDGE,
+        // What the API clears when the question bank changes (its lib/cache.ts).
+        "cache-tag": QUESTION_BANK_CACHE_TAG,
+      }
     : { "cache-control": PRIVATE };
 }
 

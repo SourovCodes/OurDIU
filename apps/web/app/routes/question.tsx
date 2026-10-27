@@ -257,6 +257,27 @@ function viewerFor(
   };
 }
 
+/**
+ * The paper with the like and dislike counts read with the signed-in visitor's own
+ * interactions: the page's data may be a minute old (Cloudflare shares it), and
+ * the visitor's new vote has to show in its count.
+ */
+function withLiveCounts(
+  submission: Submission,
+  interactions: QuestionInteractions | null | undefined,
+): Submission {
+  const live = interactions?.voteCounts.find(
+    (counts) => counts.submissionId === submission.id,
+  );
+  return live
+    ? {
+        ...submission,
+        likeCount: live.likeCount,
+        dislikeCount: live.dislikeCount,
+      }
+    : submission;
+}
+
 export default function QuestionPage({ loaderData }: Route.ComponentProps) {
   const { question, otherExams } = loaderData;
   const [searchParams] = useSearchParams();
@@ -285,6 +306,7 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
   const signedIn = Boolean(useRouteLoaderData<RootLoader>("root")?.user);
   const interactions = useInteractions(question.id, signedIn);
   const viewer = selected ? viewerFor(selected, interactions) : null;
+  const paper = selected ? withLiveCounts(selected, interactions) : null;
   const position = {
     index: Math.max(0, selected ? published.indexOf(selected) : 0),
     total: published.length,
@@ -355,16 +377,16 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
             selectedId={selected?.id ?? null}
           />
           <ReportNotice questionId={question.id} />
-          {selected && fileUrl && viewer ? (
+          {paper && fileUrl && viewer ? (
             // One keyed wrapper (sibling keys must be unique): switching papers remounts
             // the bars and reloads the embedded document. On phones the bar comes
             // last and sticks to the bottom of the screen while the paper is in view.
             <div
-              key={selected.id}
+              key={paper.id}
               className="flex flex-col overflow-clip rounded-3xl bg-surface"
             >
               <PaperInfo
-                submission={selected}
+                submission={paper}
                 label={paperLabel}
                 position={position}
                 className="max-lg:hidden"
@@ -372,11 +394,11 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
               <PdfViewer
                 src={fileUrl}
                 title={title}
-                appPath={`/questions/${question.id}?submission=${selected.id}`}
+                appPath={`/questions/${question.id}?submission=${paper.id}`}
                 className="rounded-none lg:mx-5 lg:mb-5 lg:rounded-2xl"
               />
               <PaperToolbar
-                submission={selected}
+                submission={paper}
                 label={paperLabel}
                 viewer={viewer}
                 fileUrl={fileUrl}
@@ -412,10 +434,10 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
             submissions={question.submissions}
             selectedId={selected?.id ?? null}
           />
-          {selected && viewer && (
+          {paper && viewer && (
             <div className="max-lg:hidden">
               <PaperFeedback
-                submission={selected}
+                submission={paper}
                 label={paperLabel}
                 viewer={viewer}
               />

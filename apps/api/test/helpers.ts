@@ -2,6 +2,7 @@ import { env, exports } from "cloudflare:workers";
 import { betterAuth } from "better-auth";
 import { testUtils } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
+import { vi } from "vitest";
 import { createDb } from "../src/db/client";
 import {
   courses,
@@ -15,6 +16,7 @@ import {
   user,
 } from "../src/db/schema";
 import { authOptions } from "../src/lib/auth";
+import { workersCache } from "../src/lib/cache";
 
 export const ORIGIN = "http://localhost:5173";
 
@@ -159,4 +161,15 @@ export function jsonRequest(
 
 export function pdfFile(name = "paper.pdf") {
   return new File(["%PDF-1.7\n%test\n"], name, { type: "application/pdf" });
+}
+
+/**
+ * Stands in for Workers Cache's purge, which doesn't exist with caching off (as in
+ * tests): records each purge, answering `result`, until `restore()`.
+ */
+export function stubCachePurge(
+  result: CachePurgeResult = { success: true, errors: [] },
+) {
+  const purge = vi.spyOn(workersCache, "purge").mockResolvedValue(result);
+  return { purge, restore: () => purge.mockRestore() };
 }

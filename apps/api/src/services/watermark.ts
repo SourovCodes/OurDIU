@@ -10,6 +10,7 @@ import {
   submissions,
   user,
 } from "../db/schema";
+import { purgeQuestionBank } from "../lib/cache";
 import { AppError } from "../lib/errors";
 import { inlineDisposition, paperFileName } from "../lib/files";
 import {
@@ -312,8 +313,12 @@ export async function runWatermark(
       .returning({ id: submissions.id });
     // Deleted while we were working: don't leave the copy behind.
     if (updated.length === 0) await env.BUCKET.delete(key);
-    // Made again (e.g. after a rename): the old copy is replaced.
-    else if (row.previousKey) await env.BUCKET.delete(row.previousKey);
+    // Made again (e.g. after a rename): the old copy is replaced, once no shared
+    // copy of the paper's page links to it.
+    else if (row.previousKey) {
+      await purgeQuestionBank();
+      await env.BUCKET.delete(row.previousKey);
+    }
     return "done";
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

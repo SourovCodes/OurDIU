@@ -322,10 +322,14 @@ const paperLink = (page: Page, text: string) =>
     .first();
 
 /** The uploader's link in the viewer's bar. */
-const uploaderLink = (page: Page, name: string) =>
-  page
-    .getByRole("region", { name: "Question paper" })
-    .getByRole("link", { name: new RegExp(`^${name}`) });
+// On phones the paper's bar links to its uploader; on wider screens the paper
+// itself says who shared it, and the list of copies names them.
+const uploaderLink = (page: Page, name: string, isMobile: boolean) =>
+  isMobile
+    ? page
+        .getByRole("region", { name: "Question paper" })
+        .getByRole("link", { name: new RegExp(`^${name}`) })
+    : page.getByRole("complementary").getByText(name).first();
 
 // Papers are told apart by section and batch, otherwise by uploader.
 const SEED_01 = "Section A · Batch 61";
@@ -405,8 +409,7 @@ test("question page embeds the PDF, shows its uploader and switches submissions"
       )
       .locator("a[download]"),
   ).toHaveAttribute("href", "/api/v1/submissions/1/file");
-  // The uploader card links to their profile.
-  await expect(uploaderLink(page, "Ayesha Rahman")).toBeVisible();
+  await expect(uploaderLink(page, "Ayesha Rahman", isMobile)).toBeVisible();
   // The optional section and batch tell papers apart.
 
   await paperLink(page, SEED_02).click();
@@ -416,7 +419,7 @@ test("question page embeds the PDF, shows its uploader and switches submissions"
     "true",
   );
   await shows(2);
-  await expect(uploaderLink(page, "Tanvir Hasan")).toBeVisible();
+  await expect(uploaderLink(page, "Tanvir Hasan", isMobile)).toBeVisible();
 
   // Switching back and forth keeps exactly one toolbar and viewer on the page.
   await paperLink(page, SEED_01).click();
@@ -436,6 +439,68 @@ test("question page embeds the PDF, shows its uploader and switches submissions"
   await expect(page.getByText("Rejected", { exact: true })).toHaveCount(0);
   const pendingFile = await page.request.get("/api/v1/submissions/13/file");
   expect(pendingFile.status()).toBe(404);
+});
+
+test("the paper can be read full screen", async ({ page, isMobile }) => {
+  test.skip(isMobile, "Phones open the file instead");
+  // The test browser has no PDF viewer; say it has, so the paper is embedded.
+  await page.addInitScript(() =>
+    Object.defineProperty(Navigator.prototype, "pdfViewerEnabled", {
+      get: () => true,
+    }),
+  );
+  await page.goto("/questions/1");
+  await page.getByRole("button", { name: "Full screen" }).click();
+  await expect
+    .poll(() => page.evaluate(() => document.fullscreenElement?.tagName))
+    .toBe("OBJECT");
+  await page.keyboard.press("Escape");
+});
+
+test("theater mode spreads the paper and lists across the window and is remembered", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, "Theater mode is for wide screens");
+  await page.setViewportSize({ width: 1920, height: 1000 });
+  await page.goto("/questions/1");
+  const paper = page
+    .getByRole("region", { name: "Question paper" })
+    .getByTestId("pdf-viewer-fallback");
+  const lists = page.getByRole("complementary");
+  const box = async () => {
+    const [p, l] = [await paper.boundingBox(), await lists.boundingBox()];
+    return {
+      left: Math.round(p?.x ?? 0),
+      right: Math.round((l?.x ?? 0) + (l?.width ?? 0)),
+      lists: Math.round(l?.width ?? 0),
+    };
+  };
+  const theater = page.getByRole("button", { name: "Theater mode" });
+  await expect(theater).toHaveAttribute("aria-pressed", "false");
+  const normal = await box();
+  const windowWidth = await page.evaluate(
+    () => document.documentElement.clientWidth,
+  );
+  // Near the window's edges (its padding, the paper's card inset, and the
+  // scrollbar's gutter), with the lists as wide as before.
+  const spread = async () => {
+    const { left, right, lists } = await box();
+    return left < 50 && right > windowWidth - 40 && lists === normal.lists;
+  };
+  expect(normal.left).toBeGreaterThan(100);
+
+  await theater.click();
+  await expect(theater).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(spread).toBe(true);
+
+  // The server renders it in theater mode next time.
+  await page.reload();
+  await expect(theater).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(spread).toBe(true);
+  await theater.click();
+  await expect(theater).toHaveAttribute("aria-pressed", "false");
+  await expect.poll(box).toEqual(normal);
 });
 
 test("question with only pending submissions explains the review", async ({
@@ -661,6 +726,7 @@ test("an account without a DIU email is asked to switch before contributing", as
 
 test("contributors index leads to a contributor's submissions", async ({
   page,
+  isMobile,
 }) => {
   await page.goto("/questions/contributors");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
@@ -687,10 +753,8 @@ test("contributors index leads to a contributor's submissions", async ({
   // Published submissions open the question with that paper selected.
   await page.getByRole("link", { name: /Algorithms/ }).click();
   await expect(page).toHaveURL(/\/questions\/3\?submission=4$/);
-  // Credited on the paper and in its row of the list.
-  await expect(
-    page.getByRole("link", { name: /^Nusrat Jahan/ }).first(),
-  ).toBeVisible();
+  // Credited in its row of the list (and on the paper's bar on phones).
+  await expect(uploaderLink(page, "Nusrat Jahan", isMobile)).toBeVisible();
 
   // Links from before usernames (by user id) and other cases lead to the same page.
   for (const old of [

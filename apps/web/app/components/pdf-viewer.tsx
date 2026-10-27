@@ -3,10 +3,11 @@ import {
   ExternalLink,
   FileText,
   Loader2,
+  Maximize,
   Smartphone,
 } from "lucide-react";
-import { useEffect, useSyncExternalStore } from "react";
-import { buttonVariants } from "~/components/ui/button";
+import { useEffect, useSyncExternalStore, type RefObject } from "react";
+import { Button, buttonVariants } from "~/components/ui/button";
 import { trackEvent } from "~/lib/analytics";
 import { isAndroid, openInAppUrl } from "~/lib/android-app";
 import { cn } from "~/lib/utils";
@@ -26,9 +27,11 @@ type PdfViewerProps = {
 /** Whether a browser has a PDF viewer never changes while the page is open. */
 const subscribeNever = () => () => {};
 
-// On phones the paper fills the screen below the header; on larger screens most of it.
+// The paper fills the screen below the site's header and the paper's bar (below it
+// on phones, above it from `lg`), so once it's scrolled to, all of it is in view and
+// scrolling inside it doesn't stop at an edge off the screen.
 const FRAME_CLASS =
-  "relative block h-[calc(100dvh-7rem)] min-h-[28rem] w-full sm:h-[80vh] sm:min-h-[32rem]";
+  "relative block h-[calc(100dvh-7rem)] min-h-[28rem] w-full sm:min-h-[32rem] lg:h-[calc(100dvh-10.5rem)]";
 
 /**
  * Uses the browser's native PDF viewer via <object>. Browsers without one (most
@@ -109,6 +112,40 @@ export function PdfViewer({ src, title, appPath, className }: PdfViewerProps) {
         <NoViewer src={src} className="h-full" />
       </object>
     </div>
+  );
+}
+
+/**
+ * Shows the embedded paper (a `PdfViewer` inside `container`) on the whole screen;
+ * Esc brings it back. Only where the browser embeds PDFs and allows full screen.
+ */
+export function PdfFullScreenButton({
+  container,
+}: {
+  container: RefObject<HTMLElement | null>;
+}) {
+  const available = useSyncExternalStore(
+    subscribeNever,
+    () => document.fullscreenEnabled && navigator.pdfViewerEnabled !== false,
+    () => false,
+  );
+  if (!available) return null;
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => {
+        const frame = container.current?.querySelector(
+          '[data-testid="pdf-viewer"]',
+        );
+        // The browser can still refuse (e.g. in an iframe without permission).
+        frame?.requestFullscreen().catch(() => {});
+        trackEvent("paper_full_screen");
+      }}
+    >
+      <Maximize aria-hidden />
+      Full screen
+    </Button>
   );
 }
 

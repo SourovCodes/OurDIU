@@ -7,7 +7,8 @@ import type {
   QuestionList,
   Submission,
 } from "@ourdiu/shared";
-import { Clock, Download, FileX } from "lucide-react";
+import { Clock, Download, FileX, RectangleHorizontal } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import {
   data,
   Link,
@@ -28,7 +29,7 @@ import {
   type PaperViewer,
 } from "~/components/paper-toolbar";
 import { PaperText } from "~/components/paper-text";
-import { PdfViewer } from "~/components/pdf-viewer";
+import { PdfFullScreenButton, PdfViewer } from "~/components/pdf-viewer";
 import { SaveButton } from "~/components/save-button";
 import { ShareButton } from "~/components/share-button";
 import { PaperSwitcher, SubmissionList } from "~/components/submission-list";
@@ -42,6 +43,8 @@ import {
 } from "~/lib/engagement";
 import { hasSessionCookie, requireUser } from "~/lib/session.server";
 import { paperTitles, plural, pickSubmission } from "~/lib/submissions";
+import { rememberTheater, theaterFromCookie } from "~/lib/theater";
+import { cn } from "~/lib/utils";
 import type { RootLoader } from "~/root";
 import type { Route } from "./+types/question";
 import { breadcrumbJsonLd, originOf, pageMeta, QB_NAME } from "~/lib/seo";
@@ -77,6 +80,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     question,
     interactions,
     otherExams: await loadOtherExams(request, question),
+    theater: theaterFromCookie(request.headers.get("Cookie")),
   };
 }
 
@@ -237,6 +241,21 @@ function viewerFor(
 
 export default function QuestionPage({ loaderData }: Route.ComponentProps) {
   const { question, interactions, otherExams } = loaderData;
+  const paperRef = useRef<HTMLDivElement>(null);
+  const [theater, setTheater] = useState(loaderData.theater);
+  // Theater mode spans the window less its scrollbar, which 50vw would include.
+  useEffect(() => {
+    const root = document.documentElement;
+    const measure = () =>
+      root.style.setProperty("--half-page", `${root.clientWidth / 2}px`);
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+  const toggleTheater = () => {
+    setTheater(!theater);
+    rememberTheater(!theater);
+  };
   const [searchParams] = useSearchParams();
   const selected = pickSubmission(
     question.submissions,
@@ -324,7 +343,14 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-6",
+          "lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start",
+          // Theater mode: out of the page's width to the window's, less its padding.
+          theater && "lg:mx-[calc(50%-var(--half-page,50vw))] lg:px-6",
+        )}
+      >
         {/* The paper comes first on small screens too; the lists follow it. */}
         <section aria-label="Question paper" className="min-w-0 space-y-3">
           <PaperSwitcher
@@ -338,14 +364,26 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
             // last and sticks to the bottom of the screen while the paper is in view.
             <div
               key={selected.id}
+              ref={paperRef}
               className="flex flex-col overflow-clip rounded-3xl bg-surface"
             >
               <PaperInfo
                 submission={selected}
-                label={paperLabel}
                 position={position}
                 className="max-lg:hidden"
-              />
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-pressed={theater}
+                  onClick={toggleTheater}
+                  className="aria-pressed:bg-primary-container aria-pressed:text-primary-container-foreground"
+                >
+                  <RectangleHorizontal aria-hidden />
+                  Theater mode
+                </Button>
+                <PdfFullScreenButton container={paperRef} />
+              </PaperInfo>
               <PdfViewer
                 src={fileUrl}
                 title={title}

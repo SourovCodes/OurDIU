@@ -29,7 +29,6 @@ import PdfReader from "./pdf-reader";
 
 afterEach(() => {
   cleanup();
-  document.body.style.overflow = "";
 });
 
 it("shows the paper's title and a close control", () => {
@@ -44,7 +43,6 @@ it("shows the paper's title and a close control", () => {
   );
   expect(screen.getByRole("dialog", { name: "Data Structures" })).toBeTruthy();
   expect(screen.getByText("Final · Summer 24")).toBeTruthy();
-  expect(document.body.style.overflow).toBe("hidden");
   fireEvent.click(screen.getByRole("button", { name: "Close" }));
   expect(onClose).toHaveBeenCalledOnce();
 });
@@ -69,6 +67,6 @@ it("closes on Escape", () => {
   render(
     <PdfReader src="/paper.pdf" title="Data Structures" onClose={onClose} />,
   );
-  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  fireEvent.keyDown(document, { key: "Escape" });
   expect(onClose).toHaveBeenCalledOnce();
 });

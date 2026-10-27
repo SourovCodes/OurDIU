@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useRef } from "react";
 import { afterEach, expect, it, vi } from "vitest";
-import { openInAppUrl } from "~/lib/android-app";
+import { APP_DECLINES_COOKIE, openInAppUrl } from "~/lib/android-app";
 import { PdfFullScreenButton, PdfViewer } from "./pdf-viewer";
 
 const ANDROID =
@@ -45,6 +45,25 @@ it("asks Android visitors to read a public paper in the app, or open the file", 
   expect(fileLinks()).toEqual(["/paper.pdf", "/paper.pdf"]);
   expect(screen.queryByTestId("pdf-viewer")).toBeNull();
   expect(document.querySelector("iframe")).toBeNull();
+});
+
+it("stops offering the app after two no's", () => {
+  noViewer(ANDROID);
+  render(<PdfViewer src="/paper.pdf" title="Paper" appPath={PAPER} />);
+  fireEvent.click(screen.getByRole("link", { name: "Open the PDF" }));
+  cleanup();
+
+  // One "no": still offered.
+  render(<PdfViewer src="/paper.pdf" title="Paper" appPath={PAPER} />);
+  expect(screen.getByTestId("pdf-open-in-app")).toBeTruthy();
+  fireEvent.click(screen.getByRole("link", { name: "Download" }));
+  cleanup();
+
+  // Two: just the file from now on.
+  render(<PdfViewer src="/paper.pdf" title="Paper" appPath={PAPER} />);
+  expect(screen.queryByTestId("pdf-open-in-app")).toBeNull();
+  expect(fileLinks()).toEqual(["/paper.pdf", "/paper.pdf"]);
+  document.cookie = `${APP_DECLINES_COOKIE}=; Max-Age=0; Path=/`;
 });
 
 it("offers the file where there's no viewer and no app", () => {

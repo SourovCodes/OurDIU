@@ -51,6 +51,32 @@ export const APP_SHEET_COOKIE = "ourdiu_app_sheet";
 // For good: 400 days is the longest a browser keeps a cookie.
 const APP_SHEET_FOR_SECONDS = 400 * 24 * 60 * 60;
 
+/**
+ * How many times an Android visitor chose the browser over the app ("Continue in
+ * browser" on the sheet, "Open the PDF" or "Download" on a paper's card). After
+ * `APP_DECLINE_LIMIT` the site stops asking (docs/PLAN.md, decision 65).
+ */
+export const APP_DECLINES_COOKIE = "ourdiu_app_declines";
+export const APP_DECLINE_LIMIT = 2;
+
+export function appDeclines(cookie: string) {
+  const match = cookie.match(
+    new RegExp(`(?:^|;\\s*)${APP_DECLINES_COOKIE}=(\\d+)`),
+  );
+  return match ? Number(match[1]) : 0;
+}
+
+/** Whether the visitor has said no to the app often enough not to be asked again. */
+export function declinedApp(cookie: string) {
+  return appDeclines(cookie) >= APP_DECLINE_LIMIT;
+}
+
+/** Counts one more "no" to the app. */
+export function declineApp() {
+  const count = appDeclines(document.cookie) + 1;
+  document.cookie = `${APP_DECLINES_COOKIE}=${count}; Max-Age=${APP_SHEET_FOR_SECONDS}; Path=/; SameSite=Lax`;
+}
+
 /** Pages without the sheet: the app's own page, signing in and admin. */
 const NO_SHEET = /^\/(app|login|admin)(\/|$)/;
 
@@ -70,6 +96,7 @@ export function offersAppSheet(
     isAndroid(userAgent) &&
     !ROBOT.test(userAgent) &&
     !new RegExp(`(?:^|;\\s*)${APP_SHEET_COOKIE}=`).test(cookie) &&
+    !declinedApp(cookie) &&
     !NO_SHEET.test(pathname)
   );
 }

@@ -86,6 +86,12 @@ const PREFERENCES: CookieRow[] = [
     lasts: "Until you untick it or clear the site’s data",
   },
   {
+    names: ["ourdiu_app_declines"],
+    purpose:
+      "On Android, counts the times you chose the browser over the app, so after two it stops suggesting the app.",
+    lasts: "400 days",
+  },
+  {
     names: ["ourdiu_app_sheet"],
     purpose:
       "On Android, set when you answer “Open in the app” (or close it), so it isn’t asked again.",

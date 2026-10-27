@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { APP_SHEET_COOKIE, appPathFor, offersAppSheet } from "./android-app";
+import {
+  APP_DECLINES_COOKIE,
+  APP_SHEET_COOKIE,
+  appDeclines,
+  appPathFor,
+  declinedApp,
+  offersAppSheet,
+} from "./android-app";
 
 const ANDROID =
   "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36";
@@ -24,6 +31,19 @@ describe("offersAppSheet", () => {
       expect(offersAppSheet(ANDROID, "", path)).toBe(false);
     }
     expect(offersAppSheet(ANDROID, "", "/apply")).toBe(true);
+  });
+});
+
+describe("declinedApp", () => {
+  it("stops asking after two no's to the app", () => {
+    expect(appDeclines("")).toBe(0);
+    expect(appDeclines(`a=b; ${APP_DECLINES_COOKIE}=1`)).toBe(1);
+    expect(declinedApp(`${APP_DECLINES_COOKIE}=1`)).toBe(false);
+    expect(declinedApp(`${APP_DECLINES_COOKIE}=2`)).toBe(true);
+    expect(declinedApp(`x${APP_DECLINES_COOKIE}=5`)).toBe(false);
+    expect(offersAppSheet(ANDROID, `${APP_DECLINES_COOKIE}=2`, "/")).toBe(
+      false,
+    );
   });
 });
 

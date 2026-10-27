@@ -30,6 +30,8 @@ export default defineConfig({
       "lucide-react",
       "radix-ui",
       "react-easy-crop",
+      "react-pdf",
+      "pdfjs-dist",
       "recharts",
       "sonner",
       // Imported lazily after load (lib/analytics.ts), so the startup scan misses it.

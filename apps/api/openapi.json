@@ -3158,13 +3158,20 @@
           },
           "saved": {
             "type": "boolean"
+          },
+          "voteCounts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubmissionVoteCounts"
+            }
           }
         },
         "required": [
           "userId",
           "votes",
           "reportedSubmissionIds",
-          "saved"
+          "saved",
+          "voteCounts"
         ]
       },
       "QuestionVote": {
@@ -3180,6 +3187,25 @@
         "required": [
           "submissionId",
           "value"
+        ]
+      },
+      "SubmissionVoteCounts": {
+        "type": "object",
+        "properties": {
+          "submissionId": {
+            "type": "integer"
+          },
+          "likeCount": {
+            "type": "integer"
+          },
+          "dislikeCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "submissionId",
+          "likeCount",
+          "dislikeCount"
         ]
       },
       "SavedQuestionList": {

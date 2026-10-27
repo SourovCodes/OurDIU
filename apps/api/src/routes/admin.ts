@@ -40,6 +40,7 @@ import {
 import { AppError, validationHook } from "../lib/errors";
 import { objectResponse } from "../lib/files";
 import { errorResponse, jsonResponse } from "../lib/openapi";
+import { purgesQuestionBank } from "../middleware/purges-question-bank";
 import { requireAdmin } from "../middleware/require-admin";
 import { getAdminStats } from "../services/admin-stats";
 import { checkUnchecked, rerunAnalysis } from "../services/analysis";
@@ -68,6 +69,8 @@ import type { AppEnv } from "../types";
 
 // Every route here is for admins only.
 const middleware = requireAdmin;
+// Changes visitors see on the question bank's pages.
+const changesPages = [requireAdmin, purgesQuestionBank];
 const denied = {
   401: errorResponse("Not signed in"),
   403: errorResponse("Not an admin"),
@@ -158,7 +161,7 @@ const updateSubmissionStatusRoute = createRoute({
     "A submission that proposes new catalog entries has to be classified before it can be published. " +
     "Asking for changes sends the paper back to its uploader, who can edit it and resubmit. " +
     "Every decision is added to the submission's review conversation, with its reason.",
-  middleware,
+  middleware: changesPages,
   request: {
     params: numericIdParams,
     ...jsonBody(updateSubmissionStatusInputSchema),
@@ -199,7 +202,7 @@ const classifySubmissionRoute = createRoute({
   description:
     "Each of department, course and semester is an existing id or a new name, which is created. " +
     "Use it to approve a proposal or to correct a paper's details. The status doesn't change.",
-  middleware,
+  middleware: changesPages,
   request: {
     params: numericIdParams,
     ...jsonBody(classifySubmissionInputSchema),
@@ -307,7 +310,7 @@ const deleteSubmissionRoute = createRoute({
   path: "/submissions/{id}",
   tags: submissionTags,
   summary: "Delete a submission in any status, with its PDF",
-  middleware,
+  middleware: changesPages,
   request: { params: numericIdParams },
   responses: {
     204: { description: "Deleted" },
@@ -411,7 +414,7 @@ function catalogRoutes<
       path: `/${path}`,
       tags: catalogTags,
       summary: `Create a ${label}`,
-      middleware,
+      middleware: changesPages,
       request: jsonBody(schemas.create),
       responses: {
         201: jsonResponse(schemas.result, `Created ${label}`),
@@ -425,7 +428,7 @@ function catalogRoutes<
       path: `/${path}/{id}`,
       tags: catalogTags,
       summary: `Rename a ${label}`,
-      middleware,
+      middleware: changesPages,
       request: { params: numericIdParams, ...jsonBody(schemas.update) },
       responses: {
         200: jsonResponse(schemas.result, `Updated ${label}`),
@@ -440,7 +443,7 @@ function catalogRoutes<
       path: `/${path}/{id}`,
       tags: catalogTags,
       summary: `Delete an unused ${label}`,
-      middleware,
+      middleware: changesPages,
       request: { params: numericIdParams },
       responses: {
         204: { description: "Deleted" },
@@ -470,7 +473,7 @@ const courseAliasesRoute = createRoute({
   description:
     "Replaces the course's short names (other names search finds it by, like `pps`). " +
     "Each is normalized; ones left out are hidden, so the daily AI job doesn't add them back.",
-  middleware,
+  middleware: changesPages,
   request: { params: numericIdParams, ...jsonBody(courseAliasesInputSchema) },
   responses: {
     200: jsonResponse(adminCourseSchema, "Updated course"),
@@ -530,7 +533,7 @@ const updateUserUsernameRoute = createRoute({
   tags: userTags,
   summary: "Change a user's username",
   description: `Same rules as changing your own: ${USERNAME_RULES}; saved in lowercase.`,
-  middleware,
+  middleware: changesPages,
   request: { params: userIdParams, ...jsonBody(updateUsernameInputSchema) },
   responses: {
     200: jsonResponse(updateUsernameInputSchema, "Their new username"),

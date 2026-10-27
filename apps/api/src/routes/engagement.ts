@@ -16,6 +16,7 @@ import { readViews, rememberView } from "../lib/view-cookie";
 import { isBrowserRequest, verifyViewToken } from "../lib/view-token";
 import { rateLimit } from "../middleware/rate-limit";
 import { requireAuth } from "../middleware/require-auth";
+import { purgeQuestionBank } from "../services/cache";
 import {
   castVote,
   getQuestionInteractions,
@@ -319,17 +320,17 @@ export const engagementRoutes = new OpenAPIHono<AppEnv>({
       200,
     ),
   )
-  .openapi(reportSubmissionRoute, async (c) =>
-    c.json(
-      await reportSubmission(
-        c.var.db,
-        c.req.valid("param").id,
-        c.var.session!.user.id,
-        c.req.valid("json"),
-      ),
-      201,
-    ),
-  )
+  .openapi(reportSubmissionRoute, async (c) => {
+    const report = await reportSubmission(
+      c.var.db,
+      c.req.valid("param").id,
+      c.var.session!.user.id,
+      c.req.valid("json"),
+    );
+    // Enough reports hide the paper from visitors.
+    if (report.submissionHidden) await purgeQuestionBank(c.var.db);
+    return c.json(report, 201);
+  })
   .openapi(questionInteractionsRoute, async (c) =>
     c.json(
       await getQuestionInteractions(

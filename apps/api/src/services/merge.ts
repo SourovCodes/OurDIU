@@ -17,6 +17,7 @@ import {
   semesters,
 } from "../db/schema";
 import { AppError } from "../lib/errors";
+import { purgeQuestionBank } from "./cache";
 
 /**
  * Admin merges: folding duplicate catalog entries ("Data Structure" and "Data
@@ -519,6 +520,7 @@ export async function mergeCatalogEntries(
 
   if (!input.dryRun) {
     await plan.commit();
+    await purgeQuestionBank(db);
   }
 
   return {

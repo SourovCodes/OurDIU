@@ -500,10 +500,12 @@ describe("submission ranking", () => {
 });
 
 describe("GET /api/v1/me/questions/{id}/interactions", () => {
-  it("returns the user's votes and open reports on the question's papers", async () => {
+  it("returns the user's votes and open reports on the question's papers, and their counts", async () => {
     const me = await signIn();
     const { question, submission } = await seedQuestionWithPaper();
     const other = await seedSubmission(question.id);
+    // Not published: no counts.
+    await seedSubmission(question.id, { status: "pending_review" });
     await db()
       .insert(submissionVotes)
       .values({ submissionId: submission.id, userId: me.id, value: -1 });
@@ -522,11 +524,17 @@ describe("GET /api/v1/me/questions/{id}/interactions", () => {
     const path = `/api/v1/me/questions/${question.id}/interactions`;
     const res = await api(path, { headers: { cookie: me.cookie } });
     expect(res.status).toBe(200);
-    expect(await res.json<QuestionInteractions>()).toEqual({
+    const interactions = await res.json<QuestionInteractions>();
+    expect(interactions.voteCounts).toHaveLength(2);
+    expect(interactions).toEqual({
       userId: me.id,
       votes: [{ submissionId: submission.id, value: -1 }],
       reportedSubmissionIds: [other.id],
       saved: false,
+      voteCounts: expect.arrayContaining([
+        { submissionId: submission.id, likeCount: 0, dislikeCount: 1 },
+        { submissionId: other.id, likeCount: 0, dislikeCount: 0 },
+      ]),
     });
     expect((await api(path)).status).toBe(401);
   });

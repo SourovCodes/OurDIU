@@ -130,6 +130,7 @@ export 'models/created_report.dart';
 export 'models/create_report_input.dart';
 export 'models/question_interactions.dart';
 export 'models/question_vote.dart';
+export 'models/submission_vote_counts.dart';
 export 'models/saved_question_list.dart';
 export 'models/saved_question.dart';
 export 'models/save_questions_input.dart';

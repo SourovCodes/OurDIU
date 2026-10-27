@@ -72,6 +72,19 @@ export const questionInteractionsSchema = z
     reportedSubmissionIds: z.array(z.number().int()),
     /** Whether the user saved (bookmarked) the question. */
     saved: z.boolean(),
+    /**
+     * The like and dislike counts of the question's published papers, read now:
+     * the website's paper pages may show counts up to a minute old.
+     */
+    voteCounts: z.array(
+      z
+        .object({
+          submissionId: z.number().int(),
+          likeCount: z.number().int(),
+          dislikeCount: z.number().int(),
+        })
+        .meta({ id: "SubmissionVoteCounts" }),
+    ),
   })
   .meta({ id: "QuestionInteractions" });
 export type QuestionInteractions = z.infer<typeof questionInteractionsSchema>;

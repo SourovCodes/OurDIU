@@ -43,6 +43,7 @@ Map<String, Reply Function(dynamic)> signedIn({
     'votes': votes,
     'reportedSubmissionIds': reported,
     'saved': false,
+    'voteCounts': const [],
   }),
 };
 

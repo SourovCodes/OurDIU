@@ -23,6 +23,7 @@ import {
   type WatermarkEnv,
   type WatermarkJob,
 } from "../src/services/watermark";
+import { runPendingPurges } from "../src/services/cache";
 import {
   api,
   db,
@@ -31,6 +32,7 @@ import {
   seedUser,
   signInAdmin,
   signIn,
+  stubCachePurge,
 } from "./helpers";
 
 type Taxonomy = Awaited<ReturnType<typeof seedTaxonomy>>;
@@ -405,6 +407,35 @@ describe("runWatermark", () => {
     expect((await readRow(paper.id)).watermarkStatus).toBe("failed");
   });
 
+  it("deletes the copy it replaces after the cron's next purge", async () => {
+    const paper = await seedPaper();
+    const processor = fakeProcessor();
+    const stub = stubCachePurge();
+    try {
+      const run = () =>
+        runWatermark(
+          db(),
+          watermarkEnv,
+          { submissionId: paper.id },
+          { fetch: processor.fetch },
+        );
+      await run();
+      const first = (await readRow(paper.id)).watermarkedFileKey!;
+      await run();
+      expect((await readRow(paper.id)).watermarkedFileKey).not.toBe(first);
+
+      // Shared copies of the paper's page may still link to it: no purge per
+      // paper (re-watermarking them all would use up Cloudflare's), one by the cron.
+      expect(stub.purge).not.toHaveBeenCalled();
+      expect(await env.BUCKET.head(first)).not.toBeNull();
+      await runPendingPurges(db(), env.BUCKET);
+      expect(stub.purge).toHaveBeenCalledOnce();
+      expect(await env.BUCKET.head(first)).toBeNull();
+    } finally {
+      stub.restore();
+    }
+  });
+
   it("ignores deleted submissions", async () => {
     const processor = fakeProcessor();
     const outcome = await runWatermark(
@@ -655,6 +686,8 @@ describe("admin endpoints", () => {
     expect(paper.watermarkTraceId).toBeNull();
     expect(watermarkTraceId).toBe(`ourdiu-submission-${paper.id}`);
     expect(await env.BUCKET.head(watermarkedFileKey!)).not.toBeNull();
+    // The old one goes after the cron's next purge (caching is off here).
+    await runPendingPurges(db(), env.BUCKET);
     expect(await env.BUCKET.head(paper.watermarkedFileKey)).toBeNull();
   });
 

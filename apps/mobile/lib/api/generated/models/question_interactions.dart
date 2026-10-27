@@ -5,6 +5,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
 import 'question_vote.dart';
+import 'submission_vote_counts.dart';
 
 part 'question_interactions.g.dart';
 
@@ -15,6 +16,7 @@ class QuestionInteractions {
     required this.votes,
     required this.reportedSubmissionIds,
     required this.saved,
+    required this.voteCounts,
   });
 
   factory QuestionInteractions.fromJson(Map<String, Object?> json) =>
@@ -24,6 +26,7 @@ class QuestionInteractions {
   final List<QuestionVote> votes;
   final List<int> reportedSubmissionIds;
   final bool saved;
+  final List<SubmissionVoteCounts> voteCounts;
 
   Map<String, Object?> toJson() => _$QuestionInteractionsToJson(this);
 }

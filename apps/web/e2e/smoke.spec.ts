@@ -469,6 +469,19 @@ test("the paper can be read full screen", async ({ page, isMobile }) => {
     .poll(() => page.evaluate(() => document.fullscreenElement?.tagName))
     .toBe("OBJECT");
   await page.keyboard.press("Escape");
+  await expect
+    .poll(() => page.evaluate(() => document.fullscreenElement))
+    .toBeNull();
+
+  // `f` toggles it, like YouTube.
+  await page.keyboard.press("f");
+  await expect
+    .poll(() => page.evaluate(() => document.fullscreenElement?.tagName))
+    .toBe("OBJECT");
+  await page.keyboard.press("f");
+  await expect
+    .poll(() => page.evaluate(() => document.fullscreenElement))
+    .toBeNull();
 });
 
 test("theater mode spreads the paper and lists across the window and is remembered", async ({
@@ -513,6 +526,14 @@ test("theater mode spreads the paper and lists across the window and is remember
   await expect(theater).toHaveAttribute("aria-pressed", "true");
   await expect.poll(spread).toBe(true);
   await theater.click();
+  await expect(theater).toHaveAttribute("aria-pressed", "false");
+  await expect.poll(box).toEqual(normal);
+
+  // `t` toggles it, like YouTube.
+  await page.keyboard.press("t");
+  await expect(theater).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(spread).toBe(true);
+  await page.keyboard.press("t");
   await expect(theater).toHaveAttribute("aria-pressed", "false");
   await expect.poll(box).toEqual(normal);
 });

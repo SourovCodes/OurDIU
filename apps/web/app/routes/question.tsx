@@ -19,7 +19,6 @@ import {
 import { EmptyState } from "~/components/empty-state";
 import { OtherExams } from "~/components/other-exams";
 import { courseHref } from "~/components/course-search";
-import { RoomChip } from "~/components/rooms/room-chip";
 import { ExamBadge } from "~/components/exam-badge";
 import { Breadcrumbs } from "~/components/page-header";
 import {
@@ -343,10 +342,6 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2 max-sm:w-full">
-          <RoomChip
-            courseId={question.course.id}
-            courseName={question.course.name}
-          />
           {save}
           <ShareButton title={title} />
           {fileUrl && (
@@ -414,7 +409,7 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
                 label={paperLabel}
                 viewer={viewer}
                 fileUrl={fileUrl}
-                className="sticky bottom-[var(--call-bar-height,0px)] z-10 lg:hidden"
+                className="sticky bottom-0 z-10 lg:hidden"
               />
             </div>
           ) : (

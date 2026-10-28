@@ -43,28 +43,14 @@
     // question bank client (Google Cloud project diuquestionbank), still accepted.
     // Client IDs aren't secret.
     "GOOGLE_EXTRA_CLIENT_IDS": "550941155781-v1hejo68llkdju4urh31p5q85rqe8mj5.apps.googleusercontent.com",
-    // Course rooms: live voice and chat on every course (docs/PLAN.md, decision 66).
-    // "off" closes them all. They pause themselves for the rest of the usage cycle
-    // when the rooms' own estimate reaches a cap, so they stay inside the free
-    // allowances: the Realtime SFU's 1,000 GB of egress a month (shared with TURN),
-    // and the Durable Object requests in Workers Paid.
-    "ROOMS": "on",
-    "ROOMS_VOICE_MONTHLY_GB": "900",
-    "ROOMS_MONTHLY_MESSAGES": "10000000",
-    // The day of the month the account's billing period starts (1–28), so a cycle
-    // matches the period the free allowance is counted over.
-    "ROOMS_CYCLE_DAY": "27",
-    // The Realtime SFU app (Cloudflare dashboard → Realtime → SFU); its token is the
-    // REALTIME_APP_TOKEN secret. Empty: voice says "not set up yet", chat still works.
-    "REALTIME_APP_ID": "da91bf49bc4ea9c332b67ed9cf1196c4",
   },
-  // One CourseRoom per course (services/rooms/course-room.ts): who's in the room,
-  // the chat (relayed, never stored) and the voice call's signalling. Uses the
-  // WebSocket Hibernation API, so an idle room costs nothing.
-  "durable_objects": {
-    "bindings": [{ "name": "ROOMS_DO", "class_name": "CourseRoom" }],
-  },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["CourseRoom"] }],
+  // Durable Object classes, as Cloudflare records them: course rooms' CourseRoom
+  // came and went (docs/PLAN.md, decision 66). A deployed class can only be removed
+  // by a migration, and applied tags must stay, so both are kept.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["CourseRoom"] },
+    { "tag": "v2", "deleted_classes": ["CourseRoom"] },
+  ],
   // OurDIU's own resources. diuqbank.com keeps running on its own until the
   // cutover copies its data here (see "Cutover" in docs/PLAN.md).
   "d1_databases": [

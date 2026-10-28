@@ -14,4 +14,3 @@ export * from "./schemas/saved";
 export * from "./schemas/review";
 export * from "./schemas/routine";
 export * from "./schemas/cover-page";
-export * from "./schemas/rooms";

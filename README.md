@@ -99,10 +99,6 @@ Whenever a paper is published (by an admin, by the AI check, or after its upload
 - **Originals:** the admin and uploader file routes keep serving the original.
 - **Admins:** the review page shows the state of the public copy and can **Redo the watermark**, e.g. after a contributor renames themselves. **Watermark missing PDFs** on the submissions list queues every published paper without a copy, which is how existing papers get one. **Redo all watermarks** queues every published paper again, e.g. after the watermark changed; current copies stay public until their replacements are ready.
 
-### Course rooms
-
-Every course has a live room (docs/PLAN.md, decision 66): presence, chat that is relayed and never stored, and a voice call, for DIU email accounts. Each room is a Durable Object (`CourseRoom`, `apps/api/src/services/rooms/`), reached over a WebSocket at `/api/v1/rooms/{courseId}/socket` (protocol in `packages/shared/src/rooms.ts`); voice goes through Cloudflare's Realtime SFU, signalled over the same socket. The browser side is `app/lib/rooms/` (connection, voice) and `app/components/rooms/` (the course page's card, the paper page's button, the panel and the call bar, kept across pages by `RoomsProvider` in the root). Rooms estimate their own SFU egress and messages, flush them to D1 (`room_usage`) every minute while active and pause for the rest of the usage cycle at `ROOMS_VOICE_MONTHLY_GB` / `ROOMS_MONTHLY_MESSAGES`, inside the free allowances. Voice needs `REALTIME_APP_ID` and the `REALTIME_APP_TOKEN` secret; without them rooms have chat only.
-
 ### Admin panel
 
 Users with the `admin` role get an **Admin panel** entry in the account menu, leading to `/admin`; the question bank's pages are under `/admin/questions/…`. The panel has its own shell, built from shadcn's `dashboard-01` block: a collapsible sidebar, a top bar with breadcrumbs, cards, tabs, tables with row menus, and toasts for results (everyone else gets a 404 there, and the API answers 403 under `/api/v1/admin/*`):
@@ -110,7 +106,6 @@ Users with the `admin` role get an **Admin panel** entry in the account menu, le
 - **Dashboard** — queue sizes, uploads over the last 30 days, submissions by status, the newest pending papers and open reports.
 - **Submissions** — every paper by status. The review page shows the PDF (in any status) next to the decision (publish, reject, back to review, delete), its classification, uploader and reports. A paper that proposes new entries can't be published until an admin approves them: "Review entries" creates the new department, course or semester (or maps them to existing ones) and files the paper under its question. The same dialog corrects a paper filed under the wrong details.
 - **Reports** — open, resolved and dismissed reports with the paper they're about.
-- **Course rooms** — this cycle's estimated voice and message use against the caps, a switch to pause every room, reports about people in rooms, and bans.
 - **Catalog** — add, rename and delete departments, courses, semesters and exam types. Entries in use can be renamed but not deleted; a course keeps its department because questions depend on it.
 - **Users** — search by name or email, and grant or remove admin rights. Admins can't change their own role, so there is always at least one.
 

@@ -12,6 +12,12 @@
 // (see googleClientIds in lib/auth.ts).
 // ADMIN_EMAILS is optional: a comma-separated list of addresses that are made admins
 // when they sign up (admins can contribute without a DIU address).
+// REALTIME_APP_TOKEN (a secret) is the Realtime SFU app's token, for course rooms'
+// voice calls; without it (or REALTIME_APP_ID) voice is "not set up yet".
+// A global declaration file can't import, so the room's class is named inline.
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+type CourseRoomClass = import("./services/rooms/course-room").CourseRoom;
+
 interface Env {
   DB: D1Database;
   BUCKET: R2Bucket;
@@ -35,6 +41,13 @@ interface Env {
   GEMINI_API_KEY: string;
   COMPRESSOR_API_KEY: string;
   ADMIN_EMAILS: string;
+  ROOMS_DO: DurableObjectNamespace<CourseRoomClass>;
+  ROOMS: string;
+  ROOMS_VOICE_MONTHLY_GB: string;
+  ROOMS_MONTHLY_MESSAGES: string;
+  ROOMS_CYCLE_DAY: string;
+  REALTIME_APP_ID: string;
+  REALTIME_APP_TOKEN: string;
 }
 
 declare namespace Cloudflare {
@@ -61,5 +74,12 @@ declare namespace Cloudflare {
     GEMINI_API_KEY: string;
     COMPRESSOR_API_KEY: string;
     ADMIN_EMAILS: string;
+    ROOMS_DO: DurableObjectNamespace<CourseRoomClass>;
+    ROOMS: string;
+    ROOMS_VOICE_MONTHLY_GB: string;
+    ROOMS_MONTHLY_MESSAGES: string;
+    ROOMS_CYCLE_DAY: string;
+    REALTIME_APP_ID: string;
+    REALTIME_APP_TOKEN: string;
   }
 }

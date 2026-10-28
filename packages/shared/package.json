@@ -9,7 +9,8 @@
     ".": "./src/index.ts",
     "./constants": "./src/constants.ts",
     "./cover-pages": "./src/cover-pages.ts",
-    "./search": "./src/search.ts"
+    "./search": "./src/search.ts",
+    "./rooms": "./src/rooms.ts"
   },
   "scripts": {
     "typecheck": "tsc",

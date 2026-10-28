@@ -34,10 +34,7 @@ describe("isPlainKey", () => {
       ),
     ).toBe(false);
     expect(
-      isPlainKey(
-        new KeyboardEvent("keydown", { key: "t", repeat: true }),
-        "t",
-      ),
+      isPlainKey(new KeyboardEvent("keydown", { key: "t", repeat: true }), "t"),
     ).toBe(false);
 
     const typed = new KeyboardEvent("keydown", { key: "t" });

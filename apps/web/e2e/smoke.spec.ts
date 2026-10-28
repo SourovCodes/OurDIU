@@ -468,7 +468,9 @@ test("the paper can be read full screen", async ({ page, isMobile }) => {
   await expect
     .poll(() => page.evaluate(() => document.fullscreenElement?.tagName))
     .toBe("OBJECT");
-  await page.keyboard.press("Escape");
+  // Esc returns in a real browser; Playwright's Escape doesn't leave full
+  // screen, so leave the same way `f` does before covering that toggle.
+  await page.evaluate(() => document.exitFullscreen());
   await expect
     .poll(() => page.evaluate(() => document.fullscreenElement))
     .toBeNull();

@@ -305,7 +305,8 @@ Then:
 - [x] Mockup approved (28 October 2026): <https://claude.ai/artifact/1i8Hfcbju7JoGrZyaQoa8V>.
 - [x] API: `CourseRoom` Durable Object (presence, chat, SFU signalling, usage estimate and pause), `GET /api/v1/rooms/{courseId}` (counts, cached 15 s) and `/socket`, `POST /api/v1/rooms/{courseId}/reports`, admin `/api/v1/admin/rooms` (usage, reports, bans, pause); migration 0029 (`room_usage`, `room_settings`, `room_bans`, `room_reports`); tests in `apps/api/test/rooms.test.ts` (a mocked SFU).
 - [x] Website: the course page's card, the paper page's Room button, the room panel (docked on desktop, a sheet on phones), the call bar across pages, reports and admin actions; admin page `/admin/questions/rooms`; privacy and terms (`LEGAL_UPDATED` 28 October 2026); e2e in `e2e/rooms.spec.ts` (chat and access; no SFU in e2e).
-- [x] Owner: create the Realtime SFU app (Cloudflare dashboard → Realtime → SFU), put its ID in `REALTIME_APP_ID` (wrangler.jsonc), `wrangler secret put REALTIME_APP_TOKEN --name ourdiu`, and set `ROOMS_CYCLE_DAY` to the billing period's first day. Then try a call between two phones on production. (done 28 October 2026)
+- [x] Owner: create the Realtime SFU app (Cloudflare dashboard → Realtime → SFU), put its ID in `REALTIME_APP_ID` (wrangler.jsonc), `wrangler secret put REALTIME_APP_TOKEN --name ourdiu`, and set `ROOMS_CYCLE_DAY` to the billing period's first day (done 28 October 2026: app `ourdiu-rooms`, billing day 27).
+- [ ] Try a call between two phones on production, after the merge: join, unmute, hear each other; `/admin/questions/rooms` shows the usage after a minute.
 - [ ] Later: the rooms in the Flutter app (`flutter_webrtc`, mockup first); compare the rooms' estimate with Cloudflare's own Realtime usage after the first cycle; maybe a "Talking now" strip on the Question Bank home, if rooms get used (decision 36).
 
 ## Operating rules

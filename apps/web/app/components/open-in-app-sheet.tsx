@@ -63,7 +63,7 @@ export default function OpenInAppSheet({ path }: { path: string }) {
         </div>
         <div className="flex flex-col gap-1">
           <a
-            href={openInAppUrl(path)}
+            href={openInAppUrl(path, "app_sheet")}
             onClick={() => answer("app_sheet_open")}
             className={buttonVariants({
               size: "lg",

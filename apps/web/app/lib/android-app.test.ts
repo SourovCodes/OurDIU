@@ -5,7 +5,9 @@ import {
   appDeclines,
   appPathFor,
   declinedApp,
+  installSource,
   offersAppSheet,
+  playStoreUrl,
 } from "./android-app";
 
 const ANDROID =
@@ -55,5 +57,44 @@ describe("appPathFor", () => {
     expect(appPathFor("/questions", "")).toBe("/questions");
     expect(appPathFor("/routine/cse/67_B", "")).toBe("/questions");
     expect(appPathFor("/questionsx", "")).toBe("/questions");
+  });
+});
+
+describe("playStoreUrl", () => {
+  it("tags the Google Play link with where the install came from", () => {
+    const url = new URL(
+      playStoreUrl({ utm_source: "ourdiu.com", utm_medium: "app_page" }),
+    );
+    expect(url.searchParams.get("id")).toBe("com.ourdiu.app");
+    expect(url.searchParams.get("referrer")).toBe(
+      "utm_source=ourdiu.com&utm_medium=app_page",
+    );
+  });
+});
+
+describe("installSource", () => {
+  it("is the site and the place on it, without utm_ parameters", () => {
+    expect(installSource("", "app_page")).toEqual({
+      utm_source: "ourdiu.com",
+      utm_medium: "app_page",
+    });
+  });
+
+  it("passes on a post's or an ad's own utm_ parameters", () => {
+    expect(
+      installSource(
+        "?utm_source=facebook&utm_medium=group&utm_campaign=finals",
+        "app_page",
+      ),
+    ).toEqual({
+      utm_source: "facebook",
+      utm_medium: "group",
+      utm_campaign: "finals",
+    });
+    expect(installSource("?utm_source=cse_group", "app_page")).toEqual({
+      utm_source: "cse_group",
+      utm_medium: "referral",
+      utm_campaign: undefined,
+    });
   });
 });

@@ -73,7 +73,11 @@ export function PdfViewer({
 
   if (noNativeViewer) {
     return appPath && offerApp ? (
-      <OpenInApp href={openInAppUrl(appPath)} src={src} className={className} />
+      <OpenInApp
+        href={openInAppUrl(appPath, "paper")}
+        src={src}
+        className={className}
+      />
     ) : (
       <NoViewer src={src} className={cn("min-h-[24rem]", className)} />
     );

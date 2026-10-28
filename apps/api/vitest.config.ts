@@ -25,6 +25,9 @@ export default defineConfig(async () => {
             // Queued analyses then fail fast as "not configured".
             GEMINI_API_KEY: "",
             COMPRESSOR_API_KEY: "",
+            // A fake Realtime SFU app: tests mock its API (test/rooms.test.ts).
+            REALTIME_APP_ID: "test-sfu-app",
+            REALTIME_APP_TOKEN: "test-sfu-token",
           },
         },
       }),

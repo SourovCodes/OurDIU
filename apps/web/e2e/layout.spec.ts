@@ -62,6 +62,7 @@ const PUBLIC_PAGES = [
 const SIGNED_IN_PAGES = [
   "/",
   "/account",
+  "/questions/courses/1",
   "/questions/1",
   "/questions/saved",
   "/questions/contribute",
@@ -75,6 +76,7 @@ const SIGNED_IN_PAGES = [
   "/admin/questions/submissions/1",
   "/admin/questions/reports",
   "/admin/questions/catalog",
+  "/admin/questions/rooms",
   "/admin/routine/versions",
   "/admin/routine/versions/1",
   "/admin/routine/courses",

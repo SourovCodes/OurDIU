@@ -2,6 +2,9 @@ import api, { type QueueJob } from "@ourdiu/api";
 import { createRequestHandler } from "react-router";
 import { canonicalHostRedirect } from "../app/lib/redirect";
 
+// Course rooms: one Durable Object per course (wrangler.jsonc).
+export { CourseRoom } from "@ourdiu/api";
+
 const requestHandler = createRequestHandler(
   () => import("virtual:react-router/server-build"),
   import.meta.env.MODE,

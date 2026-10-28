@@ -90,6 +90,18 @@ export default function Terms() {
         </ul>
       </LegalSection>
 
+      <LegalSection id="course-rooms" title="Course rooms">
+        <p>
+          Course rooms are live voice calls and chat on each course’s pages, for
+          DIU email accounts. Be kind: no harassment, hate, sexual content, spam
+          or sharing other people’s private details, and no recording people
+          without their consent. Anyone can report someone, and admins can take
+          people out of a room or keep them out of every room. Rooms may pause
+          for the rest of the month when they reach the free allowance they run
+          on.
+        </p>
+      </LegalSection>
+
       <LegalSection id="copyright" title="Copyright">
         <p>
           Question papers belong to their authors and the university. They are

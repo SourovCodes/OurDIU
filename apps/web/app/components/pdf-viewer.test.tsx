@@ -2,7 +2,12 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useRef } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { APP_DECLINES_COOKIE, openInAppUrl } from "~/lib/android-app";
-import { PdfFullScreenButton, PdfViewer } from "./pdf-viewer";
+import { useHotkey } from "~/lib/keyboard";
+import {
+  PdfFullScreenButton,
+  PdfViewer,
+  requestPaperFullscreen,
+} from "./pdf-viewer";
 
 const ANDROID =
   "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36";
@@ -14,8 +19,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
   // The full screen stubs (jsdom has neither).
   delete (document as { fullscreenEnabled?: boolean }).fullscreenEnabled;
+  delete (document as { fullscreenElement?: Element | null }).fullscreenElement;
   delete (Element.prototype as { requestFullscreen?: unknown })
     .requestFullscreen;
+  delete (document as { exitFullscreen?: unknown }).exitFullscreen;
 });
 
 /** A browser without a PDF viewer of its own, like most phones'. */
@@ -104,6 +111,14 @@ function fullscreenEnabled(enabled: boolean) {
 
 function PaperWithFullScreen() {
   const ref = useRef<HTMLDivElement>(null);
+  useHotkey("f", () => {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+      return true;
+    }
+    void requestPaperFullscreen(ref.current);
+    return true;
+  });
   return (
     <div ref={ref}>
       <PdfFullScreenButton container={ref} />
@@ -122,6 +137,26 @@ it("shows the embedded paper on the whole screen", () => {
   expect(requestFullscreen.mock.contexts[0]).toBe(
     screen.getByTestId("pdf-viewer"),
   );
+});
+
+it("toggles full screen with f, like YouTube", () => {
+  fullscreenEnabled(true);
+  const requestFullscreen = vi.fn(() => Promise.resolve());
+  const exitFullscreen = vi.fn(() => Promise.resolve());
+  Element.prototype.requestFullscreen = requestFullscreen;
+  document.exitFullscreen = exitFullscreen;
+  render(<PaperWithFullScreen />);
+
+  window.dispatchEvent(new KeyboardEvent("keydown", { key: "f" }));
+  expect(requestFullscreen).toHaveBeenCalledOnce();
+
+  Object.defineProperty(document, "fullscreenElement", {
+    configurable: true,
+    get: () => screen.getByTestId("pdf-viewer"),
+  });
+  window.dispatchEvent(new KeyboardEvent("keydown", { key: "F" }));
+  expect(exitFullscreen).toHaveBeenCalledOnce();
+  delete (document as { fullscreenElement?: Element | null }).fullscreenElement;
 });
 
 it("has no full screen button where the browser can't embed or allow it", () => {

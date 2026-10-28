@@ -29,7 +29,12 @@ import {
   type PaperViewer,
 } from "~/components/paper-toolbar";
 import { PaperText } from "~/components/paper-text";
-import { PdfFullScreenButton, PdfViewer } from "~/components/pdf-viewer";
+import {
+  paperFullscreenAvailable,
+  PdfFullScreenButton,
+  PdfViewer,
+  requestPaperFullscreen,
+} from "~/components/pdf-viewer";
 import { SaveButton } from "~/components/save-button";
 import { ShareButton } from "~/components/share-button";
 import { PaperSwitcher, SubmissionList } from "~/components/submission-list";
@@ -41,6 +46,7 @@ import {
   useCountView,
   type PaperActionResult,
 } from "~/lib/engagement";
+import { useHotkey } from "~/lib/keyboard";
 import { hasSessionCookie, requireUser } from "~/lib/session.server";
 import { paperTitles, plural, pickSubmission } from "~/lib/submissions";
 import { setTheater, useTheater } from "~/lib/theater";
@@ -256,6 +262,26 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
     ? (paperTitles(published).get(selected.id) ?? "")
     : "";
 
+  // YouTube-style: `t` theater (from `lg`), `f` full screen (only with a paper).
+  useHotkey("t", () => {
+    if (!window.matchMedia("(min-width: 64rem)").matches) return;
+    setTheater(!("theater" in document.documentElement.dataset));
+    return true;
+  });
+  useHotkey(
+    "f",
+    () => {
+      if (!paperFullscreenAvailable()) return;
+      if (document.fullscreenElement) {
+        void document.exitFullscreen();
+        return true;
+      }
+      void requestPaperFullscreen(paperRef.current);
+      return true;
+    },
+    { enabled: Boolean(fileUrl) },
+  );
+
   useCountView(`/api/v1/questions/${question.id}/views`, question.viewToken);
   useCountView(
     selected
@@ -355,11 +381,18 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
                   variant="ghost"
                   size="sm"
                   aria-pressed={theater}
+                  title="Theater mode (T)"
                   onClick={() => setTheater(!theater)}
-                  className="aria-pressed:bg-primary-container aria-pressed:text-primary-container-foreground"
+                  className="group aria-pressed:bg-primary-container aria-pressed:text-primary-container-foreground"
                 >
                   <RectangleHorizontal aria-hidden />
                   Theater mode
+                  <kbd
+                    aria-hidden
+                    className="rounded-md border border-input px-1.5 py-0.5 font-sans text-xs text-muted-foreground group-aria-pressed:border-primary-container-foreground/25 group-aria-pressed:text-primary-container-foreground"
+                  >
+                    T
+                  </kbd>
                 </Button>
                 <PdfFullScreenButton container={paperRef} />
               </PaperInfo>

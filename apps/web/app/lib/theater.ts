@@ -2,7 +2,7 @@
 // lists beside it, spans the window instead of the container's widest. Like the
 // theme, it's an attribute on <html> set by THEATER_SCRIPT before the first paint
 // and drawn by CSS (app.css), so the server renders the same page for everyone and
-// it never jumps after loading.
+// it never jumps after loading. Press `t` to toggle (YouTube-style), from `lg`.
 import { useSyncExternalStore } from "react";
 
 const COOKIE = "qb_theater";

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useEffectEvent, useState } from "react";
 import { Link } from "react-router";
 import { whenIdle } from "~/lib/idle";
+import { typingIn } from "~/lib/keyboard";
 
 const OPEN_EVENT = "ourdiu:course-search";
 const RECENT_KEY = "ourdiu.recentCourses";
@@ -38,14 +39,6 @@ export function rememberCourse(id: number) {
   } catch {
     // Not remembered; nothing else depends on it.
   }
-}
-
-function typingIn(target: EventTarget | null) {
-  return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable ||
-      ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))
-  );
 }
 
 /**

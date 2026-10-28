@@ -6,10 +6,6 @@ import { readNextMissingText, type TextJob } from "./services/paper-text";
 import { refreshTrending } from "./services/trending";
 import { handleWatermarkBatch, type WatermarkJob } from "./services/watermark";
 
-// The course rooms' Durable Object class (wrangler.jsonc), exported again by the
-// web Worker's entry.
-export { CourseRoom } from "./services/rooms/course-room";
-
 const app = createApp();
 
 /**

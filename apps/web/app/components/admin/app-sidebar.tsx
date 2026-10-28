@@ -7,7 +7,6 @@ import {
   ExternalLink,
   Flag,
   FolderTree,
-  Headphones,
   Inbox,
   LayoutDashboard,
   LogOut,
@@ -223,11 +222,6 @@ export function AdminSidebar({ user, counts, ...props }: AdminSidebarProps) {
               title: "Catalog",
               url: "/admin/questions/catalog",
               icon: FolderTree,
-            },
-            {
-              title: "Course rooms",
-              url: "/admin/questions/rooms",
-              icon: Headphones,
             },
           ]}
         />

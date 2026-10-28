@@ -84,18 +84,6 @@ export default function Privacy() {
           that record.
         </p>
         <p>
-          <strong>In a course room</strong> (live voice and chat on a course’s
-          pages, for DIU email accounts), people in the room see your name and
-          photo once you join the voice call or send a message, and whether
-          you’re muted. Your voice goes through Cloudflare to the others in the
-          call and isn’t recorded. Chat messages are passed on to the people in
-          the room at that moment and aren’t saved anywhere: they’re gone when
-          everyone leaves. If you report someone, the site keeps your report
-          (who, which room, the reason) and, if you reported a message, that one
-          message as you saw it, for an admin to review. The site also counts
-          how much the rooms are used, in totals that aren’t tied to anyone.
-        </p>
-        <p>
           <strong>View counts</strong> aren’t tied to you: a cookie in your
           browser only remembers which pages it already counted today (see the{" "}
           <Link to="/cookies">cookie notice</Link>).
@@ -205,8 +193,7 @@ export default function Privacy() {
         <ul>
           <li>
             <strong>Cloudflare</strong> hosts the site, its database and its
-            file storage, including uploaded PDFs and profile photos, and
-            carries course rooms’ voice calls.
+            file storage, including uploaded PDFs and profile photos.
           </li>
           <li>
             <strong>Google</strong> handles sign-in, runs Google Analytics, and
@@ -236,19 +223,14 @@ export default function Privacy() {
             can keep using them.
           </li>
           <li>
-            Course room chat isn’t kept at all. Reports about someone in a room
-            are kept, so admins can act on them and notice repeated problems.
-          </li>
-          <li>
             A paper’s review messages, as long as the paper: withdrawing or
             deleting it deletes them too.
           </li>
           <li>
-            If your account is deleted, your likes, dislikes, reports (on papers
-            and in course rooms) and saved papers are deleted with it. Papers
-            you published, and the review messages you wrote on them, stay, no
-            longer linked to you; ask, and their public copies are re-made
-            without your name.
+            If your account is deleted, your likes, dislikes, reports and saved
+            papers are deleted with it. Papers you published, and the review
+            messages you wrote on them, stay, no longer linked to you; ask, and
+            their public copies are re-made without your name.
           </li>
         </ul>
       </LegalSection>

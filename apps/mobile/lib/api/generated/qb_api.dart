@@ -12,9 +12,7 @@ import 'clients/contributors_client.dart';
 import 'clients/account_client.dart';
 import 'clients/routine_client.dart';
 import 'clients/cover_page_client.dart';
-import 'clients/course_rooms_client.dart';
 import 'clients/admin_routine_client.dart';
-import 'clients/admin_course_rooms_client.dart';
 import 'clients/app_client.dart';
 import 'clients/engagement_client.dart';
 import 'clients/saved_client.dart';
@@ -37,9 +35,7 @@ class QbApi {
   AccountClient? _account;
   RoutineClient? _routine;
   CoverPageClient? _coverPage;
-  CourseRoomsClient? _courseRooms;
   AdminRoutineClient? _adminRoutine;
-  AdminCourseRoomsClient? _adminCourseRooms;
   AppClient? _app;
   EngagementClient? _engagement;
   SavedClient? _saved;
@@ -68,14 +64,8 @@ class QbApi {
   CoverPageClient get coverPage =>
       _coverPage ??= CoverPageClient(_dio, baseUrl: _baseUrl);
 
-  CourseRoomsClient get courseRooms =>
-      _courseRooms ??= CourseRoomsClient(_dio, baseUrl: _baseUrl);
-
   AdminRoutineClient get adminRoutine =>
       _adminRoutine ??= AdminRoutineClient(_dio, baseUrl: _baseUrl);
-
-  AdminCourseRoomsClient get adminCourseRooms =>
-      _adminCourseRooms ??= AdminCourseRoomsClient(_dio, baseUrl: _baseUrl);
 
   AppClient get app => _app ??= AppClient(_dio, baseUrl: _baseUrl);
 

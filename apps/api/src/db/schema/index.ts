@@ -5,4 +5,3 @@ export * from "./questions";
 export * from "./taxonomy";
 export * from "./review";
 export * from "./routine";
-export * from "./rooms";

@@ -9,7 +9,6 @@ import {
 } from "react-router";
 import { courseHref, rememberCourse } from "~/components/course-search";
 import { EmptyState } from "~/components/empty-state";
-import { CourseRoomCard } from "~/components/rooms/course-room-card";
 import { ExamBadge, ExamShape, examKind } from "~/components/exam-badge";
 import { Breadcrumbs } from "~/components/page-header";
 import { buttonVariants } from "~/components/ui/button";
@@ -184,8 +183,6 @@ export default function Course({ loaderData }: Route.ComponentProps) {
             )}
           </p>
         </div>
-
-        <CourseRoomCard courseId={course.id} courseName={course.name} />
 
         {filters.length > 1 && (
           <nav

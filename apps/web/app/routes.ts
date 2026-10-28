@@ -55,7 +55,6 @@ export default [
     route("questions/submissions/:id", "routes/admin-submission.tsx"),
     route("questions/reports", "routes/admin-reports.tsx"),
     route("questions/catalog", "routes/admin-catalog.tsx"),
-    route("questions/rooms", "routes/admin-rooms.tsx"),
     route("routine/versions", "routes/admin-routine-versions.tsx"),
     route("routine/versions/:id", "routes/admin-routine-version.tsx"),
     route("routine/courses", "routes/admin-routine-courses.tsx"),

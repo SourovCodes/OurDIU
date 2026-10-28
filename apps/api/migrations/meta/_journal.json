@@ -211,6 +211,13 @@
       "when": 1793196351833,
       "tag": "0029_course_rooms",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1793207128216,
+      "tag": "0030_drop_course_rooms",
+      "breakpoints": true
     }
   ]
 }

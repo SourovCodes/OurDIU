@@ -1,8 +1,4 @@
-import type {
-  AdminRoomReport,
-  AdminRooms,
-  RoomVoiceCheck,
-} from "@ourdiu/shared";
+import type { AdminRoomReport, AdminRooms } from "@ourdiu/shared";
 import { ROOM_REPORT_REASON_LABELS } from "@ourdiu/shared/rooms";
 import {
   Ban,
@@ -10,11 +6,9 @@ import {
   CircleDashed,
   EllipsisVertical,
   Flag,
-  Headphones,
   Pause,
   Play,
 } from "lucide-react";
-import { useFetcher } from "react-router";
 import { useFormAction } from "~/components/actions";
 import { AdminPageHeader } from "~/components/admin/admin-header";
 import { AdminRouteError } from "~/components/admin/route-error";
@@ -38,7 +32,6 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { adminGetJson, adminRequest } from "~/lib/admin.server";
-import { apiFetch, readJson } from "~/lib/api.server";
 import { formatDate } from "~/lib/dates";
 import type { Route } from "./+types/admin-rooms";
 
@@ -58,21 +51,6 @@ export async function action({ request }: Route.ActionArgs) {
   const intent = String(form.get("intent"));
   const userId = encodeURIComponent(String(form.get("userId") ?? ""));
   switch (intent) {
-    case "voice-check": {
-      const res = await apiFetch(request, "/api/v1/admin/rooms/voice-check", {
-        method: "POST",
-      });
-      return {
-        voiceCheck: res.ok
-          ? await readJson<RoomVoiceCheck>(res)
-          : ({
-              ok: false,
-              status: res.status,
-              errorCode: null,
-              message: "Couldn't run the check. Try again.",
-            } satisfies RoomVoiceCheck),
-      };
-    }
     case "pause":
       return adminRequest(request, intent, "PUT", "/rooms/settings", {
         paused: form.get("paused") === "true",
@@ -134,8 +112,6 @@ export default function AdminRoomsPage({ loaderData }: Route.ComponentProps) {
             </AlertDescription>
           </Alert>
         )}
-
-        {usage.voiceAvailable && <VoiceCheck />}
 
         <section aria-labelledby="usage" className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -378,39 +354,5 @@ function ReportActions({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-}
-
-/** Asks Cloudflare for a test session: whether REALTIME_APP_ID and the token work. */
-function VoiceCheck() {
-  const fetcher = useFetcher<{ voiceCheck: RoomVoiceCheck }>();
-  const result = fetcher.data?.voiceCheck;
-  return (
-    <section aria-labelledby="voice-check" className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="voice-check" className="font-semibold">
-          Voice calls
-        </h2>
-        <fetcher.Form method="post">
-          <input type="hidden" name="intent" value="voice-check" />
-          <Button
-            type="submit"
-            variant="outline"
-            disabled={fetcher.state !== "idle"}
-          >
-            <Headphones aria-hidden />
-            {fetcher.state !== "idle" ? "Testing…" : "Test voice setup"}
-          </Button>
-        </fetcher.Form>
-      </div>
-      {result && (
-        <Alert variant={result.ok ? "info" : "destructive"} aria-live="polite">
-          <AlertTitle>
-            {result.ok ? "Voice works" : "Voice calls can't connect"}
-          </AlertTitle>
-          <AlertDescription>{result.message}</AlertDescription>
-        </Alert>
-      )}
-    </section>
   );
 }

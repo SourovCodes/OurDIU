@@ -24,41 +24,16 @@ export type SfuTracksResponse = {
   errorDescription?: string;
 };
 
-/** Cloudflare refused a call: its status, its error code and which call it was. */
-export class SfuError extends Error {
-  constructor(
-    readonly step: string,
-    readonly status: number,
-    readonly errorCode?: string,
-    readonly errorDescription?: string,
-  ) {
-    super(
-      `SFU ${step}: ${status} ${errorCode ?? ""} ${errorDescription ?? ""}`.trim(),
-    );
-  }
-
-  /** "401 at sessions/new", for admins' toasts and the admin check. */
-  get short() {
-    const where = this.step
-      .replace(/^\w+ \//, "")
-      .replace(/^sessions\/[^/]+\//, "");
-    return `${this.status}${this.errorCode ? ` ${this.errorCode}` : ""} at ${where}`;
-  }
-}
+export class SfuError extends Error {}
 
 export function createSfu(appId: string, token: string) {
-  // A value saved with a trailing newline would otherwise fail every call.
-  const base = `${SFU_API}/${appId.trim()}`;
-  const authorization = `Bearer ${token.trim()}`;
-
   async function call<T>(method: string, path: string, body?: unknown) {
-    const res = await fetch(`${base}${path}`, {
+    const res = await fetch(`${SFU_API}/${appId}${path}`, {
       method,
-      // No content type without a body: creating a session sends none.
-      headers:
-        body === undefined
-          ? { authorization }
-          : { authorization, "content-type": "application/json" },
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const data = (await res.json().catch(() => ({}))) as T & {
@@ -67,10 +42,7 @@ export function createSfu(appId: string, token: string) {
     };
     if (!res.ok || data.errorCode) {
       throw new SfuError(
-        `${method} ${path}`,
-        res.status,
-        data.errorCode,
-        data.errorDescription,
+        `SFU ${method} ${path}: ${res.status} ${data.errorCode ?? ""} ${data.errorDescription ?? ""}`.trim(),
       );
     }
     return data;

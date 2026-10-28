@@ -4,7 +4,6 @@ import {
   idQuerySchema,
   roomBanInputSchema,
   roomSettingsInputSchema,
-  roomVoiceCheckSchema,
   updateRoomReportInputSchema,
 } from "@ourdiu/shared";
 import { and, eq } from "drizzle-orm";
@@ -19,7 +18,6 @@ import {
   updateRoomReport,
 } from "../services/rooms/moderation";
 import { setRoomsPaused } from "../services/rooms/usage";
-import { checkVoiceSetup } from "../services/rooms/voice-check";
 import type { AppEnv } from "../types";
 import { courseRoom } from "./rooms";
 
@@ -53,20 +51,6 @@ const settingsRoute = createRoute({
   middleware,
   request: { body: jsonBody(roomSettingsInputSchema) },
   responses: { 204: { description: "Saved" }, ...denied },
-});
-
-const voiceCheckRoute = createRoute({
-  method: "post",
-  path: "/voice-check",
-  tags,
-  summary: "Check that voice calls are set up",
-  description:
-    "Asks Cloudflare's Realtime SFU for a test session with REALTIME_APP_ID and the REALTIME_APP_TOKEN secret, and says what it answered (never the token).",
-  middleware,
-  responses: {
-    200: jsonResponse(roomVoiceCheckSchema, "What Cloudflare answered"),
-    ...denied,
-  },
 });
 
 const reportRoute = createRoute({
@@ -125,9 +109,6 @@ export const adminRoomRoutes = new OpenAPIHono<AppEnv>({
     await setRoomsPaused(c.var.db, c.req.valid("json").paused);
     return c.body(null, 204);
   })
-  .openapi(voiceCheckRoute, async (c) =>
-    c.json(await checkVoiceSetup(c.env), 200),
-  )
   .openapi(reportRoute, async (c) => {
     await updateRoomReport(
       c.var.db,

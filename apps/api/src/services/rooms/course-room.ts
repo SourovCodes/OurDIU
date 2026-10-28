@@ -146,15 +146,7 @@ export class CourseRoom extends DurableObject<Env> {
     } catch (error) {
       if (!(error instanceof SfuError)) throw error;
       console.error(error.message);
-      // Admins also see what Cloudflare said, to tell a setup problem from a hiccup.
-      const detail = this.attachment(ws).user.admin
-        ? ` (Cloudflare: ${error.short})`
-        : "";
-      this.error(
-        ws,
-        "SFU_ERROR",
-        `The call couldn't connect. Try again.${detail}`,
-      );
+      this.error(ws, "SFU_ERROR", "The call couldn't connect. Try again.");
     }
   }
 
@@ -270,9 +262,7 @@ export class CourseRoom extends DurableObject<Env> {
       [{ location: "local", mid, trackName: "mic" }],
       { type: "offer", sdp },
     );
-    if (!res.sessionDescription) {
-      throw new SfuError("POST /tracks/new", 200, "NO_ANSWER");
-    }
+    if (!res.sessionDescription) throw new SfuError("SFU push: no answer");
     this.send(ws, { t: "sfu.answer", sdp: res.sessionDescription.sdp });
     const att = this.attachment(ws);
     if (att.voice?.sessionId !== voice.sessionId) return;

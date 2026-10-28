@@ -93,12 +93,7 @@ export class VoiceCall {
       });
       this.pc = pc;
       pc.addEventListener("track", (event) => this.attach(event));
-      // The offer carries the microphone, as Cloudflare's own examples do; once
-      // connected it's taken off again, since you join muted (`onState` puts it
-      // back when you unmute).
-      const transceiver = pc.addTransceiver(this.mic!.getAudioTracks()[0]!, {
-        direction: "sendonly",
-      });
+      const transceiver = pc.addTransceiver("audio", { direction: "sendonly" });
       this.sender = transceiver.sender;
       await pc.setLocalDescription(await pc.createOffer());
       this.send({
@@ -108,7 +103,6 @@ export class VoiceCall {
       });
       const answer = await this.waitFor("sfu.answer");
       await pc.setRemoteDescription({ type: "answer", sdp: answer.sdp });
-      await this.sender.replaceTrack(null);
       const params = this.sender.getParameters();
       if (params.encodings?.[0]) {
         params.encodings[0].maxBitrate = MIC_BITRATE;

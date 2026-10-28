@@ -47,7 +47,7 @@ describe("isPlainKey", () => {
 
 describe("useHotkey", () => {
   it("runs the handler on a bare key and swallows it only when handled", () => {
-    const onKey = vi.fn(() => true);
+    const onKey = vi.fn((): boolean | void => true);
     renderHook(() => useHotkey("t", onKey));
     const event = new KeyboardEvent("keydown", {
       key: "t",

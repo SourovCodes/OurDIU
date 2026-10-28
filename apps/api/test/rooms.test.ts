@@ -86,9 +86,17 @@ type Conn = Awaited<ReturnType<typeof connect>>;
 const settle = () => new Promise((r) => setTimeout(r, 50));
 
 /** Fake Realtime SFU: sessions s-1, s-2, …; pulled tracks get mids in order. */
-let sfuCalls: { method: string; path: string; body: unknown }[] = [];
+let sfuCalls: {
+  method: string;
+  path: string;
+  body: unknown;
+  headers: Headers;
+}[] = [];
+/** Set to make the fake SFU refuse every call with this status. */
+let sfuRefuses: number | null = null;
 beforeEach(() => {
   sfuCalls = [];
+  sfuRefuses = null;
   let sessions = 0;
   const realFetch = globalThis.fetch;
   vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
@@ -97,7 +105,18 @@ beforeEach(() => {
     if (!url.startsWith(prefix)) return realFetch(input, init);
     const path = url.slice(prefix.length);
     const body = init?.body ? JSON.parse(String(init.body)) : undefined;
-    sfuCalls.push({ method: init?.method ?? "GET", path, body });
+    sfuCalls.push({
+      method: init?.method ?? "GET",
+      path,
+      body,
+      headers: new Headers(init?.headers),
+    });
+    if (sfuRefuses) {
+      return Response.json(
+        { errorCode: "UNAUTHORIZED", errorDescription: "bad token" },
+        { status: sfuRefuses },
+      );
+    }
     if (path === "/sessions/new") {
       sessions += 1;
       return Response.json({
@@ -530,5 +549,62 @@ describe("POST /api/v1/rooms/{courseId}/reports", () => {
         })
       ).status,
     ).toBe(403);
+  });
+});
+
+describe("when Cloudflare refuses a call", () => {
+  it("says the call couldn't connect, with Cloudflare's answer for admins", async () => {
+    const id = await course();
+    const student = await connect(id, (await signIn()).cookie);
+    const admin = await connect(id, (await signInAdmin()).cookie);
+    sfuRefuses = 401;
+    student.send({ t: "voice.join" });
+    expect(await student.next("error")).toEqual({
+      t: "error",
+      code: "SFU_ERROR",
+      message: "The call couldn't connect. Try again.",
+    });
+    admin.send({ t: "voice.join" });
+    expect(await admin.next("error")).toMatchObject({
+      code: "SFU_ERROR",
+      message:
+        "The call couldn't connect. Try again. (Cloudflare: 401 UNAUTHORIZED at sessions/new)",
+    });
+  });
+});
+
+describe("POST /api/v1/admin/rooms/voice-check", () => {
+  it("asks Cloudflare for a test session and says what it answered", async () => {
+    const admin = await signInAdmin();
+    const check = () =>
+      api("/api/v1/admin/rooms/voice-check", {
+        method: "POST",
+        headers: { cookie: admin.cookie },
+      });
+    const ok = await check();
+    expect(ok.status).toBe(200);
+    expect(await ok.json()).toMatchObject({ ok: true, status: 200 });
+    // A session is created with the app's secret and no body (nor a JSON type).
+    const call = sfuCalls.at(-1)!;
+    expect(call.path).toBe("/sessions/new");
+    expect(call.headers.get("authorization")).toBe("Bearer test-sfu-token");
+    expect(call.headers.get("content-type")).toBeNull();
+
+    sfuRefuses = 401;
+    expect(await (await check()).json()).toMatchObject({
+      ok: false,
+      status: 401,
+      errorCode: "UNAUTHORIZED",
+      message: expect.stringContaining("refused the token"),
+    });
+  });
+
+  it("is admins only", async () => {
+    const student = await signIn();
+    const res = await api("/api/v1/admin/rooms/voice-check", {
+      method: "POST",
+      headers: { cookie: student.cookie },
+    });
+    expect(res.status).toBe(403);
   });
 });

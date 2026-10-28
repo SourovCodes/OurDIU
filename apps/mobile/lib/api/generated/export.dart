@@ -132,6 +132,7 @@ export 'models/admin_room_user.dart';
 export 'models/room_report_status.dart';
 export 'models/admin_room_ban.dart';
 export 'models/room_settings_input.dart';
+export 'models/room_voice_check.dart';
 export 'models/update_room_report_input.dart';
 export 'models/room_ban_input.dart';
 export 'models/report_reason.dart';

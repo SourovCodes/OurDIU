@@ -70,6 +70,33 @@ class _AdminCourseRoomsClient implements AdminCourseRoomsClient {
   }
 
   @override
+  Future<RoomVoiceCheck> postApiV1AdminRoomsVoiceCheck() async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<RoomVoiceCheck>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/api/v1/admin/rooms/voice-check',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, Object?>>(_options);
+    late RoomVoiceCheck _value;
+    try {
+      _value = RoomVoiceCheck.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
   Future<void> patchApiV1AdminRoomsReportsId({
     required int id,
     required UpdateRoomReportInput body,

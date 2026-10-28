@@ -8,6 +8,7 @@ import 'package:retrofit/retrofit.dart';
 import '../models/admin_rooms.dart';
 import '../models/room_ban_input.dart';
 import '../models/room_settings_input.dart';
+import '../models/room_voice_check.dart';
 import '../models/update_room_report_input.dart';
 
 part 'admin_course_rooms_client.g.dart';
@@ -28,6 +29,12 @@ abstract class AdminCourseRoomsClient {
   Future<void> putApiV1AdminRoomsSettings({
     @Body() required RoomSettingsInput body,
   });
+
+  /// Check that voice calls are set up.
+  ///
+  /// Asks Cloudflare's Realtime SFU for a test session with REALTIME_APP_ID and the REALTIME_APP_TOKEN secret, and says what it answered (never the token).
+  @POST('/api/v1/admin/rooms/voice-check')
+  Future<RoomVoiceCheck> postApiV1AdminRoomsVoiceCheck();
 
   /// Resolve or dismiss a room report
   @PATCH('/api/v1/admin/rooms/reports/{id}')

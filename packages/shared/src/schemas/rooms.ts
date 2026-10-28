@@ -132,3 +132,16 @@ export const roomBanInputSchema = z
 export const createdRoomReportSchema = z
   .object({ id: z.number().int() })
   .meta({ id: "CreatedRoomReport" });
+
+/** What Cloudflare's SFU answered when asked for a test session (admins' check). */
+export const roomVoiceCheckSchema = z
+  .object({
+    ok: z.boolean(),
+    /** Cloudflare's HTTP status; 0 when it wasn't asked (not set up) or unreachable. */
+    status: z.number().int(),
+    errorCode: z.string().nullable(),
+    /** What it means and what to do, in words. */
+    message: z.string(),
+  })
+  .meta({ id: "RoomVoiceCheck" });
+export type RoomVoiceCheck = z.infer<typeof roomVoiceCheckSchema>;

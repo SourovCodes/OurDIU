@@ -53,10 +53,10 @@
     "ROOMS_MONTHLY_MESSAGES": "10000000",
     // The day of the month the account's billing period starts (1–28), so a cycle
     // matches the period the free allowance is counted over.
-    "ROOMS_CYCLE_DAY": "1",
+    "ROOMS_CYCLE_DAY": "27",
     // The Realtime SFU app (Cloudflare dashboard → Realtime → SFU); its token is the
     // REALTIME_APP_TOKEN secret. Empty: voice says "not set up yet", chat still works.
-    "REALTIME_APP_ID": "",
+    "REALTIME_APP_ID": "da91bf49bc4ea9c332b67ed9cf1196c4",
   },
   // One CourseRoom per course (services/rooms/course-room.ts): who's in the room,
   // the chat (relayed, never stored) and the voice call's signalling. Uses the

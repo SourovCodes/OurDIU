@@ -171,10 +171,17 @@ export function PdfFullScreenButton({
     <Button
       variant="ghost"
       size="sm"
+      title="Full screen (F)"
       onClick={() => void requestPaperFullscreen(container.current)}
     >
       <Maximize aria-hidden />
       Full screen
+      <kbd
+        aria-hidden
+        className="rounded-md border border-input px-1.5 py-0.5 font-sans text-xs text-muted-foreground"
+      >
+        F
+      </kbd>
     </Button>
   );
 }

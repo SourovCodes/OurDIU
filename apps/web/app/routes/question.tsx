@@ -381,11 +381,18 @@ export default function QuestionPage({ loaderData }: Route.ComponentProps) {
                   variant="ghost"
                   size="sm"
                   aria-pressed={theater}
+                  title="Theater mode (T)"
                   onClick={() => setTheater(!theater)}
-                  className="aria-pressed:bg-primary-container aria-pressed:text-primary-container-foreground"
+                  className="group aria-pressed:bg-primary-container aria-pressed:text-primary-container-foreground"
                 >
                   <RectangleHorizontal aria-hidden />
                   Theater mode
+                  <kbd
+                    aria-hidden
+                    className="rounded-md border border-input px-1.5 py-0.5 font-sans text-xs text-muted-foreground group-aria-pressed:border-primary-container-foreground/25 group-aria-pressed:text-primary-container-foreground"
+                  >
+                    T
+                  </kbd>
                 </Button>
                 <PdfFullScreenButton container={paperRef} />
               </PaperInfo>

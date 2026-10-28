@@ -133,6 +133,24 @@ export function PdfViewer({
 }
 
 /**
+ * Puts the embedded paper on the whole screen. The browser can still refuse
+ * (e.g. in an iframe without permission).
+ */
+export function requestPaperFullscreen(container: HTMLElement | null) {
+  const frame = container?.querySelector('[data-testid="pdf-viewer"]');
+  if (!frame) return;
+  return frame
+    .requestFullscreen()
+    .then(() => trackEvent("paper_full_screen"))
+    .catch(() => {});
+}
+
+/** Whether the browser embeds PDFs and allows full screen. */
+export function paperFullscreenAvailable() {
+  return document.fullscreenEnabled && navigator.pdfViewerEnabled !== false;
+}
+
+/**
  * Shows the embedded paper (a `PdfViewer` inside `container`) on the whole screen;
  * Esc brings it back. Only where the browser embeds PDFs and allows full screen.
  */
@@ -145,7 +163,7 @@ export function PdfFullScreenButton({
   // would move the bar's other controls.
   const available = useSyncExternalStore(
     subscribeNever,
-    () => document.fullscreenEnabled && navigator.pdfViewerEnabled !== false,
+    paperFullscreenAvailable,
     () => true,
   );
   if (!available) return null;
@@ -153,16 +171,7 @@ export function PdfFullScreenButton({
     <Button
       variant="ghost"
       size="sm"
-      onClick={() => {
-        const frame = container.current?.querySelector(
-          '[data-testid="pdf-viewer"]',
-        );
-        // The browser can still refuse (e.g. in an iframe without permission).
-        frame
-          ?.requestFullscreen()
-          .then(() => trackEvent("paper_full_screen"))
-          .catch(() => {});
-      }}
+      onClick={() => void requestPaperFullscreen(container.current)}
     >
       <Maximize aria-hidden />
       Full screen

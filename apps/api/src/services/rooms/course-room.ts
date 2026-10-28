@@ -255,6 +255,8 @@ export class CourseRoom extends DurableObject<Env> {
   private async push(ws: WebSocket, sdp: string, mid: string) {
     const voice = this.attachment(ws).voice;
     if (!voice) return this.error(ws, "NOT_IN_VOICE", "Join voice first");
+    // One microphone per call.
+    if (voice.live) return this.error(ws, "INVALID", "Already connected");
     const res = await this.sfu()!.tracks(
       voice.sessionId,
       [{ location: "local", mid, trackName: "mic" }],

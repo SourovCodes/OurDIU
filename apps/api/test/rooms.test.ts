@@ -249,6 +249,10 @@ describe("GET /api/v1/rooms/{courseId}/socket", () => {
       tracks: [{ location: "local", mid: "0", trackName: "mic" }],
     });
 
+    // One microphone each.
+    nadia.send({ t: "sfu.push", sdp: "offer", mid: "1" });
+    expect(await nadia.next("error")).toMatchObject({ code: "INVALID" });
+
     nadia.send({ t: "voice.mute", muted: false });
     await tanvir.next("state", (s) =>
       s.voice.some((v) => v.id === a.id && !v.muted),

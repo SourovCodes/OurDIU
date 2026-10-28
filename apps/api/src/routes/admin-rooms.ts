@@ -2,6 +2,7 @@ import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import {
   adminRoomsSchema,
   idQuerySchema,
+  roomBanInputSchema,
   roomSettingsInputSchema,
   updateRoomReportInputSchema,
 } from "@ourdiu/shared";
@@ -79,7 +80,7 @@ const banRoute = createRoute({
   middleware,
   request: {
     params: userParams,
-    body: jsonBody(z.object({ reportId: idQuerySchema.optional() })),
+    body: jsonBody(roomBanInputSchema),
   },
   responses: {
     204: { description: "Banned" },

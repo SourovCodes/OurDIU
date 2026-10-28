@@ -2977,6 +2977,172 @@
           "name"
         ]
       },
+      "AdminRooms": {
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/AdminRoomUsage"
+          },
+          "reports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminRoomReport"
+            }
+          },
+          "bans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminRoomBan"
+            }
+          }
+        },
+        "required": [
+          "usage",
+          "reports",
+          "bans"
+        ]
+      },
+      "AdminRoomUsage": {
+        "type": "object",
+        "properties": {
+          "cycle": {
+            "type": "string",
+            "format": "date"
+          },
+          "resetsOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "voiceBytes": {
+            "type": "integer"
+          },
+          "voiceSeconds": {
+            "type": "integer"
+          },
+          "messages": {
+            "type": "integer"
+          },
+          "voiceBytesCap": {
+            "type": "integer"
+          },
+          "messagesCap": {
+            "type": "integer"
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "voiceAvailable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cycle",
+          "resetsOn",
+          "voiceBytes",
+          "voiceSeconds",
+          "messages",
+          "voiceBytesCap",
+          "messagesCap",
+          "paused",
+          "enabled",
+          "voiceAvailable"
+        ]
+      },
+      "AdminRoomReport": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "course": {
+            "$ref": "#/components/schemas/AdminRoomCourse"
+          },
+          "reporter": {
+            "$ref": "#/components/schemas/AdminRoomUser"
+          },
+          "reported": {
+            "$ref": "#/components/schemas/AdminRoomUser"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/RoomReportReason"
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/RoomReportStatus"
+          },
+          "banned": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "course",
+          "reporter",
+          "reported",
+          "reason",
+          "message",
+          "status",
+          "banned",
+          "createdAt"
+        ]
+      },
+      "AdminRoomCourse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "AdminRoomUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "image": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "name",
+          "email",
+          "image"
+        ]
+      },
       "RoomReportStatus": {
         "type": "string",
         "enum": [
@@ -2984,6 +3150,57 @@
           "resolved",
           "dismissed"
         ]
+      },
+      "AdminRoomBan": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/AdminRoomUser"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "user",
+          "createdAt"
+        ]
+      },
+      "RoomSettingsInput": {
+        "type": "object",
+        "properties": {
+          "paused": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "paused"
+        ]
+      },
+      "UpdateRoomReportInput": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "resolved",
+              "dismissed"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "RoomBanInput": {
+        "type": "object",
+        "properties": {
+          "reportId": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          }
+        }
       },
       "ReportReason": {
         "type": "string",
@@ -6669,225 +6886,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "usage": {
-                      "type": "object",
-                      "properties": {
-                        "cycle": {
-                          "type": "string",
-                          "format": "date"
-                        },
-                        "resetsOn": {
-                          "type": "string",
-                          "format": "date"
-                        },
-                        "voiceBytes": {
-                          "type": "integer"
-                        },
-                        "voiceSeconds": {
-                          "type": "integer"
-                        },
-                        "messages": {
-                          "type": "integer"
-                        },
-                        "voiceBytesCap": {
-                          "type": "integer"
-                        },
-                        "messagesCap": {
-                          "type": "integer"
-                        },
-                        "paused": {
-                          "type": "boolean"
-                        },
-                        "enabled": {
-                          "type": "boolean"
-                        },
-                        "voiceAvailable": {
-                          "type": "boolean"
-                        }
-                      },
-                      "required": [
-                        "cycle",
-                        "resetsOn",
-                        "voiceBytes",
-                        "voiceSeconds",
-                        "messages",
-                        "voiceBytesCap",
-                        "messagesCap",
-                        "paused",
-                        "enabled",
-                        "voiceAvailable"
-                      ]
-                    },
-                    "reports": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "course": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "integer"
-                              },
-                              "name": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "name"
-                            ]
-                          },
-                          "reporter": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "username": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "email": {
-                                "type": "string"
-                              },
-                              "image": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "username",
-                              "name",
-                              "email",
-                              "image"
-                            ]
-                          },
-                          "reported": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "username": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "email": {
-                                "type": "string"
-                              },
-                              "image": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "username",
-                              "name",
-                              "email",
-                              "image"
-                            ]
-                          },
-                          "reason": {
-                            "$ref": "#/components/schemas/RoomReportReason"
-                          },
-                          "message": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "status": {
-                            "$ref": "#/components/schemas/RoomReportStatus"
-                          },
-                          "banned": {
-                            "type": "boolean"
-                          },
-                          "createdAt": {
-                            "type": "string",
-                            "format": "date-time"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "course",
-                          "reporter",
-                          "reported",
-                          "reason",
-                          "message",
-                          "status",
-                          "banned",
-                          "createdAt"
-                        ]
-                      }
-                    },
-                    "bans": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "user": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "username": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "email": {
-                                "type": "string"
-                              },
-                              "image": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "username",
-                              "name",
-                              "email",
-                              "image"
-                            ]
-                          },
-                          "createdAt": {
-                            "type": "string",
-                            "format": "date-time"
-                          }
-                        },
-                        "required": [
-                          "user",
-                          "createdAt"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "usage",
-                    "reports",
-                    "bans"
-                  ]
+                  "$ref": "#/components/schemas/AdminRooms"
                 }
               }
             }
@@ -6927,15 +6926,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "paused": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "paused"
-                ]
+                "$ref": "#/components/schemas/RoomSettingsInput"
               }
             }
           }
@@ -6989,19 +6980,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "status": {
-                    "type": "string",
-                    "enum": [
-                      "resolved",
-                      "dismissed"
-                    ]
-                  }
-                },
-                "required": [
-                  "status"
-                ]
+                "$ref": "#/components/schemas/UpdateRoomReportInput"
               }
             }
           }
@@ -7067,13 +7046,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "reportId": {
-                    "type": "integer",
-                    "exclusiveMinimum": 0
-                  }
-                }
+                "$ref": "#/components/schemas/RoomBanInput"
               }
             }
           }

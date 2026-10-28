@@ -125,10 +125,12 @@ export const roomRoutes = new OpenAPIHono<AppEnv>({
 })
   .openapi(summaryRoute, async (c) => {
     const { courseId } = c.req.valid("param");
-    const cache = caches.default;
+    // Workers' default cache (the web project's DOM types don't know it).
+    const cache = (caches as unknown as { default: Cache }).default;
     const key = new Request(new URL(c.req.url).toString());
     const hit = await cache.match(key);
-    if (hit) return hit as never;
+    // A cached response's headers are immutable; the API's middleware adds some.
+    if (hit) return new Response(hit.body, hit) as never;
     const summary = await courseRoom(c.env, courseId).summary();
     const res = c.json(summary, 200, {
       "cache-control": `public, max-age=${SUMMARY_MAX_AGE}`,

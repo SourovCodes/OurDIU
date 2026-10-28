@@ -61,54 +61,73 @@ export type CreateRoomReportInput = z.infer<typeof createRoomReportInputSchema>;
 // ── Admin ────────────────────────────────────────────────────────────────────
 
 /** This usage cycle's estimated use of the free allowances, and the pause. */
-export const adminRoomUsageSchema = z.object({
-  /** First day of the cycle (YYYY-MM-DD, UTC); the next one starts on `resetsOn`. */
-  cycle: z.iso.date(),
-  resetsOn: z.iso.date(),
-  voiceBytes: z.number().int(),
-  voiceSeconds: z.number().int(),
-  messages: z.number().int(),
-  voiceBytesCap: z.number().int(),
-  messagesCap: z.number().int(),
-  /** Paused by an admin (`PUT /admin/rooms/settings`). */
-  paused: z.boolean(),
-  /** Off in the Worker's config (`ROOMS`), or voice not set up (no SFU app). */
-  enabled: z.boolean(),
-  voiceAvailable: z.boolean(),
-});
+/** A person in an admin's room lists. */
+const adminRoomUserSchema = adminUserRefSchema.meta({ id: "AdminRoomUser" });
+
+export const adminRoomUsageSchema = z
+  .object({
+    /** First day of the cycle (YYYY-MM-DD, UTC); the next one starts on `resetsOn`. */
+    cycle: z.iso.date(),
+    resetsOn: z.iso.date(),
+    voiceBytes: z.number().int(),
+    voiceSeconds: z.number().int(),
+    messages: z.number().int(),
+    voiceBytesCap: z.number().int(),
+    messagesCap: z.number().int(),
+    /** Paused by an admin (`PUT /admin/rooms/settings`). */
+    paused: z.boolean(),
+    /** Off in the Worker's config (`ROOMS`), or voice not set up (no SFU app). */
+    enabled: z.boolean(),
+    voiceAvailable: z.boolean(),
+  })
+  .meta({ id: "AdminRoomUsage" });
 export type AdminRoomUsage = z.infer<typeof adminRoomUsageSchema>;
 
-export const adminRoomReportSchema = z.object({
-  id: z.number().int(),
-  course: z.object({ id: z.number().int(), name: z.string() }),
-  reporter: adminUserRefSchema,
-  reported: adminUserRefSchema,
-  reason: roomReportReasonSchema,
-  message: z.string().nullable(),
-  status: roomReportStatusSchema,
-  /** Whether the reported person is banned from rooms now. */
-  banned: z.boolean(),
-  createdAt: z.iso.datetime(),
-});
+export const adminRoomReportSchema = z
+  .object({
+    id: z.number().int(),
+    course: z
+      .object({ id: z.number().int(), name: z.string() })
+      .meta({ id: "AdminRoomCourse" }),
+    reporter: adminRoomUserSchema,
+    reported: adminRoomUserSchema,
+    reason: roomReportReasonSchema,
+    message: z.string().nullable(),
+    status: roomReportStatusSchema,
+    /** Whether the reported person is banned from rooms now. */
+    banned: z.boolean(),
+    createdAt: z.iso.datetime(),
+  })
+  .meta({ id: "AdminRoomReport" });
 export type AdminRoomReport = z.infer<typeof adminRoomReportSchema>;
 
-export const adminRoomBanSchema = z.object({
-  user: adminUserRefSchema,
-  createdAt: z.iso.datetime(),
-});
+export const adminRoomBanSchema = z
+  .object({
+    user: adminRoomUserSchema,
+    createdAt: z.iso.datetime(),
+  })
+  .meta({ id: "AdminRoomBan" });
 export type AdminRoomBan = z.infer<typeof adminRoomBanSchema>;
 
-export const adminRoomsSchema = z.object({
-  usage: adminRoomUsageSchema,
-  reports: z.array(adminRoomReportSchema),
-  bans: z.array(adminRoomBanSchema),
-});
+export const adminRoomsSchema = z
+  .object({
+    usage: adminRoomUsageSchema,
+    reports: z.array(adminRoomReportSchema),
+    bans: z.array(adminRoomBanSchema),
+  })
+  .meta({ id: "AdminRooms" });
 export type AdminRooms = z.infer<typeof adminRoomsSchema>;
 
-export const roomSettingsInputSchema = z.object({ paused: z.boolean() });
-export const updateRoomReportInputSchema = z.object({
-  status: z.enum(["resolved", "dismissed"]),
-});
+export const roomSettingsInputSchema = z
+  .object({ paused: z.boolean() })
+  .meta({ id: "RoomSettingsInput" });
+export const updateRoomReportInputSchema = z
+  .object({ status: z.enum(["resolved", "dismissed"]) })
+  .meta({ id: "UpdateRoomReportInput" });
+/** With `reportId`, the ban also takes them out of that report's room now. */
+export const roomBanInputSchema = z
+  .object({ reportId: z.number().int().positive().optional() })
+  .meta({ id: "RoomBanInput" });
 
 export const createdRoomReportSchema = z
   .object({ id: z.number().int() })

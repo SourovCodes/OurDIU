@@ -23,6 +23,7 @@ import "./app.css";
 import { EmptyState } from "~/components/empty-state";
 import { PageTransition, SkipLink } from "~/components/page-transition";
 import { RoutineBottomBar } from "~/components/routine-nav";
+import { RoomsProvider } from "~/components/rooms/rooms-provider";
 import { SiteHeader } from "~/components/site-header";
 import { SocialIcon } from "~/components/social-icons";
 import { buttonVariants } from "~/components/ui/button";
@@ -180,90 +181,93 @@ export function Layout({ children }: { children: React.ReactNode }) {
       >
         <SkipLink />
         <TopLoader />
-        {ownShell ? (
-          children
-        ) : (
-          <div className="flex min-h-dvh flex-col">
-            <SiteHeader
-              user={data?.user ?? null}
-              needsAttention={data?.needsAttention ?? 0}
-            />
-            {/* At least a screen tall, so the footer always starts below the
+        {/* Course rooms' calls carry on across pages (docs/PLAN.md, decision 66). */}
+        <RoomsProvider>
+          {ownShell ? (
+            children
+          ) : (
+            <div className="flex min-h-dvh flex-col">
+              <SiteHeader
+                user={data?.user ?? null}
+                needsAttention={data?.needsAttention ?? 0}
+              />
+              {/* At least a screen tall, so the footer always starts below the
                 screen: a page that grows or changes never moves it in view, and
                 Chrome counts such moves as layout shifts (docs/PLAN.md, decision 51). */}
-            <PageTransition className="@container/main container min-h-svh flex-1 py-8">
-              {children}
-            </PageTransition>
-            <footer className="mt-12 bg-surface-low">
-              <div className="container grid grid-cols-1 gap-10 py-12 md:grid-cols-[1fr_auto]">
-                <div className="max-w-sm space-y-3">
-                  <Link
-                    to="/"
-                    className="inline-flex items-center gap-2 font-expressive text-xl text-primary transition-opacity hover:opacity-80"
-                  >
-                    <GraduationCap className="size-6" aria-hidden />
-                    OurDIU
-                  </Link>
-                  <p className="text-sm text-muted-foreground">
-                    Free forever, no ads. Built by a DIU student, with papers
-                    shared by DIU students.
-                  </p>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <span>
-                      Made with ☕ by{" "}
-                      <Link
-                        to="/about"
-                        className="font-medium text-foreground underline-offset-4 hover:underline"
-                      >
-                        {AUTHOR.firstName}
-                      </Link>
-                    </span>
-                    {AUTHOR.links.map(({ network, label, href }) => (
-                      <a
-                        key={network}
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`${AUTHOR.firstName} on ${label}`}
-                        className="flex size-9 items-center justify-center rounded-full transition-colors hover:state-layer hover:text-foreground"
-                      >
-                        <SocialIcon network={network} className="size-4" />
-                      </a>
-                    ))}
+              <PageTransition className="@container/main container min-h-svh flex-1 py-8">
+                {children}
+              </PageTransition>
+              <footer className="mt-12 bg-surface-low">
+                <div className="container grid grid-cols-1 gap-10 py-12 md:grid-cols-[1fr_auto]">
+                  <div className="max-w-sm space-y-3">
+                    <Link
+                      to="/"
+                      className="inline-flex items-center gap-2 font-expressive text-xl text-primary transition-opacity hover:opacity-80"
+                    >
+                      <GraduationCap className="size-6" aria-hidden />
+                      OurDIU
+                    </Link>
+                    <p className="text-sm text-muted-foreground">
+                      Free forever, no ads. Built by a DIU student, with papers
+                      shared by DIU students.
+                    </p>
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <span>
+                        Made with ☕ by{" "}
+                        <Link
+                          to="/about"
+                          className="font-medium text-foreground underline-offset-4 hover:underline"
+                        >
+                          {AUTHOR.firstName}
+                        </Link>
+                      </span>
+                      {AUTHOR.links.map(({ network, label, href }) => (
+                        <a
+                          key={network}
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`${AUTHOR.firstName} on ${label}`}
+                          className="flex size-9 items-center justify-center rounded-full transition-colors hover:state-layer hover:text-foreground"
+                        >
+                          <SocialIcon network={network} className="size-4" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-8 text-sm sm:grid-cols-3 sm:gap-14">
+                    <FooterColumn
+                      title="Products"
+                      links={PRODUCTS.map(({ href, name }) => ({
+                        to: href,
+                        label: name,
+                      }))}
+                    />
+                    <FooterColumn
+                      title="About"
+                      links={[
+                        { to: "/about", label: "About" },
+                        { to: "/contact", label: "Contact" },
+                        { to: COMMUNITY_URL, label: "Telegram community" },
+                        { to: FACEBOOK_PAGE_URL, label: "Facebook page" },
+                        { to: "/app", label: "Get the app" },
+                        { to: "/admission", label: "Admission guide" },
+                      ]}
+                    />
+                    <FooterColumn
+                      title="Legal"
+                      links={LEGAL_PAGES.map(({ path, label }) => ({
+                        to: path,
+                        label,
+                      }))}
+                    />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-8 text-sm sm:grid-cols-3 sm:gap-14">
-                  <FooterColumn
-                    title="Products"
-                    links={PRODUCTS.map(({ href, name }) => ({
-                      to: href,
-                      label: name,
-                    }))}
-                  />
-                  <FooterColumn
-                    title="About"
-                    links={[
-                      { to: "/about", label: "About" },
-                      { to: "/contact", label: "Contact" },
-                      { to: COMMUNITY_URL, label: "Telegram community" },
-                      { to: FACEBOOK_PAGE_URL, label: "Facebook page" },
-                      { to: "/app", label: "Get the app" },
-                      { to: "/admission", label: "Admission guide" },
-                    ]}
-                  />
-                  <FooterColumn
-                    title="Legal"
-                    links={LEGAL_PAGES.map(({ path, label }) => ({
-                      to: path,
-                      label,
-                    }))}
-                  />
-                </div>
-              </div>
-            </footer>
-            {productAt(pathname)?.id === "routine" && <RoutineBottomBar />}
-          </div>
-        )}
+              </footer>
+              {productAt(pathname)?.id === "routine" && <RoutineBottomBar />}
+            </div>
+          )}
+        </RoomsProvider>
         <LazyToaster position="top-center" />
         <AppSheet />
         <ScrollRestoration />

@@ -310,6 +310,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Room below the page's end for a course room's call bar, while it shows
+       (components/rooms/call-bar.tsx sets it). */
+    padding-bottom: var(--call-bar-height, 0px);
   }
   /* A clear ring for keyboard focus on links and other controls that don't draw
      their own (buttons and fields use `focus-visible:ring`). */

@@ -14,10 +14,9 @@
 // when they sign up (admins can contribute without a DIU address).
 // REALTIME_APP_TOKEN (a secret) is the Realtime SFU app's token, for course rooms'
 // voice calls; without it (or REALTIME_APP_ID) voice is "not set up yet".
-// A global declaration file can't import, so the room's class is named inline.
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
-type CourseRoomClass = import("./services/rooms/course-room").CourseRoom;
-
+// ROOMS_DO's class, CourseRoomClass, is named in room-class.d.ts here and in
+// apps/web/workers/room-class.d.ts there, so it matches the web Worker's generated
+// Env (which names it through workers/app.ts) in each project.
 interface Env {
   DB: D1Database;
   BUCKET: R2Bucket;

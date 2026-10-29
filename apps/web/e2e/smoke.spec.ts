@@ -25,17 +25,24 @@ test("the footer leads to the app on Google Play", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("link", { name: "Get the app" }).click();
   await expect(page).toHaveURL(/\/app$/);
-  await expect(
-    page.getByRole("link", { name: "Get it on Google Play" }),
-  ).toHaveAttribute(
+  const play = page.getByRole("link", { name: "Get it on Google Play" });
+  // Tagged with where the install came from (docs/PLAN.md, decision 67).
+  await expect(play).toHaveAttribute(
     "href",
-    "https://play.google.com/store/apps/details?id=com.ourdiu.app",
+    "https://play.google.com/store/apps/details?id=com.ourdiu.app&referrer=utm_source%3Dourdiu.com%26utm_medium%3Dapp_page",
   );
   // Search engines learn it's an app.
   const ld = await page
     .locator('script[type="application/ld+json"]')
     .allTextContents();
   expect(ld.some((text) => text.includes('"MobileApplication"'))).toBe(true);
+
+  // A post or an ad that links to the page with its own tags is counted apart.
+  await page.goto("/app?utm_source=facebook&utm_campaign=finals");
+  await expect(play).toHaveAttribute(
+    "href",
+    /referrer=utm_source%3Dfacebook%26utm_medium%3Dreferral%26utm_campaign%3Dfinals$/,
+  );
 });
 
 test("Android visitors are asked once to use the app", async ({

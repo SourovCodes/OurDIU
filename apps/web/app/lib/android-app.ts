@@ -4,6 +4,43 @@ export const PLAY_STORE_URL =
 
 export const ANDROID_PACKAGE = "com.ourdiu.app";
 
+/** Where an install came from, as Play Console and Firebase report it. */
+export type InstallSource = {
+  utm_source: string;
+  utm_medium: string;
+  utm_campaign?: string;
+};
+
+const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign"] as const;
+
+/**
+ * Google Play's page for the app, tagged with where the visitor came from: Play
+ * hands the `referrer` to the app on install, so Play Console's acquisition
+ * reports and Firebase's first_open show the source (docs/PLAN.md, decision 67).
+ */
+export function playStoreUrl(source: InstallSource) {
+  const referrer = UTM_KEYS.filter((key) => source[key])
+    .map((key) => `${key}=${encodeURIComponent(source[key]!)}`)
+    .join("&");
+  return `${PLAY_STORE_URL}&referrer=${encodeURIComponent(referrer)}`;
+}
+
+/**
+ * The source for links on a page: the page's own utm_ parameters when a post or
+ * ad linked to it with them (ourdiu.com/app?utm_source=facebook), else the site
+ * and `medium`, the place on the site.
+ */
+export function installSource(search: string, medium: string): InstallSource {
+  const params = new URLSearchParams(search);
+  const source = params.get("utm_source")?.slice(0, 100);
+  if (!source) return { utm_source: "ourdiu.com", utm_medium: medium };
+  return {
+    utm_source: source,
+    utm_medium: params.get("utm_medium")?.slice(0, 100) || "referral",
+    utm_campaign: params.get("utm_campaign")?.slice(0, 100) || undefined,
+  };
+}
+
 /**
  * SHA-256 fingerprints of the keys Google Play signs the app with, as Play
  * Console lists them (Grow users → Deep links → Add domain): the app signing
@@ -39,10 +76,13 @@ export function isAndroid(userAgent: string) {
  * A link that opens one of the site's pages in the app (it handles ourdiu.com's
  * /questions links, decision 13), or Google Play's page for it when the app isn't
  * installed. An Android intent URL, so it works in Chrome even on the page the app
- * would open: a plain link to the same page stays in the browser.
+ * would open: a plain link to the same page stays in the browser. `medium` tags
+ * the Google Play link with the place on the site that offered the app.
  */
-export function openInAppUrl(path: string) {
-  const fallback = encodeURIComponent(PLAY_STORE_URL);
+export function openInAppUrl(path: string, medium: string) {
+  const fallback = encodeURIComponent(
+    playStoreUrl({ utm_source: "ourdiu.com", utm_medium: medium }),
+  );
   return `intent://ourdiu.com${path}#Intent;scheme=https;package=${ANDROID_PACKAGE};S.browser_fallback_url=${fallback};end`;
 }
 

@@ -35,7 +35,7 @@ it("asks once, opening the same page in the app", async () => {
   renderAt("/questions/5?submission=7");
   const open = await screen.findByRole("link", { name: "Open in the app" });
   expect(open.getAttribute("href")).toBe(
-    openInAppUrl("/questions/5?submission=7"),
+    openInAppUrl("/questions/5?submission=7", "app_sheet"),
   );
   expect(gtag).toHaveBeenCalledWith("event", "app_sheet_shown");
 
@@ -54,7 +54,9 @@ it("asks once, opening the same page in the app", async () => {
 it("opens the app's home from other pages, and counts the tap", async () => {
   renderAt("/routine/cse/67_B");
   const open = await screen.findByRole("link", { name: "Open in the app" });
-  expect(open.getAttribute("href")).toBe(openInAppUrl("/questions"));
+  expect(open.getAttribute("href")).toBe(
+    openInAppUrl("/questions", "app_sheet"),
+  );
   open.addEventListener("click", (event) => event.preventDefault());
   fireEvent.click(open);
   expect(gtag).toHaveBeenCalledWith("event", "app_sheet_open");

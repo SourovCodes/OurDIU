@@ -48,7 +48,7 @@ it("asks Android visitors to read a public paper in the app, or open the file", 
   render(<PdfViewer src="/paper.pdf" title="Paper" appPath={PAPER} />);
   expect(
     screen.getByRole("link", { name: "Open in the app" }).getAttribute("href"),
-  ).toBe(openInAppUrl(PAPER));
+  ).toBe(openInAppUrl(PAPER, "paper"));
   expect(fileLinks()).toEqual(["/paper.pdf", "/paper.pdf"]);
   expect(screen.queryByTestId("pdf-viewer")).toBeNull();
   expect(document.querySelector("iframe")).toBeNull();
@@ -96,8 +96,8 @@ it("embeds the paper where the browser has a viewer", () => {
 });
 
 it("opens the app at the page, or Google Play without it", () => {
-  expect(openInAppUrl(PAPER)).toBe(
-    "intent://ourdiu.com/questions/5?submission=7#Intent;scheme=https;package=com.ourdiu.app;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.ourdiu.app;end",
+  expect(openInAppUrl(PAPER, "paper")).toBe(
+    "intent://ourdiu.com/questions/5?submission=7#Intent;scheme=https;package=com.ourdiu.app;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.ourdiu.app%26referrer%3Dutm_source%253Dourdiu.com%2526utm_medium%253Dpaper;end",
   );
 });
 

@@ -1,7 +1,8 @@
 import { Download } from "lucide-react";
+import { useLocation } from "react-router";
 import { SpaceIcon } from "~/components/space-icon";
 import { Button } from "~/components/ui/button";
-import { PLAY_STORE_URL } from "~/lib/android-app";
+import { installSource, playStoreUrl } from "~/lib/android-app";
 import { product } from "~/lib/products";
 import { androidAppJsonLd, originOf, pageMeta, QB_NAME } from "~/lib/seo";
 import type { Route } from "./+types/app";
@@ -34,6 +35,7 @@ const FEATURES = [
 ];
 
 export default function AndroidApp() {
+  const { search } = useLocation();
   return (
     <article className={cn(NARROW_PAGE, "space-y-8 py-4 sm:py-10")}>
       <header className="space-y-4">
@@ -44,7 +46,11 @@ export default function AndroidApp() {
           For Daffodil International University students: free, without ads.
         </p>
         <Button size="lg" asChild>
-          <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer">
+          <a
+            href={playStoreUrl(installSource(search, "app_page"))}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <Download />
             Get it on Google Play
           </a>

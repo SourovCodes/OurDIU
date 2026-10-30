@@ -113,6 +113,15 @@ INSERT INTO questions (id, department_id, course_id, semester_id, exam_type_id) 
   (11, 1, 1, 1, 1);
 INSERT INTO submissions (id, question_id, status, file_key, file_size, uploader_id, created_at, updated_at) VALUES
   (16, 11, 'published', 'submissions/seed-16.pdf', 0, 'seed-user-3', 1760000000000, 1760000000000);
+-- An exam whose copies come in two versions, sorted and rated as the AI would
+-- (services/versions.ts): three copies of the regular paper and a retake.
+INSERT INTO questions (id, department_id, course_id, semester_id, exam_type_id) VALUES
+  (12, 1, 1, 3, 2);
+INSERT INTO submissions (id, question_id, status, file_key, file_size, uploader_id, quality, version_group, version_label, created_at, updated_at) VALUES
+  (17, 12, 'published', 'submissions/seed-17.pdf', 0, 'seed-user-1', 60, 1, 'Sections A-D', 1734000000000, 1734000000000),
+  (18, 12, 'published', 'submissions/seed-18.pdf', 0, 'seed-user-2', 92, 1, 'Sections A-D', 1734100000000, 1734100000000),
+  (19, 12, 'published', 'submissions/seed-19.pdf', 0, 'seed-user-3', 75, 1, 'Sections A-D', 1734200000000, 1734200000000),
+  (20, 12, 'published', 'submissions/seed-20.pdf', 0, 'seed-user-1', 80, 2, 'Retake', 1736000000000, 1736000000000);
 UPDATE submissions SET section = 'A', batch = '61' WHERE id = 1;
 UPDATE submissions SET rejection_reason = 'This PDF contains multiple question papers. Please upload each question paper as a separate PDF.' WHERE id = 12;
 UPDATE submissions SET rejection_reason = 'This file is not a valid exam question paper.' WHERE id = 14;

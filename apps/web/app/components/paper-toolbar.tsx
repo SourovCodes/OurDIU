@@ -210,7 +210,9 @@ export function PaperInfo({
       )}
     >
       <p className="min-w-0 truncate text-muted-foreground">
-        {paperDetails(submission)}
+        {[submission.versionLabel, paperDetails(submission)]
+          .filter(Boolean)
+          .join(" · ")}
       </p>
       <div className="flex shrink-0 items-center gap-2">
         {position.total > 1 && (

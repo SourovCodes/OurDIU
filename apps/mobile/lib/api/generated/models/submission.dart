@@ -24,6 +24,8 @@ class Submission {
     required this.uploader,
     required this.fileUrl,
     required this.text,
+    required this.version,
+    required this.versionLabel,
   });
 
   factory Submission.fromJson(Map<String, Object?> json) =>
@@ -41,6 +43,8 @@ class Submission {
   final Uploader? uploader;
   final String? fileUrl;
   final String? text;
+  final int? version;
+  final String? versionLabel;
 
   Map<String, Object?> toJson() => _$SubmissionToJson(this);
 }

@@ -165,6 +165,8 @@ const baseReply: AnalysisReply = {
   examType: null,
   section: null,
   batch: null,
+  quality: 80,
+  qualityNote: "Good scan",
   text: "",
 };
 
@@ -339,6 +341,16 @@ describe("runAnalysis", () => {
     expect(JSON.parse(gemini[0]!.body!).contents[0].parts[1].text).toContain(
       "transcribed exactly as printed",
     );
+    // And rated the copy, without changing when the paper was last updated.
+    expect(
+      await db().query.submissions.findFirst({
+        where: eq(submissions.id, paper.id),
+      }),
+    ).toMatchObject({
+      quality: 80,
+      qualityNote: "Good scan",
+      updatedAt: paper.updatedAt,
+    });
     // The compressed copy isn't kept.
     expect((await env.BUCKET.get(paper.fileKey))?.size).toBe(1009);
   });

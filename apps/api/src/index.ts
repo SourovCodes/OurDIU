@@ -4,14 +4,17 @@ import { handleAnalysisBatch, type AnalysisJob } from "./services/analysis";
 import { fillCourseAliases } from "./services/course-aliases";
 import { readNextMissingText, type TextJob } from "./services/paper-text";
 import { refreshTrending } from "./services/trending";
+import { groupNextVersions, rateNextPaper } from "./services/versions";
 import { handleWatermarkBatch, type WatermarkJob } from "./services/watermark";
 
 const app = createApp();
 
 /**
- * Reads one missing paper text per run (services/paper-text.ts): 288 a day, inside
- * Gemini's free quota for GEMINI_TEXT_MODEL (about 500 requests a day for Flash-Lite)
- * with room for retries. Must match a cron in wrangler.jsonc.
+ * Makes one GEMINI_TEXT_MODEL call per run: 288 a day, inside Gemini's free quota for
+ * it (about 500 requests a day for Flash-Lite) with room for retries. In turn: a
+ * missing paper text (services/paper-text.ts), then an exam to sort into versions
+ * (needs its papers' texts), then an older paper to rate (services/versions.ts).
+ * Must match a cron in wrangler.jsonc.
  */
 export const TEXT_CRON = "*/5 * * * *";
 
@@ -41,11 +44,14 @@ export default {
       );
     }
   },
-  // The crons in wrangler.jsonc: the text backfill, courses' short names, and "Most
-  // viewed today".
+  // The crons in wrangler.jsonc: texts, versions and ratings, courses' short names,
+  // and "Most viewed today".
   async scheduled(controller, env) {
     if (controller.cron === TEXT_CRON) {
-      await readNextMissingText(createDb(env.DB), env);
+      const db = createDb(env.DB);
+      if ((await readNextMissingText(db, env)) !== null) return;
+      if ((await groupNextVersions(db, env)) !== null) return;
+      await rateNextPaper(db, env);
     } else if (controller.cron === ALIASES_CRON) {
       await fillCourseAliases(createDb(env.DB), env);
     } else {

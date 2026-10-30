@@ -23,7 +23,11 @@ failOnConsoleErrors();
 
 test("the footer leads to the app on Google Play", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "Get the app" }).click();
+  // The footer's, not the Android banner's.
+  await page
+    .getByRole("contentinfo")
+    .getByRole("link", { name: "Get the app" })
+    .click();
   await expect(page).toHaveURL(/\/app$/);
   const play = page.getByRole("link", { name: "Get it on Google Play" });
   // Tagged with where the install came from (docs/PLAN.md, decision 67).

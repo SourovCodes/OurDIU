@@ -211,7 +211,8 @@ Done (2 October 2026): Change of Address from diuqbank.com to ourdiu.com is file
 
 - [x] Quality in the upload check, versions from the papers' texts with an AI call only for the unclear ones, ranking, the question page (30 October 2026).
 - [x] Midterms and finals only; quizzes keep the vote order (30 October 2026).
-- [ ] After the deploy (CI applied migrations 0031 and 0032 on 30 October 2026): watch the cron's runs for a week while it rates older papers and sorts the 458 multi-copy midterms and finals; then look at a sample of labels and orders on production and tune the prompt or `SAME_PAPER_MATCH` if needed.
+- [x] Rate the older papers at once (owner, 31 October 2026): instead of the cron's one a run (about 9 days), the 2,361 unrated midterm and final papers went to Gemini's Batch API in one go (half price, back in minutes; same model, prompt and schema as `rateNextPaper`), and the ratings were written to production with raw SQL only where a paper was still unrated, leaving `updated_at`. All 2,361 were rated; the 3 papers over 14 MB are left to the cron, which compresses them. Flash-Lite's scores bunch up: 66% are exactly 85, 15% 95, 6% 75, so clean scans still rank above marked-up or skewed ones, but copies of the same quality often tie (votes then decide).
+- [ ] After the deploy (CI applied migrations 0031 and 0032 on 30 October 2026): watch the cron sort the remaining multi-copy midterms and finals into versions; then look at a sample of labels and orders on production and tune the prompt or `SAME_PAPER_MATCH` if needed, and the rating scale if the ties at 85 leave poor copies first.
 - [ ] Later: version headings in the app's paper switcher (mockup first); show admins a paper's rating and note on its review page; flag versions the AI labels as another exam ("Class test 2" under Class Test 3) for an admin to move.
 
 ### Most viewed today (decision 24)

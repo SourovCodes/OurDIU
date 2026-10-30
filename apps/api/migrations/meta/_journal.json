@@ -218,6 +218,20 @@
       "when": 1793207128216,
       "tag": "0030_drop_course_rooms",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1793347407351,
+      "tag": "0031_paper_versions",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1793347416209,
+      "tag": "0032_paper_versions_triggers",
+      "breakpoints": true
     }
   ]
 }

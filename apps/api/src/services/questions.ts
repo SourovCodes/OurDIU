@@ -35,6 +35,7 @@ import {
   semesterRecency,
   submissionStatusOrder,
 } from "./common";
+import { rankCopies } from "./versions";
 
 /**
  * A question with its lookup names. The submission counts are columns kept up to date
@@ -207,28 +208,46 @@ export async function getQuestion(
       },
       watermarkedFileKey: submissions.watermarkedFileKey,
       text: submissionTexts.text,
+      quality: submissions.quality,
+      versionGroup: submissions.versionGroup,
+      versionLabel: submissions.versionLabel,
     })
     .from(submissions)
     .leftJoin(user, eq(user.id, submissions.uploaderId))
     .leftJoin(submissionTexts, eq(submissionTexts.submissionId, submissions.id))
     .where(eq(submissions.questionId, id))
-    // Ranking within a status: score, then views, then newest.
-    .orderBy(
-      submissionStatusOrder,
-      desc(sql`${submissions.likeCount} - ${submissions.dislikeCount}`),
-      desc(submissions.viewCount),
-      desc(submissions.createdAt),
-    );
+    // Unpublished papers in this order; published ones are ranked by `rankCopies`.
+    .orderBy(submissionStatusOrder, desc(submissions.createdAt));
+
+  const published = rankCopies(rows.filter((r) => r.status === "published"));
+  const others = rows
+    .filter((r) => r.status !== "published")
+    .map((copy) => ({ copy, version: null, versionLabel: null }));
 
   return {
     ...question,
-    submissions: rows.map(({ watermarkedFileKey, text, ...row }) => ({
-      ...row,
-      createdAt: row.createdAt.toISOString(),
-      fileUrl: publicFileUrl(row, watermarkedFileKey, filesUrl),
-      // Only a published paper's text is public, like its file.
-      text: row.status === "published" ? text : null,
-    })),
+    submissions: [...published, ...others].map(
+      ({
+        copy: {
+          watermarkedFileKey,
+          text,
+          quality: _quality,
+          versionGroup: _versionGroup,
+          versionLabel: _storedLabel,
+          ...row
+        },
+        version,
+        versionLabel,
+      }) => ({
+        ...row,
+        createdAt: row.createdAt.toISOString(),
+        fileUrl: publicFileUrl(row, watermarkedFileKey, filesUrl),
+        // Only a published paper's text is public, like its file.
+        text: row.status === "published" ? text : null,
+        version,
+        versionLabel,
+      }),
+    ),
   };
 }
 

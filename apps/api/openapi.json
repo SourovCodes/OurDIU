@@ -629,6 +629,18 @@
               "string",
               "null"
             ]
+          },
+          "version": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "versionLabel": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -643,7 +655,9 @@
           "batch",
           "uploader",
           "fileUrl",
-          "text"
+          "text",
+          "version",
+          "versionLabel"
         ]
       },
       "SubmissionStatus": {

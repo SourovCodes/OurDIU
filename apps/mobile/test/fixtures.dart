@@ -26,6 +26,8 @@ Submission submission(
       ? 'https://files.example/$id.pdf'
       : null,
   text: null,
+  version: null,
+  versionLabel: null,
 );
 
 QuestionDetail questionDetail(

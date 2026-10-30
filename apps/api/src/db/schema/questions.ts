@@ -38,6 +38,12 @@ export const questions = sqliteTable(
     rejectedCount: integer().notNull().default(0),
     /** created_at of the newest published submission; null while none is published. */
     latestPublishedAt: integer({ mode: "timestamp_ms" }),
+    /**
+     * Its published papers or their texts changed since they were last sorted into
+     * versions (services/versions.ts). Set by triggers (migration 0032), cleared by the
+     * cron once it has grouped them; never set it from application code.
+     */
+    versionsPending: integer({ mode: "boolean" }).notNull().default(false),
     ...timestamps,
   },
   (t) => [
@@ -71,6 +77,10 @@ export const questions = sqliteTable(
     // One exam of a course across semesters. Without it SQLite (no ANALYZE stats)
     // picks the exam type index and scans a fifth of the table.
     index("questions_course_id_exam_type_id_idx").on(t.courseId, t.examTypeId),
+    // The cron's next exam to sort into versions.
+    index("questions_versions_pending_idx")
+      .on(t.id)
+      .where(sql`${t.versionsPending} = 1`),
   ],
 );
 
@@ -152,6 +162,21 @@ export const submissions = sqliteTable(
      * never write it from application code.
      */
     textPending: integer({ mode: "boolean" }).notNull().default(false),
+    /**
+     * How readable the PDF is, 0 to 100, judged by the AI (`QUALITY_INSTRUCTIONS` in
+     * services/versions.ts): by the upload check, or by the cron for older papers.
+     * Ranks the copies of an exam. Null until rated.
+     */
+    quality: integer(),
+    /** The AI's reason for the rating, or why rating failed; for admins. */
+    qualityNote: text(),
+    /**
+     * Which version of its exam the paper is (the same questions as the other papers
+     * of its group), and that version's label, e.g. "Set B" or "Retake". Written only
+     * by `groupVersions` (services/versions.ts); null while the exam has one version.
+     */
+    versionGroup: integer(),
+    versionLabel: text(),
     ...timestamps,
   },
   (t) => [
@@ -197,6 +222,12 @@ export const submissions = sqliteTable(
     index("submissions_text_pending_idx")
       .on(t.id)
       .where(sql`${t.textPending} = 1`),
+    // The quality backfill's next paper: published and never rated.
+    index("submissions_quality_pending_idx")
+      .on(t.id)
+      .where(
+        sql`${t.status} = 'published' and ${t.quality} is null and ${t.qualityNote} is null`,
+      ),
   ],
 );
 

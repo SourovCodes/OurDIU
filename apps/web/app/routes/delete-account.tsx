@@ -58,7 +58,10 @@ export default function DeleteAccount() {
           <li>
             Your account and profile: name, email address, photo and username.
           </li>
-          <li>Your sign-in sessions, on the site and in the app.</li>
+          <li>
+            Your sign-in sessions, on the site and in the app, and your
+            passkeys.
+          </li>
           <li>Your likes, dislikes and reports, and your saved papers.</li>
           <li>Uploads that aren’t published yet.</li>
         </ul>

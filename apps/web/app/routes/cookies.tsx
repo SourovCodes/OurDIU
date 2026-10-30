@@ -41,6 +41,12 @@ const NEEDED: CookieRow[] = [
       "Protects signing in with Google from forged requests. Also starts with __Secure- on the live site.",
     lasts: "5 minutes, while you sign in",
   },
+  {
+    names: ["better-auth.better-auth-passkey"],
+    purpose:
+      "Checks that a passkey answers the request this site made, while you add one or log in with one. Also starts with __Secure- on the live site.",
+    lasts: "5 minutes, while you use a passkey",
+  },
 ];
 
 const PREFERENCES: CookieRow[] = [

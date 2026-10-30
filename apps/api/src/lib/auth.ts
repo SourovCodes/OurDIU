@@ -1,4 +1,5 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import { passkey } from "@better-auth/passkey";
 import { splitStudentId } from "@ourdiu/shared/constants";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
@@ -53,7 +54,7 @@ export function googleClientIds(env: Env): string[] {
 }
 
 /**
- * Google is the only way to sign in, and one account works across every OurDIU
+ * Accounts are made with Google, and one account works across every OurDIU
  * product. Any Google account can sign up; contributing papers needs a DIU address
  * (`canContribute`, checked by the routes). New accounts in ADMIN_EMAILS are made
  * admins. Exported on its own so tests can build an auth instance with the same
@@ -64,6 +65,11 @@ export function googleClientIds(env: Env): string[] {
  * `/api/auth/sign-in/social` (its audience is the same web client ID), and keeps the
  * session token from the `set-auth-token` response header, which it then sends as
  * `Authorization: Bearer <token>` (the `bearer` plugin).
+ *
+ * Once signed in, a user can add passkeys on the site's Account page and log in with
+ * one after that (the `passkey` plugin, docs/PLAN.md decision 70). A passkey never
+ * makes an account: adding one needs a session from a Google sign-in less than a day
+ * old. The relying party is the site's own host, so passkeys only work on SITE_URL.
  */
 export function authOptions(env: Env, db: Database) {
   return {
@@ -139,7 +145,20 @@ export function authOptions(env: Env, db: Database) {
         },
       },
     },
-    plugins: [bearer({ requireSignature: true })],
+    plugins: [
+      bearer({ requireSignature: true }),
+      passkey({
+        rpID: new URL(env.SITE_URL).hostname,
+        rpName: "OurDIU",
+        origin: new URL(env.SITE_URL).origin,
+        // Logging in names no account first, so the device must keep the passkey
+        // (a discoverable credential) to offer it.
+        authenticatorSelection: {
+          residentKey: "required",
+          userVerification: "preferred",
+        },
+      }),
+    ],
     socialProviders: {
       google: {
         clientId: googleClientIds(env),

@@ -50,6 +50,13 @@ export default function Privacy() {
           moved out of your name into your profile’s student ID.
         </p>
         <p>
+          <strong>When you add a passkey</strong>, the site keeps its public key
+          (which can only check a log-in, not make one), when you added it and
+          which kind of password manager or device keeps it, if your device
+          says. Your fingerprint, face or screen lock never leaves your device.
+          You can remove a passkey on your Account page.
+        </p>
+        <p>
           <strong>On your profile</strong> you can add your student ID. It is
           optional, and your contributor page shows it unless you turn that off
           on your profile.

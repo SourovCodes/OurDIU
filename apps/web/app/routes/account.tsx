@@ -10,9 +10,13 @@ import {
   UserRound,
   type LucideIcon,
 } from "lucide-react";
-import { Form, Link, Outlet } from "react-router";
+import { getAuthenticatorName } from "@better-auth/passkey";
+import { data, Form, Link, Outlet } from "react-router";
 import { ContributorAvatar } from "~/components/contributor-avatar";
+import { Passkeys, type PasskeyItem } from "~/components/passkeys";
 import { Button } from "~/components/ui/button";
+import type { ActionResult } from "~/lib/action-result";
+import { apiFetch, readJson } from "~/lib/api.server";
 import { requireUser } from "~/lib/session.server";
 import { contributorUrl } from "~/lib/submissions";
 import { useLogoutTarget } from "~/lib/use-space";
@@ -26,8 +30,47 @@ export const meta: Route.MetaFunction = () => [
   { name: "robots", content: "noindex" },
 ];
 
+type StoredPasskey = {
+  id: string;
+  name?: string | null;
+  aaguid?: string | null;
+  createdAt?: string | null;
+};
+
 export async function loader({ request }: Route.LoaderArgs) {
-  return { user: await requireUser(request) };
+  const user = await requireUser(request);
+  const res = await apiFetch(request, "/api/auth/passkey/list-user-passkeys");
+  const stored = res.ok ? await readJson<StoredPasskey[]>(res) : [];
+  const passkeys: PasskeyItem[] = stored.map((passkey) => ({
+    id: passkey.id,
+    label: passkey.name || getAuthenticatorName(passkey.aaguid) || "Passkey",
+    createdAt: passkey.createdAt ?? null,
+  }));
+  return { user, passkeys };
+}
+
+/** Removes one of the user's passkeys (the Passkeys section's only action). */
+export async function action({ request }: Route.ActionArgs) {
+  await requireUser(request);
+  const form = await request.formData();
+  const intent = String(form.get("intent"));
+  if (intent !== "delete-passkey")
+    throw data("Unknown action", { status: 400 });
+  const res = await apiFetch(request, "/api/auth/passkey/delete-passkey", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ id: String(form.get("id") ?? "") }),
+  });
+  if (res.ok) return data<ActionResult>({ ok: true, intent });
+  return data<ActionResult>(
+    {
+      ok: false,
+      intent,
+      error: "Could not remove the passkey. Please try again.",
+      fieldErrors: {},
+    },
+    { status: res.status >= 500 ? 502 : res.status },
+  );
 }
 
 function QuickLink({
@@ -112,7 +155,7 @@ function Appearance() {
  * tab: who you are, your things, settings, then logging out.
  */
 export default function AccountLayout({ loaderData }: Route.ComponentProps) {
-  const { user } = loaderData;
+  const { user, passkeys } = loaderData;
   const contributes = canContribute({ email: user.email, role: user.role });
   const logoutTarget = useLogoutTarget();
 
@@ -170,6 +213,7 @@ export default function AccountLayout({ loaderData }: Route.ComponentProps) {
       </nav>
 
       <Outlet />
+      <Passkeys passkeys={passkeys} />
       <Appearance />
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">

@@ -162,7 +162,7 @@ export function SubmissionList({
         ) : (
           published.length > 1 && (
             <p className="text-xs text-muted-foreground">
-              Shared by different students, the clearest first.
+              Shared by different students, the best first.
             </p>
           )
         )}

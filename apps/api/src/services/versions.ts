@@ -15,7 +15,22 @@ import type { TextEnv } from "./paper-text";
 // and only when more than one such cluster is left does the AI (one text-only call,
 // one sample text per cluster) decide which are the same paper and label the
 // versions. The question page then shows the best copy of each version first
-// (`rankCopies`). docs/PLAN.md, decision 68.
+// (`rankCopies`). Only midterms and finals: a quiz's copies are mostly different
+// sections' quizzes, ranked by votes as before. docs/PLAN.md, decision 68.
+
+/**
+ * Whether an exam type's papers are sorted into versions and ranked by quality:
+ * midterms and finals ("Midterm", "Mid-term", "Final"), not quizzes. Matches
+ * `versionedExamType`.
+ */
+export function hasVersions(examTypeName: string): boolean {
+  return /^(mid|final)/i.test(examTypeName.trim());
+}
+
+/** `hasVersions` in SQL, for an `exam_types` row aliased `e`. */
+const versionedExamType = sql.raw(
+  `(lower(trim(e.name)) like 'mid%' or lower(trim(e.name)) like 'final%')`,
+);
 
 /** How the AI rates a copy; part of the upload check's prompt too. */
 export const QUALITY_INSTRUCTIONS = `how easy this copy is to read, from 0 to 100, judging the copy, not the questions:
@@ -65,6 +80,15 @@ type Copy = {
   versionLabel: string | null;
 };
 
+/** The order before ratings, and still a quiz's: votes, then views, then newest. */
+function compareByVotes(a: Copy, b: Copy): number {
+  return (
+    b.likeCount - b.dislikeCount - (a.likeCount - a.dislikeCount) ||
+    b.viewCount - a.viewCount ||
+    b.createdAt.getTime() - a.createdAt.getTime()
+  );
+}
+
 function copyScore(copy: Copy): number {
   const votes = (copy.likeCount - copy.dislikeCount) * POINTS_PER_VOTE;
   return (
@@ -86,10 +110,17 @@ function compareCopies(a: Copy, b: Copy): number {
  * most students uploaded first), then the other copies, version by version. Returns
  * each paper's version number in that order (1, 2, …), null while the exam has one
  * version. Old apps that only know the order get the best copies first too.
+ * Exams without versions (`hasVersions`, quizzes) are ranked by votes alone.
  */
 export function rankCopies<T extends Copy>(
   copies: T[],
+  { versioned }: { versioned: boolean },
 ): { copy: T; version: number | null; versionLabel: string | null }[] {
+  if (!versioned) {
+    return [...copies]
+      .sort(compareByVotes)
+      .map((copy) => ({ copy, version: null, versionLabel: null }));
+  }
   const groups = new Map<number, T[]>();
   for (const copy of copies) {
     // A paper left out of the grouping (its text couldn't be read) goes with the
@@ -328,6 +359,12 @@ export async function groupVersions(
     return "wait" as const;
   };
 
+  const [exam] = await db.all<{ examType: string }>(sql`
+    select e.name as examType from questions q
+    join exam_types e on e.id = q.exam_type_id
+    where q.id = ${questionId}`);
+  const oneVersion = () => ({ group: null, label: null });
+
   const papers: Paper[] = await db
     .select({
       id: submissions.id,
@@ -345,6 +382,10 @@ export async function groupVersions(
       ),
     )
     .orderBy(submissions.id);
+  if (!exam || !hasVersions(exam.examType)) {
+    await writeVersions(db, papers, oneVersion);
+    return "done";
+  }
   if (papers.some((p) => p.textPending)) return wait();
 
   // Papers without text stay out of the versions; ranking puts them with the
@@ -356,7 +397,6 @@ export async function groupVersions(
       : clusterTexts(readable.map((p) => p.text!)).map((cluster) =>
           cluster.map((i) => readable[i]!),
         );
-  const oneVersion = () => ({ group: null, label: null });
   if (clusters.length <= 1) {
     await writeVersions(db, papers, oneVersion);
     return "done";
@@ -472,8 +512,8 @@ const qualityReplySchema = z.object({
 
 /**
  * The cron's backfill of ratings for papers published before the upload check rated
- * them: one paper per run, exams with the most copies first (single copies have
- * nothing to be ranked against). A failure is stored in `quality_note`, so the paper
+ * them: one paper per run, midterms' and finals' only, exams with the most copies
+ * first (single copies have nothing to be ranked against). A failure is stored in `quality_note`, so the paper
  * isn't tried again, except Gemini's rate limit. Returns the paper it tried.
  */
 export async function rateNextPaper(
@@ -487,7 +527,9 @@ export async function rateNextPaper(
     select s.id, s.file_key as fileKey
     from submissions s
     join questions q on q.id = s.question_id
+    join exam_types e on e.id = q.exam_type_id
     where s.status = 'published' and s.quality is null and s.quality_note is null
+      and ${versionedExamType}
     order by q.published_count desc, s.id desc
     limit 1`);
   if (!next) return null;

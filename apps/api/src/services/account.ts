@@ -23,6 +23,7 @@ import {
   listReviewMessages,
   markReviewRead,
 } from "./review";
+import { assertNotDuplicate, sha256Hex } from "./duplicates";
 import { selectSubmissionRows, toMySubmission } from "./submission-rows";
 import {
   assertIsPdf,
@@ -299,6 +300,8 @@ export async function replaceOwnSubmissionFile(
 ): Promise<MySubmissionDetail> {
   const submission = await requireEditableOwnSubmission(db, uploaderId, id);
   await assertIsPdf(file);
+  const fileSha256 = await sha256Hex(await file.arrayBuffer());
+  await assertNotDuplicate(db, fileSha256, id);
 
   const fileKey = newSubmissionFileKey();
   await bucket.put(fileKey, file, {
@@ -309,6 +312,7 @@ export async function replaceOwnSubmissionFile(
     .set({
       fileKey,
       fileSize: file.size,
+      fileSha256,
       // A copy of the old file (left from when it was published) no longer fits.
       watermarkedFileKey: null,
       watermarkedFileSize: null,

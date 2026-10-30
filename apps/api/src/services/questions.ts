@@ -35,6 +35,7 @@ import {
   semesterRecency,
   submissionStatusOrder,
 } from "./common";
+import { withoutDuplicates } from "./duplicates";
 import { hasVersions, rankCopies } from "./versions";
 
 /**
@@ -209,6 +210,7 @@ export async function getQuestion(
       watermarkedFileKey: submissions.watermarkedFileKey,
       text: submissionTexts.text,
       quality: submissions.quality,
+      fileSha256: submissions.fileSha256,
       versionGroup: submissions.versionGroup,
       versionLabel: submissions.versionLabel,
     })
@@ -220,7 +222,7 @@ export async function getQuestion(
     .orderBy(submissionStatusOrder, desc(submissions.createdAt));
 
   const published = rankCopies(
-    rows.filter((r) => r.status === "published"),
+    withoutDuplicates(rows.filter((r) => r.status === "published")),
     { versioned: hasVersions(question.examType.name) },
   );
   const others = rows
@@ -235,6 +237,7 @@ export async function getQuestion(
           watermarkedFileKey,
           text,
           quality: _quality,
+          fileSha256: _fileSha256,
           versionGroup: _versionGroup,
           versionLabel: _storedLabel,
           ...row

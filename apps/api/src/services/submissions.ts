@@ -16,6 +16,7 @@ import {
 } from "../db/schema";
 import { AppError } from "../lib/errors";
 import { enqueueAnalysis, type AnalysisJob } from "./analysis";
+import { assertNotDuplicate, sha256Hex } from "./duplicates";
 
 const PDF_MAGIC_BYTES = [0x25, 0x50, 0x44, 0x46, 0x2d]; // "%PDF-"
 
@@ -213,6 +214,8 @@ export async function createSubmission(
 ): Promise<CreatedSubmission> {
   const { file } = params;
   await assertIsPdf(file);
+  const fileSha256 = await sha256Hex(await file.arrayBuffer());
+  await assertNotDuplicate(db, fileSha256);
   const fields = await preferExistingValues(db, params.fields);
   const questionId = await resolveQuestionId(db, fields);
 
@@ -230,6 +233,7 @@ export async function createSubmission(
       .values({
         fileKey,
         fileSize: file.size,
+        fileSha256,
         uploaderId: params.uploaderId,
         section: fields.section ?? null,
         batch: fields.batch ?? null,

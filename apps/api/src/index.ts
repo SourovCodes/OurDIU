@@ -2,6 +2,7 @@ import { createApp } from "./app";
 import { createDb } from "./db/client";
 import { handleAnalysisBatch, type AnalysisJob } from "./services/analysis";
 import { fillCourseAliases } from "./services/course-aliases";
+import { hashNextPapers } from "./services/duplicates";
 import { readNextMissingText, type TextJob } from "./services/paper-text";
 import { refreshTrending } from "./services/trending";
 import { groupNextVersions, rateNextPaper } from "./services/versions";
@@ -10,11 +11,13 @@ import { handleWatermarkBatch, type WatermarkJob } from "./services/watermark";
 const app = createApp();
 
 /**
- * Makes one GEMINI_TEXT_MODEL call per run: 288 a day, inside Gemini's free quota for
- * it (about 500 requests a day for Flash-Lite) with room for retries. In turn: a
- * missing paper text (services/paper-text.ts), then an exam to sort into versions
- * (needs its papers' texts), then an older paper to rate (services/versions.ts).
- * Must match a cron in wrangler.jsonc.
+ * Makes one AI call per run, 288 a day at most. In turn: a missing paper text
+ * (services/paper-text.ts, GEMINI_TEXT_MODEL, inside its free quota of about 500
+ * requests a day), then an exam to sort into versions (needs its papers' texts), then
+ * an older paper to rate (services/versions.ts, GEMINI_MODEL, which tells copies
+ * apart better; both are rare once the backlog is done). Before them, it hashes a few
+ * older papers' files to find duplicates (services/duplicates.ts, no AI). Must match
+ * a cron in wrangler.jsonc.
  */
 export const TEXT_CRON = "*/5 * * * *";
 
@@ -49,6 +52,7 @@ export default {
   async scheduled(controller, env) {
     if (controller.cron === TEXT_CRON) {
       const db = createDb(env.DB);
+      await hashNextPapers(db, env.BUCKET);
       if ((await readNextMissingText(db, env)) !== null) return;
       if ((await groupNextVersions(db, env)) !== null) return;
       await rateNextPaper(db, env);

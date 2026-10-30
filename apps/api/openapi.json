@@ -3892,6 +3892,16 @@
               }
             }
           },
+          "409": {
+            "description": "The PDF is already on the site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Invalid fields",
             "content": {
@@ -4494,7 +4504,7 @@
             }
           },
           "409": {
-            "description": "The paper can no longer be changed",
+            "description": "The paper can no longer be changed, or the PDF is already on the site",
             "content": {
               "application/json": {
                 "schema": {

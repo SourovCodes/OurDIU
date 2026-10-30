@@ -429,7 +429,7 @@ test("an admin asks for changes and the uploader fixes and resubmits the paper",
   await replace.getByLabel("PDF file").setInputFiles({
     name: "clearer.pdf",
     mimeType: "application/pdf",
-    buffer: Buffer.from("%PDF-1.7\n%e2e clearer scan\n"),
+    buffer: Buffer.from(`%PDF-1.7\n%e2e clearer scan ${crypto.randomUUID()}\n`),
   });
   await replace.getByRole("button", { name: "Replace" }).click();
   await expect(replace).toBeHidden();

@@ -156,7 +156,9 @@ const replaceMySubmissionFileRoute = createRoute({
     400: errorResponse("Invalid file"),
     401: errorResponse("Not signed in"),
     404: errorResponse("Submission not found"),
-    409: errorResponse("The paper can no longer be changed"),
+    409: errorResponse(
+      "The paper can no longer be changed, or the PDF is already on the site",
+    ),
     429: errorResponse("Too many uploads"),
   },
 });

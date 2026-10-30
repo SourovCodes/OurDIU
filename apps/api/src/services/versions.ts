@@ -32,31 +32,87 @@ const versionedExamType = sql.raw(
   `(lower(trim(e.name)) like 'mid%' or lower(trim(e.name)) like 'final%')`,
 );
 
-/** How the AI rates a copy; part of the upload check's prompt too. */
-export const QUALITY_INSTRUCTIONS = `how easy this copy is to read, from 0 to 100, judging the copy, not the questions:
-  - 90-100: a clean digital PDF or a flat, sharp scan; every word easy to read; nothing written on it.
-  - 70-89: a good photo or scan, readable throughout, with small flaws (a slight angle or shadow, a dark background, a few marks).
-  - 40-69: readable with effort: blur, skew, poor light, glare, cut-off edges, or answers and notes written over some questions.
-  - 1-39: hard to read: parts illegible, pages or questions missing, or heavy writing over the paper.
-  - 0: not a question paper, or nothing readable.`;
+// ── Rating a copy ────────────────────────────────────────────────────────────
 
-/** The reason for the rating, a few words; part of the upload check's prompt too. */
-export const QUALITY_NOTE_INSTRUCTIONS = `a few words on the copy's quality (e.g. "Sharp scan", "Photo at an angle, notes in the margins").`;
+// The AI doesn't score copies: asked for a number, it gave two thirds of them 85.
+// It answers fixed checks instead, and `qualityOf` takes points off for each flaw,
+// so ratings spread out and mean the same for every paper.
 
-/** A rating as stored: whole numbers from 0 to 100. */
-export function cleanQuality(quality: number): number {
-  return Math.min(100, Math.max(0, Math.round(quality)));
+/** The points each answer takes off 100. A copy nobody can read scores 0. */
+const COPY_CHECK_POINTS = {
+  readable: { all: 0, most: 15, some: 40, none: 100 },
+  writing: { none: 0, light: 4, heavy: 12 },
+  straight: { flat: 0, slight: 3, strong: 10 },
+  light: { even: 0, uneven: 4, poor: 10 },
+  missing: { none: 0, edges: 3, content: 25 },
+  source: { digital: 0, scan: 2, photo: 4 },
+} as const;
+
+type CheckName = keyof typeof COPY_CHECK_POINTS;
+const CHECK_NAMES = Object.keys(COPY_CHECK_POINTS) as CheckName[];
+
+/** The checks of the copy, part of the upload check's prompt too. */
+export const COPY_CHECK_INSTRUCTIONS = `judging the copy, not the questions:
+  - readable: how much of the questions' text is easy to read: "all", "most" (a few words take effort), "some" (parts are hard or impossible to read), "none".
+  - writing: handwriting, ticks, underlining or highlighting added on the paper: "none", "light" (a few marks that cover nothing), "heavy" (marks over or between many questions, or answers written on it).
+  - straight: "flat" (square to the page), "slight" (a little tilted, skewed or curled), "strong" (clearly at an angle, rotated sideways, or warped).
+  - light: "even", "uneven" (shadows, a dark or grey background), "poor" (dark, faded, washed out or with glare that hides text).
+  - missing: "none", "edges" (margins or the header cut off, every question complete), "content" (part of a question cut off, or pages or questions missing, judging by the numbering and any page count printed on it).
+  - source: "digital" (a PDF made on a computer), "scan" (a scanner or a scanning app's flat, cleaned page), "photo" (a camera photo of the paper).
+  - note: a few words on what most affects how readable it is ("Sharp scan", "Photo at an angle, notes over Q2").`;
+
+/** The checks as a JSON schema, for the upload check's and the cron's replies. */
+export const copyChecksJsonSchema = {
+  type: "object",
+  properties: {
+    ...Object.fromEntries(
+      CHECK_NAMES.map((name) => [
+        name,
+        { type: "string", enum: Object.keys(COPY_CHECK_POINTS[name]) },
+      ]),
+    ),
+    note: { type: "string" },
+  },
+  required: [...CHECK_NAMES, "note"],
+};
+
+export const copyChecksSchema = z.object({
+  readable: z.enum(["all", "most", "some", "none"]),
+  writing: z.enum(["none", "light", "heavy"]),
+  straight: z.enum(["flat", "slight", "strong"]),
+  light: z.enum(["even", "uneven", "poor"]),
+  missing: z.enum(["none", "edges", "content"]),
+  source: z.enum(["digital", "scan", "photo"]),
+  note: z.string(),
+});
+export type CopyChecks = z.infer<typeof copyChecksSchema>;
+
+/** A copy's rating from its checks: 100 less the points for each flaw, at least 0. */
+export function qualityOf(checks: CopyChecks): number {
+  const lost = CHECK_NAMES.reduce(
+    (sum, name) =>
+      sum + (COPY_CHECK_POINTS[name] as Record<string, number>)[checks[name]]!,
+    0,
+  );
+  return Math.max(0, 100 - lost);
 }
 
-/** Stores a paper's rating without touching `updated_at`. */
-export async function saveQuality(
+/**
+ * Stores a paper's rating from its checks, or with null checks why rating failed,
+ * without touching `updated_at`.
+ */
+export async function saveRating(
   db: Database,
   submissionId: number,
-  quality: number | null,
-  note: string | null,
+  checks: CopyChecks | null,
+  failure?: string,
 ): Promise<void> {
+  const note = (checks?.note ?? failure)?.trim().slice(0, 200) || null;
+  const stored = checks
+    ? JSON.stringify(Object.fromEntries(CHECK_NAMES.map((n) => [n, checks[n]])))
+    : null;
   await db.run(
-    sql`update submissions set quality = ${quality}, quality_note = ${note?.trim().slice(0, 200) || null} where id = ${submissionId}`,
+    sql`update submissions set quality = ${checks ? qualityOf(checks) : null}, quality_note = ${note}, quality_checks = ${stored} where id = ${submissionId}`,
   );
 }
 
@@ -248,10 +304,15 @@ const MAX_SAMPLE_LENGTH = 5000;
 /** Longest label kept. */
 const MAX_LABEL_LENGTH = 40;
 
-const VERSIONS_PROMPT = `Students uploaded these copies of question papers for one exam (the same course, semester and exam type). Each numbered group below holds copies of one paper; you see the text of one copy per group, transcribed from a photo or scan.
+// The first prompt split copies of one paper over transcription mistakes and made up
+// labels like "Set B" (a third of the exams it split, checked on 31 October 2026).
+// This one says what doesn't make a version, asks for the question that differs
+// (a version without one is merged), and allows only printed labels.
+const VERSIONS_PROMPT = `Students uploaded these copies of question papers for one exam (the same course, semester and exam type). Each numbered group below holds copies of one paper; you see the text of one copy per group, transcribed by AI from a photo or scan, so it has mistakes.
 
-1. Put together the groups that are the same question paper: the same questions, even if transcribed differently (layout, spelling, recognition mistakes, a missing page). Papers whose questions differ, even only partly or only in their numbers, are different versions (sets, sections, a retake, or another exam filed here by mistake). List every group number exactly once.
-2. Label each version in at most 30 characters, telling students how it differs from the others. Prefer what is printed on it: its set ("Set B"), sections ("Sections A-D", "Section 70-B"), batch, date ("12 Oct"), exam ("Class test 2"), or "Retake". If nothing printed differs, say what its first question is about in two to four words ("Starts with Huffman coding"). Sentence case, without the course name or semester; every label different.`;
+1. Put together the groups that are the same question paper. The same questions make the same paper, however differently they were transcribed: misread symbols or numbers, a figure described differently, questions numbered differently (4c for 5a), a header or page cut off or missing, handwriting read as text, a different layout. A different version has at least one question that asks something else: another scenario, other values in the question, other questions altogether (sets, sections, batches, a retake, or another course's paper filed here by mistake). When unsure, it is the same paper. List every group number exactly once.
+2. For each version, difference: a question it has that the others don't, in a few words ("Q2 uses 5 resistors, not 4", "Q1 is on Huffman coding"). Leave it empty when you can't name one; then it is not a separate version.
+3. Label each version in at most 30 characters, telling students how it differs from the others, using only what is printed on its paper: sections ("Sections A-D"), batch ("Batch 62"), a set name, an exam date ("12 Oct"), an exam name ("Class test 2"), a course code. Never make up a set letter, "Retake" or a section that isn't printed, and never use a question number or the marks. If nothing printed differs, name its first question that differs ("Starts with Huffman coding"). Sentence case, without the course name or semester; every label different.`;
 
 const versionsResponseJsonSchema = {
   type: "object",
@@ -262,9 +323,10 @@ const versionsResponseJsonSchema = {
         type: "object",
         properties: {
           groups: { type: "array", items: { type: "integer" } },
+          difference: { type: "string" },
           label: { type: "string" },
         },
-        required: ["groups", "label"],
+        required: ["groups", "difference", "label"],
       },
     },
   },
@@ -273,12 +335,52 @@ const versionsResponseJsonSchema = {
 
 const versionsReplySchema = z.object({
   versions: z.array(
-    z.object({ groups: z.array(z.number().int()), label: z.string() }),
+    z.object({
+      groups: z.array(z.number().int()),
+      difference: z.string(),
+      label: z.string(),
+    }),
   ),
 });
 
-/** The bindings grouping and rating need (as the text backfill's). */
-export type VersionsEnv = TextEnv;
+/**
+ * The bindings grouping and rating need: the text backfill's, and the upload check's
+ * model, which tells copies and versions apart better than the lighter one.
+ */
+export type VersionsEnv = TextEnv & { GEMINI_MODEL: string };
+
+type ReplyVersion = z.infer<typeof versionsReplySchema>["versions"][number];
+
+/**
+ * The AI's versions as stored: a version it named no difference for joins the one
+ * with the most groups, and a label already taken gets its number.
+ */
+export function settleVersions(
+  versions: ReplyVersion[],
+): { groups: number[]; label: string }[] {
+  const listed = versions.filter((v) => v.groups.length > 0);
+  const kept = listed.filter((v) => v.difference.trim());
+  const merged = listed.filter((v) => !v.difference.trim());
+  if (kept.length < 2) return [];
+  const largest = kept.reduce((a, b) =>
+    b.groups.length > a.groups.length ? b : a,
+  );
+  const result = kept.map((v) => ({
+    groups: [
+      ...v.groups,
+      ...(v === largest ? merged.flatMap((m) => m.groups) : []),
+    ],
+    label: v.label.trim().slice(0, MAX_LABEL_LENGTH),
+  }));
+  const taken = new Set<string>();
+  result.forEach((v, n) => {
+    let label = v.label || `Version ${n + 1}`;
+    if (taken.has(label.toLowerCase())) label = `${label} (${n + 1})`;
+    taken.add(label.toLowerCase());
+    v.label = label;
+  });
+  return result;
+}
 
 type Paper = {
   id: number;
@@ -421,7 +523,7 @@ export async function groupVersions(
     });
     const { json } = await generateJson({
       apiKey: env.GEMINI_API_KEY,
-      model: env.GEMINI_TEXT_MODEL,
+      model: env.GEMINI_MODEL,
       prompt: `${VERSIONS_PROMPT}\n\n${samples.map((text, i) => `=== Group ${i + 1} ===\n${text}`).join("\n\n")}`,
       responseJsonSchema: versionsResponseJsonSchema,
       fetch: options.fetch,
@@ -437,12 +539,10 @@ export async function groupVersions(
     ) {
       throw new GeminiError("Gemini's versions don't cover every group", true);
     }
-    const versions = reply.data.versions.filter((v) => v.groups.length > 0);
+    const versions = settleVersions(reply.data.versions);
     const byPaper = new Map<number, { group: number; label: string }>();
-    versions.forEach((version, n) => {
-      const label =
-        version.label.trim().slice(0, MAX_LABEL_LENGTH) || `Version ${n + 1}`;
-      for (const g of version.groups) {
+    versions.forEach(({ groups, label }, n) => {
+      for (const g of groups) {
         for (const paper of clusters[g - 1]!) {
           byPaper.set(paper.id, { group: n + 1, label });
         }
@@ -490,31 +590,15 @@ export async function groupNextVersions(
 
 // ── Rating older papers ──────────────────────────────────────────────────────
 
-const QUALITY_PROMPT = `The attached PDF was uploaded to a university question bank as an exam question paper. Rate the copy.
-
-quality: ${QUALITY_INSTRUCTIONS}
-
-qualityNote: ${QUALITY_NOTE_INSTRUCTIONS}`;
-
-export const qualityResponseJsonSchema = {
-  type: "object",
-  properties: {
-    quality: { type: "integer", minimum: 0, maximum: 100 },
-    qualityNote: { type: "string" },
-  },
-  required: ["quality", "qualityNote"],
-};
-
-const qualityReplySchema = z.object({
-  quality: z.number(),
-  qualityNote: z.string(),
-});
+/** The cron's request for a paper's checks (the upload check asks within its own). */
+export const RATING_PROMPT = `The attached PDF was uploaded to a university question bank as an exam question paper. Check this copy, ${COPY_CHECK_INSTRUCTIONS}`;
 
 /**
  * The cron's backfill of ratings for papers published before the upload check rated
  * them: one paper per run, midterms' and finals' only, exams with the most copies
- * first (single copies have nothing to be ranked against). A failure is stored in `quality_note`, so the paper
- * isn't tried again, except Gemini's rate limit. Returns the paper it tried.
+ * first (single copies have nothing to be ranked against). A failure is stored in
+ * `quality_note`, so the paper isn't tried again, except Gemini's rate limit.
+ * Returns the paper it tried.
  */
 export async function rateNextPaper(
   db: Database,
@@ -538,30 +622,25 @@ export async function rateNextPaper(
     const { pdf } = await readPdfForAi(env, next.fileKey, options.fetch);
     const { json } = await generateJsonFromPdf({
       apiKey: env.GEMINI_API_KEY,
-      model: env.GEMINI_TEXT_MODEL,
+      model: env.GEMINI_MODEL,
       pdf,
-      prompt: QUALITY_PROMPT,
-      responseJsonSchema: qualityResponseJsonSchema,
+      prompt: RATING_PROMPT,
+      responseJsonSchema: copyChecksJsonSchema,
       fetch: options.fetch,
     });
-    const reply = qualityReplySchema.safeParse(json);
+    const reply = copyChecksSchema.safeParse(json);
     if (!reply.success) {
       throw new GeminiError(
         "Gemini's answer doesn't have the expected shape",
         true,
       );
     }
-    await saveQuality(
-      db,
-      next.id,
-      cleanQuality(reply.data.quality),
-      reply.data.qualityNote,
-    );
+    await saveRating(db, next.id, reply.data);
   } catch (err) {
     console.error(`Rating paper ${next.id} failed`, err);
     if (!(err instanceof GeminiError && err.status === 429)) {
       const message = err instanceof Error ? err.message : String(err);
-      await saveQuality(db, next.id, null, `Couldn't rate: ${message}`);
+      await saveRating(db, next.id, null, `Couldn't rate: ${message}`);
     }
   }
   return next.id;

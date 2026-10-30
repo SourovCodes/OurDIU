@@ -165,8 +165,15 @@ const baseReply: AnalysisReply = {
   examType: null,
   section: null,
   batch: null,
-  quality: 80,
-  qualityNote: "Good scan",
+  copy: {
+    readable: "all",
+    writing: "light",
+    straight: "slight",
+    light: "even",
+    missing: "none",
+    source: "scan",
+    note: "Good scan",
+  },
   text: "",
 };
 
@@ -347,8 +354,9 @@ describe("runAnalysis", () => {
         where: eq(submissions.id, paper.id),
       }),
     ).toMatchObject({
-      quality: 80,
+      quality: 91,
       qualityNote: "Good scan",
+      qualityChecks: expect.objectContaining({ writing: "light" }),
       updatedAt: paper.updatedAt,
     });
     // The compressed copy isn't kept.

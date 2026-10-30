@@ -239,6 +239,13 @@
       "when": 1793376709430,
       "tag": "0033_passkeys",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1793388614227,
+      "tag": "0034_copy_checks_and_hashes",
+      "breakpoints": true
     }
   ]
 }

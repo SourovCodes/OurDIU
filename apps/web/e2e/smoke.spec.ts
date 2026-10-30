@@ -23,7 +23,11 @@ failOnConsoleErrors();
 
 test("the footer leads to the app on Google Play", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "Get the app" }).click();
+  // The footer's, not the Android banner's.
+  await page
+    .getByRole("contentinfo")
+    .getByRole("link", { name: "Get the app" })
+    .click();
   await expect(page).toHaveURL(/\/app$/);
   const play = page.getByRole("link", { name: "Get it on Google Play" });
   // Tagged with where the install came from (docs/PLAN.md, decision 67).
@@ -66,6 +70,30 @@ test("Android visitors are asked once to use the app", async ({
   await page.goto("/routine");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(sheet).toHaveCount(0);
+});
+
+test("Android visitors always see the app's banner", async ({
+  page,
+  isMobile,
+}) => {
+  const banner = page.getByRole("complementary", { name: "The OurDIU app" });
+  await page.goto("/questions/1");
+  if (!isMobile) {
+    // In the HTML for everyone, shown only to Android browsers.
+    await expect(banner).toBeHidden();
+    return;
+  }
+  await expect(
+    banner.getByRole("link", { name: "Get the app" }),
+  ).toHaveAttribute(
+    "href",
+    /^intent:\/\/ourdiu\.com\/questions\/1#Intent;.*utm_medium%253Dapp_banner/,
+  );
+  await page.goto("/routine");
+  await expect(banner).toBeVisible();
+  // Not on the app's own page.
+  await page.goto("/app");
+  await expect(banner).toHaveCount(0);
 });
 
 test("the hub leads to the question bank and its questions", async ({

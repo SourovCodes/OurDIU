@@ -68,8 +68,10 @@ export function assetLinks() {
   ];
 }
 
+const ANDROID = /\bAndroid\b/i;
+
 export function isAndroid(userAgent: string) {
-  return /\bAndroid\b/i.test(userAgent);
+  return ANDROID.test(userAgent);
 }
 
 /**
@@ -139,6 +141,19 @@ export function offersAppSheet(
     !declinedApp(cookie) &&
     !NO_SHEET.test(pathname)
   );
+}
+
+/**
+ * Runs in <head>: marks <html> with `data-android` for Android browsers (not
+ * crawlers or Lighthouse), which app.css shows the app's banner to (`AppBanner`).
+ * Before the first paint, like the theme, so the HTML is the same for everyone
+ * and the page never jumps when the banner appears.
+ */
+export const ANDROID_SCRIPT = `if (/${ANDROID.source}/i.test(navigator.userAgent) && !/${ROBOT.source}/i.test(navigator.userAgent)) document.documentElement.dataset.android = "";`;
+
+/** Whether a page has the app's banner: not `/app`, signing in or admin. */
+export function showsAppBanner(pathname: string) {
+  return !NO_SHEET.test(pathname);
 }
 
 /** Keeps the sheet away for good. */

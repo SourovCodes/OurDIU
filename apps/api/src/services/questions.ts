@@ -35,7 +35,7 @@ import {
   semesterRecency,
   submissionStatusOrder,
 } from "./common";
-import { rankCopies } from "./versions";
+import { hasVersions, rankCopies } from "./versions";
 
 /**
  * A question with its lookup names. The submission counts are columns kept up to date
@@ -219,7 +219,10 @@ export async function getQuestion(
     // Unpublished papers in this order; published ones are ranked by `rankCopies`.
     .orderBy(submissionStatusOrder, desc(submissions.createdAt));
 
-  const published = rankCopies(rows.filter((r) => r.status === "published"));
+  const published = rankCopies(
+    rows.filter((r) => r.status === "published"),
+    { versioned: hasVersions(question.examType.name) },
+  );
   const others = rows
     .filter((r) => r.status !== "published")
     .map((copy) => ({ copy, version: null, versionLabel: null }));

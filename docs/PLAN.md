@@ -96,6 +96,7 @@ Design mockups (website, Material app, and the rejected iOS style): <https://cla
     - **When.** Triggers set `questions.versions_pending` (migration 0032) whenever a published paper is added, unpublished, moved or deleted, or its text is read; the 5-minute text cron (`TEXT_CRON`) takes, in turn, a missing text, then pending exams (newest first, several a run while no call is needed; an exam waits while a paper's text is still to be read), then a rating, so it still makes at most one AI call a run, 288 a day. The backfill (about 1,675 ratings and 244 exams) takes about a week.
     - **Ranking** (`rankCopies`, at read time): quality (unrated counts as 50) plus 5 points per net like, at most 20 either way, so readers can correct the AI but votes can't lift a poor copy over a good one; then views, then newest. `GET /api/v1/questions/{id}` lists the best copy of each version first (the version most students uploaded first), then the other copies, and gives each published paper `version` (1, 2, …) and `versionLabel`. The installed apps get the better order without an update.
     - **The page.** One version: the list is as before, ranked, "the clearest first". Several: "2 versions of this exam", each version under its label with its best copy shown and the others folded ("2 more copies", open when the selected paper is among them); the phone switcher groups by version, and the bar above the paper names its version.
+    - **Midterms and finals only** (owner, 30 October 2026). A quiz exam is mostly different sections' quizzes (each section gets its own questions), so versions there would be noise: an exam type whose name starts with "Mid" or "Final" (`hasVersions`) gets versions, ranking by quality and the rating backfill; quizzes (232 exams on production, 105 with several copies) keep the old order by votes, then views, then newest, in one list. The upload check still rates every paper, which costs nothing.
     - Left out on purpose: no admin tools to regroup or relabel (an admin re-run of the check or any change to the exam regroups it), and no version headings in the app yet (it needs a mockup first).
 
 ## Roadmap
@@ -207,7 +208,8 @@ Done (2 October 2026): Change of Address from diuqbank.com to ourdiu.com is file
 ### Versions and quality of copies (decision 68)
 
 - [x] Quality in the upload check, versions from the papers' texts with an AI call only for the unclear ones, ranking, the question page (30 October 2026).
-- [ ] After the deploy (remote migrations 0031 and 0032 with the owner): watch the cron's runs for a week while it rates older papers and sorts the 562 multi-copy exams; then look at a sample of labels and orders on production and tune the prompt or `SAME_PAPER_MATCH` if needed.
+- [x] Midterms and finals only; quizzes keep the vote order (30 October 2026).
+- [ ] After the deploy (CI applied migrations 0031 and 0032 on 30 October 2026): watch the cron's runs for a week while it rates older papers and sorts the 458 multi-copy midterms and finals; then look at a sample of labels and orders on production and tune the prompt or `SAME_PAPER_MATCH` if needed.
 - [ ] Later: version headings in the app's paper switcher (mockup first); show admins a paper's rating and note on its review page; flag versions the AI labels as another exam ("Class test 2" under Class Test 3) for an admin to move.
 
 ### Most viewed today (decision 24)

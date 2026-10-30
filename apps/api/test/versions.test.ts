@@ -2,12 +2,13 @@ import { env } from "cloudflare:workers";
 import type { QuestionDetail } from "@ourdiu/shared";
 import { eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
-import { questions, semesters, submissions } from "../src/db/schema";
+import { examTypes, questions, semesters, submissions } from "../src/db/schema";
 import { saveText } from "../src/services/paper-text";
 import {
   clusterTexts,
   groupNextVersions,
   groupVersions,
+  hasVersions,
   rankCopies,
   rateNextPaper,
   saveQuality,
@@ -18,13 +19,19 @@ import { api, db, seedQuestion, seedSubmission, seedTaxonomy } from "./helpers";
 type Taxonomy = Awaited<ReturnType<typeof seedTaxonomy>>;
 
 let t: Taxonomy;
+let quiz: { id: number };
 
 beforeAll(async () => {
   t = await seedTaxonomy();
+  const [row] = await db()
+    .insert(examTypes)
+    .values({ name: `Quiz ${crypto.randomUUID()}` })
+    .returning();
+  quiz = row!;
 });
 
 /** Each call gets an exam of its own (a new semester, so the combination is new). */
-async function seedExam() {
+async function seedExam(examTypeId?: number) {
   const [semester] = await db()
     .insert(semesters)
     .values({ name: `Term ${crypto.randomUUID()}` })
@@ -33,7 +40,7 @@ async function seedExam() {
     departmentId: t.cse.id,
     courseId: t.algorithms.id,
     semesterId: semester!.id,
-    examTypeId: t.final.id,
+    examTypeId: examTypeId ?? t.final.id,
   });
 }
 
@@ -177,14 +184,17 @@ describe("rankCopies", () => {
   it("ranks one version by quality, with votes as a correction", () => {
     expect(
       order(
-        rankCopies([
-          copy(1, { quality: 70 }),
-          copy(2, { quality: 90 }),
-          // Unrated counts as 50, and three net likes add 15.
-          copy(3, { likeCount: 4, dislikeCount: 1 }),
-          // Votes are capped: they can't lift a poor copy over a good one.
-          copy(4, { quality: 20, likeCount: 30 }),
-        ]),
+        rankCopies(
+          [
+            copy(1, { quality: 70 }),
+            copy(2, { quality: 90 }),
+            // Unrated counts as 50, and three net likes add 15.
+            copy(3, { likeCount: 4, dislikeCount: 1 }),
+            // Votes are capped: they can't lift a poor copy over a good one.
+            copy(4, { quality: 20, likeCount: 30 }),
+          ],
+          { versioned: true },
+        ),
       ),
     ).toEqual([
       [2, null, null],
@@ -199,15 +209,18 @@ describe("rankCopies", () => {
     const b = { versionGroup: 2, versionLabel: "Set B" };
     expect(
       order(
-        rankCopies([
-          copy(1, { ...b, quality: 95 }),
-          copy(2, { ...a, quality: 60 }),
-          copy(3, { ...a, quality: 80 }),
-          copy(4, { ...b, quality: 40 }),
-          copy(5, { ...a, quality: 70 }),
-          // Couldn't be grouped (no text): goes with the largest version.
-          copy(6, { quality: 75 }),
-        ]),
+        rankCopies(
+          [
+            copy(1, { ...b, quality: 95 }),
+            copy(2, { ...a, quality: 60 }),
+            copy(3, { ...a, quality: 80 }),
+            copy(4, { ...b, quality: 40 }),
+            copy(5, { ...a, quality: 70 }),
+            // Couldn't be grouped (no text): goes with the largest version.
+            copy(6, { quality: 75 }),
+          ],
+          { versioned: true },
+        ),
       ),
     ).toEqual([
       [3, 1, "Set A"],
@@ -216,6 +229,38 @@ describe("rankCopies", () => {
       [5, 1, "Set A"],
       [2, 1, "Set A"],
       [4, 2, "Set B"],
+    ]);
+  });
+
+  it("ranks a quiz's copies by votes, without versions", () => {
+    expect(
+      order(
+        rankCopies(
+          [
+            copy(1, { quality: 95, versionGroup: 1, versionLabel: "A" }),
+            copy(2, { quality: 20, likeCount: 2, versionGroup: 2 }),
+            copy(3, { quality: 60, viewCount: 9 }),
+          ],
+          { versioned: false },
+        ),
+      ),
+    ).toEqual([
+      [2, null, null],
+      [3, null, null],
+      [1, null, null],
+    ]);
+  });
+});
+
+describe("hasVersions", () => {
+  it("covers midterms and finals, not quizzes", () => {
+    expect(
+      ["Midterm", "Mid-term", " Final", "final exam"].map(hasVersions),
+    ).toEqual([true, true, true, true]);
+    expect(["Quiz", "Class Test", "Lab Evaluation"].map(hasVersions)).toEqual([
+      false,
+      false,
+      false,
     ]);
   });
 });
@@ -392,6 +437,45 @@ describe("groupVersions", () => {
     expect(await groupVersions(db(), versionsEnv, question.id)).toBe("wait");
   });
 
+  it("leaves a quiz's copies in one list, without asking the AI", async () => {
+    const question = await seedExam(quiz.id);
+    const a = await seedPaper(question.id, SET_A);
+    const b = await seedPaper(question.id, SET_B, { likeCount: 0 });
+    // Say it had been grouped before.
+    await db()
+      .update(submissions)
+      .set({ versionGroup: 2, versionLabel: "Set B" })
+      .where(eq(submissions.id, b.id));
+    const gemini = fakeGemini({ versions: [] });
+
+    expect(
+      await groupVersions(db(), versionsEnv, question.id, {
+        fetch: gemini.fetch,
+      }),
+    ).toBe("done");
+    expect(gemini.calls).toHaveLength(0);
+    expect(await versionsOf(question.id)).toEqual([
+      { id: a.id, group: null, label: null },
+      { id: b.id, group: null, label: null },
+    ]);
+
+    // Ranked as before ratings: the better rated copy doesn't come first.
+    await saveQuality(db(), b.id, 95, "Sharp scan");
+    await saveQuality(db(), a.id, 30, "Blurry photo");
+    await db()
+      .update(submissions)
+      .set({ viewCount: 5 })
+      .where(eq(submissions.id, a.id));
+    const res = await api(`/api/v1/questions/${question.id}`);
+    const detail = (await res.json()) as QuestionDetail;
+    expect(
+      detail.submissions.map((s) => [s.id, s.version, s.versionLabel]),
+    ).toEqual([
+      [a.id, null, null],
+      [b.id, null, null],
+    ]);
+  });
+
   it("sorts pending exams in the cron until one needs the AI", async () => {
     const same = await seedExam();
     await seedPaper(same.id, SET_A);
@@ -428,6 +512,13 @@ describe("rateNextPaper", () => {
 
     const single = await seedExam();
     const lone = await seedPaper(single.id, SET_A);
+    // Quizzes aren't rated, however many copies they have.
+    const quizExam = await seedExam(quiz.id);
+    const quizPapers = [
+      await seedPaper(quizExam.id, SET_A),
+      await seedPaper(quizExam.id, SET_B),
+      await seedPaper(quizExam.id, SET_A_PHOTO),
+    ];
     const busy = await seedExam();
     const first = await seedPaper(busy.id, SET_A);
     const second = await seedPaper(busy.id, SET_A_PHOTO);
@@ -465,6 +556,13 @@ describe("rateNextPaper", () => {
     expect(
       await rateNextPaper(db(), versionsEnv, { fetch: gemini.fetch }),
     ).toBeNull();
+    for (const paper of quizPapers) {
+      expect(
+        await db().query.submissions.findFirst({
+          where: eq(submissions.id, paper.id),
+        }),
+      ).toMatchObject({ quality: null, qualityNote: null });
+    }
 
     // Nothing without a key.
     expect(

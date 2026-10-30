@@ -101,3 +101,29 @@ export const verification = sqliteTable(
   },
   (t) => [index("verification_identifier_idx").on(t.identifier)],
 );
+
+/** Passkeys a user added to log in with (the `passkey` plugin in `lib/auth.ts`). */
+export const passkey = sqliteTable(
+  "passkey",
+  {
+    id: text().primaryKey(),
+    /** What the user called it, or empty: the page names it by `aaguid` then. */
+    name: text(),
+    publicKey: text().notNull(),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    credentialID: text().notNull(),
+    counter: integer().notNull(),
+    deviceType: text().notNull(),
+    backedUp: integer({ mode: "boolean" }).notNull(),
+    transports: text(),
+    createdAt: integer({ mode: "timestamp_ms" }),
+    /** The authenticator's model (all zeros when the device keeps it private). */
+    aaguid: text(),
+  },
+  (t) => [
+    index("passkey_user_id_idx").on(t.userId),
+    index("passkey_credential_id_idx").on(t.credentialID),
+  ],
+);

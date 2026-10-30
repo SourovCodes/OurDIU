@@ -1,6 +1,7 @@
 import { DIU_EMAIL_DOMAINS } from "@ourdiu/shared/constants";
 import {
   Bookmark,
+  KeyRound,
   Loader2,
   ThumbsUp,
   Upload,
@@ -18,11 +19,13 @@ import {
   ExamShape,
   type ExamKind,
 } from "~/components/exam-badge";
+import { useState } from "react";
 import { FormMessage } from "~/components/form";
 import { Button } from "~/components/ui/button";
 import { apiFetch, readJson, setCookieHeaders } from "~/lib/api.server";
 import { safeRedirect } from "~/lib/redirect";
 import { cn } from "~/lib/utils";
+import { logInWithPasskey, PasskeyError } from "~/lib/passkey";
 import { getUser } from "~/lib/session.server";
 import type { Route } from "./+types/login";
 import { NARROW_PAGE } from "~/components/page-header";
@@ -131,6 +134,50 @@ function reasonFor(back: string): { title: string; text: string } {
   };
 }
 
+/**
+ * Logs in with a passkey added on the Account page, then loads the page it's for
+ * (a full load, so every loader sees the new session).
+ */
+function PasskeyButton({
+  back,
+  onError,
+}: {
+  back: string;
+  onError: (message: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="lg"
+      disabled={busy}
+      className="w-full text-base hover:state-layer"
+      onClick={async () => {
+        setBusy(true);
+        try {
+          await logInWithPasskey();
+          window.location.assign(back);
+        } catch (error) {
+          setBusy(false);
+          onError(
+            error instanceof PasskeyError
+              ? error.message
+              : "Something went wrong. Please try again.",
+          );
+        }
+      }}
+    >
+      {busy ? (
+        <Loader2 className="animate-spin" aria-hidden />
+      ) : (
+        <KeyRound aria-hidden />
+      )}
+      Log in with a passkey
+    </Button>
+  );
+}
+
 /** What an account is for, as in the app's sign-in card. */
 const PERKS: {
   icon: LucideIcon;
@@ -166,6 +213,7 @@ export default function Login({
   const submitting = useNavigation().state !== "idle";
   const back = safeRedirect(searchParams.get("redirectTo"));
   const reason = reasonFor(back);
+  const [passkeyError, setPasskeyError] = useState<string>();
 
   return (
     <div
@@ -185,10 +233,13 @@ export default function Login({
         </div>
         <Form
           method="post"
+          onSubmit={() => setPasskeyError(undefined)}
           className="grid max-w-xl gap-4 rounded-[2rem] bg-primary-container p-6 text-primary-container-foreground sm:p-8"
         >
           <input type="hidden" name="redirectTo" value={back} />
-          <FormMessage message={actionData?.error ?? loaderData.error} />
+          <FormMessage
+            message={passkeyError ?? actionData?.error ?? loaderData.error}
+          />
           <Button
             type="submit"
             variant="outline"
@@ -203,6 +254,7 @@ export default function Login({
             )}
             {submitting ? "Opening Google…" : "Continue with Google"}
           </Button>
+          <PasskeyButton back={back} onError={setPasskeyError} />
           <p className="text-sm text-pretty opacity-85">
             New here? Your account is made the first time you log in. We only
             keep your name, email and photo (

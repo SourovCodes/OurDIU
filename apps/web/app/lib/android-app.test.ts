@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ANDROID_SCRIPT,
   APP_DECLINES_COOKIE,
   APP_SHEET_COOKIE,
   appDeclines,
@@ -8,6 +9,7 @@ import {
   installSource,
   offersAppSheet,
   playStoreUrl,
+  showsAppBanner,
 } from "./android-app";
 
 const ANDROID =
@@ -33,6 +35,33 @@ describe("offersAppSheet", () => {
       expect(offersAppSheet(ANDROID, "", path)).toBe(false);
     }
     expect(offersAppSheet(ANDROID, "", "/apply")).toBe(true);
+  });
+});
+
+describe("ANDROID_SCRIPT", () => {
+  const marks = (userAgent: string) => {
+    const root = { dataset: {} as Record<string, string> };
+    new Function("navigator", "document", ANDROID_SCRIPT)(
+      { userAgent },
+      { documentElement: root },
+    );
+    return "android" in root.dataset;
+  };
+
+  it("marks Android browsers, not crawlers or iPhones", () => {
+    expect(marks(ANDROID)).toBe(true);
+    expect(marks(GOOGLEBOT)).toBe(false);
+    expect(marks(IPHONE)).toBe(false);
+  });
+});
+
+describe("showsAppBanner", () => {
+  it("leaves out the app's page, signing in and admin", () => {
+    expect(showsAppBanner("/questions/1")).toBe(true);
+    expect(showsAppBanner("/")).toBe(true);
+    expect(showsAppBanner("/app")).toBe(false);
+    expect(showsAppBanner("/login")).toBe(false);
+    expect(showsAppBanner("/admin/submissions")).toBe(false);
   });
 });
 

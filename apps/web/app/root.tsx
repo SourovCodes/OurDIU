@@ -27,6 +27,7 @@ import { SiteHeader } from "~/components/site-header";
 import { SocialIcon } from "~/components/social-icons";
 import { buttonVariants } from "~/components/ui/button";
 import { TopLoader } from "~/components/top-loader";
+import { AppBanner } from "~/components/app-banner";
 import { AppSheet } from "~/components/app-sheet";
 import { routineIsLive } from "~/lib/routine.server";
 import { LazyToaster } from "~/components/lazy-toaster";
@@ -46,6 +47,7 @@ import { apiFetch, readJson } from "~/lib/api.server";
 import { getUser, hasSessionCookie } from "~/lib/session.server";
 import { THEATER_SCRIPT } from "~/lib/theater";
 import { THEME_SCRIPT } from "~/lib/theme";
+import { ANDROID_SCRIPT } from "~/lib/android-app";
 
 export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
@@ -160,13 +162,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     // THEME_SCRIPT adds the `dark` class before hydration, THEATER_SCRIPT
-    // `data-theater`.
+    // `data-theater`, ANDROID_SCRIPT `data-android`.
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: THEATER_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: ANDROID_SCRIPT }} />
         {analyticsEnabled && (
           <script dangerouslySetInnerHTML={{ __html: GTAG_SCRIPT }} />
         )}
@@ -188,6 +191,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               user={data?.user ?? null}
               needsAttention={data?.needsAttention ?? 0}
             />
+            <AppBanner />
             {/* At least a screen tall, so the footer always starts below the
                 screen: a page that grows or changes never moves it in view, and
                 Chrome counts such moves as layout shifts (docs/PLAN.md, decision 51). */}

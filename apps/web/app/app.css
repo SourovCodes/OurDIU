@@ -367,6 +367,16 @@ html body[data-scroll-locked] {
   }
 }
 
+/* The app's banner (components/app-banner.tsx) shows only in Android browsers,
+   marked by ANDROID_SCRIPT before the first paint. Outside any layer, so it beats
+   the utilities. */
+[data-app-banner] {
+  display: none;
+}
+html[data-android] [data-app-banner] {
+  display: block;
+}
+
 @utility container {
   @apply mx-auto px-4 sm:px-6;
 }

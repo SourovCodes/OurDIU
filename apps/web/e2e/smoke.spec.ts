@@ -68,6 +68,30 @@ test("Android visitors are asked once to use the app", async ({
   await expect(sheet).toHaveCount(0);
 });
 
+test("Android visitors always see the app's banner", async ({
+  page,
+  isMobile,
+}) => {
+  const banner = page.getByRole("complementary", { name: "The OurDIU app" });
+  await page.goto("/questions/1");
+  if (!isMobile) {
+    // In the HTML for everyone, shown only to Android browsers.
+    await expect(banner).toBeHidden();
+    return;
+  }
+  await expect(
+    banner.getByRole("link", { name: "Get the app" }),
+  ).toHaveAttribute(
+    "href",
+    /^intent:\/\/ourdiu\.com\/questions\/1#Intent;.*utm_medium%253Dapp_banner/,
+  );
+  await page.goto("/routine");
+  await expect(banner).toBeVisible();
+  // Not on the app's own page.
+  await page.goto("/app");
+  await expect(banner).toHaveCount(0);
+});
+
 test("the hub leads to the question bank and its questions", async ({
   page,
 }) => {

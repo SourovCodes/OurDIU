@@ -179,7 +179,8 @@ export async function uploadPaperWithNewCourse(page: Page, courseName: string) {
   await page.getByLabel("PDF file").setInputFiles({
     name: "paper.pdf",
     mimeType: "application/pdf",
-    buffer: Buffer.from("%PDF-1.7\n%e2e upload\n"),
+    // Different every time: the same file can't be uploaded twice.
+    buffer: Buffer.from(`%PDF-1.7\n%e2e upload ${crypto.randomUUID()}\n`),
   });
   await page.getByRole("button", { name: "Share paper" }).click();
   // Lands on the paper's status page.

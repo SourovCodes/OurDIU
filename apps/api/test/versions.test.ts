@@ -10,8 +10,10 @@ import {
   groupVersions,
   hasVersions,
   rankCopies,
+  qualityOf,
   rateNextPaper,
-  saveQuality,
+  settleVersions,
+  type CopyChecks,
   type VersionsEnv,
 } from "../src/services/versions";
 import { api, db, seedQuestion, seedSubmission, seedTaxonomy } from "./helpers";
@@ -64,15 +66,23 @@ async function seedPaper(
 const versionsEnv = {
   BUCKET: env.BUCKET,
   GEMINI_API_KEY: "gemini-test-key",
-  GEMINI_TEXT_MODEL: "gemini-test",
+  GEMINI_TEXT_MODEL: "gemini-test-lite",
+  GEMINI_MODEL: "gemini-test",
   COMPRESSOR_API_KEY: "",
   PDF_PROCESSOR_URL: "https://pdf-processor.test",
 } satisfies VersionsEnv;
 
-/** Answers Gemini with `reply` (or `response`) and keeps the requests' bodies. */
+/** Sets a paper's rating as the upload check would have. */
+async function setQuality(id: number, quality: number) {
+  await db().update(submissions).set({ quality }).where(eq(submissions.id, id));
+}
+
+/** Answers Gemini with `reply` (or `response`) and keeps the requests' URLs and bodies. */
 function fakeGemini(reply: unknown, response?: () => Response) {
   const calls: string[] = [];
-  const fetcher = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+  const urls: string[] = [];
+  const fetcher = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    urls.push(String(input));
     calls.push(String(init?.body ?? ""));
     return (
       response?.() ??
@@ -86,7 +96,7 @@ function fakeGemini(reply: unknown, response?: () => Response) {
       })
     );
   }) as typeof fetch;
-  return { fetch: fetcher, calls };
+  return { fetch: fetcher, calls, urls };
 }
 
 const HEADER = `Daffodil International University
@@ -326,8 +336,8 @@ describe("groupVersions", () => {
     const b = await seedPaper(question.id, SET_B);
     const gemini = fakeGemini({
       versions: [
-        { groups: [1], label: "Set A" },
-        { groups: [2], label: " Set B " },
+        { groups: [1], difference: "Q1 on sorting", label: "Set A" },
+        { groups: [2], difference: "Q1 on graphs", label: " Set B " },
       ],
     });
 
@@ -337,6 +347,7 @@ describe("groupVersions", () => {
       }),
     ).toBe("ai");
     expect(gemini.calls).toHaveLength(1);
+    expect(gemini.urls[0]).toContain("/models/gemini-test:");
     // One sample text per cluster, after the instructions.
     expect(gemini.calls[0]).toContain("=== Group 2 ===");
     expect(await versionsOf(question.id)).toEqual([
@@ -360,8 +371,8 @@ describe("groupVersions", () => {
     });
 
     // The page shows the best copy of each version first.
-    await saveQuality(db(), photo.id, 90, "Sharp scan");
-    await saveQuality(db(), a.id, 40, "Blurry photo");
+    await setQuality(photo.id, 90);
+    await setQuality(a.id, 40);
     const res = await api(`/api/v1/questions/${question.id}`);
     const detail = (await res.json()) as QuestionDetail;
     expect(
@@ -385,7 +396,7 @@ describe("groupVersions", () => {
     await seedPaper(question.id, SET_A);
     await seedPaper(question.id, SET_B);
     const gemini = fakeGemini({
-      versions: [{ groups: [1, 2], label: "Midterm" }],
+      versions: [{ groups: [1, 2], difference: "", label: "Midterm" }],
     });
     await groupVersions(db(), versionsEnv, question.id, {
       fetch: gemini.fetch,
@@ -423,7 +434,9 @@ describe("groupVersions", () => {
     expect(await pending(question.id)).toBe(true);
 
     // An answer that leaves a group out: dropped until the exam changes again.
-    const partial = fakeGemini({ versions: [{ groups: [1], label: "A" }] });
+    const partial = fakeGemini({
+      versions: [{ groups: [1], difference: "Q1 on sorting", label: "A" }],
+    });
     await groupVersions(db(), versionsEnv, question.id, {
       fetch: partial.fetch,
     });
@@ -460,8 +473,8 @@ describe("groupVersions", () => {
     ]);
 
     // Ranked as before ratings: the better rated copy doesn't come first.
-    await saveQuality(db(), b.id, 95, "Sharp scan");
-    await saveQuality(db(), a.id, 30, "Blurry photo");
+    await setQuality(b.id, 95);
+    await setQuality(a.id, 30);
     await db()
       .update(submissions)
       .set({ viewCount: 5 })
@@ -485,8 +498,8 @@ describe("groupVersions", () => {
     await seedPaper(different.id, SET_B);
     const gemini = fakeGemini({
       versions: [
-        { groups: [1], label: "Set A" },
-        { groups: [2], label: "Set B" },
+        { groups: [1], difference: "Q1 on sorting", label: "Set A" },
+        { groups: [2], difference: "Q1 on graphs", label: "Set B" },
       ],
     });
 
@@ -504,10 +517,84 @@ describe("groupVersions", () => {
   });
 });
 
+describe("settleVersions", () => {
+  const version = (groups: number[], difference: string, label: string) => ({
+    groups,
+    difference,
+    label,
+  });
+
+  it("merges a version without a difference into the largest", () => {
+    expect(
+      settleVersions([
+        version([1, 2], "Q1 on sorting", "Batch 61"),
+        version([3], "", "Set B"),
+        version([4], "Q1 on graphs", "Batch 62"),
+      ]),
+    ).toEqual([
+      { groups: [1, 2, 3], label: "Batch 61" },
+      { groups: [4], label: "Batch 62" },
+    ]);
+  });
+
+  it("is one version when fewer than two differ", () => {
+    expect(
+      settleVersions([
+        version([1], "Q1 on sorting", "A"),
+        version([2], " ", "B"),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("numbers a label already taken, and names an unlabelled version", () => {
+    expect(
+      settleVersions([
+        version([1], "Q1 on sorting", "Starts with sorting"),
+        version([2], "Q1 on sorting, Q2 on heaps", "starts with sorting"),
+        version([3], "Q1 on graphs", " "),
+      ]).map((v) => v.label),
+    ).toEqual(["Starts with sorting", "starts with sorting (2)", "Version 3"]);
+  });
+});
+
+const CLEAN_SCAN: CopyChecks = {
+  readable: "all",
+  writing: "none",
+  straight: "flat",
+  light: "even",
+  missing: "none",
+  source: "scan",
+  note: "Sharp scan",
+};
+
+describe("qualityOf", () => {
+  it("takes points off 100 for each flaw", () => {
+    expect(qualityOf(CLEAN_SCAN)).toBe(98);
+    expect(qualityOf({ ...CLEAN_SCAN, source: "digital" })).toBe(100);
+    // A photo at an angle with notes over the questions and page 2 missing.
+    expect(
+      qualityOf({
+        ...CLEAN_SCAN,
+        source: "photo",
+        straight: "strong",
+        writing: "heavy",
+        missing: "content",
+      }),
+    ).toBe(49);
+    expect(qualityOf({ ...CLEAN_SCAN, readable: "none" })).toBe(0);
+  });
+});
+
 describe("rateNextPaper", () => {
   it("rates unrated papers, exams with the most copies first", async () => {
     // Earlier tests left unrated papers; rate them all, then check the order.
-    const gemini = fakeGemini({ quality: 73.4, qualityNote: "Good photo" });
+    const gemini = fakeGemini({
+      ...CLEAN_SCAN,
+      writing: "light",
+      straight: "slight",
+      source: "photo",
+      note: "Good photo",
+    });
     while (await rateNextPaper(db(), versionsEnv, { fetch: gemini.fetch }));
 
     const single = await seedExam();
@@ -523,7 +610,7 @@ describe("rateNextPaper", () => {
     const first = await seedPaper(busy.id, SET_A);
     const second = await seedPaper(busy.id, SET_A_PHOTO);
     // Rated by the upload check already.
-    await saveQuality(db(), second.id, 90, "Sharp scan");
+    await setQuality(second.id, 90);
 
     expect(
       await rateNextPaper(db(), versionsEnv, { fetch: gemini.fetch }),
@@ -531,7 +618,20 @@ describe("rateNextPaper", () => {
     const rated = await db().query.submissions.findFirst({
       where: eq(submissions.id, first.id),
     });
-    expect(rated).toMatchObject({ quality: 73, qualityNote: "Good photo" });
+    expect(rated).toMatchObject({
+      quality: 89,
+      qualityNote: "Good photo",
+      qualityChecks: {
+        readable: "all",
+        writing: "light",
+        straight: "slight",
+        light: "even",
+        missing: "none",
+        source: "photo",
+      },
+    });
+    // The model that tells copies apart, not the text backfill's.
+    expect(gemini.urls.at(-1)).toContain("/models/gemini-test:");
 
     // A failure is kept, so the paper isn't tried again; a rate limit isn't.
     const limited = fakeGemini(
@@ -541,7 +641,7 @@ describe("rateNextPaper", () => {
     expect(
       await rateNextPaper(db(), versionsEnv, { fetch: limited.fetch }),
     ).toBe(lone.id);
-    const broken = fakeGemini({ quality: "high" });
+    const broken = fakeGemini({ ...CLEAN_SCAN, readable: "high" });
     expect(
       await rateNextPaper(db(), versionsEnv, { fetch: broken.fetch }),
     ).toBe(lone.id);

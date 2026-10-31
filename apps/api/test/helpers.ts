@@ -157,6 +157,9 @@ export function jsonRequest(
   };
 }
 
-export function pdfFile(name = "paper.pdf") {
-  return new File(["%PDF-1.7\n%test\n"], name, { type: "application/pdf" });
+/** A tiny PDF, different every time (the same file can't be uploaded twice). */
+export function pdfFile(name = "paper.pdf", body = crypto.randomUUID()) {
+  return new File([`%PDF-1.7\n%test ${body}\n`], name, {
+    type: "application/pdf",
+  });
 }

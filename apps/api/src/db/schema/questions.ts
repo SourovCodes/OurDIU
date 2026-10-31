@@ -127,6 +127,12 @@ export const submissions = sqliteTable(
     fileKey: text().notNull().unique(),
     fileSize: integer().notNull(),
     /**
+     * SHA-256 of the PDF, in hex: the same file uploaded again is refused, and a
+     * published duplicate is shown once (services/versions.ts). Set at upload; older
+     * papers are hashed by the cron (`hashNextPapers`), "" if the file is missing.
+     */
+    fileSha256: text(),
+    /**
      * The public copy: the PDF with a credit line on every page, compressed. Made
      * in the background when the paper is published; the original is kept as is.
      */
@@ -163,16 +169,23 @@ export const submissions = sqliteTable(
      */
     textPending: integer({ mode: "boolean" }).notNull().default(false),
     /**
-     * How readable the PDF is, 0 to 100, judged by the AI (`QUALITY_INSTRUCTIONS` in
-     * services/versions.ts): by the upload check, or by the cron for older papers.
-     * Ranks the copies of an exam. Null until rated.
+     * How readable the PDF is, 0 to 100: worked out by `qualityOf` from the AI's
+     * checks of the copy (`qualityChecks`, services/versions.ts), made by the upload
+     * check, or by the cron for older papers. Ranks the copies of an exam. Null until
+     * rated.
      */
     quality: integer(),
     /** The AI's reason for the rating, or why rating failed; for admins. */
     qualityNote: text(),
     /**
+     * The AI's checks of the copy (`CopyChecks`: readable, writing, straight, light,
+     * missing, source), kept so the points `qualityOf` takes off can be changed
+     * without asking the AI again. Null for papers rated before the checks.
+     */
+    qualityChecks: text({ mode: "json" }).$type<Record<string, string>>(),
+    /**
      * Which version of its exam the paper is (the same questions as the other papers
-     * of its group), and that version's label, e.g. "Set B" or "Retake". Written only
+     * of its group), and that version's label, e.g. "Batch 62" or "Sections A-D". Written only
      * by `groupVersions` (services/versions.ts); null while the exam has one version.
      */
     versionGroup: integer(),
@@ -211,6 +224,8 @@ export const submissions = sqliteTable(
       t.createdAt,
     ),
     index("submissions_uploader_id_idx").on(t.uploaderId),
+    // Finds an uploaded file's duplicates, and the papers still to be hashed (null).
+    index("submissions_file_sha256_idx").on(t.fileSha256),
     // The admin catalog counts submissions per department, course, semester and exam type.
     index("submissions_department_id_idx").on(t.departmentId),
     index("submissions_course_id_idx").on(t.courseId),

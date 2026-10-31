@@ -55,6 +55,7 @@ const createSubmissionRoute = createRoute({
     400: errorResponse("Invalid file"),
     401: errorResponse("Not signed in"),
     403: errorResponse("Not a DIU email address"),
+    409: errorResponse("The PDF is already on the site"),
     422: errorResponse("Invalid fields"),
     429: errorResponse("Too many uploads"),
   },

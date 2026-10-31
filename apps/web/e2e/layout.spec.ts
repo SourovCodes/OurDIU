@@ -29,7 +29,6 @@ const PUBLIC_PAGES = [
   "/questions/departments/1",
   "/questions/courses/1",
   "/questions/1",
-  "/questions/12",
   "/questions/contributors",
   "/questions/contributors/ayesha",
   "/diuqbank",

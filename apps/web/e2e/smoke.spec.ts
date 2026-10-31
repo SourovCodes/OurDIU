@@ -490,49 +490,6 @@ test("question page embeds the PDF, shows its uploader and switches submissions"
   expect(pendingFile.status()).toBe(404);
 });
 
-test("an exam's versions show their best copy first", async ({
-  page,
-  isMobile,
-}) => {
-  await page.goto("/questions/12");
-  const list = page.getByRole("region", { name: "2 versions of this exam" });
-  await expect(list).toBeVisible();
-
-  // The clearest copy of the version most students uploaded is shown.
-  await expect(paperLink(page, "By Tanvir Hasan")).toHaveAttribute(
-    "aria-current",
-    "true",
-  );
-  const version = (name: string) => list.getByRole("region", { name });
-  await expect(
-    version("Sections A-D").getByRole("link", { name: /By Tanvir Hasan/ }),
-  ).toBeVisible();
-  await expect(
-    version("Retake").getByRole("link", { name: /By Ayesha Rahman/ }),
-  ).toBeVisible();
-
-  // The other copies of a version are folded under its best one.
-  const others = version("Sections A-D").getByRole("link", {
-    name: /By Nusrat Jahan/,
-  });
-  await expect(others).toBeHidden();
-  await version("Sections A-D").getByText("2 more copies").click();
-  await others.click();
-  await expect(page).toHaveURL(/submission=19$/);
-  await expect(others).toHaveAttribute("aria-current", "true");
-
-  // The paper says which version it is.
-  await version("Retake")
-    .getByRole("link", { name: /By Ayesha/ })
-    .click();
-  await expect(page).toHaveURL(/submission=20$/);
-  if (!isMobile) {
-    await expect(
-      page.getByText("Retake", { exact: true }).filter({ visible: true }),
-    ).toHaveCount(2);
-  }
-});
-
 test("the paper can be read full screen", async ({ page, isMobile }) => {
   test.skip(isMobile, "Phones open the file instead");
   // The test browser has no PDF viewer; say it has, so the paper is embedded.

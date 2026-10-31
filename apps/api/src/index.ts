@@ -5,19 +5,15 @@ import { fillCourseAliases } from "./services/course-aliases";
 import { hashNextPapers } from "./services/duplicates";
 import { readNextMissingText, type TextJob } from "./services/paper-text";
 import { refreshTrending } from "./services/trending";
-import { groupNextVersions, rateNextPaper } from "./services/versions";
 import { handleWatermarkBatch, type WatermarkJob } from "./services/watermark";
 
 const app = createApp();
 
 /**
- * Makes one AI call per run, 288 a day at most. In turn: a missing paper text
- * (services/paper-text.ts, GEMINI_TEXT_MODEL, inside its free quota of about 500
- * requests a day), then an exam to sort into versions (needs its papers' texts), then
- * an older paper to rate (services/versions.ts, GEMINI_MODEL, which tells copies
- * apart better; both are rare once the backlog is done). Before them, it hashes a few
- * older papers' files to find duplicates (services/duplicates.ts, no AI). Must match
- * a cron in wrangler.jsonc.
+ * Reads one missing paper text per run (services/paper-text.ts): 288 a day, inside
+ * Gemini's free quota for GEMINI_TEXT_MODEL (about 500 requests a day for Flash-Lite)
+ * with room for retries. Before that, it hashes a few older papers' files to find
+ * duplicates (services/duplicates.ts, no AI). Must match a cron in wrangler.jsonc.
  */
 export const TEXT_CRON = "*/5 * * * *";
 
@@ -47,15 +43,13 @@ export default {
       );
     }
   },
-  // The crons in wrangler.jsonc: texts, versions and ratings, courses' short names,
-  // and "Most viewed today".
+  // The crons in wrangler.jsonc: the text backfill (and hashes), courses' short
+  // names, and "Most viewed today".
   async scheduled(controller, env) {
     if (controller.cron === TEXT_CRON) {
       const db = createDb(env.DB);
       await hashNextPapers(db, env.BUCKET);
-      if ((await readNextMissingText(db, env)) !== null) return;
-      if ((await groupNextVersions(db, env)) !== null) return;
-      await rateNextPaper(db, env);
+      await readNextMissingText(db, env);
     } else if (controller.cron === ALIASES_CRON) {
       await fillCourseAliases(createDb(env.DB), env);
     } else {

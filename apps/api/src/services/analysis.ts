@@ -44,12 +44,6 @@ import {
   listSemesters,
 } from "./taxonomy";
 import { changesWereRequested } from "./review";
-import {
-  COPY_CHECK_INSTRUCTIONS,
-  copyChecksJsonSchema,
-  copyChecksSchema,
-  saveRating,
-} from "./versions";
 import { watermarkIfMissing, type WatermarkJob } from "./watermark";
 
 /** The queue message. A message whose run was superseded by a re-run is ignored. */
@@ -110,8 +104,6 @@ Then read the paper's header (usually at the top of the first page) and extract:
 - examType: the kind of exam (e.g. midterm, final). For a lab exam, give the plain kind on the lab course ("Final", not "Lab Final"); lab evaluations and lab quizzes take the existing exam type for quizzes and class tests, whatever it is named.
 - section and batch: only if printed on the paper (short labels such as "A" or "61"), otherwise null.
 
-Then copy: check the copy (used to show students the clearest of several copies of one exam), ${COPY_CHECK_INSTRUCTIONS}
-
 Finally, text: ${TEXT_INSTRUCTIONS}
 
 Matching and spelling rules:
@@ -159,7 +151,6 @@ export const analysisResponseJsonSchema = {
     examType: value("Exam type"),
     section: nullableString,
     batch: nullableString,
-    copy: copyChecksJsonSchema,
     text: { type: "string" },
   },
   required: [
@@ -172,7 +163,6 @@ export const analysisResponseJsonSchema = {
     "examType",
     "section",
     "batch",
-    "copy",
     "text",
   ],
 };
@@ -197,8 +187,6 @@ export const analysisReplySchema = z.object({
   examType: replyValue,
   section: z.string().nullable(),
   batch: z.string().nullable(),
-  /** The copy's checks (`COPY_CHECK_INSTRUCTIONS`), rated and stored on the submission. */
-  copy: copyChecksSchema,
   /** The paper's text (`TEXT_INSTRUCTIONS`), stored in `submission_texts`. */
   text: z.string(),
 });
@@ -644,9 +632,7 @@ export async function runAnalysis(
       rawResponse: text,
       completedAt: new Date(),
     });
-    // Before publishing, so a paper the check publishes has its text and rating at
-    // once.
-    await saveRating(db, job.submissionId, reply.data.copy);
+    // Before publishing, so a paper the check publishes has its text at once.
     await saveText(db, job.submissionId, {
       text: cleanText(reply.data.text),
       error: null,

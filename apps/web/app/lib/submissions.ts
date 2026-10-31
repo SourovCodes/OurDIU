@@ -98,31 +98,6 @@ export function paperTitles(
   );
 }
 
-/**
- * A question's published papers (best first, as the API ranks them) by version: the
- * version most students uploaded first, each version's best copy first. One group
- * with no label while the exam has one version.
- */
-export function paperVersions<
-  T extends Pick<Submission, "version" | "versionLabel">,
->(published: T[]): { label: string | null; copies: T[] }[] {
-  const versions = new Map<
-    number | null,
-    { label: string | null; copies: T[] }
-  >();
-  for (const paper of published) {
-    const version = versions.get(paper.version) ?? {
-      label: paper.versionLabel,
-      copies: [],
-    };
-    version.copies.push(paper);
-    versions.set(paper.version, version);
-  }
-  return [...versions.entries()]
-    .sort(([a], [b]) => (a ?? 0) - (b ?? 0))
-    .map(([, version]) => version);
-}
-
 /** e.g. "1 paper", "1,586 questions". */
 export function plural(count: number, singular: string, pluralForm?: string) {
   return `${formatNumber(count)} ${count === 1 ? singular : (pluralForm ?? `${singular}s`)}`;

@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   paperDetails,
   paperTitles,
-  paperVersions,
   pickSubmission,
   plural,
 } from "./submissions";
@@ -21,8 +20,6 @@ const submission = (id: number, status: Submission["status"]): Submission => ({
   uploader: null,
   fileUrl: status === "published" ? `/api/v1/submissions/${id}/file` : null,
   text: null,
-  version: null,
-  versionLabel: null,
 });
 
 const submissions = [
@@ -50,33 +47,6 @@ describe("pickSubmission", () => {
 
   it("returns null when nothing is published", () => {
     expect(pickSubmission(submissions.slice(2), null)).toBeNull();
-  });
-});
-
-describe("paperVersions", () => {
-  it("keeps one unlabelled group while the exam has one version", () => {
-    const papers = [submission(1, "published"), submission(2, "published")];
-    expect(paperVersions(papers)).toEqual([{ label: null, copies: papers }]);
-  });
-
-  it("groups the ranked papers by version, keeping their order", () => {
-    const paper = (id: number, version: number, versionLabel: string) => ({
-      ...submission(id, "published"),
-      version,
-      versionLabel,
-    });
-    // As the API ranks them: each version's best copy, then the others.
-    const [a1, b1, a2, a3, b2] = [
-      paper(5, 1, "Set A"),
-      paper(9, 2, "Set B"),
-      paper(3, 1, "Set A"),
-      paper(7, 1, "Set A"),
-      paper(1, 2, "Set B"),
-    ];
-    expect(paperVersions([a1, b1, a2, a3, b2])).toEqual([
-      { label: "Set A", copies: [a1, a2, a3] },
-      { label: "Set B", copies: [b1, b2] },
-    ]);
   });
 });
 

@@ -36,7 +36,6 @@ import {
   submissionStatusOrder,
 } from "./common";
 import { withoutDuplicates } from "./duplicates";
-import { hasVersions, rankCopies } from "./versions";
 
 /**
  * A question with its lookup names. The submission counts are columns kept up to date
@@ -209,51 +208,35 @@ export async function getQuestion(
       },
       watermarkedFileKey: submissions.watermarkedFileKey,
       text: submissionTexts.text,
-      quality: submissions.quality,
       fileSha256: submissions.fileSha256,
-      versionGroup: submissions.versionGroup,
-      versionLabel: submissions.versionLabel,
     })
     .from(submissions)
     .leftJoin(user, eq(user.id, submissions.uploaderId))
     .leftJoin(submissionTexts, eq(submissionTexts.submissionId, submissions.id))
     .where(eq(submissions.questionId, id))
-    // Unpublished papers in this order; published ones are ranked by `rankCopies`.
-    .orderBy(submissionStatusOrder, desc(submissions.createdAt));
-
-  const published = rankCopies(
+    // Ranking within a status: score, then views, then newest.
+    .orderBy(
+      submissionStatusOrder,
+      desc(sql`${submissions.likeCount} - ${submissions.dislikeCount}`),
+      desc(submissions.viewCount),
+      desc(submissions.createdAt),
+    );
+  // The same file published twice is shown once.
+  const shown = new Set(
     withoutDuplicates(rows.filter((r) => r.status === "published")),
-    { versioned: hasVersions(question.examType.name) },
   );
-  const others = rows
-    .filter((r) => r.status !== "published")
-    .map((copy) => ({ copy, version: null, versionLabel: null }));
 
   return {
     ...question,
-    submissions: [...published, ...others].map(
-      ({
-        copy: {
-          watermarkedFileKey,
-          text,
-          quality: _quality,
-          fileSha256: _fileSha256,
-          versionGroup: _versionGroup,
-          versionLabel: _storedLabel,
-          ...row
-        },
-        version,
-        versionLabel,
-      }) => ({
+    submissions: rows
+      .filter((r) => r.status !== "published" || shown.has(r))
+      .map(({ watermarkedFileKey, text, fileSha256: _fileSha256, ...row }) => ({
         ...row,
         createdAt: row.createdAt.toISOString(),
         fileUrl: publicFileUrl(row, watermarkedFileKey, filesUrl),
         // Only a published paper's text is public, like its file.
         text: row.status === "published" ? text : null,
-        version,
-        versionLabel,
-      }),
-    ),
+      })),
   };
 }
 

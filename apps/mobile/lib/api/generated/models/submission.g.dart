@@ -21,8 +21,6 @@ Submission _$SubmissionFromJson(Map<String, dynamic> json) => Submission(
       : Uploader.fromJson(json['uploader'] as Map<String, dynamic>),
   fileUrl: json['fileUrl'] as String?,
   text: json['text'] as String?,
-  version: (json['version'] as num?)?.toInt(),
-  versionLabel: json['versionLabel'] as String?,
 );
 
 Map<String, dynamic> _$SubmissionToJson(Submission instance) =>
@@ -39,8 +37,6 @@ Map<String, dynamic> _$SubmissionToJson(Submission instance) =>
       'uploader': instance.uploader,
       'fileUrl': instance.fileUrl,
       'text': instance.text,
-      'version': instance.version,
-      'versionLabel': instance.versionLabel,
     };
 
 const _$SubmissionStatusEnumMap = {

@@ -38,11 +38,7 @@ export const questions = sqliteTable(
     rejectedCount: integer().notNull().default(0),
     /** created_at of the newest published submission; null while none is published. */
     latestPublishedAt: integer({ mode: "timestamp_ms" }),
-    /**
-     * Its published papers or their texts changed since they were last sorted into
-     * versions (services/versions.ts). Set by triggers (migration 0032), cleared by the
-     * cron once it has grouped them; never set it from application code.
-     */
+    /** No longer used: exams aren't sorted into versions (docs/PLAN.md, decision 71). */
     versionsPending: integer({ mode: "boolean" }).notNull().default(false),
     ...timestamps,
   },
@@ -77,10 +73,6 @@ export const questions = sqliteTable(
     // One exam of a course across semesters. Without it SQLite (no ANALYZE stats)
     // picks the exam type index and scans a fifth of the table.
     index("questions_course_id_exam_type_id_idx").on(t.courseId, t.examTypeId),
-    // The cron's next exam to sort into versions.
-    index("questions_versions_pending_idx")
-      .on(t.id)
-      .where(sql`${t.versionsPending} = 1`),
   ],
 );
 
@@ -128,7 +120,7 @@ export const submissions = sqliteTable(
     fileSize: integer().notNull(),
     /**
      * SHA-256 of the PDF, in hex: the same file uploaded again is refused, and a
-     * published duplicate is shown once (services/versions.ts). Set at upload; older
+     * published duplicate is shown once (services/duplicates.ts). Set at upload; older
      * papers are hashed by the cron (`hashNextPapers`), "" if the file is missing.
      */
     fileSha256: text(),
@@ -169,25 +161,12 @@ export const submissions = sqliteTable(
      */
     textPending: integer({ mode: "boolean" }).notNull().default(false),
     /**
-     * How readable the PDF is, 0 to 100: worked out by `qualityOf` from the AI's
-     * checks of the copy (`qualityChecks`, services/versions.ts), made by the upload
-     * check, or by the cron for older papers. Ranks the copies of an exam. Null until
-     * rated.
+     * No longer used: copies aren't rated or sorted into versions (docs/PLAN.md,
+     * decision 71). To be dropped with `questions.versions_pending`.
      */
     quality: integer(),
-    /** The AI's reason for the rating, or why rating failed; for admins. */
     qualityNote: text(),
-    /**
-     * The AI's checks of the copy (`CopyChecks`: readable, writing, straight, light,
-     * missing, source), kept so the points `qualityOf` takes off can be changed
-     * without asking the AI again. Null for papers rated before the checks.
-     */
     qualityChecks: text({ mode: "json" }).$type<Record<string, string>>(),
-    /**
-     * Which version of its exam the paper is (the same questions as the other papers
-     * of its group), and that version's label, e.g. "Batch 62" or "Sections A-D". Written only
-     * by `groupVersions` (services/versions.ts); null while the exam has one version.
-     */
     versionGroup: integer(),
     versionLabel: text(),
     ...timestamps,
@@ -237,12 +216,6 @@ export const submissions = sqliteTable(
     index("submissions_text_pending_idx")
       .on(t.id)
       .where(sql`${t.textPending} = 1`),
-    // The quality backfill's next paper: published and never rated.
-    index("submissions_quality_pending_idx")
-      .on(t.id)
-      .where(
-        sql`${t.status} = 'published' and ${t.quality} is null and ${t.qualityNote} is null`,
-      ),
   ],
 );
 

@@ -554,9 +554,9 @@ export async function groupVersions(
     return "ai";
   } catch (err) {
     console.error(`Sorting exam ${questionId} into versions failed`, err);
-    // Rate limited: try again on a later run. Anything else waits for the next
-    // change to the exam, keeping the versions it had.
-    if (err instanceof GeminiError && err.status === 429) {
+    // Rate limited or out of credit: try again on a later run. Anything else waits
+    // for the next change to the exam, keeping the versions it had.
+    if (err instanceof GeminiError && err.mustWait) {
       await wait();
     }
     return "ai";
@@ -597,7 +597,8 @@ export const RATING_PROMPT = `The attached PDF was uploaded to a university ques
  * The cron's backfill of ratings for papers published before the upload check rated
  * them: one paper per run, midterms' and finals' only, exams with the most copies
  * first (single copies have nothing to be ranked against). A failure is stored in
- * `quality_note`, so the paper isn't tried again, except Gemini's rate limit.
+ * `quality_note`, so the paper isn't tried again, except when Gemini is rate
+ * limited or out of credit.
  * Returns the paper it tried.
  */
 export async function rateNextPaper(
@@ -638,7 +639,7 @@ export async function rateNextPaper(
     await saveRating(db, next.id, reply.data);
   } catch (err) {
     console.error(`Rating paper ${next.id} failed`, err);
-    if (!(err instanceof GeminiError && err.status === 429)) {
+    if (!(err instanceof GeminiError && err.mustWait)) {
       const message = err instanceof Error ? err.message : String(err);
       await saveRating(db, next.id, null, `Couldn't rate: ${message}`);
     }

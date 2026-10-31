@@ -433,6 +433,16 @@ describe("groupVersions", () => {
     ).toBe("ai");
     expect(await pending(question.id)).toBe(true);
 
+    // Out of prepaid credit: the same.
+    const unpaid = fakeGemini(
+      null,
+      () => new Response("credits depleted", { status: 402 }),
+    );
+    await groupVersions(db(), versionsEnv, question.id, {
+      fetch: unpaid.fetch,
+    });
+    expect(await pending(question.id)).toBe(true);
+
     // An answer that leaves a group out: dropped until the exam changes again.
     const partial = fakeGemini({
       versions: [{ groups: [1], difference: "Q1 on sorting", label: "A" }],
@@ -633,14 +643,14 @@ describe("rateNextPaper", () => {
     // The model that tells copies apart, not the text backfill's.
     expect(gemini.urls.at(-1)).toContain("/models/gemini-test:");
 
-    // A failure is kept, so the paper isn't tried again; a rate limit isn't.
-    const limited = fakeGemini(
-      null,
-      () => new Response("quota", { status: 429 }),
-    );
-    expect(
-      await rateNextPaper(db(), versionsEnv, { fetch: limited.fetch }),
-    ).toBe(lone.id);
+    // A failure is kept, so the paper isn't tried again; a rate limit or running
+    // out of credit isn't.
+    for (const status of [429, 402]) {
+      const limited = fakeGemini(null, () => new Response("quota", { status }));
+      expect(
+        await rateNextPaper(db(), versionsEnv, { fetch: limited.fetch }),
+      ).toBe(lone.id);
+    }
     const broken = fakeGemini({ ...CLEAN_SCAN, readable: "high" });
     expect(
       await rateNextPaper(db(), versionsEnv, { fetch: broken.fetch }),

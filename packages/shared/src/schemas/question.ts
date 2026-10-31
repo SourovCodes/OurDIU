@@ -65,15 +65,6 @@ export const submissionSchema = submissionStatsSchema
      * until it has been read.
      */
     text: z.string().nullable(),
-    /**
-     * Which version of the exam this paper is, when students uploaded papers with
-     * different questions (sets, sections, a retake): 1 for the version most of them
-     * uploaded, then 2, … Null while the exam has one version, and unless published.
-     * Published papers come best first: the best copy of each version, then the others.
-     */
-    version: z.number().int().nullable(),
-    /** How the version differs from the others, e.g. "Set B" or "Retake"; null with `version`. */
-    versionLabel: z.string().nullable(),
   })
   .meta({ id: "Submission" });
 export type Submission = z.infer<typeof submissionSchema>;

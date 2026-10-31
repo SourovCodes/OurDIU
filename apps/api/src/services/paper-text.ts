@@ -196,7 +196,7 @@ export async function runTextRead(
     const retryable =
       !(err instanceof PermanentError) &&
       !(err instanceof GeminiError && !err.retryable);
-    const rateLimited = err instanceof GeminiError && err.status === 429;
+    const rateLimited = err instanceof GeminiError && err.mustWait;
     const final = options.once
       ? !rateLimited
       : !retryable || attempt >= TEXT_MAX_ATTEMPTS;

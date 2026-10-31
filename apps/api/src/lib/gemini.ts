@@ -14,6 +14,14 @@ export class GeminiError extends Error {
     super(message);
     this.name = "GeminiError";
   }
+
+  /**
+   * Rate limited (429) or out of prepaid credit (402): nothing is wrong with the
+   * request, so the cron's backfills try the same one again later.
+   */
+  get mustWait(): boolean {
+    return this.status === 429 || this.status === 402;
+  }
 }
 
 type GenerateContentResponse = {
@@ -106,7 +114,7 @@ export async function generateJson(
       res.status === 400
         ? `Gemini couldn't process the file: ${detail}`
         : `Gemini returned ${res.status}: ${detail}`,
-      res.status === 429 || res.status >= 500,
+      res.status === 429 || res.status === 402 || res.status >= 500,
       res.status,
     );
   }

@@ -38,8 +38,6 @@ export const questions = sqliteTable(
     rejectedCount: integer().notNull().default(0),
     /** created_at of the newest published submission; null while none is published. */
     latestPublishedAt: integer({ mode: "timestamp_ms" }),
-    /** No longer used: exams aren't sorted into versions (docs/PLAN.md, decision 71). */
-    versionsPending: integer({ mode: "boolean" }).notNull().default(false),
     ...timestamps,
   },
   (t) => [
@@ -160,15 +158,6 @@ export const submissions = sqliteTable(
      * never write it from application code.
      */
     textPending: integer({ mode: "boolean" }).notNull().default(false),
-    /**
-     * No longer used: copies aren't rated or sorted into versions (docs/PLAN.md,
-     * decision 71). To be dropped with `questions.versions_pending`.
-     */
-    quality: integer(),
-    qualityNote: text(),
-    qualityChecks: text({ mode: "json" }).$type<Record<string, string>>(),
-    versionGroup: integer(),
-    versionLabel: text(),
     ...timestamps,
   },
   (t) => [

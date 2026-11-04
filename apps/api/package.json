@@ -34,7 +34,7 @@
     "hono": "catalog:",
     "pdf-lib": "^1.17.1",
     "qrcode-generator": "^2.0.4",
-    "unpdf": "^1.9.1",
+    "unpdf": "^2.1.0",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -155,6 +155,7 @@ Map<String, Object?> profileJson({
   'image': null,
   'studentId': null,
   'showStudentId': true,
+  'emailNotifications': true,
   'publishedCount': published,
   'viewCount': views,
   'canContribute': canContribute,

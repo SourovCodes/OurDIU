@@ -8,6 +8,7 @@ import type {
 import { and, eq, sql } from "drizzle-orm";
 import type { Database } from "../db/client";
 import { submissionReports, submissions, submissionVotes } from "../db/schema";
+import { emailAdmins } from "./email/outbox";
 import { isSaved } from "./saved";
 import { AppError } from "../lib/errors";
 
@@ -183,9 +184,19 @@ export async function reportSubmission(
   }
 
   const after = await db.query.submissions.findFirst({
-    columns: { status: true },
+    columns: { status: true, pendingReportCount: true },
     where: eq(submissions.id, submissionId),
   });
+  // Admins hear of a paper's first open report; more wait in the same list.
+  if (after?.pendingReportCount === 1) {
+    await emailAdmins(
+      db,
+      submissionId,
+      "report",
+      [input.reason, input.details].filter(Boolean).join("\n"),
+      reporterId,
+    );
+  }
   return { ...report, submissionHidden: after?.status !== "published" };
 }
 

@@ -74,6 +74,7 @@ export 'models/resubmit_input.dart';
 export 'models/post_review_message_input.dart';
 export 'models/update_username_input.dart';
 export 'models/update_student_id_input.dart';
+export 'models/update_email_notifications_input.dart';
 export 'models/routine_live.dart';
 export 'models/routine_version.dart';
 export 'models/routine_department.dart';

@@ -1038,6 +1038,9 @@
           "showStudentId": {
             "type": "boolean"
           },
+          "emailNotifications": {
+            "type": "boolean"
+          },
           "publishedCount": {
             "type": "integer"
           },
@@ -1056,6 +1059,7 @@
           "image",
           "studentId",
           "showStudentId",
+          "emailNotifications",
           "publishedCount",
           "viewCount",
           "canContribute"
@@ -1638,6 +1642,17 @@
         },
         "required": [
           "studentId"
+        ]
+      },
+      "UpdateEmailNotificationsInput": {
+        "type": "object",
+        "properties": {
+          "emailNotifications": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "emailNotifications"
         ]
       },
       "RoutineLive": {
@@ -4845,6 +4860,47 @@
           },
           "422": {
             "description": "Not a student ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/email-notifications": {
+      "put": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Turn emails about your papers on or off",
+        "description": "Emails say when your paper is published, rejected or needs changes, or a reviewer writes to you; admins also hear of reports and uploaders' replies. On by default.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmailNotificationsInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Your choice",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateEmailNotificationsInput"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
             "content": {
               "application/json": {
                 "schema": {

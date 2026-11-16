@@ -4,7 +4,7 @@ export const AUTHOR = {
   firstName: "Sourov",
   avatar: "/sourov.webp",
   /** Where bugs, ideas, removal and data requests go (/contact and the legal pages). */
-  email: "sourov2305101004@diu.edu.bd",
+  email: "info@ourdiu.com",
   links: [
     {
       network: "linkedin",

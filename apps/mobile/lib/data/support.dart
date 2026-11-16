@@ -7,7 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Where feedback goes: the address on the site's contact page (AUTHOR.email).
-const supportEmail = 'sourov2305101004@diu.edu.bd';
+const supportEmail = 'info@ourdiu.com';
 
 /// OurDIU's public Telegram group, for bugs, ideas and questions (the website's
 /// COMMUNITY_URL, on /contact and in its footer).

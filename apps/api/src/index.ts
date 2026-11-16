@@ -3,6 +3,7 @@ import { createDb } from "./db/client";
 import { handleAnalysisBatch, type AnalysisJob } from "./services/analysis";
 import { fillCourseAliases } from "./services/course-aliases";
 import { hashNextPapers } from "./services/duplicates";
+import { sendQueuedEmails } from "./services/email/send";
 import { readNextMissingText, type TextJob } from "./services/paper-text";
 import { refreshTrending } from "./services/trending";
 import { handleWatermarkBatch, type WatermarkJob } from "./services/watermark";
@@ -10,7 +11,8 @@ import { handleWatermarkBatch, type WatermarkJob } from "./services/watermark";
 const app = createApp();
 
 /**
- * Reads one missing paper text per run (services/paper-text.ts): 288 a day, inside
+ * Sends the queued emails (services/email), then reads one missing paper text per
+ * run (services/paper-text.ts): 288 a day, inside
  * Gemini's free quota for GEMINI_TEXT_MODEL (about 500 requests a day for Flash-Lite)
  * with room for retries. Before that, it hashes a few older papers' files to find
  * duplicates (services/duplicates.ts, no AI). Must match a cron in wrangler.jsonc.
@@ -48,6 +50,7 @@ export default {
   async scheduled(controller, env) {
     if (controller.cron === TEXT_CRON) {
       const db = createDb(env.DB);
+      await sendQueuedEmails(db, env);
       await hashNextPapers(db, env.BUCKET);
       await readNextMissingText(db, env);
     } else if (controller.cron === ALIASES_CRON) {

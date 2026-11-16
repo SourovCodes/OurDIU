@@ -43,6 +43,7 @@ import {
   listExamTypes,
   listSemesters,
 } from "./taxonomy";
+import { emailUploader } from "./email/outbox";
 import { changesWereRequested } from "./review";
 import { watermarkIfMissing, type WatermarkJob } from "./watermark";
 
@@ -545,6 +546,7 @@ export async function publishIfConfirmed(
     .returning({ id: submissions.id });
   if (published.length === 0) return false;
   await watermarkIfMissing(db, watermarkQueue, submissionId);
+  await emailUploader(db, submissionId, "published", null, null);
   return true;
 }
 

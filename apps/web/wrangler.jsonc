@@ -71,6 +71,14 @@
       "bucket_name": "ourdiu-files",
     },
   ],
+  // Emails about papers' reviews, from noreply@ourdiu.com (Cloudflare Email Sending;
+  // the API's services/email). Local dev and tests only simulate sending.
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "allowed_sender_addresses": ["noreply@ourdiu.com"],
+    },
+  ],
   // Request limits for the API's costly or spammable endpoints: per user (the API's
   // rate-limit middleware), or per page token for view counts (the API's
   // lib/view-token.ts). Never per IP address: most visitors share a few campus
@@ -141,6 +149,7 @@
   // The API's scheduled handler: every 10 minutes rebuilds "Most viewed today" from
   // the last 24 hours' views (services/trending.ts); every 5 reads one missing paper
   // text (TEXT_CRON, services/paper-text.ts); every hour fills courses' short names
-  // (ALIASES_CRON, services/course-aliases.ts).
+  // (ALIASES_CRON, services/course-aliases.ts). The 5-minute run first sends the
+  // queued emails (services/email).
   "triggers": { "crons": ["*/10 * * * *", "*/5 * * * *", "0 * * * *"] },
 }

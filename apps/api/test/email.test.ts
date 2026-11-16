@@ -119,7 +119,7 @@ describe("emails to the uploader", () => {
     ]);
   });
 
-  it("emails when the AI check publishes the paper", async () => {
+  it("doesn't email when the AI check publishes the paper", async () => {
     const { t, paper } = await seedPaper("pending_review");
     const values = {
       department: { id: t.cse.id, name: t.cse.name },
@@ -135,7 +135,7 @@ describe("emails to the uploader", () => {
       values as never,
     );
     expect(published).toBe(true);
-    expect((await queued(paper.id)).map((r) => r.kind)).toEqual(["published"]);
+    expect(await queued(paper.id)).toEqual([]);
   });
 
   it("doesn't email an admin about their own paper", async () => {

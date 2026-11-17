@@ -17,6 +17,7 @@ import '../models/post_review_message_input.dart';
 import '../models/profile.dart';
 import '../models/resubmit_input.dart';
 import '../models/review_activity.dart';
+import '../models/update_email_notifications_input.dart';
 import '../models/update_student_id_input.dart';
 import '../models/update_username_input.dart';
 
@@ -102,5 +103,13 @@ abstract class AccountClient {
   @PUT('/api/v1/me/student-id')
   Future<UpdateStudentIdInput> putApiV1MeStudentId({
     @Body() required UpdateStudentIdInput body,
+  });
+
+  /// Turn emails about your papers on or off.
+  ///
+  /// Emails say when your paper is published, rejected or needs changes, or a reviewer writes to you; admins also hear of reports and uploaders' replies. On by default.
+  @PUT('/api/v1/me/email-notifications')
+  Future<UpdateEmailNotificationsInput> putApiV1MeEmailNotifications({
+    @Body() required UpdateEmailNotificationsInput body,
   });
 }

@@ -76,7 +76,7 @@ Website: https://ourdiu.com
 
 - **App category:** Education
 - **Tags:** Education, Study tools (pick what Play offers closest to these)
-- **Email:** sourov2305101004@diu.edu.bd
+- **Email:** info@ourdiu.com
 - **Website:** https://ourdiu.com
 - **Privacy policy:** https://ourdiu.com/privacy
 

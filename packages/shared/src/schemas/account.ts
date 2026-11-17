@@ -105,6 +105,14 @@ export const updateStudentIdInputSchema = z
   .meta({ id: "UpdateStudentIdInput" });
 export type UpdateStudentIdInput = z.infer<typeof updateStudentIdInputSchema>;
 
+/** Whether the signed-in user gets emails about their papers' reviews. */
+export const updateEmailNotificationsInputSchema = z
+  .object({ emailNotifications: z.boolean() })
+  .meta({ id: "UpdateEmailNotificationsInput" });
+export type UpdateEmailNotificationsInput = z.infer<
+  typeof updateEmailNotificationsInputSchema
+>;
+
 /** The signed-in user, with the counts their contributor page shows. */
 export const profileSchema = z
   .object({
@@ -119,6 +127,8 @@ export const profileSchema = z
     studentId: z.string().nullable(),
     /** Whether their contributor page shows the student ID. */
     showStudentId: z.boolean(),
+    /** Whether they get emails about their papers' reviews (and, for admins, new work). */
+    emailNotifications: z.boolean(),
     publishedCount: z.number().int(),
     /** Views of all their published papers. */
     viewCount: z.number().int(),

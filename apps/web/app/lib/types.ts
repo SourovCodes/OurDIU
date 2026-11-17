@@ -13,4 +13,6 @@ export type SessionUser = {
   studentId?: string | null;
   /** Whether their contributor page shows the student ID. */
   showStudentId?: boolean;
+  /** Whether they get emails about their papers' reviews. */
+  emailNotifications?: boolean;
 };

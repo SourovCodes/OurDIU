@@ -22,6 +22,7 @@ interface Env {
   REPORT_LIMITER: RateLimit;
   MESSAGE_LIMITER: RateLimit;
   VIEW_LIMITER: RateLimit;
+  EMAIL: SendEmail;
   SITE_URL: string;
   FILES_URL: string;
   PDF_PROCESSOR_URL: string;
@@ -48,6 +49,7 @@ declare namespace Cloudflare {
     REPORT_LIMITER: RateLimit;
     MESSAGE_LIMITER: RateLimit;
     VIEW_LIMITER: RateLimit;
+    EMAIL: SendEmail;
     SITE_URL: string;
     FILES_URL: string;
     PDF_PROCESSOR_URL: string;

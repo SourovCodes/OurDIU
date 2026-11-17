@@ -48,6 +48,7 @@ async function updateProfile(request: Request, form: FormData) {
     .toLowerCase();
   const studentId = String(form.get("studentId") ?? "").trim();
   const showStudentId = form.get("showStudentId") === "on";
+  const emailNotifications = form.get("emailNotifications") === "on";
   const fieldErrors: Record<string, string> = {};
   if (!name || name.length > MAX_NAME) {
     fieldErrors.name = `Enter a name of up to ${MAX_NAME} characters.`;
@@ -94,6 +95,21 @@ async function updateProfile(request: Request, form: FormData) {
         error: "Could not update your profile. Please try again.",
       },
       { status: studentRes.status },
+    );
+  }
+
+  const emailRes = await apiFetch(request, "/api/v1/me/email-notifications", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ emailNotifications }),
+  });
+  if (!emailRes.ok) {
+    return data<ActionResult>(
+      {
+        intent: "profile",
+        error: "Could not update your profile. Please try again.",
+      },
+      { status: emailRes.status },
     );
   }
 
@@ -301,6 +317,7 @@ function ProfileSection({
     username?: string | null;
     studentId?: string | null;
     showStudentId?: boolean;
+    emailNotifications?: boolean;
   };
   avatar?: ActionResult;
   profile?: ActionResult;
@@ -389,6 +406,16 @@ function ProfileSection({
             <p className="text-xs text-muted-foreground">
               The Google account you log in with. Private.
             </p>
+            <div className="flex min-h-11 items-center gap-3">
+              <Checkbox
+                id="email-notifications"
+                name="emailNotifications"
+                defaultChecked={user.emailNotifications ?? true}
+              />
+              <Label htmlFor="email-notifications" className="font-normal">
+                Email me when my papers are reviewed
+              </Label>
+            </div>
           </div>
           <FormMessage message={profile?.error} />
         </div>

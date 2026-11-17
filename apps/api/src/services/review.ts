@@ -5,7 +5,13 @@ import type {
 } from "@ourdiu/shared";
 import { and, asc, eq, sql } from "drizzle-orm";
 import type { Database } from "../db/client";
-import { submissionMessages, submissions, user } from "../db/schema";
+import {
+  submissionMessages,
+  submissions,
+  user,
+  type EmailKind,
+} from "../db/schema";
+import { emailAdmins, emailUploader } from "./email/outbox";
 
 // A submission's review conversation (submission_messages). Every entry is written
 // with the bump of the other side's unread count, in one batch. A step is recorded
@@ -20,9 +26,18 @@ export type NewReviewMessage = {
   body?: string | null;
 };
 
+/** Admins' decisions the uploader is always emailed about. */
+const DECISION_EMAILS = {
+  published: "published",
+  rejected: "rejected",
+  changes_requested: "changes_requested",
+} as const satisfies Partial<Record<ReviewMessageKind, EmailKind>>;
+
 /**
  * Adds an entry and counts it as unread for the other side: the uploader for an
- * admin's entry, admins for the uploader's.
+ * admin's entry, admins for the uploader's. The other side is emailed about a
+ * decision, and about other entries only when they're the first unread one, so a run
+ * of messages makes one email until it's read.
  */
 export async function addReviewMessage(
   db: Database,
@@ -32,7 +47,7 @@ export async function addReviewMessage(
     message.role === "admin"
       ? { uploaderUnread: sql`uploader_unread + 1` }
       : { adminUnread: sql`admin_unread + 1` };
-  await db.batch([
+  const [, counts] = await db.batch([
     db.insert(submissionMessages).values({
       submissionId: message.submissionId,
       authorId: message.authorId,
@@ -44,8 +59,26 @@ export async function addReviewMessage(
       .update(submissions)
       // `updated_at` (the paper's last change) stays as it is.
       .set({ ...unread, updatedAt: sql`updated_at` })
-      .where(eq(submissions.id, message.submissionId)),
+      .where(eq(submissions.id, message.submissionId))
+      .returning({
+        uploaderUnread: submissions.uploaderUnread,
+        adminUnread: submissions.adminUnread,
+      }),
   ]);
+  const unreadNow = counts[0];
+  if (!unreadNow) return;
+
+  const { submissionId, authorId, kind, body } = message;
+  if (message.role === "admin") {
+    const decision = DECISION_EMAILS[kind as keyof typeof DECISION_EMAILS];
+    if (decision) {
+      await emailUploader(db, submissionId, decision, body, authorId);
+    } else if (kind === "comment" && unreadNow.uploaderUnread === 1) {
+      await emailUploader(db, submissionId, "admin_message", body, authorId);
+    }
+  } else if (unreadNow.adminUnread === 1) {
+    await emailAdmins(db, submissionId, "uploader_update", body, authorId);
+  }
 }
 
 /**

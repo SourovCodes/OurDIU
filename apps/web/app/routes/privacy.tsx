@@ -137,6 +137,12 @@ export default function Privacy() {
         <ul>
           <li>To sign you in and show your account and uploads.</li>
           <li>
+            To email you when one of your papers is published, rejected or needs
+            changes, or a reviewer writes to you (and, for admins, when a paper
+            is reported or an uploader replies). Turn these emails off on{" "}
+            <Link to="/account">your account</Link>.
+          </li>
+          <li>
             To review uploads: check that a PDF is a question paper, read its
             details, compress it and publish it.
           </li>
@@ -200,7 +206,8 @@ export default function Privacy() {
         <ul>
           <li>
             <strong>Cloudflare</strong> hosts the site, its database and its
-            file storage, including uploaded PDFs and profile photos.
+            file storage, including uploaded PDFs and profile photos, and sends
+            the site’s emails from noreply@ourdiu.com.
           </li>
           <li>
             <strong>Google</strong> handles sign-in, runs Google Analytics, and
@@ -234,6 +241,9 @@ export default function Privacy() {
             deleting it deletes them too.
           </li>
           <li>
+            An email waiting to be sent, until it is sent (within minutes).
+          </li>
+          <li>
             If your account is deleted, your likes, dislikes, reports and saved
             papers are deleted with it. Papers you published, and the review
             messages you wrote on them, stay, no longer linked to you; ask, and
@@ -245,8 +255,8 @@ export default function Privacy() {
       <LegalSection id="your-rights" title="What you can do">
         <ul>
           <li>
-            Change your name, photo, username and student ID on{" "}
-            <Link to="/account">your account</Link>.
+            Change your name, photo, username and student ID, and turn emails
+            off, on <Link to="/account">your account</Link>.
           </li>
           <li>
             Withdraw uploads that aren’t published yet from{" "}

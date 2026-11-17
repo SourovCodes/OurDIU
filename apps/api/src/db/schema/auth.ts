@@ -38,6 +38,8 @@ export const user = sqliteTable(
     studentId: text(),
     /** Whether the contributor page shows `studentId`; users turn it off on their profile. */
     showStudentId: integer({ mode: "boolean" }).notNull().default(true),
+    /** Whether they get emails about their papers' reviews (and, for admins, new work). */
+    emailNotifications: integer({ mode: "boolean" }).notNull().default(true),
     // Published papers and their views, kept in sync from submissions by triggers
     // (migration 0006) for the contributor pages; never write them from application code.
     publishedSubmissionCount: integer().notNull().default(0),

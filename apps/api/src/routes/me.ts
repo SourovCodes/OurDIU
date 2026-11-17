@@ -4,6 +4,7 @@ import {
   idQuerySchema,
   postReviewMessageInputSchema,
   resubmitInputSchema,
+  updateEmailNotificationsInputSchema,
   updateStudentIdInputSchema,
   updateUsernameInputSchema,
   USERNAME_RULES,
@@ -27,6 +28,7 @@ import {
   reclassifyOwnSubmission,
   replaceOwnSubmissionFile,
   resubmitOwnSubmission,
+  updateEmailNotifications,
   updateStudentId,
   updateUsername,
   withdrawSubmission,
@@ -287,6 +289,28 @@ const updateStudentIdRoute = createRoute({
   },
 });
 
+const updateEmailNotificationsRoute = createRoute({
+  method: "put",
+  path: "/email-notifications",
+  tags,
+  summary: "Turn emails about your papers on or off",
+  description:
+    "Emails say when your paper is published, rejected or needs changes, or a reviewer writes to you; admins also hear of reports and uploaders' replies. On by default.",
+  middleware: [requireAuth] as const,
+  request: {
+    body: {
+      required: true,
+      content: {
+        "application/json": { schema: updateEmailNotificationsInputSchema },
+      },
+    },
+  },
+  responses: {
+    200: jsonResponse(updateEmailNotificationsInputSchema, "Your choice"),
+    401: errorResponse("Not signed in"),
+  },
+});
+
 export const meRoutes = new OpenAPIHono<AppEnv>({
   defaultHook: validationHook,
 })
@@ -401,6 +425,16 @@ export const meRoutes = new OpenAPIHono<AppEnv>({
         c.var.session!.user.id,
         c.req.valid("json").studentId,
         c.req.valid("json").showStudentId,
+      ),
+      200,
+    ),
+  )
+  .openapi(updateEmailNotificationsRoute, async (c) =>
+    c.json(
+      await updateEmailNotifications(
+        c.var.db,
+        c.var.session!.user.id,
+        c.req.valid("json").emailNotifications,
       ),
       200,
     ),

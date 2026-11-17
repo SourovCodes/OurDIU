@@ -49,6 +49,7 @@ export async function getProfile(
       image: user.image,
       studentId: user.studentId,
       showStudentId: user.showStudentId,
+      emailNotifications: user.emailNotifications,
       publishedCount: user.publishedSubmissionCount,
       viewCount: user.publishedViewCount,
     })
@@ -464,6 +465,21 @@ export async function updateStudentId(
       studentId: user.studentId,
       showStudentId: user.showStudentId,
     });
+  if (!row) throw new AppError(404, "NOT_FOUND", "User not found");
+  return row;
+}
+
+/** Turns the user's emails about their papers (and, for admins, new work) on or off. */
+export async function updateEmailNotifications(
+  db: Database,
+  userId: string,
+  emailNotifications: boolean,
+): Promise<{ emailNotifications: boolean }> {
+  const [row] = await db
+    .update(user)
+    .set({ emailNotifications })
+    .where(eq(user.id, userId))
+    .returning({ emailNotifications: user.emailNotifications });
   if (!row) throw new AppError(404, "NOT_FOUND", "User not found");
   return row;
 }

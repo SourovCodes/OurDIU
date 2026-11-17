@@ -99,6 +99,13 @@ export function authOptions(env: Env, db: Database) {
           defaultValue: true,
           input: false,
         },
+        // Changed through /api/v1/me/email-notifications.
+        emailNotifications: {
+          type: "boolean",
+          required: false,
+          defaultValue: true,
+          input: false,
+        },
       },
     },
     hooks: {

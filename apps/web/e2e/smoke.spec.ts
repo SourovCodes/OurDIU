@@ -211,14 +211,14 @@ test("the footer leads to the contact and legal pages", async ({ page }) => {
   await expect(page).toHaveTitle("Contact — OurDIU");
   const main = page.getByRole("main");
   await expect(
-    main.getByRole("link", { name: "sourov2305101004@diu.edu.bd" }),
-  ).toHaveAttribute("href", "mailto:sourov2305101004@diu.edu.bd");
+    main.getByRole("link", { name: "info@ourdiu.com" }),
+  ).toHaveAttribute("href", "mailto:info@ourdiu.com");
   // Each topic starts an email with its own subject.
   await expect(
     main.getByRole("link", { name: "Report a bug" }),
   ).toHaveAttribute(
     "href",
-    /^mailto:sourov2305101004@diu\.edu\.bd\?subject=Bug%20report&body=/,
+    /^mailto:info@ourdiu\.com\?subject=Bug%20report&body=/,
   );
   // Bugs, ideas and questions can also go to the Telegram group.
   await expect(
@@ -277,7 +277,7 @@ test("the account deletion page explains how to ask", async ({ page }) => {
       .getByRole("link", { name: "Email a deletion request" }),
   ).toHaveAttribute(
     "href",
-    /^mailto:sourov2305101004@diu\.edu\.bd\?subject=Delete%20my%20account/,
+    /^mailto:info@ourdiu\.com\?subject=Delete%20my%20account/,
   );
 });
 
@@ -1123,6 +1123,17 @@ test("a contributor can manage their submissions and profile", async ({
   await expect(page.getByText("Profile updated")).toBeVisible();
   await page.reload();
   await expect(show).not.toBeChecked();
+
+  // Emails about reviews are on until turned off.
+  const emails = page.getByRole("checkbox", {
+    name: "Email me when my papers are reviewed",
+  });
+  await expect(emails).toBeChecked();
+  await emails.click();
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Profile updated")).toBeVisible();
+  await page.reload();
+  await expect(emails).not.toBeChecked();
 
   // The email comes from Google and can't be changed on the account page.
   await page.goto("/account");

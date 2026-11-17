@@ -39,6 +39,9 @@ export default [
   // The dropped Marketplace's old page, now a redirect to the hub.
   route("market", "routes/market.ts"),
 
+  // A slide deck to download.
+  route("myslide", "routes/myslide.ts"),
+
   // Platform.
   route("app", "routes/app.tsx"),
   route("about", "routes/about.tsx"),

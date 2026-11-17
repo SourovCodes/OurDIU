@@ -23,13 +23,13 @@
     "teacher-designations": "tsx scripts/teacher-designations.ts"
   },
   "dependencies": {
-    "@better-auth/drizzle-adapter": "^1.7.13",
-    "@better-auth/passkey": "1.7.13",
+    "@better-auth/drizzle-adapter": "^1.7.18",
+    "@better-auth/passkey": "1.7.18",
     "@hono/zod-openapi": "^1.6.3",
     "@ourdiu/shared": "workspace:*",
-    "@scalar/hono-api-reference": "^0.12.14",
-    "better-auth": "^1.7.13",
-    "docx": "^9.14.0",
+    "@scalar/hono-api-reference": "^0.12.18",
+    "better-auth": "^1.7.18",
+    "docx": "^9.15.3",
     "drizzle-orm": "^0.45.4",
     "hono": "catalog:",
     "pdf-lib": "^1.17.1",
@@ -38,7 +38,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "^1.4.7",
+    "@cloudflare/vitest-plugin": "^1.6.0",
     "@types/node": "catalog:",
     "drizzle-kit": "^0.31.11",
     "jszip": "^3.10.2",

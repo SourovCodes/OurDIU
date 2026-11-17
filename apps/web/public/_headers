@@ -2,3 +2,7 @@
 # build gets new URLs and browsers can keep these forever.
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+# /myslide (routes/myslide.ts) sends visitors here; download, not open.
+/files/structure-vs-behavior.pptx
+  Content-Disposition: attachment; filename="Structure vs. Behavior.pptx"
